@@ -1,0 +1,7 @@
+include cartolidar/*.py
+include cartolidar/clidtools/*.py
+include cartolidar/clidax/*.py
+include data/*.*
+global-exclude *.back
+global-exclude *.txt
+global-exclude *.cfg
