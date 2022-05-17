@@ -17,16 +17,19 @@ import types
 import shutil
 import unicodedata
 import pathlib
-
-# Paquetes de terceros
-import psutil
-from dbfread import DBF
+import xml.etree.ElementTree as ET
 try:
     from configparser import RawConfigParser
 except ImportError:  # Python 2
     from ConfigParser import RawConfigParser
 
-import xml.etree.ElementTree as ET
+# Paquetes de terceros
+from dbfread import DBF
+try:
+    import psutil
+    psutilOk = True
+except:
+    psutilOk = False
 
 print(f'clidconfig-> __name__:     <{__name__}>')
 print(f'clidconfig-> __package__ : <{__package__ }>')
@@ -147,16 +150,19 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 # Duplico esta funcion de clidaux para no importar clidaux
 def infoUsuario(verbose):
-    try:
-        esteUsuario = psutil.users()[0].name
-        if verbose:
-            print('clidconfig-> Usuario:', esteUsuario)
-    except:
-        esteUsuario = psutil.users()
-        if verbose:
-            print('clidconfig-> Users:', esteUsuario)
-    if not isinstance(esteUsuario, str) or esteUsuario == '':
-        esteUsuario = 'PC1'
+    if psutilOk:
+        try:
+            esteUsuario = psutil.users()[0].name
+            if verbose:
+                print('clidconfig-> Usuario:', esteUsuario)
+        except:
+            esteUsuario = psutil.users()
+            if verbose:
+                print('clidconfig-> Users:', esteUsuario)
+        if not isinstance(esteUsuario, str) or esteUsuario == '':
+            esteUsuario = 'PC1'
+    else:
+        esteUsuario = 'SinUsuario'
     return esteUsuario
 
 

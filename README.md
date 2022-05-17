@@ -3,12 +3,18 @@
 [![Join the chat at https://gitter.im/cartolidar/cartolidar](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/cartolidar/cartolidar?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Binder](https://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/cartolidar/cartolidar/main)
 
+![cartolidar Logo](https://secure.gravatar.com/avatar/ea09c6d439dc57633702164f23b264e5 "clid image")
+
+
 CartoLidar
 ----------
 
-Tools for Lidar processing focused on Spanish PNOA datasets (https://pnoa.ign.es/el-proyecto-pnoa-lidar)
+Lidar data processing tools focused on Spanish PNOA datasets
 
-Herramientas python para procesado de datos Lidar del PNOA (https://pnoa.ign.es/el-proyecto-pnoa-lidar)
+Herramientas para procesado de datos Lidar del PNOA
+
+Lidar PNOA: https://pnoa.ign.es/el-proyecto-pnoa-lidar
+
 
 Introduction
 ------------
@@ -58,12 +64,22 @@ This version can be instaled in lib/site-packages (ie, using cmd in Windows):
 $ cd path_to_project
 $ pip install .
 ```
-
 or the older way (not recommendable):
 ```
 $ cd path_to_project
 $ python setup.py install
 ```
+
+If you have the source distribution (tar.gz):
+```
+$ pip install path_to_project/cartolidar-X.Y.Z.tar.gz
+```
+If you have the wheel:
+```
+$ pip install path_to_project/cartolidar-X.Y.Z-py3-none-any.whl
+```
+&nbsp;&nbsp;&nbsp;&nbsp;where X.Y.Z is the actual version
+
 
 where:
   path_to_project is the path that contains setup.py and the other files and
@@ -77,10 +93,8 @@ cartolidar requires Python 3.7 or higher. See requirements.txt.
 
 Use
 --------
-## Uso de cartolidar
-### Uso en linea de comandos
 
-1. Ejecutar el paquete cartolidar:
+### At command line (cmd or bash)
 ```
 $ python -m cartolidar [options]
 ```
@@ -90,8 +104,7 @@ Se inicia un menu con las herramientas disponibles en cartolidar (qlidtwins)
 &nbsp;&nbsp;&nbsp;&nbsp;options:
 &nbsp;&nbsp;&nbsp;&nbsp;...
 
-
-2. Importar desde un script (.py) o desde el interprete interactivo; hay varias opciones:
+### Import cartolider package or its modules or classes (python code)
 ```
 import cartolidar
 from cartolidar import clidtools

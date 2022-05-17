@@ -33,9 +33,9 @@ print()
 # from cartolidar.clidtools.clidtwins_config import GLO
 
 __all__ = []
-__version__ = '0.0.dev1'
+__version__ = '0.0a1'
 __date__ = '2016-2022'
-__updated__ = '2022-05-03'
+__updated__ = '2022-05-17'
 __verbose__ = True
 
 

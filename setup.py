@@ -9,16 +9,22 @@ import setuptools
 # from setuptools import find_packages
 # from setuptools import setup
 
+# Ver https://bernat.tech/posts/pep-517-518/
+# Ver https://packaging.python.org/guides/distributing-packages-using-setuptools/
+# Ver https://github.com/pypa/sampleproject
+
 packages=setuptools.find_packages()
 print('packages encontrados:', packages)
 
 # Ver https://docs.python.org/3/distutils/setupscript.html
 
+# # Por ahora no uso versioneer
+# #   Ver https://pypi.org/project/versioneer/
 # # ensure the current directory is on sys.path so versioneer can be imported
 # # when pip uses PEP 517/518 build rules.
 # # https://github.com/python-versioneer/python-versioneer/issues/193
 # sys.path.append(os.path.dirname(__file__))
-# import versioneer  # noqa: E402
+# import versioneer
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
@@ -26,12 +32,21 @@ with open(os.path.join(HERE, 'README.md')) as fid:
     README = fid.read()
 
 INSTALL_REQUIRES = [
+    'gdal >= 3.0.2',
     'numpy >= 1.19.1',
     'scipy >= 1.4.1',
-    'matplotlib >= 3.2.2',
-    'configparser',
-    'psutil >= 5.8.0',
-    'gdal >= 3.0.2',
+    'psutil >= 5.7.0',
+	'dbfread >= 2.0.7',
+    # 'matplotlib >= 3.2.2',
+	# 'TensorFlow >= 2.1.0',
+	# 'keras >= 2.4.3',
+	# 'pandas>= 1.0.5',
+	# 'h5py >= 2.10.0',
+	# 'matplotlib >= 3.2.2',
+	# 'PIL >= 7.2.0',
+	# 'numba >= 0.50.1',
+	# 'graphviz >= 0.11.1',
+	# 'openpyxl >= 3.0.5',
 ]
 
 datapath1 = os.path.abspath('data')
@@ -53,7 +68,7 @@ print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath1, os.listdir(
 
 # get all data dirs in the datasets module
 data_files = []
-for item in os.listdir('data'):
+for item in os.listdir(datapath1):
     if not item.startswith('__'):
         if os.path.isdir(os.path.join('data', item)):
             data_files.append(os.path.join('data', item, '*'))
@@ -64,14 +79,18 @@ for item in os.listdir('data'):
 
 setuptools.setup(
     name='cartolidar',
+	# Versions should comply with PEP 440:
+    # 	https://www.python.org/dev/peps/pep-0440/
     # version=versioneer.get_version(),
-    version='0.0.dev3',
-    description='Lidar processing focused on Spanish PNOA datasets (https://pnoa.ign.es/el-proyecto-pnoa-lidar)',
+    version='0.0a1',
+    description='Lidar data processing tools focused on Spanish PNOA datasets',
     long_description=README,
     long_description_content_type='text/markdown',
     url='https://github.com/cartolid/cartolidar',
     project_urls={
-        "Source": 'https://github.com/cartolid/cartolidar/issues',
+        "Source": 'https://github.com/cartolid/cartolidar',
+		"Bug Reports":  'https://github.com/cartolid/cartolidar/issues',
+		"PNOA Lidar data":  'https://centrodedescargas.cnig.es',
     },
     author='Jose Bengoa',
     author_email='cartolidar@gmail.com',
@@ -88,6 +107,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.7',
         'Topic :: Scientific/Engineering :: GIS',
     ],
+	keywords='lidar, forestry, dasometry, dasoLidar, DLV, PNOA, GIS, DEM, DTM, DSM',
     python_requires='>=3.7',
 	# Ver https://docs.python.org/3/distutils/setupscript.html#listing-whole-packages
     # Esto da error (creo que solo se necesita si los modulos estan en un subdirectorio tipo "src":
@@ -101,14 +121,14 @@ setuptools.setup(
         # 'cartolidar.clidtools',
         # 'cartolidar.clidax',
     # ],
-    # # package_data={"cartolidar": data_files}, # Da error
+    install_requires=INSTALL_REQUIRES,
+	# Para ficheros adicionales ver: http://docs.python.org/distutils/setupscript.html#installing-additional-files
     # package_data={"": data_files},
     # include_package_data=True,
-    install_requires=INSTALL_REQUIRES,
 	# Para entry_points ver: https://setuptools.pypa.io/en/latest/userguide/entry_point.html
 	# Ver tb: https://stackoverflow.com/questions/774824/explain-python-entry-points
 	# No lo uso porque da error al instalar el paquete subido a pypi:
-    # entry_points={'console_scripts': ['clidtwins=cartolidar.clidtools.clidtwins']},
+    # entry_points={'console_scripts': ['qlidtwins=cartolidar.qlidtwins']},
     # cmdclass=versioneer.get_cmdclass(),
 )
 
