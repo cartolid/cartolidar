@@ -78,10 +78,10 @@ If you have the wheel:
 ```
 $ pip install path_to_project/cartolidar-X.Y.Z-py3-none-any.whl
 ```
-&nbsp;&nbsp;&nbsp;&nbsp;where X.Y.Z is the actual version
+&nbsp;&nbsp;&nbsp;&nbsp;where:
 
+  X.Y.Z is the actual version
 
-where:
   path_to_project is the path that contains setup.py and the other files and
   directories of the project (downloaded from githhub)
 
@@ -94,7 +94,7 @@ cartolidar requires Python 3.7 or higher. See requirements.txt.
 Use
 --------
 
-### At command line (cmd or bash)
+### Command line (cmd or bash)
 ```
 $ python -m cartolidar [options]
 ```

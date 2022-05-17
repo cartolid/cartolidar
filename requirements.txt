@@ -1,8 +1,8 @@
-GDAL==3.1.4
-matplotlib==3.1.3
-numpy==1.19.5
-psutil==5.8.0
-scipy==1.4.1
+gdal>=3.0.2
+numpy>=1.21.1
+scipy>=1.4.1
+psutil>=5.7.0
+dbfread>=2.0.7
 
 # Ver https://pip.pypa.io/en/stable/reference/requirements-file-format/#requirements-file-format
 # Ver https://learnpython.com/blog/python-requirements-file/

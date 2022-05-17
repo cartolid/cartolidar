@@ -33,7 +33,7 @@ with open(os.path.join(HERE, 'README.md')) as fid:
 
 INSTALL_REQUIRES = [
     'gdal >= 3.0.2',
-    'numpy >= 1.19.1',
+    'numpy >= 1.21.1',
     'scipy >= 1.4.1',
     'psutil >= 5.7.0',
 	'dbfread >= 2.0.7',
