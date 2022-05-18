@@ -5,10 +5,11 @@ cartolidar/qlidmerge.py
 cartolidar/clidtools/clidmerge.py
 
 # Ficheros auxiliares que no incluyo en el repositorio
-cartolidar/cartolidar.cfg
-cartolidar/qlidtwins.cfg
 pruebas.py
 Ayuda.txt
+README_extras.txt
+cartolidar/cartolidar.cfg
+cartolidar/qlidtwins.cfg
 qlidtwins_LeRoble.cfg
 qlidtwins_SgPino.cfg
 qlidtwins_LeRobleTolosana.cfg

@@ -23,6 +23,7 @@ CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar
 (las y laz) para clasificar los puntos y generar ficheros ráster con DEM y DLVs.
 
 >DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
+
 >DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos
 >aspectos de la estructura de una formación arbolada, arbustiva o de matorral.
 
@@ -69,53 +70,51 @@ and you can install cartolidar from there for your python environment:
 cd C:\users\yourUser\Downloads\cartolidar-main\
 pip install .
 ```
-It is also possible the older way, but is not recommendable:
-```
-$ python setup.py install
-```
-
-If you download any distribution package (wheel or sdist) from elsewhere you can install it:
-```
-$ pip install cartolidar-X.Y.Z-py3-none-any.whl
-```
-or 
-```
-$ pip install cartolidar-X.Y.Z.tar.gz
-```
-&nbsp;&nbsp;&nbsp;&nbsp;where: X.Y.Z is the actual version
-
 
 
 Requeriments
 ------------
 cartolidar requires Python 3.7 or higher.
 
-See other package requirements at requirements.txt.
+See other package requirements in requirements.txt.
 
 
 Use
 --------
 
-### Command line (cmd or bash)
-a) Execute the package cartolidar:
+### From the command line (cmd or bash)
+a) Run cartolidar package:
 ```
 python -m cartolidar [options]
 ```
 Se inicia el menu principal con las herramientas disponibles en cartolidar:
+
 &nbsp;&nbsp;&nbsp;&nbsp;Inicialmente solo está disponible la herramienta qlidtwins
 
+>It starts the main menu with the avaliable tools
+
 &nbsp;&nbsp;&nbsp;&nbsp;options:
+
 &nbsp;&nbsp;&nbsp;&nbsp;-h, --help          show this help message and exit
+
 &nbsp;&nbsp;&nbsp;&nbsp;-v, --verbose       set verbosity level [default: False]
+
 &nbsp;&nbsp;&nbsp;&nbsp;-V, --version       show program's version number and exit
+
 &nbsp;&nbsp;&nbsp;&nbsp;-a ACCIONPRINCIPAL  0. Show main menu; 1. qlidtwins: buscar o verificar
+
 &nbsp;&nbsp;&nbsp;&nbsp;                      zonas analogas a una de referencia (con un determinado
+
 &nbsp;&nbsp;&nbsp;&nbsp;                      patron dasoLidar); 2. qlidmerge: integrar ficheros asc
+
 &nbsp;&nbsp;&nbsp;&nbsp;                      de 2x2 km en una capa tif unica (componer mosaico:
+
 &nbsp;&nbsp;&nbsp;&nbsp;                      merge). Default: 0
+
 &nbsp;&nbsp;&nbsp;&nbsp;other options       are tool-specific (see below).
 
-b) Execute directly a tool (a module), like qlidtwins.py (if it is accesible):
+
+b) It is also possible to run a tool (a module) without displayin the main menu (if the module is accesible). E.g.:
 ```
 python qlidtwins.py [options]
 ```
@@ -123,17 +122,27 @@ python qlidtwins.py [options]
 ```
 python qlidtwins.py -h
 ```
-To be accesible: it's called from its folder, called with path_to_module or it is in the PATH environmental variable.
+A module is accesible if is called from its folder, is called with path_to_module or its folder is in the PATH environmental variable.
 
 
-### Import cartolider package or its modules or classes (python code)
+### From python code
+You can import packages, modules, classes of functions from a script.py or
+within the python interactive interpreter. Examples:
 ```
 import cartolidar
 from cartolidar import clidtools
 from cartolidar.clidtools import clidtwins
 from cartolidar.clidtools.clidtwins import DasoLidarSource
 ```
+To execute module qlidtwins.py from python code:
+```
+from cartolidar import qlidteins
+```
+In this case, there are no options: it runs with qlidtwins.cfg configuration (if exists) or by default.
 
+
+Use examples
+------------
 
 to be continued...
 

@@ -320,34 +320,34 @@ if __verbose__ > 1:
     print(f'\nqlidtwins-> sys.argv (a): {sys.argv}')
 try:
     if len(sys.argv) == 0:
-        print(f'qlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
+        print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
         sys.exit(0)
     elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
         if __verbose__ > 1:
-            print('qlidtwins.py se ha lanzado tras ejecutar el paquete cartolidar desde linea de comandos:')
+            print('\nqlidtwins.py se ha lanzado tras ejecutar el paquete cartolidar desde linea de comandos:')
             print('\t  python -m cartolidar')
         MAIN_configFileNameCfg = 'cartolidar.cfg'
     elif sys.argv[0].endswith('qlidtwins.py'):
         if __verbose__ > 1:
-            print('qlidtwins.py se esta ejecutando desde linea de comandos:')
+            print('\nqlidtwins.py se esta ejecutando desde linea de comandos:')
             print('\t  python qlidtwins.py')
         MAIN_configFileNameCfg = 'qlidtwins.cfg'
     elif sys.argv[0] == '':
         MAIN_configFileNameCfg = 'qlidtwins.cfg'
         if __verbose__ > 1 or True:
             # Al importar el modulo no se pueden incluir el argumento -v (ni ningun otro)
-            print('qlidtwins se esta importando desde el interprete interactivo:')
-            print('\t>>> import qlidtwins')
-            print('o')
+            print('\nqlidtwins se esta importando desde el interprete interactivo:')
             print('\t>>> from cartolidar import qlidtwins')
-            print(f'qlidtwins se ejecuta con las opciones de {MAIN_configFileNameCfg} (o por defecto).')
+            print('o, si esta accesible (en el path):')
+            print('\t>>> import qlidtwins')
+            print(f'Se ejecuta con las opciones de {MAIN_configFileNameCfg} (o por defecto).')
     else:
         if MAIN_idProceso:
             MAIN_configFileNameCfg = sys.argv[0].replace('.py', '{:006}.cfg'.format(MAIN_idProceso))
         else:
             MAIN_configFileNameCfg = sys.argv[0].replace('.py', '.cfg')
         if __verbose__ > 1 or True:
-            print(f'qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
+            print(f'\nqlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
             print(f'qlidtwins se ejecuta con las opciones de {MAIN_configFileNameCfg} (o por defecto).')
 except:
     print('\nqlidtwins-> Revisar MAIN_idProceso:')
