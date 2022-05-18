@@ -7,36 +7,37 @@ cartolidar: Tools for Lidar processing focused on Spanish PNOA datasets
 @copyright:  2022 @clid
 @license:    GNU General Public License v3 (GPLv3)
 @contact:    cartolidar@gmail.com
-@deffield    updated: 2022-05-17
+@deffield    updated: 2022-05-18
 '''
+
 # Script interactivo para ejecucion con:
 #   $ python -m cartolidar [options]
-# Con esa instruccion se ejecuta pimero el __init__.py de cartolidar
-# Completar cuando haya incluido varias herramientas
+# Se ejecuta pimero el __init__.py de cartolidar y luego este __main__.py
+
+#TODo: Completar cuando haya incluido mas herramientas en cartolidar
 
 import sys
 import os
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 
-# try:
-#     import psutil
-#     psutilOk = True
-# except:
-#     psutilOk = False
-
-print(f'cartolidar.__main__-> __name__:     <{__name__}>')
-print(f'cartolidar.__main__-> __package__:  <{__package__}>')
-print(f'cartolidar.__main__-> sys.argv:     <{sys.argv}>')
-print()
-
-# from cartolidar.clidtools.clidtwins_config import GLO
-
-__all__ = []
-__version__ = '0.0a1'
+__version__ = '0.0a2'
 __date__ = '2016-2022'
-__updated__ = '2022-05-17'
-__verbose__ = True
+__updated__ = '2022-05-18'
+__all__ = [] # No se importa nada con: from cartolidar import *
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    __verbose__ = 0
+if __verbose__ > 2:
+    print(f'cartolidar.__main__-> __name__:     <{__name__}>')
+    print(f'cartolidar.__main__-> __package__:  <{__package__}>')
+    print(f'cartolidar.__main__-> sys.argv:     <{sys.argv}>')
+    print()
 
 
 # ==============================================================================
@@ -102,10 +103,12 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                             action='version',
                             version=program_version_message,)
 
-        parser.add_argument('-a',  # '--action',
-                            dest='accionPrincipal',
+        optionsHelp = ';\n'.join(opcionesPrincipales)
+        parser.add_argument('-o',  # '--option',
+                            dest='menuOption',
                             type=int,
-                            help=f'Accion a ejecutar: \n{accionesPrincipales[0]}; \n{accionesPrincipales[1]}. Default: %(default)s',
+                            # help=f'{opcionesPrincipales[0]}; \n{opcionesPrincipales[1]}; \n{opcionesPrincipales[2]}. Default: %(default)s',
+                            help=f'{optionsHelp}. Default: %(default)s',
                             default = '0',)
 
         # parser.add_argument('-I', '--idProceso',
@@ -127,30 +130,10 @@ def leerArgumentosEnLineaDeComandos(argv=None):
 
 
 # ==============================================================================
-# def infoUsuario():
-#     if psutilOk:
-#         try:
-#             USERusuario = psutil.users()[0].name
-#         except:
-#             USERusuario = psutil.users()
-#         if not isinstance(USERusuario, str) or USERusuario == '':
-#             USERusuario = 'PC1'
-#         return USERusuario
-#     else:
-#         return 'SinUsuario'
-
-
-# ==============================================================================
-def foo():
-    pass
-
-
-# ==============================================================================
 if __name__ == '__main__':
-    # GRAL_verbose = False
-    # GRAL_nombreUsuario = infoUsuario()
 
-    accionesPrincipales = [
+    opcionesPrincipales = [
+        '0. Mostrar el menu principal',
         '1. qlidtwins: buscar o verificar zonas analogas a una de referencia (con un determinado patron dasoLidar)',
         '2. qlidmerge: integrar ficheros asc de 2x2 km en una capa tif unica (componer mosaico: merge)',
     ]
@@ -161,10 +144,13 @@ if __name__ == '__main__':
         print('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
         sys.exit(0)
 
+    if __verbose__ != args.verbose:
+        print('cartolidar.__main__-> Revisar __verbose__:', __verbose__, args.verbose)
+
     opcionPorDefecto = 1
-    if args.accionPrincipal <= 0:
+    if args.menuOption <= 0:
         print('\ncartolidar-> Menu de herramientas de cartolidar')
-        for opcionPrincipal in accionesPrincipales:
+        for opcionPrincipal in opcionesPrincipales[1:]:
             print(f'\t{opcionPrincipal}.')
         selec = input(f'Elije opcion ({opcionPorDefecto}): ')
         if selec == '':
@@ -175,21 +161,24 @@ if __name__ == '__main__':
             except:
                 print(f'\nATENCION: Opcion elegida no disponible: <{selec}>')
                 sys.exit(0)
-        print(f'\nSe ha elegido {accionesPrincipales[nOpcionElegida - 1]}')
-    elif args.accionPrincipal <= len(accionesPrincipales):
-        print(f'\nOpcion elegida en linea de comandos: {accionesPrincipales[args.accionPrincipal - 1]}')
-        nOpcionElegida = args.accionPrincipal
+        print(f'\nSe ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}')
+    elif args.menuOption < len(opcionesPrincipales):
+        print(f'\nOpcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}')
+        nOpcionElegida = args.menuOption
     else:
-        print(f'\nATENCION: Opcion elegida en linea de comandos no disponible: {args.accionPrincipal}')
+        print(f'\nATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}')
         sys.exit(0)
 
     if nOpcionElegida == 1:
-        print('\ncartolidar.__main__-> Se ha elegido ejecutar qlidtwuins: se importa el modulo.')
+        if __verbose__ > 1:
+            print('\ncartolidar.__main__-> Se ha elegido ejecutar qlidtwuins:')
+            print('\t-> Se importa el modulo qlidtwins.py.')
         from cartolidar import qlidtwins
     elif nOpcionElegida == 2:
-        print('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
-        print('\t AVISO: herramienta pendiente de incluir en el paquete.')
+        if __verbose__ > 1:
+            print('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
+        print('\nAVISO: herramienta pendiente de incluir en cartolidar.')
         # from cartolidar import qlidmerge
     else:
         print('\nOpcion no disponible.')
-    print('Fin de cartolidar')
+    print('\nFin de cartolidar\n')

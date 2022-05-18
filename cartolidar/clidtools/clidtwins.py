@@ -54,9 +54,17 @@ if not gdalOk:
         print('clidtwins-> Tampoco se ha podido cargar desde la carpeta osgeo')
         sys.exit(0)
 
-
-TRNSbuscarBloquesSoloDentroDelMarcoUTM = False
-# TRNSmostrarClusterMatch = False
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    __verbose__ = 0
+if __verbose__ > 2:
+    print(f'clidtwins-> __name__:     <{__name__}>')
+    print(f'clidtwins-> __package__ : <{__package__ }>')
 
 # ==============================================================================
 # Agrego el idProceso para poder lanzar trabajos paralelos con distinta configuracion
@@ -70,8 +78,8 @@ else:
     sys.argv.append('--idProceso')
     sys.argv.append(GRAL_idProceso)
 # ==============================================================================
-print(f'clidtwins-> __name__:     <{__name__}>')
-print(f'clidtwins-> __package__ : <{__package__ }>')
+
+# ==============================================================================
 from cartolidar.clidax import clidconfig
 from cartolidar.clidax import clidraster
 # Se importan los parametros de configuracion por defecto por si
@@ -83,6 +91,11 @@ from cartolidar.clidtools.clidtwins_config import GLO
 
 # Se asignan otros parametros de configuracion que no se usan en dasoLidar pero
 # aparecen en este modulo por usarse en funciones compartidas con clidmerge.py
+
+# ==============================================================================
+TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
+# TRNSmostrarClusterMatch = False
+# ==============================================================================
 
 # ==============================================================================
 class DasoLidarSource:
@@ -444,7 +457,7 @@ and other optional arguments.
             print('clidtwins-> Buscando ficheros de cada tipo en todos los directorios previstos:')
             if not self.marcoCoordDisponible:
                 print('\t-> Sin restricciones de coordendas porque no se han pre-establecido coordenadas para la zona de estudio.')
-            elif not TRNSbuscarBloquesSoloDentroDelMarcoUTM and not self.GLBLmarcoPatronTest:
+            elif not TRNS_buscarBloquesSoloDentroDelMarcoUTM and not self.GLBLmarcoPatronTest:
                 print('\t-> Sin restricciones de coordendas porque se ha desabilitado temporalmente esta opcion.')
             else:
                 if self.GLBLmarcoPatronTest:
@@ -528,7 +541,7 @@ and other optional arguments.
                         or self.LOCLmarcoCoordMaxY == 0
                     ) and self.marcoCoordDisponible and (
                         self.GLBLmarcoPatronTest
-                        or TRNSbuscarBloquesSoloDentroDelMarcoUTM
+                        or TRNS_buscarBloquesSoloDentroDelMarcoUTM
                     ):
                         filenamesSeleccionadosX = [
                             filename for filename in filenames
@@ -583,7 +596,7 @@ and other optional arguments.
                     if self.LOCLverbose > 1:
                         print('\t\tdirpathOk:         {}'.format(dirpathOk))
                         print('\t\tnumFiles:          {}'.format(len(filenames)))
-                        if self.marcoCoordDisponible and TRNSbuscarBloquesSoloDentroDelMarcoUTM:
+                        if self.marcoCoordDisponible and TRNS_buscarBloquesSoloDentroDelMarcoUTM:
                             print(
                                 '\t\t\tNo se ha localizado ningun fichero con el patron: <{}> que solape con el marco de coordenadas X: {} {} Y: {} {}'.format(
                                     miTipoDeFicheroDasoLayer,
@@ -678,7 +691,7 @@ and other optional arguments.
 
         if self.LOCLverbose:
             if (
-                TRNSbuscarBloquesSoloDentroDelMarcoUTM
+                TRNS_buscarBloquesSoloDentroDelMarcoUTM
                 or self.GLBLmarcoPatronTest
             ) and (
                 self.GLBLmarcoPatronTest
@@ -828,7 +841,7 @@ and other optional arguments.
             print(f'\t-> Se crea un fichero merge con todas las variables dasoLidar:')
             print(f'\t\t{self.LOCLmergedUniCellAllDasoVarsFileNameSinPath}')
 
-            if self.marcoCoordDisponible and TRNSbuscarBloquesSoloDentroDelMarcoUTM:
+            if self.marcoCoordDisponible and TRNS_buscarBloquesSoloDentroDelMarcoUTM:
                     print(f'\t\t-> Integra todos los bloques localizados dentro del rango de coordenadas: X: {self.LOCLmarcoCoordMinX}-{self.LOCLmarcoCoordMaxX}; Y: {self.LOCLmarcoCoordMinY}-{self.LOCLmarcoCoordMaxY}')
             else:
                 print(f'\t\t-> Integra todos los bloques localizados ')

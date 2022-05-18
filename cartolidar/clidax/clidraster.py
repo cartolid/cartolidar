@@ -55,9 +55,18 @@ ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
 
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    __verbose__ = 0
+if __verbose__ > 2:
+    print(f'clidraster-> __name__:     <{__name__}>')
+    print(f'clidraster-> __package__ : <{__package__ }>')
 
-print(f'clidraster-> __name__:     <{__name__}>')
-print(f'clidraster-> __package__ : <{__package__ }>')
 # ==============================================================================
 # from cartolidar.clidax import clidconfig
 from cartolidar.clidax import clidcarto

@@ -29,21 +29,32 @@ try:
 except:
     psutilOk = False
 
+__all__ = [] # No se importa nada con: from qlidtwins import *
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    __verbose__ = 0
+if __verbose__ > 2:
+    print(f'qlidtwins-> __name__:     <{__name__}>')
+    print(f'qlidtwins-> __package__ : <{__package__ }>')
+
+
 # ==============================================================================
 # Agrego el idProceso para poder lanzar trabajos paralelos con distinta configuracion
 if len(sys.argv) > 2 and sys.argv[-2] == '--idProceso':
-    GRAL_idProceso = sys.argv[-1]
+    MAIN_idProceso = sys.argv[-1]
 else:
     # En principio no ejecuto trabajos qlidtwins en paralelo con distinta configuracion
     # Mantengo la asignacion de idProceso aleatorio por si acaso
-    # GRAL_idProceso = random.randint(1, 999998)
-    GRAL_idProceso = 0
+    # MAIN_idProceso = random.randint(1, 999998)
+    MAIN_idProceso = 0
     sys.argv.append('--idProceso')
-    sys.argv.append(GRAL_idProceso)
+    sys.argv.append(MAIN_idProceso)
 # ==============================================================================
-
-print(f'qlidtwins-> __name__:     <{__name__}>')
-print(f'qlidtwins-> __package__ : <{__package__ }>')
 
 # ==============================================================================
 # https://stackoverflow.com/questions/14132789/relative-imports-for-the-billionth-time
@@ -68,13 +79,7 @@ except Exception as e:
     sys.stderr.write(program_name + ": " + repr(e) + "\n")
     sys.stderr.write(indent + "  for help use --help")
     sys.exit(0)
-
 # ==============================================================================
-
-__all__ = []
-__version__ = '0.0.dev1'
-__date__ = '2016-2022'
-__updated__ = '2022-05-03'
 
 # ==============================================================================
 class CLIError(Exception):
@@ -129,14 +134,11 @@ def leerArgumentosEnLineaDeComandos(argv=None):
   or conditions of any kind, either express or implied.
 '''.format(program_shortdesc, str(__date__))
 
-    # print('qlidtwins-> sys.argv:', sys.argv)
-
     # ==========================================================================
     # https://docs.python.org/es/3/howto/argparse.html
     # https://docs.python.org/3/library/argparse.html
     # https://ellibrodepython.com/python-argparse
-    # try:
-    if True:
+    try:
         # Setup argument parser
         parser = ArgumentParser(
             description=program_license,
@@ -192,7 +194,7 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                             default = GLO.GLBLtesteoLayerNamePorDefecto,)
 
         # ======================================================================
-        if GRAL_LEER_EXTRA_ARGS:
+        if TRNS_LEER_EXTRA_ARGS:
             parser.add_argument('-0',  # '--menuInteractivo',
                                 dest='menuInteractivo',
                                 type=int,
@@ -294,16 +296,16 @@ def leerArgumentosEnLineaDeComandos(argv=None):
         args = parser.parse_args()
 
         return args
-    # except KeyboardInterrupt:
-    #     ### handle keyboard interrupt ###
-    #     return None
-    # except Exception as e:
-    #     if DEBUG or TESTRUN:
-    #         raise(e)
-    #     indent = len(program_name) * " "
-    #     sys.stderr.write(program_name + ": " + repr(e) + "\n")
-    #     sys.stderr.write(indent + "  for help use --help")
-    #     return None
+    except KeyboardInterrupt:
+        ### handle keyboard interrupt ###
+        return None
+    except Exception as e:
+        if TESTRUN:
+            raise(e)
+        indent = len(program_name) * " "
+        sys.stderr.write(program_name + ": " + repr(e) + "\n")
+        sys.stderr.write(indent + "  for help use --help")
+        return None
 
 
 
@@ -313,34 +315,61 @@ def fooMain0():
     pass
 
 
-# ==============================================================================
-# ======================== Variables globales GRAL =========================
-# ==========================================================================
-GRAL_verbose = False
-GRAL_QUIET = False
-TRNSpreguntarPorArgumentosEnLineaDeComandos = False
-GRAL_LEER_EXTRA_ARGS = False
-GRAL_nombreUsuario = infoUsuario()
-# GRAL_idProceso -> Se define antes de importar clidconfig y clidcarto
+# MAIN_idProceso -> Se define antes de importar clidconfig y clidcarto
+if __verbose__ > 1:
+    print(f'\nqlidtwins-> sys.argv (a): {sys.argv}')
 try:
-    if len(sys.argv) == 0 or sys.argv[0] == '' or sys.argv[0] == '-m':
-        # print('Se esta ejecutando fuera de un modulo, en el interprete interactivo')
-        GRAL_configFileNameCfg = 'cartolidar.cfg'
+    if len(sys.argv) == 0:
+        print(f'qlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
+        sys.exit(0)
+    elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+        if __verbose__ > 1:
+            print('qlidtwins.py se ha lanzado tras ejecutar el paquete cartolidar desde linea de comandos:')
+            print('\t  python -m cartolidar')
+        MAIN_configFileNameCfg = 'cartolidar.cfg'
+    elif sys.argv[0].endswith('qlidtwins.py'):
+        if __verbose__ > 1:
+            print('qlidtwins.py se esta ejecutando desde linea de comandos:')
+            print('\t  python qlidtwins.py')
+        MAIN_configFileNameCfg = 'qlidtwins.cfg'
+    elif sys.argv[0] == '':
+        MAIN_configFileNameCfg = 'qlidtwins.cfg'
+        if __verbose__ > 1 or True:
+            # Al importar el modulo no se pueden incluir el argumento -v (ni ningun otro)
+            print('qlidtwins se esta importando desde el interprete interactivo:')
+            print('\t>>> import qlidtwins')
+            print('o')
+            print('\t>>> from cartolidar import qlidtwins')
+            print(f'qlidtwins se ejecuta con las opciones de {MAIN_configFileNameCfg} (o por defecto).')
     else:
-        # print('Se esta ejecutando desde un modulo')
-        if GRAL_idProceso:
-            GRAL_configFileNameCfg = sys.argv[0].replace('.py', '{:006}.cfg'.format(GRAL_idProceso))
+        if MAIN_idProceso:
+            MAIN_configFileNameCfg = sys.argv[0].replace('.py', '{:006}.cfg'.format(MAIN_idProceso))
         else:
-            GRAL_configFileNameCfg = sys.argv[0].replace('.py', '.cfg')
+            MAIN_configFileNameCfg = sys.argv[0].replace('.py', '.cfg')
+        if __verbose__ > 1 or True:
+            print(f'qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
+            print(f'qlidtwins se ejecuta con las opciones de {MAIN_configFileNameCfg} (o por defecto).')
 except:
-    print('\nqlidtwins-> Revisar asignacion de GRAL_idProceso:')
-    print('GRAL_idProceso:   <{}>'.format(GRAL_idProceso))
-    print('sys.argv[0]: <{}>'.format(sys.argv[0]))
-# ==========================================================================
+    print('\nqlidtwins-> Revisar MAIN_idProceso:')
+    print(f'MAIN_idProceso: <{MAIN_idProceso}> type: {type(MAIN_idProceso)}')
+    print(f'sys.argv:       <{sys.argv}>')
+    print(f'sys.argv[0]:    <{sys.argv[0]}>')
+# ==============================================================================
+print(f'\nqlidtwins-> sys.argv (c): {sys.argv}')
+print('qlidtwins- Hasta aqui')
+quit()
 
-# ==========================================================================
-# ======================== Variables globales MAIN =========================
-# ==========================================================================
+# ==============================================================================
+# ========================== Variables globales TRNS ===========================
+# ==============================================================================
+TRNS_preguntarPorArgumentosEnLineaDeComandos = False
+TRNS_LEER_EXTRA_ARGS = False
+# ==============================================================================
+
+# ==============================================================================
+# ========================== Variables globales MAIN ===========================
+# ==============================================================================
+MAIN_nombreUsuario = infoUsuario()
 # Directorio que depende del entorno:
 MAIN_HOME_DIR = str(pathlib.Path.home())
 # Directorios de la aplicacion:
@@ -353,10 +382,10 @@ MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
 # Directorio desde el que se lanza la app (estos dos coinciden):
 MAIN_BASE_DIR = os.path.abspath('.')
 MAIN_THIS_DIR = os.getcwd()
-# ==========================================================================
+# ==============================================================================
 # Unidad de disco si MAIN_ENTORNO = 'windows'
 MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
-# ==========================================================================
+# ==============================================================================
 if MAIN_FILE_DIR[:12] == '/LUSTRE/HOME':
     MAIN_ENTORNO = 'calendula'
     MAIN_PC = 'calendula'
@@ -366,49 +395,13 @@ elif MAIN_FILE_DIR[:8] == '/content':
 else:
     MAIN_ENTORNO = 'windows'
     try:
-        if GRAL_nombreUsuario == 'benmarjo':
+        if MAIN_nombreUsuario == 'benmarjo':
             MAIN_PC = 'JCyL'
         else:
             MAIN_PC = 'Casa'
     except:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
-# ==========================================================================
-
-# ==========================================================================
-# ========================== Inicio de aplicacion ==========================
-# ==========================================================================
-if not GRAL_QUIET:
-    print('\n{:_^80}'.format(''))
-    print('Arrancando qlidtwins')
-    print('\t-> ENTORNO:          {}'.format(MAIN_ENTORNO))
-    print('\t-> MAIN_PC:          {}'.format(MAIN_PC))
-    print('\t-> Usuario:          {}'.format(GRAL_nombreUsuario))
-    print('\t-> Modulo principal: {}'.format(sys.argv[0])) # = __file__
-    
-    soloMostrarAyuda = False
-    if len(sys.argv) == 3 and TRNSpreguntarPorArgumentosEnLineaDeComandos:
-        print('\nAVISO: no se han introducido argumentos en linea de comandos')
-        print('\t-> Para obtener ayuda sobre estos argumentos escribir:')
-        print('\t\tpython {} -h'.format(os.path.basename(sys.argv[0])))
-        try:
-            selec = input('\nContinuar con la configuracion por defecto? (S/n): ')
-            if selec.upper() == 'N':
-                sys.argv.append("-h")
-                soloMostrarAyuda = True
-                print('')
-                # print('Fin')
-                # sys.exit(0)
-            else:
-                print('')
-        except (Exception) as thisError: # Raised when a generated error does not fall into any category.
-            print(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
-            print(f'\tRevisar error: {thisError}')
-            sys.exit(0)
-
-    if GRAL_verbose:
-        print('\t-> sys.argv: {}'.format(sys.argv))
-    print('{:=^80}'.format(''))
 # ==============================================================================
 
 
@@ -419,12 +412,19 @@ def fooMain1():
 
 if __name__ == '__main__' or 'qlidtwins' in __name__:
     # ==========================================================================
-    DEBUG = 0
+    # ========================== Inicio de aplicacion ==========================
+    # ==========================================================================
+    if __verbose__:
+        print('\n{:_^80}'.format(''))
+        print('Arrancando qlidtwins')
+        print('\t-> ENTORNO:          {}'.format(MAIN_ENTORNO))
+        print('\t-> MAIN_PC:          {}'.format(MAIN_PC))
+        print('\t-> Usuario:          {}'.format(MAIN_nombreUsuario))
+        print('\t-> Modulo principal: {}'.format(sys.argv[0])) # = __file__
+        
+    # ==========================================================================
     TESTRUN = 0
     PROFILE = 0
-    # ==========================================================================
-    if DEBUG:
-        sys.argv.append("-h")
     if TESTRUN:
         import doctest
         doctest.testmod()
@@ -441,24 +441,44 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
         sys.exit(0)
 
     # ==========================================================================
-    # ======== Provisionalmente pongo aqui el rango de coordenadas UTM =========
-    # ====== Pte que se puedan definir con el parametro ambitoTiffNuevo, =======
-    # ============ en linea de comandos o a partir de los shapes ===============
-    # ==========================================================================
-    CFG_marcoCoordMinX = 318000
-    CFG_marcoCoordMaxX = 322000
-    CFG_marcoCoordMinY = 4734000
-    CFG_marcoCoordMaxY = 4740000
+    if (
+        'qlidtwins' in __name__
+        or len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos
+    ):
+        if 'qlidtwins' in __name__:
+            # El modulo se esta cargando mediante import desde otro modulo o desde el interprete interactivo
+            print('\nAVISO: clidqins.py es un modulo escrito para ejecutarse desde linea de comandos:')
+            print('\t  python qlidtwins.py')
+            print('\tSin embargo, se esta importando desde codigo python.')
+            selec = input('\nLanzar el modulo como si se ejecutara desde linea de comandos (S/n): ')
+        if len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos:
+            print('\nAVISO: no se han introducido argumentos en linea de comandos')
+            print('\t-> Para obtener ayuda sobre estos argumentos escribir:')
+            print('\t\tpython {} -h'.format(os.path.basename(sys.argv[0])))
+            selec = input('\nContinuar con la configuracion por defecto? (S/n): ')
+        try:
+            if selec.upper() == 'N':
+                sys.argv.append("-h")
+                print('')
+                # print('Fin')
+                # sys.exit(0)
+            else:
+                print('')
+        except (Exception) as thisError: # Raised when a generated error does not fall into any category.
+            print(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
+            print(f'\tRevisar error: {thisError}')
+            sys.exit(0)
+    
+        print('{:=^80}'.format(''))
     # ==========================================================================
 
     # ==========================================================================
     # ===================== Argumentos en linea de comandos ====================
     # ============ Prevalecen sobre los parametros de configuracion ============
     # ==========================================================================
-    # print('qlidtwins-> sys.argv:', sys.argv)
+    if __verbose__ > 1:
+        print(f'qlidtwins-> sys.argv (b): {sys.argv}')
     args = leerArgumentosEnLineaDeComandos()
-    if soloMostrarAyuda:
-        sys.exit(0)
     if args is None:
         print('qlidtwins-> Revisar error en argumentos en linea')
         print('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
@@ -551,15 +571,25 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
     CFG_noDataTiffFiles = args.noDataTiffFiles
     CFG_noDataTipoDMasa = args.noDataTipoDMasa
     CFG_umbralMatriDist = args.umbralMatriDist
+    # ==========================================================================
 
+    # ==========================================================================
+    # ======== Provisionalmente pongo aqui un rango de coordenadas UTM =========
+    # === Pte rematar que se puedan definir con el parametro ambitoTiffNuevo, ==
+    # ============ en linea de comandos o a partir de los shapes ===============
+    # ==========================================================================
+    CFG_marcoCoordMinX = 318000
+    CFG_marcoCoordMaxX = 322000
+    CFG_marcoCoordMinY = 4734000
+    CFG_marcoCoordMaxY = 4740000
     # ==========================================================================
 
     # ==========================================================================
     if args.verbose:
         if args.verbose > 1:
             if len(sys.argv) == 3:
-                if os.path.exists(GRAL_configFileNameCfg):
-                    infoConfiguracionUsada = f' (valores leidos del fichero de configuracion, {GRAL_configFileNameCfg})'
+                if os.path.exists(MAIN_configFileNameCfg):
+                    infoConfiguracionUsada = f' (valores leidos del fichero de configuracion, {MAIN_configFileNameCfg})'
                 else:
                     infoConfiguracionUsada = ' (valores "de fabrica" incluidos en codigo, clidtwins_config.py)'
             else:
@@ -679,9 +709,9 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
 
     if args.verbose > 1:
         if args.verbose > 1:
-            if len(sys.argv) == 3 or not GRAL_LEER_EXTRA_ARGS:
-                if os.path.exists(GRAL_configFileNameCfg):
-                    infoConfiguracionUsada = f' (valores leidos del fichero de configuracion, {GRAL_configFileNameCfg})'
+            if len(sys.argv) == 3 or not TRNS_LEER_EXTRA_ARGS:
+                if os.path.exists(MAIN_configFileNameCfg):
+                    infoConfiguracionUsada = f' (valores leidos del fichero de configuracion, {MAIN_configFileNameCfg})'
                 else:
                     infoConfiguracionUsada = ' (valores "de fabrica" incluidos en codigo, clidtwins_config.py)'
             else:
@@ -742,7 +772,7 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
         LCL_listLstDasoVars=CFG_listLstDasoVars,
         LCL_nPatronDasoVars=CFG_nPatronDasoVars,  # opcional
         LCL_verboseProgress=CFG_verbose,  # opcional
-        LCL_leer_extra_args=GRAL_LEER_EXTRA_ARGS,  # opcional
+        LCL_leer_extra_args=TRNS_LEER_EXTRA_ARGS,  # opcional
     )
     if CFG_verbose:
         print('{:=^80}'.format(''))

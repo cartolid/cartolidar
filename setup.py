@@ -33,12 +33,11 @@ with open(os.path.join(HERE, 'README.md')) as fid:
 
 INSTALL_REQUIRES = [
     'gdal >= 3.0.2',
-    'numpy >= 1.21.1',
+    'numpy >= 1.19.1',
     'scipy >= 1.4.1',
     'psutil >= 5.7.0',
 	'dbfread >= 2.0.7',
-    # 'matplotlib >= 3.2.2',
-	# 'TensorFlow >= 2.1.0',
+	# 'TensorFlow >= 2.3.0',
 	# 'keras >= 2.4.3',
 	# 'pandas>= 1.0.5',
 	# 'h5py >= 2.10.0',
@@ -82,7 +81,7 @@ setuptools.setup(
 	# Versions should comply with PEP 440:
     # 	https://www.python.org/dev/peps/pep-0440/
     # version=versioneer.get_version(),
-    version='0.0a1',
+    version='0.0a2',
     description='Lidar data processing tools focused on Spanish PNOA datasets',
     long_description=README,
     long_description_content_type='text/markdown',
@@ -108,6 +107,7 @@ setuptools.setup(
         'Topic :: Scientific/Engineering :: GIS',
     ],
 	keywords='lidar, forestry, dasometry, dasoLidar, DLV, PNOA, GIS, DEM, DTM, DSM',
+
     python_requires='>=3.7',
 	# Ver https://docs.python.org/3/distutils/setupscript.html#listing-whole-packages
     # Esto da error (creo que solo se necesita si los modulos estan en un subdirectorio tipo "src":
@@ -115,19 +115,24 @@ setuptools.setup(
     # Alternativa (tambien da error):
     # package_dir={'': 'cartolidar'}
     packages=setuptools.find_packages(),
-    # Una alternativa es enumerar los paquetes explicitamente:
+    # Otra alternativa es enumerar los paquetes explicitamente:
     # packages=[
         # 'cartolidar',
         # 'cartolidar.clidtools',
         # 'cartolidar.clidax',
     # ],
     install_requires=INSTALL_REQUIRES,
+
 	# Para ficheros adicionales ver: http://docs.python.org/distutils/setupscript.html#installing-additional-files
     # package_data={"": data_files},
     # include_package_data=True,
-	# Para entry_points ver: https://setuptools.pypa.io/en/latest/userguide/entry_point.html
-	# Ver tb: https://stackoverflow.com/questions/774824/explain-python-entry-points
-	# No lo uso porque da error al instalar el paquete subido a pypi:
+
+	# Para entry_points ver:
+	#	https://setuptools.pypa.io/en/latest/userguide/entry_point.html#dynamic-discovery-of-services-and-plugins
+	#	https://docs.pytest.org/en/latest/how-to/writing_plugins.html
+	#	https://docs.pytest.org/en/latest/how-to/plugins.html#using-plugins
+	# 	https://stackoverflow.com/questions/774824/explain-python-entry-points
+	# No lo uso porque no lo tengo bien configurado y me da error al instalar el paquete subido a pypi:
     # entry_points={'console_scripts': ['qlidtwins=cartolidar.qlidtwins']},
     # cmdclass=versioneer.get_cmdclass(),
 )

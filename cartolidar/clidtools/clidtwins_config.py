@@ -11,8 +11,18 @@ import sys
 from configparser import RawConfigParser
 import unicodedata
 
-print(f'clidtwins_config-> __name__:     <{__name__}>')
-print(f'clidtwins_config-> __package__ : <{__package__ }>')
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    __verbose__ = 0
+if __verbose__ > 2:
+    print(f'clidtwins_config-> __name__:     <{__name__}>')
+    print(f'clidtwins_config-> __package__ : <{__package__ }>')
+
 # Acceso a un modulo de otro package
 from cartolidar.clidax import clidconfig
 

@@ -31,8 +31,17 @@ try:
 except:
     psutilOk = False
 
-print(f'clidconfig-> __name__:     <{__name__}>')
-print(f'clidconfig-> __package__ : <{__package__ }>')
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    __verbose__ = 0
+if __verbose__ > 2:
+    print(f'clidconfig-> __name__:     <{__name__}>')
+    print(f'clidconfig-> __package__ : <{__package__ }>')
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 # Una vez importado este modulo as CG puedo usar:
 #    from cartolidar.clidax.clidconfig import GLOBALconfigDict

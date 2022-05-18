@@ -49,8 +49,18 @@ ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
 
-print(f'clidcarto-> __name__:     <{__name__}>')
-print(f'clidcarto-> __package__ : <{__package__ }>')
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    __verbose__ = 0
+if __verbose__ > 2:
+    print(f'clidcarto-> __name__:     <{__name__}>')
+    print(f'clidcarto-> __package__ : <{__package__ }>')
+
 # Anulo esta importacion porque por el momento no las uso
 # from cartolidar.clidax import clidaux
 # La importacion de clidconfig (GLO) y clidnaux la pospongo a mas adelante

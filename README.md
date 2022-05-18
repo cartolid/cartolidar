@@ -52,57 +52,79 @@ Consultar documentación en: [Read the Docs - cartolidar](http://cartolidar-docs.
 Install
 --------
 
-1. Instalation of official version from [pypi - cartolidar](https://pypi.org/project/cartolidar/):
+1. Install official version from [pypi - cartolidar](https://pypi.org/project/cartolidar/):
 ```
-$ pip install cartolidar
+pip install cartolidar
 ```
 
-2. Download of development version from [github - cartolidar](https://github.com/cartolid/cartolidar)
+2. Download development version from [github - cartolidar](https://github.com/cartolid/cartolidar)
 
-This version can be instaled in lib/site-packages (ie, using cmd in Windows):
+You can download the zip version, uncompress it somewhere, i.e.:
 ```
-$ cd path_to_project
-$ pip install .
+C:\users\yourUser\Downloads\cartolidar-main\
 ```
-or the older way (not recommendable):
+That folder contains a setup.py file (and the other components of the project)
+and you can install cartolidar from there for your python environment:
 ```
-$ cd path_to_project
+cd C:\users\yourUser\Downloads\cartolidar-main\
+pip install .
+```
+It is also possible the older way, but is not recommendable:
+```
 $ python setup.py install
 ```
 
-If you have the source distribution (tar.gz):
+If you download any distribution package (wheel or sdist) from elsewhere you can install it:
 ```
-$ pip install path_to_project/cartolidar-X.Y.Z.tar.gz
+$ pip install cartolidar-X.Y.Z-py3-none-any.whl
 ```
-If you have the wheel:
+or 
 ```
-$ pip install path_to_project/cartolidar-X.Y.Z-py3-none-any.whl
+$ pip install cartolidar-X.Y.Z.tar.gz
 ```
-&nbsp;&nbsp;&nbsp;&nbsp;where:
+&nbsp;&nbsp;&nbsp;&nbsp;where: X.Y.Z is the actual version
 
-  X.Y.Z is the actual version
-
-  path_to_project is the path that contains setup.py and the other files and
-  directories of the project (downloaded from githhub)
 
 
 Requeriments
 ------------
-cartolidar requires Python 3.7 or higher. See requirements.txt.
+cartolidar requires Python 3.7 or higher.
+
+See other package requirements at requirements.txt.
 
 
 Use
 --------
 
 ### Command line (cmd or bash)
+a) Execute the package cartolidar:
 ```
-$ python -m cartolidar [options]
+python -m cartolidar [options]
 ```
-&nbsp;&nbsp;&nbsp;&nbsp;
-Se inicia un menu con las herramientas disponibles en cartolidar (qlidtwins)
+Se inicia el menu principal con las herramientas disponibles en cartolidar:
+&nbsp;&nbsp;&nbsp;&nbsp;Inicialmente solo está disponible la herramienta qlidtwins
 
 &nbsp;&nbsp;&nbsp;&nbsp;options:
-&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;-h, --help          show this help message and exit
+&nbsp;&nbsp;&nbsp;&nbsp;-v, --verbose       set verbosity level [default: False]
+&nbsp;&nbsp;&nbsp;&nbsp;-V, --version       show program's version number and exit
+&nbsp;&nbsp;&nbsp;&nbsp;-a ACCIONPRINCIPAL  0. Show main menu; 1. qlidtwins: buscar o verificar
+&nbsp;&nbsp;&nbsp;&nbsp;                      zonas analogas a una de referencia (con un determinado
+&nbsp;&nbsp;&nbsp;&nbsp;                      patron dasoLidar); 2. qlidmerge: integrar ficheros asc
+&nbsp;&nbsp;&nbsp;&nbsp;                      de 2x2 km en una capa tif unica (componer mosaico:
+&nbsp;&nbsp;&nbsp;&nbsp;                      merge). Default: 0
+&nbsp;&nbsp;&nbsp;&nbsp;other options       are tool-specific (see below).
+
+b) Execute directly a tool (a module), like qlidtwins.py (if it is accesible):
+```
+python qlidtwins.py [options]
+```
+&nbsp;&nbsp;&nbsp;&nbsp;You can check options with:
+```
+python qlidtwins.py -h
+```
+To be accesible: it's called from its folder, called with path_to_module or it is in the PATH environmental variable.
+
 
 ### Import cartolider package or its modules or classes (python code)
 ```

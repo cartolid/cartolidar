@@ -1,8 +1,18 @@
 gdal>=3.0.2
-numpy>=1.21.1
+numpy>=1.19.1
 scipy>=1.4.1
 psutil>=5.7.0
 dbfread>=2.0.7
+# For future tools in cartolidar:
+# TensorFlow>=2.3.0
+# keras>=2.4.3
+# pandas>= 1.0.5
+# h5py>=2.10.0
+# matplotlib>=3.2.2
+# PIL>=7.2.0
+# numba>=0.50.1
+# graphviz>=0.11.1
+# openpyxl>=3.0.5
 
 # Ver https://pip.pypa.io/en/stable/reference/requirements-file-format/#requirements-file-format
 # Ver https://learnpython.com/blog/python-requirements-file/
