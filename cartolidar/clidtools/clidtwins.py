@@ -132,7 +132,6 @@ and other optional arguments.
             print('clidtwins-> AVISO: se lee GLBLlistTxtDasoVars del fichero de configuracion')
             print('            (por defecto), por no haberse especificado LCL_listLstDasoVars')
             print('            de forma explicita al instanciar la clase DasoLidarSource.')
-            print(f'           Fichero de configuracion: {GLO.GRAL_configFileNameCfg}')
             print('{:=^80}'.format(''))
         else:
             self.LOCLlistLstDasoVars = LCL_listLstDasoVars

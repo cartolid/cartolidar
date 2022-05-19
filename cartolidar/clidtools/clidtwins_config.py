@@ -45,8 +45,41 @@ if __verbose__ > 2:
     print(f'clidtwins_config-> __package__ : <{__package__ }>')
 # ==============================================================================
 
-# Acceso a un modulo de otro package
+# Acceso a un modulo del package clidax
 from cartolidar.clidax import clidconfig
+
+
+# ==============================================================================
+# El idProceso sirve para dar nombres unicos a los ficheros de configracion y
+# asi poder lanzar trabajos paralelos con distintas configuraciones.
+# Sin embargo, qlidtwins no esta pensada para lanzar trabajos en paralelo.
+# Mantengo el idProceso por si acaso
+if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
+    MAIN_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+else:
+    # MAIN_idProceso = random.randint(1, 999998)
+    MAIN_idProceso = 0
+    sys.argv.append('--idProceso')
+    sys.argv.append(MAIN_idProceso)
+# ==============================================================================
+
+
+# ==============================================================================
+def getConfigFileName():
+    if sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+        configFileNameCfg = 'cartolidar.cfg'
+    elif sys.argv[0] == '':
+        configFileNameCfg = 'qlidtwins.cfg'
+    elif sys.argv[0].endswith('qlidtwins.py'):
+        configFileNameCfg = 'qlidtwins.cfg'
+    else:
+        if MAIN_idProceso:
+            configFileNameCfg = sys.argv[0].replace('.py', '{:006}.cfg'.format(MAIN_idProceso))
+        else:
+            configFileNameCfg = sys.argv[0].replace('.py', '.cfg')
+    if __verbose__ > 1:
+        print(f'qlidtwins se ejecuta con las opciones de {configFileNameCfg} (o por defecto).')
+    return configFileNameCfg
 
 
 # ==============================================================================
@@ -61,88 +94,6 @@ def infoUsuario():
         return USERusuario
     else:
         return 'SinUsuario'
-
-
-# ==============================================================================
-class myClass(object):
-    pass
-GLO = myClass()
-GLO.GLBLverbose = None
-GLO.GLBLaccionPrincipalPorDefecto = None
-GLO.GLBLrutaAscRaizBasePorDefecto = None
-GLO.GLBLrasterPixelSizePorDefecto = None
-GLO.GLBLradioClusterPixPorDefecto = None
-GLO.GLBLrutaCompletaMFEPorDefecto = None
-GLO.GLBLcartoMFEcampoSpPorDefecto = None
-GLO.GLBLpatronVectrNamePorDefecto = None
-GLO.GLBLtesteoVectrNamePorDefecto = None
-GLO.GLBLpatronLayerNamePorDefecto = None
-GLO.GLBLtesteoLayerNamePorDefecto = None
-GLO.GLBLnPatronDasoVarsPorDefecto = None
-
-GLO.GLBLlistaDasoVarsNickNames = None
-GLO.GLBLlistaDasoVarsFileTypes = None
-GLO.GLBLlistaDasoVarsRangoLinf = None
-GLO.GLBLlistaDasoVarsRangoLsup = None
-GLO.GLBLlistaDasoVarsNumClases = None
-GLO.GLBLlistaDasoVarsMovilidad = None
-GLO.GLBLlistLstDasoVarsPorDefecto = None
-GLO.GLBLlistTxtDasoVarsPorDefecto = None
-
-GLO.GLBLmenuInteractivoPorDefecto = None
-GLO.GLBLmarcoPatronTestPorDefecto = None
-GLO.GLBLnivelSubdirExplPorDefecto = None
-GLO.GLBLoutRasterDriverPorDefecto = None
-GLO.GLBLoutputSubdirNewPorDefecto = None
-GLO.GLBLcartoMFErecortePorDefecto = None
-GLO.GLBLvarsTxtFileNamePorDefecto = None
-GLO.GLBLambitoTiffNuevoPorDefecto = None
-GLO.GLBLnoDataTiffProviPorDefecto = None
-GLO.GLBLnoDataTiffFilesPorDefecto = None
-GLO.GLBLnoDataTipoDMasaPorDefecto = None
-GLO.GLBLumbralMatriDistPorDefecto = None
-
-GLO.GLBLaccionPrincipal = None
-GLO.GLBLrutaAscRaizBase = None
-GLO.GLBLrasterPixelSize = None
-GLO.GLBLradioClusterPix = None
-GLO.GLBLrutaCompletaMFE = None
-GLO.GLBLcartoMFEcampoSp = None
-GLO.GLBLpatronVectrName = None
-GLO.GLBLpatronLayerName = None
-GLO.GLBLtesteoVectrName = None
-GLO.GLBLtesteoLayerName = None
-GLO.GLBLnPatronDasoVars = None
-
-GLO.GLBLlistaDasoVarsNickNames = None
-GLO.GLBLlistaDasoVarsFileTypes = None
-GLO.GLBLlistaDasoVarsRangoLinf = None
-GLO.GLBLlistaDasoVarsRangoLsup = None
-GLO.GLBLlistaDasoVarsNumClases = None
-GLO.GLBLlistaDasoVarsMovilidad = None
-GLO.GLBLlistLstDasoVars = None
-GLO.GLBLlistTxtDasoVars = None
-
-GLO.GLBLmenuInteractivo = None
-GLO.GLBLmarcoPatronTest = None
-GLO.GLBLnivelSubdirExpl = None
-GLO.GLBLoutRasterDriver = None
-GLO.GLBLoutputSubdirNew = None
-GLO.GLBLcartoMFErecorte = None
-GLO.GLBLvarsTxtFileName = None
-GLO.GLBLambitoTiffNuevo = None
-GLO.GLBLnoDataTiffProvi = None
-GLO.GLBLnoDataTiffFiles = None
-GLO.GLBLnoDataTipoDMasa = None
-GLO.GLBLumbralMatriDist = None
-
-GLO.GLBLmarcoCoordMinX = 0
-GLO.GLBLmarcoCoordMaxX = 0
-GLO.GLBLmarcoCoordMinY = 0
-GLO.GLBLmarcoCoordMaxY = 0
-
-GLO.GRAL_configFileNameCfg = None
-# ==============================================================================
 
 
 # ==============================================================================
@@ -302,295 +253,364 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
     return LOCL_configDict
 
 
-# ==========================================================================
-def foo():
+# ==============================================================================
+def foo0():
     pass
 
-
-# ==========================================================================
-# ================= Parametrosde configuracion por defecto =================
-# ======================== GRAL_configDictPorDefecto =======================
-# ==========================================================================
-# Dict de parametrosde configuracion con valores por defecto. Estructura:
-#     GRAL_configDict[nombreParametroDeConfiguracion] = [valorParametro, grupoParametros, tipoVariable, descripcionParametro]
-GRAL_configDictPorDefecto = {
-    'GLBLverbose': [2, 'General', 'bool', 'Mostrar info de ejecucion en consola'],
-    # 'MAINprocedimiento': ['', 'General', 'str', ''],
-    # 'GLBLsoloRoquedosParaEntrenamiento': ['', 'General', 'str', ''],
-
-    'GLBLaccionPrincipalPorDefecto': ['2', 'dasoLidar', 'bool', '1. Verificar analog�a con un determinado patron dasoLidar; 2. Generar raster con presencia de un determinado patron dasoLidar.'],
-
-    # 'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
-    # Ruta de los lasFiles para Leon:
-    'GLBLrutaAscRaizBasePorDefecto': ['K:/calendula/NW', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
-
-    # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
-    # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/zonaEnsayoTolosana.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
-    # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/perimetrosDeReferencia.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
-    'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
-
-    # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/MUP_rodales_zonaEstudio.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
-    # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
-    # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/testeo_roble.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
-    'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
-
-    'GLBLpatronLayerNamePorDefecto': [r'robleAlto1', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
-    'GLBLtesteoLayerNamePorDefecto': [r'robleAlto2', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
-
-    'GLBLrasterPixelSizePorDefecto': [10, 'General', 'uint8', 'Lado del pixel dasometrico en metros (pte ver diferencia con GLBLmetrosCelda)'],
-    'GLBLradioClusterPixPorDefecto': [3, 'dasoLidar', 'uint8', 'Numero de anillos de pixeles que tiene el cluster, ademas del central'],
-
-    # 'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
-    'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/24_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
-    'GLBLcartoMFEcampoSpPorDefecto': ['SP1', 'dasoLidar', 'str', 'Nombre del campo con el codigo numerico de la especie principal o tipo de bosque en la capa MFE'],
-
-    'GLBLnPatronDasoVarsPorDefecto': [0, 'dasoLidar', 'int', 'Si es distinto de cero, numero de dasoVars con las que se caracteriza el patron (n primeras dasoVars)'],
-
-    'GLBLlistaDasoVarsNickNames': [
-        'Alt95,FCC5m,FCC3m,FCmat,FCsub,MFE25,TMasa',
-        # 'Alt95,FCC5m,FCC3m,FCmat,MFE25,TMasa',
-        'dasoLidar', 'list_str', 'Lista de variables para el dasoLidar'
-    ],
-    'GLBLlistaDasoVarsFileTypes': [
-        'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE,TipoMasa',
-        # 'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,MFE,TipoMasa',
-        'dasoLidar', 'list_str', 'Lista de tipos de fichero para el dasoLidar'
-    ],
-    'GLBLlistaDasoVarsRangoLinf': [
-        '0,0,0,0,0,0,0',
-        # '0,0,0,0,0,0',
-        'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
-    ],
-    'GLBLlistaDasoVarsRangoLsup': [
-        '36,100,100,100,100,255,255',
-        # '36,100,100,100,255,255',
-        'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
-    ],
-    'GLBLlistaDasoVarsNumClases': [
-        '18,5,5,5,5,255,255',
-        # '18,5,5,5,255,255',
-        'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
-    ],
-    'GLBLlistaDasoVarsMovilidad': [
-        '40,25,30,35,35,0,0',
-        # '25,20,20,25,0,0',
-        'dasoLidar', 'list_int', 'Lista de factores de movilidad admitidas entre clases del histograma de la variable dasoVar (0-100)'
-    ],
-    'GLBLlistaDasoVarsPonderado': [
-        '10,8,5,4,3,0,0',
-        'dasoLidar', 'list_int', 'Peso de cada variable para poderar las discrepancias respecto al modelo o patron (0-10).'
-    ],
-
-    'GLBLmenuInteractivoPorDefecto': [0, 'General', 'bool', 'Preguntar en tiempo de ejecucion para confirmar opciones'],
-    'GLBLmarcoPatronTestPorDefecto': [1, 'dasoLidar', 'bool', 'Zona de analisis definida por la envolvente de los poligonos de referencia (patron) y de chequeo (testeo)'],
-    'GLBLnivelSubdirExplPorDefecto': [3, 'General', 'bool', 'Explorar subdirectorios de rutaAscRaizBase'],
-    'GLBLoutRasterDriverPorDefecto': ['GTiff', 'dasoLidar', 'str', 'Formato de fichero raster de salida para el dasolidar'],
-    'GLBLoutputSubdirNewPorDefecto': ['dasoLayers', 'dasoLidar', 'str', 'Subdirectorio de GLBLrutaAscRaizBasePorDefecto donde se guardan los resultados'],
-    'GLBLcartoMFErecortePorDefecto': ['mfe50rec', 'dasoLidar', 'str', 'Nombre del fichero en el que se guarda la version recortada raster del MFE'],
-    'GLBLvarsTxtFileNamePorDefecto': ['rangosDeDeferencia.txt', 'dasoLidar', 'str', 'Nombre de fichero en el que se guardan los rangos calculados para todas las variables'],
-    ''
-    'GLBLambitoTiffNuevoPorDefecto': ['loteAsc', 'general', 'str', 'Principalmente para merge: ambito geografico del nuevo raster creado (uno predeterminado o el correspondiente a los ASC)'],
-
-    'GLBLnoDataTiffProviPorDefecto': [-8888, 'dasoLidar', 'int', 'NoData temporal para los ficheros raster de salida para el dasolidar'],
-    'GLBLnoDataTiffFilesPorDefecto': [-9999, 'dasoLidar', 'int', 'NoData definitivo para los ficheros raster de salida para el dasolidar'],
-    'GLBLnoDataTipoDMasaPorDefecto': [255, 'dasoLidar', 'int', 'NoData definitivo para el raster de salida con el tipo de masa para el dasolidar'],
-    'GLBLumbralMatriDistPorDefecto': [20, 'dasoLidar', 'int', 'Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars'],
-}
-# ==============================================================================
+# # ==============================================================================
+# class myClass(object):
+#     pass
+#
+# GLO = myClass()
+# GLO.GLBLverbose = None
+# GLO.GLBLaccionPrincipalPorDefecto = None
+# GLO.GLBLrutaAscRaizBasePorDefecto = None
+# GLO.GLBLrasterPixelSizePorDefecto = None
+# GLO.GLBLradioClusterPixPorDefecto = None
+# GLO.GLBLrutaCompletaMFEPorDefecto = None
+# GLO.GLBLcartoMFEcampoSpPorDefecto = None
+# GLO.GLBLpatronVectrNamePorDefecto = None
+# GLO.GLBLtesteoVectrNamePorDefecto = None
+# GLO.GLBLpatronLayerNamePorDefecto = None
+# GLO.GLBLtesteoLayerNamePorDefecto = None
+# GLO.GLBLnPatronDasoVarsPorDefecto = None
+#
+# GLO.GLBLlistaDasoVarsNickNames = None
+# GLO.GLBLlistaDasoVarsFileTypes = None
+# GLO.GLBLlistaDasoVarsRangoLinf = None
+# GLO.GLBLlistaDasoVarsRangoLsup = None
+# GLO.GLBLlistaDasoVarsNumClases = None
+# GLO.GLBLlistaDasoVarsMovilidad = None
+# GLO.GLBLlistLstDasoVarsPorDefecto = None
+# GLO.GLBLlistTxtDasoVarsPorDefecto = None
+#
+# GLO.GLBLmenuInteractivoPorDefecto = None
+# GLO.GLBLmarcoPatronTestPorDefecto = None
+# GLO.GLBLnivelSubdirExplPorDefecto = None
+# GLO.GLBLoutRasterDriverPorDefecto = None
+# GLO.GLBLoutputSubdirNewPorDefecto = None
+# GLO.GLBLcartoMFErecortePorDefecto = None
+# GLO.GLBLvarsTxtFileNamePorDefecto = None
+# GLO.GLBLambitoTiffNuevoPorDefecto = None
+# GLO.GLBLnoDataTiffProviPorDefecto = None
+# GLO.GLBLnoDataTiffFilesPorDefecto = None
+# GLO.GLBLnoDataTipoDMasaPorDefecto = None
+# GLO.GLBLumbralMatriDistPorDefecto = None
+#
+# GLO.GLBLaccionPrincipal = None
+# GLO.GLBLrutaAscRaizBase = None
+# GLO.GLBLrasterPixelSize = None
+# GLO.GLBLradioClusterPix = None
+# GLO.GLBLrutaCompletaMFE = None
+# GLO.GLBLcartoMFEcampoSp = None
+# GLO.GLBLpatronVectrName = None
+# GLO.GLBLpatronLayerName = None
+# GLO.GLBLtesteoVectrName = None
+# GLO.GLBLtesteoLayerName = None
+# GLO.GLBLnPatronDasoVars = None
+#
+# GLO.GLBLlistaDasoVarsNickNames = None
+# GLO.GLBLlistaDasoVarsFileTypes = None
+# GLO.GLBLlistaDasoVarsRangoLinf = None
+# GLO.GLBLlistaDasoVarsRangoLsup = None
+# GLO.GLBLlistaDasoVarsNumClases = None
+# GLO.GLBLlistaDasoVarsMovilidad = None
+# GLO.GLBLlistLstDasoVars = None
+# GLO.GLBLlistTxtDasoVars = None
+#
+# GLO.GLBLmenuInteractivo = None
+# GLO.GLBLmarcoPatronTest = None
+# GLO.GLBLnivelSubdirExpl = None
+# GLO.GLBLoutRasterDriver = None
+# GLO.GLBLoutputSubdirNew = None
+# GLO.GLBLcartoMFErecorte = None
+# GLO.GLBLvarsTxtFileName = None
+# GLO.GLBLambitoTiffNuevo = None
+# GLO.GLBLnoDataTiffProvi = None
+# GLO.GLBLnoDataTiffFiles = None
+# GLO.GLBLnoDataTipoDMasa = None
+# GLO.GLBLumbralMatriDist = None
+#
+# GLO.GLBLmarcoCoordMinX = 0
+# GLO.GLBLmarcoCoordMaxX = 0
+# GLO.GLBLmarcoCoordMinY = 0
+# GLO.GLBLmarcoCoordMaxY = 0
+#
+# GLO.configFileNameCfg = None
 
 
 # ==============================================================================
-if len(sys.argv) > 2 and sys.argv[-2] == '--idProceso':
-    GRAL_idProceso = sys.argv[-1]
-else:
-    GRAL_idProceso = 0
-# print(f'sys.argv ({len(sys.argv)}): <{sys.argv}>')
-if len(sys.argv) == 0 or sys.argv[0] == '' or sys.argv[0] == '-m':
-    # print('Se esta ejecutando fuera de un modulo, en el interprete interactivo')
-    GRAL_configFileNameCfg = 'cartolidar.cfg'
-else:
-    # print('Se esta ejecutando desde un modulo')
-    if GRAL_idProceso:
-        GRAL_configFileNameCfg = sys.argv[0].replace('.py', '{:06}.cfg'.format(GRAL_idProceso))
-    else:
-        GRAL_configFileNameCfg = sys.argv[0].replace('.py', '.cfg')
-# print(f'Fichero de configuracion: <{GRAL_configFileNameCfg}>')
-# ==============================================================================
-# Guardo los parametros de configuracion en un diccionario (GRAL_configDict)
-GRAL_configDict = leerConfig(GRAL_configDictPorDefecto, GRAL_configFileNameCfg)
-# Se crea un objeto de la clase VariablesGlobales que usa cargaVariablesDelConfigVarsDict<>
-# para cargar los parametros de configuracion guardados en GRAL_configDict como atributos
-GLO = clidconfig.VariablesGlobales(GRAL_configDict)
-# ==============================================================================
-
-# ==============================================================================
-GLO.GRAL_configFileNameCfg = GRAL_configFileNameCfg
-# ==============================================================================
-GLO.GLBLinputVectorMfePathName = os.path.dirname(GLO.GLBLrutaCompletaMFEPorDefecto)
-inputVectorMfeFilePathName, GLO.GLBLinputVectorMfeFileExt = os.path.splitext(GLO.GLBLrutaCompletaMFEPorDefecto)
-GLO.GLBLinputVectorMfeFileName = os.path.basename(inputVectorMfeFilePathName)
-if GLO.GLBLinputVectorMfeFileExt.lower() == '.shp':
-    GLO.GLBLinputVectorDriverNameMFE = 'ESRI Shapefile'
-elif GLO.GLBLinputVectorMfeFileExt.lower() == '.gpkg':
-    GLO.GLBLinputVectorDriverNameMFE = 'ESRI Shapefile'
-else:
-    GLO.GLBLinputVectorDriverNameMFE = ''
-    print(f'clidtwins_config-> No se ha identificado bien el driver de esta extension: {GLO.GLBLinputVectorMfeFileExt} (fichero: {GLO.GLBLrutaCompletaMFEPorDefecto})')
-    sys.exit(0)
-# ==============================================================================
-if (
-    len(GLO.GLBLlistaDasoVarsFileTypes) < len(GLO.GLBLlistaDasoVarsNickNames)
-    or len(GLO.GLBLlistaDasoVarsRangoLinf) < len(GLO.GLBLlistaDasoVarsNickNames)
-    or len(GLO.GLBLlistaDasoVarsRangoLsup) < len(GLO.GLBLlistaDasoVarsNickNames)
-    or len(GLO.GLBLlistaDasoVarsNumClases) < len(GLO.GLBLlistaDasoVarsNickNames)
-    or len(GLO.GLBLlistaDasoVarsMovilidad) < len(GLO.GLBLlistaDasoVarsNickNames)
-    or len(GLO.GLBLlistaDasoVarsPonderado) < len(GLO.GLBLlistaDasoVarsNickNames)
+def leerConfigDictPorDefecto():
+    ''''Dict de parametros de configuracion con valores por defecto.
+    Estructura:
+        GRAL_configDict[nombreParametroDeConfiguracion] = [valorParametro, grupoParametros, tipoVariable, descripcionParametro]
+    '''
+    configDictPorDefecto = {
+        'GLBLverbose': [2, 'General', 'bool', 'Mostrar info de ejecucion en consola'],
+        # 'MAINprocedimiento': ['', 'General', 'str', ''],
+        # 'GLBLsoloRoquedosParaEntrenamiento': ['', 'General', 'str', ''],
     
-):
-    print(
-        '\nclidtwins_config-> ATENCION: revisar lista de variables en el fichero de parametros de configuracion:',
-        len(GLO.GLBLlistaDasoVarsNickNames),
-        len(GLO.GLBLlistaDasoVarsFileTypes),
-        len(GLO.GLBLlistaDasoVarsRangoLinf),
-        len(GLO.GLBLlistaDasoVarsRangoLsup),
-        len(GLO.GLBLlistaDasoVarsNumClases),
-        len(GLO.GLBLlistaDasoVarsMovilidad),
-        len(GLO.GLBLlistaDasoVarsPonderado),
-    )
-    print('\t', type(GLO.GLBLlistaDasoVarsNickNames), len(GLO.GLBLlistaDasoVarsNickNames), GLO.GLBLlistaDasoVarsNickNames)
-    print('\t', type(GLO.GLBLlistaDasoVarsFileTypes), len(GLO.GLBLlistaDasoVarsFileTypes), GLO.GLBLlistaDasoVarsFileTypes)
-    print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLinf), GLO.GLBLlistaDasoVarsRangoLinf)
-    print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLsup), GLO.GLBLlistaDasoVarsRangoLinf)
-    print('\t', type(GLO.GLBLlistaDasoVarsNumClases), len(GLO.GLBLlistaDasoVarsNumClases), GLO.GLBLlistaDasoVarsNumClases)
-    print('\t', type(GLO.GLBLlistaDasoVarsMovilidad), len(GLO.GLBLlistaDasoVarsMovilidad), GLO.GLBLlistaDasoVarsMovilidad)
-    print('\t', type(GLO.GLBLlistaDasoVarsPonderado), len(GLO.GLBLlistaDasoVarsPonderado), GLO.GLBLlistaDasoVarsPonderado)
-    print(f'Corregir o eliminar el fichero almacenado ({GRAL_configFileNameCfg}).')
-    sys.exit(0)
-GLO.GLBLlistTxtDasoVarsPorDefecto = []
-nBandasPrevistasOutput = len(GLO.GLBLlistaDasoVarsNickNames)
-for nVar in range(nBandasPrevistasOutput):
-    GLO.GLBLlistTxtDasoVarsPorDefecto.append(
-        '{},{},{},{},{},{},{}'.format(
-            GLO.GLBLlistaDasoVarsNickNames[nVar],
-            GLO.GLBLlistaDasoVarsFileTypes[nVar],
-            GLO.GLBLlistaDasoVarsRangoLinf[nVar],
-            GLO.GLBLlistaDasoVarsRangoLsup[nVar],
-            GLO.GLBLlistaDasoVarsNumClases[nVar],
-            GLO.GLBLlistaDasoVarsMovilidad[nVar],
-            GLO.GLBLlistaDasoVarsPonderado[nVar],
+        'GLBLaccionPrincipalPorDefecto': ['2', 'dasoLidar', 'bool', '1. Verificar analog�a con un determinado patron dasoLidar; 2. Generar raster con presencia de un determinado patron dasoLidar.'],
+    
+        # 'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
+        # Ruta de los lasFiles para Leon:
+        'GLBLrutaAscRaizBasePorDefecto': ['K:/calendula/NW', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
+    
+        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
+        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/zonaEnsayoTolosana.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
+        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/perimetrosDeReferencia.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
+        'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
+    
+        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/MUP_rodales_zonaEstudio.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
+        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
+        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/testeo_roble.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
+        'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
+    
+        'GLBLpatronLayerNamePorDefecto': [r'robleAlto1', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+        'GLBLtesteoLayerNamePorDefecto': [r'robleAlto2', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+    
+        'GLBLrasterPixelSizePorDefecto': [10, 'General', 'uint8', 'Lado del pixel dasometrico en metros (pte ver diferencia con GLBLmetrosCelda)'],
+        'GLBLradioClusterPixPorDefecto': [3, 'dasoLidar', 'uint8', 'Numero de anillos de pixeles que tiene el cluster, ademas del central'],
+    
+        # 'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
+        'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/24_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
+        'GLBLcartoMFEcampoSpPorDefecto': ['SP1', 'dasoLidar', 'str', 'Nombre del campo con el codigo numerico de la especie principal o tipo de bosque en la capa MFE'],
+    
+        'GLBLnPatronDasoVarsPorDefecto': [0, 'dasoLidar', 'int', 'Si es distinto de cero, numero de dasoVars con las que se caracteriza el patron (n primeras dasoVars)'],
+    
+        'GLBLlistaDasoVarsNickNames': [
+            'Alt95,FCC5m,FCC3m,FCmat,FCsub,MFE25,TMasa',
+            # 'Alt95,FCC5m,FCC3m,FCmat,MFE25,TMasa',
+            'dasoLidar', 'list_str', 'Lista de variables para el dasoLidar'
+        ],
+        'GLBLlistaDasoVarsFileTypes': [
+            'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE,TipoMasa',
+            # 'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,MFE,TipoMasa',
+            'dasoLidar', 'list_str', 'Lista de tipos de fichero para el dasoLidar'
+        ],
+        'GLBLlistaDasoVarsRangoLinf': [
+            '0,0,0,0,0,0,0',
+            # '0,0,0,0,0,0',
+            'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
+        ],
+        'GLBLlistaDasoVarsRangoLsup': [
+            '36,100,100,100,100,255,255',
+            # '36,100,100,100,255,255',
+            'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
+        ],
+        'GLBLlistaDasoVarsNumClases': [
+            '18,5,5,5,5,255,255',
+            # '18,5,5,5,255,255',
+            'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
+        ],
+        'GLBLlistaDasoVarsMovilidad': [
+            '40,25,30,35,35,0,0',
+            # '25,20,20,25,0,0',
+            'dasoLidar', 'list_int', 'Lista de factores de movilidad admitidas entre clases del histograma de la variable dasoVar (0-100)'
+        ],
+        'GLBLlistaDasoVarsPonderado': [
+            '10,8,5,4,3,0,0',
+            'dasoLidar', 'list_int', 'Peso de cada variable para poderar las discrepancias respecto al modelo o patron (0-10).'
+        ],
+    
+        'GLBLmenuInteractivoPorDefecto': [0, 'General', 'bool', 'Preguntar en tiempo de ejecucion para confirmar opciones'],
+        'GLBLmarcoPatronTestPorDefecto': [1, 'dasoLidar', 'bool', 'Zona de analisis definida por la envolvente de los poligonos de referencia (patron) y de chequeo (testeo)'],
+        'GLBLnivelSubdirExplPorDefecto': [3, 'General', 'bool', 'Explorar subdirectorios de rutaAscRaizBase'],
+        'GLBLoutRasterDriverPorDefecto': ['GTiff', 'dasoLidar', 'str', 'Formato de fichero raster de salida para el dasolidar'],
+        'GLBLoutputSubdirNewPorDefecto': ['dasoLayers', 'dasoLidar', 'str', 'Subdirectorio de GLBLrutaAscRaizBasePorDefecto donde se guardan los resultados'],
+        'GLBLcartoMFErecortePorDefecto': ['mfe50rec', 'dasoLidar', 'str', 'Nombre del fichero en el que se guarda la version recortada raster del MFE'],
+        'GLBLvarsTxtFileNamePorDefecto': ['rangosDeDeferencia.txt', 'dasoLidar', 'str', 'Nombre de fichero en el que se guardan los rangos calculados para todas las variables'],
+        ''
+        'GLBLambitoTiffNuevoPorDefecto': ['loteAsc', 'general', 'str', 'Principalmente para merge: ambito geografico del nuevo raster creado (uno predeterminado o el correspondiente a los ASC)'],
+    
+        'GLBLnoDataTiffProviPorDefecto': [-8888, 'dasoLidar', 'int', 'NoData temporal para los ficheros raster de salida para el dasolidar'],
+        'GLBLnoDataTiffFilesPorDefecto': [-9999, 'dasoLidar', 'int', 'NoData definitivo para los ficheros raster de salida para el dasolidar'],
+        'GLBLnoDataTipoDMasaPorDefecto': [255, 'dasoLidar', 'int', 'NoData definitivo para el raster de salida con el tipo de masa para el dasolidar'],
+        'GLBLumbralMatriDistPorDefecto': [20, 'dasoLidar', 'int', 'Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars'],
+    }
+    return configDictPorDefecto
+
+
+# ==============================================================================
+def readSppMatch():
+    sppMatch = [
+        [21, 22, 7], # Ps Pu
+        [21, 23, 3], # Ps Pp
+        [21, 24, 2], # Ps Ph
+        [21, 25, 6], # Ps Pn
+        [21, 26, 5], # Ps Pt
+        [21, 28, 3], # Ps Pr
+        [22, 23, 3], # Pu Pp
+        [22, 24, 2], # Pu Ph
+        [22, 25, 5], # Pu Pn
+        [22, 26, 4], # Pu Pt
+        [22, 28, 3], # Pu Pr
+        [23, 24, 4], # Pp Ph
+        [23, 25, 4], # Pp Pn
+        [23, 26, 5], # Pp Pt
+        [23, 28, 2], # Pp Pr
+        [24, 25, 3], # Ph Pn
+        [24, 26, 3], # Ph Pt
+        [24, 28, 2], # Ph Pr
+        [25, 26, 5], # Pn Pt
+        [25, 28, 4], # Pn Pr
+        [26, 28, 5], # Pt Pr
+        [41, 42, 9], # Qr Qt
+        [41, 43, 5], # Qr Qp
+        [41, 44, 4], # Qr Qf
+        [41, 45, 3], # Qr Qi
+        [41, 46, 3], # Qr Qs
+        [42, 43, 5], # Qt Qp
+        [42, 44, 4], # Qt Qf
+        [42, 45, 3], # Qt Qi
+        [42, 46, 3], # Qt Qs
+        [43, 44, 7], # Qp Qf
+        [43, 45, 5], # Qp Qi
+        [43, 46, 3], # Qp Qs
+        [44, 45, 7], # Qf Qi
+        [44, 46, 5], # Qf Qs
+        [45, 46, 7], # Qi Qs
+        ]
+    return sppMatch
+
+
+# ==============================================================================
+def checkGLO(GLO):
+    GLO.GLBLinputVectorMfePathName = os.path.dirname(GLO.GLBLrutaCompletaMFEPorDefecto)
+    inputVectorMfeFilePathName, GLO.GLBLinputVectorMfeFileExt = os.path.splitext(GLO.GLBLrutaCompletaMFEPorDefecto)
+    GLO.GLBLinputVectorMfeFileName = os.path.basename(inputVectorMfeFilePathName)
+    if GLO.GLBLinputVectorMfeFileExt.lower() == '.shp':
+        GLO.GLBLinputVectorDriverNameMFE = 'ESRI Shapefile'
+    elif GLO.GLBLinputVectorMfeFileExt.lower() == '.gpkg':
+        GLO.GLBLinputVectorDriverNameMFE = 'ESRI Shapefile'
+    else:
+        GLO.GLBLinputVectorDriverNameMFE = ''
+        print(f'clidtwins_config-> No se ha identificado bien el driver de esta extension: {GLO.GLBLinputVectorMfeFileExt} (fichero: {GLO.GLBLrutaCompletaMFEPorDefecto})')
+        sys.exit(0)
+    # ==============================================================================
+    if (
+        len(GLO.GLBLlistaDasoVarsFileTypes) < len(GLO.GLBLlistaDasoVarsNickNames)
+        or len(GLO.GLBLlistaDasoVarsRangoLinf) < len(GLO.GLBLlistaDasoVarsNickNames)
+        or len(GLO.GLBLlistaDasoVarsRangoLsup) < len(GLO.GLBLlistaDasoVarsNickNames)
+        or len(GLO.GLBLlistaDasoVarsNumClases) < len(GLO.GLBLlistaDasoVarsNickNames)
+        or len(GLO.GLBLlistaDasoVarsMovilidad) < len(GLO.GLBLlistaDasoVarsNickNames)
+        or len(GLO.GLBLlistaDasoVarsPonderado) < len(GLO.GLBLlistaDasoVarsNickNames)
+        
+    ):
+        print(
+            '\nclidtwins_config-> ATENCION: revisar lista de variables en el fichero de parametros de configuracion:',
+            len(GLO.GLBLlistaDasoVarsNickNames),
+            len(GLO.GLBLlistaDasoVarsFileTypes),
+            len(GLO.GLBLlistaDasoVarsRangoLinf),
+            len(GLO.GLBLlistaDasoVarsRangoLsup),
+            len(GLO.GLBLlistaDasoVarsNumClases),
+            len(GLO.GLBLlistaDasoVarsMovilidad),
+            len(GLO.GLBLlistaDasoVarsPonderado),
         )
-    )
-    GLO.GLBLlistLstDasoVarsPorDefecto = []
-    for txtListaDasovar in GLO.GLBLlistTxtDasoVarsPorDefecto:
-        listDasoVar = [item.strip() for item in txtListaDasovar.split(',')]
-        GLO.GLBLlistLstDasoVarsPorDefecto.append(listDasoVar)
-    # print('clidtwins_config->', nVar, type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar], end=' -> ')
-    # GLO.GLBLlistaDasoVarsRangoLinf[nVar] = int(GLO.GLBLlistaDasoVarsRangoLinf[nVar])
-    # GLO.GLBLlistaDasoVarsRangoLsup[nVar] = int(GLO.GLBLlistaDasoVarsRangoLsup[nVar])
-    # GLO.GLBLlistaDasoVarsNumClases[nVar] = int(GLO.GLBLlistaDasoVarsNumClases[nVar])
-    # GLO.GLBLlistaDasoVarsMovilidad[nVar] = int(GLO.GLBLlistaDasoVarsMovilidad[nVar])
-    # print(type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar])
-# ==========================================================================
-GLO.GLBLverbose = GLO.GLBLverbose
-GLO.GLBLaccionPrincipalPorDefecto = int(GLO.GLBLaccionPrincipalPorDefecto)
-GLO.GLBLrutaAscRaizBasePorDefecto = str(GLO.GLBLrutaAscRaizBasePorDefecto)
-GLO.GLBLrasterPixelSizePorDefecto = int(GLO.GLBLrasterPixelSizePorDefecto)
-GLO.GLBLradioClusterPixPorDefecto = int(GLO.GLBLradioClusterPixPorDefecto)
-GLO.GLBLrutaCompletaMFEPorDefecto = str(GLO.GLBLrutaCompletaMFEPorDefecto)
-GLO.GLBLcartoMFEcampoSpPorDefecto = str(GLO.GLBLcartoMFEcampoSpPorDefecto)
-GLO.GLBLpatronVectrNamePorDefecto = str(GLO.GLBLpatronVectrNamePorDefecto)
-GLO.GLBLpatronLayerNamePorDefecto = GLO.GLBLpatronLayerNamePorDefecto
-GLO.GLBLtesteoVectrNamePorDefecto = str(GLO.GLBLtesteoVectrNamePorDefecto)
-GLO.GLBLtesteoLayerNamePorDefecto = GLO.GLBLtesteoLayerNamePorDefecto
-GLO.GLBLnPatronDasoVarsPorDefecto = int(GLO.GLBLnPatronDasoVarsPorDefecto)
+        print('\t', type(GLO.GLBLlistaDasoVarsNickNames), len(GLO.GLBLlistaDasoVarsNickNames), GLO.GLBLlistaDasoVarsNickNames)
+        print('\t', type(GLO.GLBLlistaDasoVarsFileTypes), len(GLO.GLBLlistaDasoVarsFileTypes), GLO.GLBLlistaDasoVarsFileTypes)
+        print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLinf), GLO.GLBLlistaDasoVarsRangoLinf)
+        print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLsup), GLO.GLBLlistaDasoVarsRangoLinf)
+        print('\t', type(GLO.GLBLlistaDasoVarsNumClases), len(GLO.GLBLlistaDasoVarsNumClases), GLO.GLBLlistaDasoVarsNumClases)
+        print('\t', type(GLO.GLBLlistaDasoVarsMovilidad), len(GLO.GLBLlistaDasoVarsMovilidad), GLO.GLBLlistaDasoVarsMovilidad)
+        print('\t', type(GLO.GLBLlistaDasoVarsPonderado), len(GLO.GLBLlistaDasoVarsPonderado), GLO.GLBLlistaDasoVarsPonderado)
+        print(f'Corregir o eliminar el fichero almacenado ({GLO.configFileNameCfg}).')
+        sys.exit(0)
+    GLO.GLBLlistTxtDasoVarsPorDefecto = []
+    nBandasPrevistasOutput = len(GLO.GLBLlistaDasoVarsNickNames)
+    for nVar in range(nBandasPrevistasOutput):
+        GLO.GLBLlistTxtDasoVarsPorDefecto.append(
+            '{},{},{},{},{},{},{}'.format(
+                GLO.GLBLlistaDasoVarsNickNames[nVar],
+                GLO.GLBLlistaDasoVarsFileTypes[nVar],
+                GLO.GLBLlistaDasoVarsRangoLinf[nVar],
+                GLO.GLBLlistaDasoVarsRangoLsup[nVar],
+                GLO.GLBLlistaDasoVarsNumClases[nVar],
+                GLO.GLBLlistaDasoVarsMovilidad[nVar],
+                GLO.GLBLlistaDasoVarsPonderado[nVar],
+            )
+        )
+        GLO.GLBLlistLstDasoVarsPorDefecto = []
+        for txtListaDasovar in GLO.GLBLlistTxtDasoVarsPorDefecto:
+            listDasoVar = [item.strip() for item in txtListaDasovar.split(',')]
+            GLO.GLBLlistLstDasoVarsPorDefecto.append(listDasoVar)
+        # print('clidtwins_config->', nVar, type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar], end=' -> ')
+        # GLO.GLBLlistaDasoVarsRangoLinf[nVar] = int(GLO.GLBLlistaDasoVarsRangoLinf[nVar])
+        # GLO.GLBLlistaDasoVarsRangoLsup[nVar] = int(GLO.GLBLlistaDasoVarsRangoLsup[nVar])
+        # GLO.GLBLlistaDasoVarsNumClases[nVar] = int(GLO.GLBLlistaDasoVarsNumClases[nVar])
+        # GLO.GLBLlistaDasoVarsMovilidad[nVar] = int(GLO.GLBLlistaDasoVarsMovilidad[nVar])
+        # print(type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar])
+    # ==========================================================================
+    GLO.GLBLverbose = GLO.GLBLverbose
+    GLO.GLBLaccionPrincipalPorDefecto = int(GLO.GLBLaccionPrincipalPorDefecto)
+    GLO.GLBLrutaAscRaizBasePorDefecto = str(GLO.GLBLrutaAscRaizBasePorDefecto)
+    GLO.GLBLrasterPixelSizePorDefecto = int(GLO.GLBLrasterPixelSizePorDefecto)
+    GLO.GLBLradioClusterPixPorDefecto = int(GLO.GLBLradioClusterPixPorDefecto)
+    GLO.GLBLrutaCompletaMFEPorDefecto = str(GLO.GLBLrutaCompletaMFEPorDefecto)
+    GLO.GLBLcartoMFEcampoSpPorDefecto = str(GLO.GLBLcartoMFEcampoSpPorDefecto)
+    GLO.GLBLpatronVectrNamePorDefecto = str(GLO.GLBLpatronVectrNamePorDefecto)
+    GLO.GLBLpatronLayerNamePorDefecto = GLO.GLBLpatronLayerNamePorDefecto
+    GLO.GLBLtesteoVectrNamePorDefecto = str(GLO.GLBLtesteoVectrNamePorDefecto)
+    GLO.GLBLtesteoLayerNamePorDefecto = GLO.GLBLtesteoLayerNamePorDefecto
+    GLO.GLBLnPatronDasoVarsPorDefecto = int(GLO.GLBLnPatronDasoVarsPorDefecto)
+    
+    GLO.GLBLlistaDasoVarsNickNames = list(GLO.GLBLlistaDasoVarsNickNames)
+    GLO.GLBLlistaDasoVarsFileTypes = list(GLO.GLBLlistaDasoVarsFileTypes)
+    GLO.GLBLlistaDasoVarsRangoLinf = list(GLO.GLBLlistaDasoVarsRangoLinf)
+    GLO.GLBLlistaDasoVarsRangoLsup = list(GLO.GLBLlistaDasoVarsRangoLsup)
+    GLO.GLBLlistaDasoVarsNumClases = list(GLO.GLBLlistaDasoVarsNumClases)
+    GLO.GLBLlistaDasoVarsMovilidad = list(GLO.GLBLlistaDasoVarsMovilidad)
+    GLO.GLBLlistLstDasoVarsPorDefecto = list(GLO.GLBLlistLstDasoVarsPorDefecto)
+    GLO.GLBLlistTxtDasoVarsPorDefecto = list(GLO.GLBLlistTxtDasoVarsPorDefecto)
+    
+    GLO.GLBLmenuInteractivoPorDefecto = int(GLO.GLBLmenuInteractivoPorDefecto)
+    GLO.GLBLmarcoPatronTestPorDefecto = int(GLO.GLBLmarcoPatronTestPorDefecto)
+    GLO.GLBLnivelSubdirExplPorDefecto = int(GLO.GLBLnivelSubdirExplPorDefecto)
+    GLO.GLBLoutRasterDriverPorDefecto = str(GLO.GLBLoutRasterDriverPorDefecto)
+    GLO.GLBLoutputSubdirNewPorDefecto = str(GLO.GLBLoutputSubdirNewPorDefecto)
+    GLO.GLBLcartoMFErecortePorDefecto = str(GLO.GLBLcartoMFErecortePorDefecto)
+    GLO.GLBLvarsTxtFileNamePorDefecto = str(GLO.GLBLvarsTxtFileNamePorDefecto)
+    GLO.GLBLambitoTiffNuevoPorDefecto = str(GLO.GLBLambitoTiffNuevoPorDefecto)
+    GLO.GLBLnoDataTiffProviPorDefecto = int(GLO.GLBLnoDataTiffProviPorDefecto)
+    GLO.GLBLnoDataTiffFilesPorDefecto = int(GLO.GLBLnoDataTiffFilesPorDefecto)
+    GLO.GLBLnoDataTipoDMasaPorDefecto = int(GLO.GLBLnoDataTipoDMasaPorDefecto)
+    GLO.GLBLumbralMatriDistPorDefecto = int(GLO.GLBLumbralMatriDistPorDefecto)
+    # ==========================================================================
+    
+    # ==========================================================================
+    sppMatch = readSppMatch()
+    GLO.GLBLdictProximidadInterEspecies = {}
+    for (codeEsp1, codeEsp2, proximidadInterEsp) in sppMatch:
+        binomioEspeciesA = f'{codeEsp1}_{codeEsp2}'
+        binomioEspeciesB = f'{codeEsp2}_{codeEsp1}'
+        GLO.GLBLdictProximidadInterEspecies[binomioEspeciesA] = proximidadInterEsp
+        GLO.GLBLdictProximidadInterEspecies[binomioEspeciesB] = proximidadInterEsp
+    # print('GLBLdictProximidadInterEspecies:')
+    # for binomioSpp in GLO.GLBLdictProximidadInterEspecies:
+    #     print(binomioSpp, GLO.GLBLdictProximidadInterEspecies[binomioSpp])
+    # ==========================================================================
 
-GLO.GLBLlistaDasoVarsNickNames = list(GLO.GLBLlistaDasoVarsNickNames)
-GLO.GLBLlistaDasoVarsFileTypes = list(GLO.GLBLlistaDasoVarsFileTypes)
-GLO.GLBLlistaDasoVarsRangoLinf = list(GLO.GLBLlistaDasoVarsRangoLinf)
-GLO.GLBLlistaDasoVarsRangoLsup = list(GLO.GLBLlistaDasoVarsRangoLsup)
-GLO.GLBLlistaDasoVarsNumClases = list(GLO.GLBLlistaDasoVarsNumClases)
-GLO.GLBLlistaDasoVarsMovilidad = list(GLO.GLBLlistaDasoVarsMovilidad)
-GLO.GLBLlistLstDasoVarsPorDefecto = list(GLO.GLBLlistLstDasoVarsPorDefecto)
-GLO.GLBLlistTxtDasoVarsPorDefecto = list(GLO.GLBLlistTxtDasoVarsPorDefecto)
-
-GLO.GLBLmenuInteractivoPorDefecto = int(GLO.GLBLmenuInteractivoPorDefecto)
-GLO.GLBLmarcoPatronTestPorDefecto = int(GLO.GLBLmarcoPatronTestPorDefecto)
-GLO.GLBLnivelSubdirExplPorDefecto = int(GLO.GLBLnivelSubdirExplPorDefecto)
-GLO.GLBLoutRasterDriverPorDefecto = str(GLO.GLBLoutRasterDriverPorDefecto)
-GLO.GLBLoutputSubdirNewPorDefecto = str(GLO.GLBLoutputSubdirNewPorDefecto)
-GLO.GLBLcartoMFErecortePorDefecto = str(GLO.GLBLcartoMFErecortePorDefecto)
-GLO.GLBLvarsTxtFileNamePorDefecto = str(GLO.GLBLvarsTxtFileNamePorDefecto)
-GLO.GLBLambitoTiffNuevoPorDefecto = str(GLO.GLBLambitoTiffNuevoPorDefecto)
-GLO.GLBLnoDataTiffProviPorDefecto = int(GLO.GLBLnoDataTiffProviPorDefecto)
-GLO.GLBLnoDataTiffFilesPorDefecto = int(GLO.GLBLnoDataTiffFilesPorDefecto)
-GLO.GLBLnoDataTipoDMasaPorDefecto = int(GLO.GLBLnoDataTipoDMasaPorDefecto)
-GLO.GLBLumbralMatriDistPorDefecto = int(GLO.GLBLumbralMatriDistPorDefecto)
-# ==============================================================================
-
-# ==============================================================================
-listaBinomiosEspecies = [
-    [21, 22, 7], # Ps Pu
-    [21, 23, 3], # Ps Pp
-    [21, 24, 2], # Ps Ph
-    [21, 25, 6], # Ps Pn
-    [21, 26, 5], # Ps Pt
-    [21, 28, 3], # Ps Pr
-    [22, 23, 3], # Pu Pp
-    [22, 24, 2], # Pu Ph
-    [22, 25, 5], # Pu Pn
-    [22, 26, 4], # Pu Pt
-    [22, 28, 3], # Pu Pr
-    [23, 24, 4], # Pp Ph
-    [23, 25, 4], # Pp Pn
-    [23, 26, 5], # Pp Pt
-    [23, 28, 2], # Pp Pr
-    [24, 25, 3], # Ph Pn
-    [24, 26, 3], # Ph Pt
-    [24, 28, 2], # Ph Pr
-    [25, 26, 5], # Pn Pt
-    [25, 28, 4], # Pn Pr
-    [26, 28, 5], # Pt Pr
-    [41, 42, 9], # Qr Qt
-    [41, 43, 5], # Qr Qp
-    [41, 44, 4], # Qr Qf
-    [41, 45, 3], # Qr Qi
-    [41, 46, 3], # Qr Qs
-    [42, 43, 5], # Qt Qp
-    [42, 44, 4], # Qt Qf
-    [42, 45, 3], # Qt Qi
-    [42, 46, 3], # Qt Qs
-    [43, 44, 7], # Qp Qf
-    [43, 45, 5], # Qp Qi
-    [43, 46, 3], # Qp Qs
-    [44, 45, 7], # Qf Qi
-    [44, 46, 5], # Qf Qs
-    [45, 46, 7], # Qi Qs
-    ]
-# ==============================================================================
-GLO.GLBLdictProximidadInterEspecies = {}
-for (codeEsp1, codeEsp2, proximidadInterEsp) in listaBinomiosEspecies:
-    binomioEspeciesA = f'{codeEsp1}_{codeEsp2}'
-    binomioEspeciesB = f'{codeEsp2}_{codeEsp1}'
-    GLO.GLBLdictProximidadInterEspecies[binomioEspeciesA] = proximidadInterEsp
-    GLO.GLBLdictProximidadInterEspecies[binomioEspeciesB] = proximidadInterEsp
-# print('GLBLdictProximidadInterEspecies:')
-# for binomioSpp in GLO.GLBLdictProximidadInterEspecies:
-#     print(binomioSpp, GLO.GLBLdictProximidadInterEspecies[binomioSpp])
-# ==============================================================================
-
-# ==============================================================================
-# if GLO.GLBLaccionPrincipalPorDefecto == 4:
-#     GLO.rutaAscRaizPorDefecto = GLO.GLBLrutaAscRaizBasePorDefecto
-# else:
-#     if MAIN_ENTORNO == 'calendula':
-#         GLO.rutaAscRaizPorDefecto = GLO.GLBLrutaAscRaizParaMergeAscCalendula
-#     else:
-#         if MAIN_PC == 'Casa':
-#             GLO.rutaAscRaizPorDefecto = GLO.GLBLrutaAscRaizParaMergeAscCasa
-#         else: # MAIN_PC = 'JCyL'
-#             GLO.rutaAscRaizPorDefecto = GLO.GLBLrutaAscRaizParaMergeAscJCyL
-# ==============================================================================
+    return GLO
 
 
+# ==============================================================================
+def readGLO():
+    configFileNameCfg = getConfigFileName()
+    configDictPorDefecto = leerConfigDictPorDefecto()
+    # Se guardan los parametros de configuracion en un diccionario:
+    GRAL_configDict = leerConfig(configDictPorDefecto, configFileNameCfg)
+    # Se crea un objeto de la clase VariablesGlobales para almacenar los
+    # parametros de configuracion guardados en GRAL_configDict como atributos
+    GLO = clidconfig.VariablesGlobales(GRAL_configDict)
+    GLO.configFileNameCfg = configFileNameCfg
+    checkGLO(GLO)
+    return GLO
+
+
+# ==============================================================================
+GLO = readGLO()
+
+
+# ==============================================================================
 if __name__ == "__main__":
     pass

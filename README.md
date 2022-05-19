@@ -152,15 +152,24 @@ from cartolidar.clidtools.clidtwins import DasoLidarSource
 myDasolidar = DasoLidarSource(
     LCL_listLstDasoVars=CFG_listLstDasoVars
 )
+```
+Optional:
+```
 myDasolidar.rangeUTM(
     LCL_marcoCoordMinX=CFG_marcoCoordMinX,
     LCL_marcoCoordMaxX=CFG_marcoCoordMaxX,
     LCL_marcoCoordMinY=CFG_marcoCoordMinY,
     LCL_marcoCoordMaxY=CFG_marcoCoordMaxY,
 )
+```
+Search for dasoLidar files:
+```
 myDasolidar.searchSourceFiles(
     LCL_rutaAscRaizBase=CFG_rutaAscRaizBase,
 )
+```
+Create a Tiff file from the dasoLidar files found:
+```
 myDasolidar.createAnalizeMultiDasoLayerRasterFile(
     LCL_rasterPixelSize=CFG_rasterPixelSize,
     LCL_rutaCompletaMFE=CFG_rutaCompletaMFE,
@@ -168,10 +177,12 @@ myDasolidar.createAnalizeMultiDasoLayerRasterFile(
     LCL_patronVectrName=CFG_patronVectrName,
     LCL_patronLayerName=CFG_patronLayerName,
 )
+```
+Create new Tiff files with simila zones and proximity to reference one:
+```
 myDasolidar.generarRasterCluster(
     LCL_radioClusterPix=CFG_radioClusterPix,
 )
-
 ```
 
 to be continued...
