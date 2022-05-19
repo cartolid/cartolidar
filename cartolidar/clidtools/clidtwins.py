@@ -1,59 +1,46 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 '''
-Created on 10/02/2022
-@author: benmarjo
+Module included in cartolidar project (clidtools package)
+cartolidar: tools for Lidar processing focused on Spanish PNOA datasets
+
+clidtwins provides classes and functions that can be used to search for
+areas similar to a reference one in terms of dasometric Lidar variables (DLVs).
+DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
+
+@author:     Jose Bengoa
+@copyright:  2022 @clid
+@license:    GNU General Public License v3 (GPLv3)
+@contact:    cartolidar@gmail.com
 '''
 # -*- coding: latin-1 -*-
 
 import os
 import sys
-import pathlib
-import time
 import unicodedata
 import warnings
-import math
 # import random
 
 import numpy as np
 import numpy.ma as ma
-from scipy.spatial import KDTree
 from scipy.spatial import distance_matrix
-# import matplotlib as mpl
+# from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
-# import matplotlib.colors as mcolors
-# from PIL import Image, ImageDraw
-# import Image
-# import ImageDraw
 from configparser import RawConfigParser
-# try:
-#     from configparser import RawConfigParser
-# except ImportError:  # Python 2
-#     from ConfigParser import RawConfigParser
 try:
     import psutil
     psutilOk = True
 except:
     psutilOk = False
-
-# Para que acceda a osgeo he incluido la ruta: C/OSGeo4W64/apps/Python27/Lib/site-packages
-# en Project->Properties->pydev - PYTHONPATH->External libraries
 try:
-    import gdal, ogr, osr, gdalnumeric, gdalconst
+    import gdal, ogr, gdalconst
+    # import osr, gdalnumeric
     gdalOk = True
 except:
     gdalOk = False
-    print('clidtwins-> No se ha podido cargar gdal directamente, se intenta de la carpeta osgeo')
-if not gdalOk:
-    # Esto daba error en casa
-    try:
-        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-        gdalOk = True
-    except:
-        gdalOk = False
-        print('clidtwins-> Tampoco se ha podido cargar desde la carpeta osgeo')
-        sys.exit(0)
 
+# ==============================================================================
+# Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
     __verbose__ = 3
 elif '-vv' in sys.argv:
@@ -65,18 +52,6 @@ else:
 if __verbose__ > 2:
     print(f'clidtwins-> __name__:     <{__name__}>')
     print(f'clidtwins-> __package__ : <{__package__ }>')
-
-# ==============================================================================
-# Agrego el idProceso para poder lanzar trabajos paralelos con distinta configuracion
-# En principio con clidtwins no ejecuto trabajos en paralelo con distinta configuracion
-# Mantengo el procedimiento por si acaso
-if len(sys.argv) > 2 and sys.argv[-2] == '--idProceso':
-    GRAL_idProceso = sys.argv[-1]
-else:
-    # GRAL_idProceso = random.randint(1, 999998)
-    GRAL_idProceso = 0
-    sys.argv.append('--idProceso')
-    sys.argv.append(GRAL_idProceso)
 # ==============================================================================
 
 # ==============================================================================

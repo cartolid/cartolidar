@@ -1,16 +1,37 @@
 #!/usr/bin/python
-# encoding: utf-8
+# -*- coding: UTF-8 -*-
 '''
-Created on 3 may 2022
+Module included in cartolidar project 
+cartolidar: tools for Lidar processing focused on Spanish PNOA datasets
 
-@author: benmarjo
+clidtwins_config (ancillary to clidtwins) is used for clidtwins configuration.
+It creates global object GLO with configuration parameters as properties.
+GLO can be imported from clidtwins module to read configuration parameters.
+clidtwins_config requires clidconfig module (clidax package of cartolidar).
+
+clidtwins provides classes and functions that can be used to search for
+areas similar to a reference one in terms of dasometric Lidar variables (DLVs).
+DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
+
+@author:     Jose Bengoa
+@copyright:  2022 @clid
+@license:    GNU General Public License v3 (GPLv3)
+@contact:    cartolidar@gmail.com
 '''
 
 import os
 import sys
 from configparser import RawConfigParser
 import unicodedata
+try:
+    import psutil
+    psutilOk = True
+except:
+    psutilOk = False
 
+
+# ==============================================================================
+# Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
     __verbose__ = 3
 elif '-vv' in sys.argv:
@@ -22,9 +43,25 @@ else:
 if __verbose__ > 2:
     print(f'clidtwins_config-> __name__:     <{__name__}>')
     print(f'clidtwins_config-> __package__ : <{__package__ }>')
+# ==============================================================================
 
 # Acceso a un modulo de otro package
 from cartolidar.clidax import clidconfig
+
+
+# ==============================================================================
+def infoUsuario():
+    if psutilOk:
+        try:
+            USERusuario = psutil.users()[0].name
+        except:
+            USERusuario = psutil.users()
+        if not isinstance(USERusuario, str) or USERusuario == '':
+            USERusuario = 'PC1'
+        return USERusuario
+    else:
+        return 'SinUsuario'
+
 
 # ==============================================================================
 class myClass(object):

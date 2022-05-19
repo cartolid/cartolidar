@@ -22,10 +22,10 @@ Introduction
 CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar
 (las y laz) para clasificar los puntos y generar ficheros ráster con DEM y DLVs.
 
->DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
+DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
 
->DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos
->aspectos de la estructura de una formación arbolada, arbustiva o de matorral.
+DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos
+aspectos de la estructura de una formación arbolada, arbustiva o de matorral.
 
 CartoLidar también proporciona herramientas adicionales para generar otros
 productos de utilidad en selvicultura y otras areas de gestión del medio
@@ -43,7 +43,7 @@ términos de determinadas variables dasoLidar (DLVs).
 >This project is in alpha version and includes only the "clidtwins" tool.
 >
 >"clidtwins" searchs for similar areas to a reference one in terms of dasoLidar Variables (DLVs)
->DLV: Lidar variables that describe or characterize forest structure (or vegetation in general).
+>DLV: Lidar variables that describe or characterize forest or land cover structure.
 
 
 Consultar documentación en: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
@@ -56,6 +56,10 @@ Install
 1. Install official version from [pypi - cartolidar](https://pypi.org/project/cartolidar/):
 ```
 pip install cartolidar
+```
+or
+```
+pip install cartolidar --proxy https://user:password@proxyserver:port
 ```
 
 2. Download development version from [github - cartolidar](https://github.com/cartolid/cartolidar)
@@ -143,6 +147,32 @@ In this case, there are no options: it runs with qlidtwins.cfg configuration (if
 
 Use examples
 ------------
+```
+from cartolidar.clidtools.clidtwins import DasoLidarSource
+myDasolidar = DasoLidarSource(
+    LCL_listLstDasoVars=CFG_listLstDasoVars
+)
+myDasolidar.rangeUTM(
+    LCL_marcoCoordMinX=CFG_marcoCoordMinX,
+    LCL_marcoCoordMaxX=CFG_marcoCoordMaxX,
+    LCL_marcoCoordMinY=CFG_marcoCoordMinY,
+    LCL_marcoCoordMaxY=CFG_marcoCoordMaxY,
+)
+myDasolidar.searchSourceFiles(
+    LCL_rutaAscRaizBase=CFG_rutaAscRaizBase,
+)
+myDasolidar.createAnalizeMultiDasoLayerRasterFile(
+    LCL_rasterPixelSize=CFG_rasterPixelSize,
+    LCL_rutaCompletaMFE=CFG_rutaCompletaMFE,
+    LCL_cartoMFEcampoSp=CFG_cartoMFEcampoSp,
+    LCL_patronVectrName=CFG_patronVectrName,
+    LCL_patronLayerName=CFG_patronLayerName,
+)
+myDasolidar.generarRasterCluster(
+    LCL_radioClusterPix=CFG_radioClusterPix,
+)
+
+```
 
 to be continued...
 

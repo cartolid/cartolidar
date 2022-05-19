@@ -1,20 +1,19 @@
 #!/usr/bin/python
-# encoding: utf-8
+# -*- coding: UTF-8 -*-
 '''
-qlidtwins:  utility included in cartolidar project 
-cartolidar: processes files with lidar data from PNOA (Spain)
+Utility included in cartolidar project 
+cartolidar: tools for Lidar processing focused on Spanish PNOA datasets
 
-qlidtwins searchs for similar areas to a reference one in terms
-of Lidar variables that describe or characterize forest structure (DLVs).
-DLVs: DasoLidar Variables
+qlidtwins is an example that uses clidtwins within the cartolidar configuration.
+clidtwins provides classes and functions that can be used to search for
+areas similar to a reference one in terms of dasometric Lidar variables (DLVs).
+DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 
 @author:     Jose Bengoa
 @copyright:  2022 @clid
 @license:    GNU General Public License v3 (GPLv3)
-@contact:    benmarjo@jcyl.es
-@deffield    updated: 2022-05-08
+@contact:    cartolidar@gmail.com
 '''
-# -*- coding: latin-1 -*-
 
 import sys
 import os
@@ -23,13 +22,15 @@ from argparse import RawDescriptionHelpFormatter
 import pathlib
 import time
 # import random
-try:
-    import psutil
-    psutilOk = True
-except:
-    psutilOk = False
 
-__all__ = [] # No se importa nada con: from qlidtwins import *
+__version__ = '0.0a2'
+__date__ = '2016-2022'
+__updated__ = '2022-05-18'
+# No se importa nada con: from qlidtwins import *
+__all__ = []
+
+# ==============================================================================
+# Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
     __verbose__ = 3
 elif '-vv' in sys.argv:
@@ -41,31 +42,29 @@ else:
 if __verbose__ > 2:
     print(f'qlidtwins-> __name__:     <{__name__}>')
     print(f'qlidtwins-> __package__ : <{__package__ }>')
+# ==============================================================================
 
 
 # ==============================================================================
-# Agrego el idProceso para poder lanzar trabajos paralelos con distinta configuracion
-if len(sys.argv) > 2 and sys.argv[-2] == '--idProceso':
-    MAIN_idProceso = sys.argv[-1]
+# El idProceso sirve para dar nombres unicos a los ficheros de configracion y
+# asi poder lanzar trabajos paralelos con distintas configuraciones.
+# Sin embargo, qlidtwins no esta pensada para lanzar trabajos en paralelo.
+# Mantengo el idProceso por si acaso
+if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
+    MAIN_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
 else:
-    # En principio no ejecuto trabajos qlidtwins en paralelo con distinta configuracion
-    # Mantengo la asignacion de idProceso aleatorio por si acaso
     # MAIN_idProceso = random.randint(1, 999998)
     MAIN_idProceso = 0
     sys.argv.append('--idProceso')
     sys.argv.append(MAIN_idProceso)
 # ==============================================================================
 
-# ==============================================================================
-# https://stackoverflow.com/questions/14132789/relative-imports-for-the-billionth-time
-# from clidax import clidconfig
-# from clidax import clidcarto
-# from clidtools import clidtwins_config as GLO
 
-# from clidtools.clidtwins_config import GLO
-# from clidtools.clidtwins import DasoLidarSource
+# ==============================================================================
 try:
+    # from clidtools import clidtwins_config as GLO
     from cartolidar.clidtools.clidtwins_config import GLO
+    from cartolidar.clidtools.clidtwins_config import infoUsuario
     from cartolidar.clidtools.clidtwins import DasoLidarSource
 except ModuleNotFoundError:
     sys.stderr.write(f'\nATENCION: para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
@@ -81,7 +80,56 @@ except Exception as e:
     sys.exit(0)
 # ==============================================================================
 
+TESTRUN = 0
+PROFILE = 0
 # ==============================================================================
+# ========================== Variables globales TRNS ===========================
+# ==============================================================================
+TRNS_preguntarPorArgumentosEnLineaDeComandos = False
+TRNS_LEER_EXTRA_ARGS = False
+# ==============================================================================
+
+
+# ========================== Variables globales MAIN ===========================
+# ==============================================================================
+MAIN_nombreUsuario = infoUsuario()
+# Directorio que depende del entorno:
+MAIN_HOME_DIR = str(pathlib.Path.home())
+# Directorios de la aplicacion:
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))
+# Cuando estoy en un modulo dentro de un paquete (subdirectorio):
+# MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a FILE_DIR = pathlib.Path(__file__).parent
+MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
+MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
+# Directorio desde el que se lanza la app (estos dos coinciden):
+MAIN_BASE_DIR = os.path.abspath('.')
+MAIN_THIS_DIR = os.getcwd()
+# ==============================================================================
+# Unidad de disco si MAIN_ENTORNO = 'windows'
+MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
+# ==============================================================================
+if MAIN_FILE_DIR[:12] == '/LUSTRE/HOME':
+    MAIN_ENTORNO = 'calendula'
+    MAIN_PC = 'calendula'
+elif MAIN_FILE_DIR[:8] == '/content':
+    MAIN_ENTORNO = 'colab'
+    MAIN_PC = 'colab'
+else:
+    MAIN_ENTORNO = 'windows'
+    try:
+        if MAIN_nombreUsuario == 'benmarjo':
+            MAIN_PC = 'JCyL'
+        else:
+            MAIN_PC = 'Casa'
+    except:
+        MAIN_ENTORNO = 'calendula'
+        MAIN_PC = 'calendula'
+# ==============================================================================
+
+
+# ==============================================================================
+# Gestion de errores de argumentos en linea de comandos con argparse
 class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
     def __init__(self, msg):
@@ -91,20 +139,6 @@ class CLIError(Exception):
         return self.msg
     def __unicode__(self):
         return self.msg
-
-
-# ==============================================================================
-def infoUsuario():
-    if psutilOk:
-        try:
-            USERusuario = psutil.users()[0].name
-        except:
-            USERusuario = psutil.users()
-        if not isinstance(USERusuario, str) or USERusuario == '':
-            USERusuario = 'PC1'
-        return USERusuario
-    else:
-        return 'SinUsuario'
 
 
 # ==============================================================================
@@ -308,14 +342,10 @@ def leerArgumentosEnLineaDeComandos(argv=None):
         return None
 
 
-
 # ==============================================================================
-def fooMain0():
-    # Variables globales
+def foo1():
     pass
-
-
-# MAIN_idProceso -> Se define antes de importar clidconfig y clidcarto
+# ==============================================================================# Chequeo de la forma de ejecucion provisional para la version alpha
 if __verbose__ > 1:
     print(f'\nqlidtwins-> sys.argv (a): {sys.argv}')
 try:
@@ -355,60 +385,16 @@ except:
     print(f'sys.argv:       <{sys.argv}>')
     print(f'sys.argv[0]:    <{sys.argv[0]}>')
 # ==============================================================================
+
+
 print(f'\nqlidtwins-> sys.argv (c): {sys.argv}')
 print('qlidtwins- Hasta aqui')
 quit()
 
-# ==============================================================================
-# ========================== Variables globales TRNS ===========================
-# ==============================================================================
-TRNS_preguntarPorArgumentosEnLineaDeComandos = False
-TRNS_LEER_EXTRA_ARGS = False
-# ==============================================================================
 
 # ==============================================================================
-# ========================== Variables globales MAIN ===========================
-# ==============================================================================
-MAIN_nombreUsuario = infoUsuario()
-# Directorio que depende del entorno:
-MAIN_HOME_DIR = str(pathlib.Path.home())
-# Directorios de la aplicacion:
-MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))
-# Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-# MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a FILE_DIR = pathlib.Path(__file__).parent
-MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
-MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
-# Directorio desde el que se lanza la app (estos dos coinciden):
-MAIN_BASE_DIR = os.path.abspath('.')
-MAIN_THIS_DIR = os.getcwd()
-# ==============================================================================
-# Unidad de disco si MAIN_ENTORNO = 'windows'
-MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
-# ==============================================================================
-if MAIN_FILE_DIR[:12] == '/LUSTRE/HOME':
-    MAIN_ENTORNO = 'calendula'
-    MAIN_PC = 'calendula'
-elif MAIN_FILE_DIR[:8] == '/content':
-    MAIN_ENTORNO = 'colab'
-    MAIN_PC = 'colab'
-else:
-    MAIN_ENTORNO = 'windows'
-    try:
-        if MAIN_nombreUsuario == 'benmarjo':
-            MAIN_PC = 'JCyL'
-        else:
-            MAIN_PC = 'Casa'
-    except:
-        MAIN_ENTORNO = 'calendula'
-        MAIN_PC = 'calendula'
-# ==============================================================================
-
-
-# ==============================================================================
-def fooMain1():
+def foo2():
     pass
-
 
 if __name__ == '__main__' or 'qlidtwins' in __name__:
     # ==========================================================================
@@ -423,8 +409,6 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
         print('\t-> Modulo principal: {}'.format(sys.argv[0])) # = __file__
         
     # ==========================================================================
-    TESTRUN = 0
-    PROFILE = 0
     if TESTRUN:
         import doctest
         doctest.testmod()

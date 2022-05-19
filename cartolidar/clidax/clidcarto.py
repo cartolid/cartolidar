@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: latin-1 -*-
+# -*- coding: UTF-8 -*-
 '''
 Created on 16 jun. 2019
 
@@ -49,6 +49,8 @@ ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
 
+# ==============================================================================
+# Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
     __verbose__ = 3
 elif '-vv' in sys.argv:
@@ -60,6 +62,7 @@ else:
 if __verbose__ > 2:
     print(f'clidcarto-> __name__:     <{__name__}>')
     print(f'clidcarto-> __package__ : <{__package__ }>')
+# ==============================================================================
 
 # Anulo esta importacion porque por el momento no las uso
 # from cartolidar.clidax import clidaux

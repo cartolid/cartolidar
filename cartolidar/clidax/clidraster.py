@@ -1,11 +1,19 @@
 #!/usr/bin/python
-# -*- coding: latin-1 -*-
+# -*- coding: UTF-8 -*-
 '''
-Created on 16 jun. 2019
-Funciones auxiliares para clidtwuins y clidmerge
+Module included in cartolidar project (clidax package)
+cartolidar: tools for Lidar processing focused on Spanish PNOA datasets
 
-@author: joseb
+clidraster (ancillary to clidtools) is used for raster creation and
+MFE vector layer reading
+clidtwins_config requires clidcarto and clidtwins_config modules.
+
+@author:     Jose Bengoa
+@copyright:  2022 @clid
+@license:    GNU General Public License v3 (GPLv3)
+@contact:    cartolidar@gmail.com
 '''
+
 from __future__ import division, print_function
 import inspect
 import os
@@ -55,6 +63,8 @@ ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
 
+# ==============================================================================
+# Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
     __verbose__ = 3
 elif '-vv' in sys.argv:
@@ -66,6 +76,7 @@ else:
 if __verbose__ > 2:
     print(f'clidraster-> __name__:     <{__name__}>')
     print(f'clidraster-> __package__ : <{__package__ }>')
+# ==============================================================================
 
 # ==============================================================================
 # from cartolidar.clidax import clidconfig
@@ -1859,7 +1870,7 @@ def leerMFE(
                 cartoRefUsoSingular.usarVectorRef
             )
         )
-#ñ
+#ï¿½
     if cartoRefUsoSingular.usarVectorRef:
         cartoRefUsoSingular.asignarUsoSingularArrayCeldas()
     else:

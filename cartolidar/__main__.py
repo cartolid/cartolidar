@@ -1,20 +1,13 @@
 #!/usr/bin/python
-# encoding: utf-8
+# -*- coding: UTF-8 -*-
 '''
-cartolidar: Tools for Lidar processing focused on Spanish PNOA datasets
+Tools for Lidar processing focused on Spanish PNOA datasets
 
 @author:     Jose Bengoa
 @copyright:  2022 @clid
 @license:    GNU General Public License v3 (GPLv3)
 @contact:    cartolidar@gmail.com
-@deffield    updated: 2022-05-18
 '''
-
-# Script interactivo para ejecucion con:
-#   $ python -m cartolidar [options]
-# Se ejecuta pimero el __init__.py de cartolidar y luego este __main__.py
-
-#TODo: Completar cuando haya incluido mas herramientas en cartolidar
 
 import sys
 import os
@@ -24,7 +17,10 @@ from argparse import RawDescriptionHelpFormatter
 __version__ = '0.0a2'
 __date__ = '2016-2022'
 __updated__ = '2022-05-18'
-__all__ = [] # No se importa nada con: from cartolidar import *
+__all__ = []
+
+# ==============================================================================
+# Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
     __verbose__ = 3
 elif '-vv' in sys.argv:
@@ -38,6 +34,7 @@ if __verbose__ > 2:
     print(f'cartolidar.__main__-> __package__:  <{__package__}>')
     print(f'cartolidar.__main__-> sys.argv:     <{sys.argv}>')
     print()
+# ==============================================================================
 
 
 # ==============================================================================
@@ -130,6 +127,11 @@ def leerArgumentosEnLineaDeComandos(argv=None):
 
 
 # ==============================================================================
+def foo():
+    pass
+
+
+# ==============================================================================
 if __name__ == '__main__':
 
     opcionesPrincipales = [
@@ -143,9 +145,6 @@ if __name__ == '__main__':
         print('\ncartolidar-> ATENCION: revisar error en argumentos en linea')
         print('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
         sys.exit(0)
-
-    if __verbose__ != args.verbose:
-        print('cartolidar.__main__-> Revisar __verbose__:', __verbose__, args.verbose)
 
     opcionPorDefecto = 1
     if args.menuOption <= 0:
@@ -167,6 +166,7 @@ if __name__ == '__main__':
         nOpcionElegida = args.menuOption
     else:
         print(f'\nATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}')
+        print('Fin de cartolidar\n')
         sys.exit(0)
 
     if nOpcionElegida == 1:
@@ -179,6 +179,7 @@ if __name__ == '__main__':
             print('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
         print('\nAVISO: herramienta pendiente de incluir en cartolidar.')
         # from cartolidar import qlidmerge
-    else:
-        print('\nOpcion no disponible.')
     print('\nFin de cartolidar\n')
+
+#TODO: Completar cuando haya incluido mas herramientas en cartolidar
+

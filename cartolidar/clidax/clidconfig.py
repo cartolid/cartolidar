@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 '''
 Created on 7/12/2018
 
@@ -31,6 +31,8 @@ try:
 except:
     psutilOk = False
 
+# ==============================================================================
+# Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
     __verbose__ = 3
 elif '-vv' in sys.argv:
@@ -42,6 +44,9 @@ else:
 if __verbose__ > 2:
     print(f'clidconfig-> __name__:     <{__name__}>')
     print(f'clidconfig-> __package__ : <{__package__ }>')
+# ==============================================================================
+
+
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 # Una vez importado este modulo as CG puedo usar:
 #    from cartolidar.clidax.clidconfig import GLOBALconfigDict
