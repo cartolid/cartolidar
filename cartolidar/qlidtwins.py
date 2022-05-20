@@ -716,11 +716,12 @@ def clidtwinsUseCase(cfgDict):
         print('qlidtwins-> Ejecutando createAnalizeMultiDasoLayerRasterFile...')
 
     myDasolidar.createAnalizeMultiDasoLayerRasterFile(
-        LCL_rasterPixelSize=cfgDict['rasterPixelSize'],
-        LCL_rutaCompletaMFE=cfgDict['rutaCompletaMFE'],
-        LCL_cartoMFEcampoSp=cfgDict['cartoMFEcampoSp'],
         LCL_patronVectrName=cfgDict['patronVectrName'],
         LCL_patronLayerName=cfgDict['patronLayerName'],
+        LCL_rutaCompletaMFE=cfgDict['rutaCompletaMFE'],
+        LCL_cartoMFEcampoSp=cfgDict['cartoMFEcampoSp'],
+
+        LCL_rasterPixelSize=cfgDict['rasterPixelSize'],
         # LCL_outRasterDriver=cfgDict['outRasterDriver'],
         # LCL_cartoMFErecorte=cfgDict['cartoMFErecorte'],
         # LCL_varsTxtFileName=cfgDict['varsTxtFileName'],

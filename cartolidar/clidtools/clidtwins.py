@@ -567,6 +567,8 @@ class DasoLidarSource:
         # Listas de ficheros reunidas por tipoDeFichero
         self.inFilesListAllTypes = []
         for nInputVar, miTipoDeFicheroDasoLayer in enumerate(self.LOCLlistaDasoVarsFileTypes):
+            if self.LOCLnPatronDasoVars != 0 and nInputVar >= self.LOCLnPatronDasoVars:
+                break
             miDasoVarNickName = self.LOCLlistaDasoVarsNickNames[nInputVar]
             if self.LOCLverbose:
                 print('-> Tipo {}: > Variable: {} - Identificador del tipo de fichero: {}'.format(nInputVar, miDasoVarNickName, miTipoDeFicheroDasoLayer))
@@ -999,15 +1001,16 @@ and two more layers for forest type (land cover) and stand type.
         # Analogia
         # Homogeneidad
         #===========================================================================
-        self.LOCLmergedUniCellAllDasoVarsFileNameSinPath = '{}_{}_Global.{}'.format('uniCellAllDasoVars', self.idInputDir, self.driverExtension)
-        self.LOCLrutaMiOutputDir = os.path.join(self.LOCLrutaAscRaizBase, self.LOCLoutputSubdirNew)
+        self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars = '{}_{}_Global.{}'.format('uniCellAllDasoVars', self.idInputDir, self.driverExtension)
+        self.LOCLoutPathNameRuta = os.path.join(self.LOCLrutaAscRaizBase, self.LOCLoutputSubdirNew)
+
         if self.LOCLverbose:
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> Outputs:')
             print(f'\t-> Ruta para los ficheros de salida:')
-            print(f'\t\t{self.LOCLrutaMiOutputDir}')
+            print(f'\t\t{self.LOCLoutPathNameRuta}')
             print(f'\t-> Se crea un fichero merge con todas las variables dasoLidar:')
-            print(f'\t\t{self.LOCLmergedUniCellAllDasoVarsFileNameSinPath}')
+            print(f'\t\t{self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars}')
 
             if self.marcoCoordDisponible and TRNS_buscarBloquesSoloDentroDelMarcoUTM:
                     print(f'\t\t-> Integra todos los bloques localizados dentro del rango de coordenadas: X: {self.LOCLmarcoCoordMinX}-{self.LOCLmarcoCoordMaxX}; Y: {self.LOCLmarcoCoordMinY}-{self.LOCLmarcoCoordMaxY}')
@@ -1015,18 +1018,18 @@ and two more layers for forest type (land cover) and stand type.
                 print(f'\t\t-> Integra todos los bloques localizados ')
             print(f'\t\t-> Una variable en cada banda mas dos bandas adicionales con tipo de bosque (MFE) y tipo de masa (ad-hoc)')
 
-        if not os.path.exists(self.LOCLrutaMiOutputDir):
+        if not os.path.exists(self.LOCLoutPathNameRuta):
             if self.LOCLverbose:
-                print('\t-> No existe directorio %s -> Se crea automaticamente' % (self.LOCLrutaMiOutputDir))
+                print('\t-> No existe directorio %s -> Se crea automaticamente' % (self.LOCLoutPathNameRuta))
             try:
-                os.makedirs(self.LOCLrutaMiOutputDir)
+                os.makedirs(self.LOCLoutPathNameRuta)
             except:
-                print('\nATENCION: No se ha podido crear el directorio {}'.format(self.LOCLrutaMiOutputDir))
+                print('\nATENCION: No se ha podido crear el directorio {}'.format(self.LOCLoutPathNameRuta))
                 print('\tRevisar derechos de escritura en esa ruta')
                 sys.exit(0)
         else:
             if self.LOCLverbose:
-                print('\t-> Ya existe el directorio {}'.format(self.LOCLrutaMiOutputDir))
+                print('\t-> Ya existe el directorio {}'.format(self.LOCLoutPathNameRuta))
                 print('\t\t-> Se agregan los outputs (tif, txt, npz, ...) a este directorio')
         if self.LOCLverbose:
             print('{:=^80}'.format(''))
@@ -1051,13 +1054,10 @@ and two more layers for forest type (land cover) and stand type.
             self.nMaxTipoMasa,
         ) = clidraster.crearRasterTiff(
             # self.LOCLrutaAscRaizBase,
-            self.inFilesListAllTypes,
-            self.LOCLrutaMiOutputDir,
-            self.LOCLmergedUniCellAllDasoVarsFileNameSinPath,
-            self.nBandasPrevistasOutput,
-            self.LOCLlistaDasoVarsNickNames,
-            self.LOCLlistaDasoVarsFileTypes,
-            self.LOCLlistLstDasoVars,
+            self_inFilesListAllTypes=self.inFilesListAllTypes,
+            self_LOCLoutPathNameRuta=self.LOCLoutPathNameRuta,
+            self_LOCLoutFileNameWExt=self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
+            self_LOCLlistaDasoVarsFileTypes=self.LOCLlistaDasoVarsFileTypes,
 
             PAR_rasterPixelSize=self.LOCLrasterPixelSize,
             PAR_outRasterDriver=self.GLBLoutRasterDriver,
@@ -1076,9 +1076,9 @@ and two more layers for forest type (land cover) and stand type.
             PAR_cartoMFEcampoSp=self.LOCLcartoMFEcampoSp,
             PAR_cartoMFErecorte=self.GLBLcartoMFErecorte,
 
-            PAR_verbose=self.LOCLverbose,
             PAR_generarDasoLayers=True,
             PAR_ambitoTiffNuevo=self.GLBLambitoTiffNuevo,
+            PAR_verbose=self.LOCLverbose,
         )
         #===========================================================================
         (
@@ -1096,11 +1096,10 @@ and two more layers for forest type (land cover) and stand type.
             self.histProb01Patron,
         ) = recortarRasterTiffPatronDasoLidar(
             self.LOCLrutaAscRaizBase,
-            self.LOCLrutaMiOutputDir,
-            self.LOCLmergedUniCellAllDasoVarsFileNameSinPath,
+            self.LOCLoutPathNameRuta,
+            self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
             self.noDataDasoVarAll,
             self.outputNpDatatypeAll,
-            self.nBandasPrevistasOutput,
             self.nMinTipoMasa,
             self.nMaxTipoMasa,
             self.nInputVars,
@@ -1128,7 +1127,7 @@ and two more layers for forest type (land cover) and stand type.
             sys.exit(0)
 
         mostrarExportarRangos(
-            self.LOCLrutaMiOutputDir,
+            self.LOCLoutPathNameRuta,
             self.outputRangosFileNpzSinPath,
             self.dictHistProb01,
             self.nInputVars,
@@ -1149,8 +1148,8 @@ and two more layers for forest type (land cover) and stand type.
         ):
         # Variables de clase (previamente definidas) que se usan en esta funcion:
         # self.LOCLrutaAscRaizBase,
-        # self.LOCLrutaMiOutputDir,
-        # self.LOCLmergedUniCellAllDasoVarsFileNameSinPath,
+        # self.LOCLoutPathNameRuta,
+        # self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
         # self.noDataDasoVarAll,
         # self.outputNpDatatypeAll,
         # self.nBandasPrevistasOutput,
@@ -1175,7 +1174,7 @@ and two more layers for forest type (land cover) and stand type.
             testeoVectrNameConPath = self.LOCLtesteoVectrName
         else:
             testeoVectrNameConPath = os.path.join(self.LOCLrutaAscRaizBase, self.LOCLtesteoVectrName)
-        mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self.LOCLrutaMiOutputDir, self.LOCLmergedUniCellAllDasoVarsFileNameSinPath)
+        mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self.LOCLoutPathNameRuta, self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
         outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global.', 'Testeo.')
         print('\n{:_^80}'.format(''))
         print(f'Recortando testeoArea {mergedUniCellAllDasoVarsFileNameConPath} con {testeoVectrNameConPath}')
@@ -1408,7 +1407,7 @@ and two more layers for forest type (land cover) and stand type.
         # self.nBandasRasterOutput,
         # self.rasterDatasetAll,
         # self.outputNpDatatypeAll,
-        # self.LOCLrutaMiOutputDir,
+        # self.LOCLoutPathNameRuta,
         # self.outputClusterAllDasoVarsFileNameSinPath,
         # self.outputClusterTiposDeMasaFileNameSinPath,
         # self.outputClusterFactorProxiFileNameSinPath,
@@ -1438,7 +1437,16 @@ and two more layers for forest type (land cover) and stand type.
         # self.GLBLumbralMatriDist,
         # self.LOCLlistLstDasoVars,
 
-        self.LOCLradioClusterPix = LCL_radioClusterPix
+        if LCL_radioClusterPix == 0:
+            self.LOCLradioClusterPix = GLO.GLBLradioClusterPixPorDefecto
+        elif LCL_radioClusterPix > 10:
+            if self.LOCLverbose:
+                print('\n{:_^80}'.format(''))
+                print(f'clidtwins-> AVISO: radio de cluster excesivo ({LCL_radioClusterPix} pixeles); se reduce a 10 pixeles.')
+                print('{:=^80}'.format(''))
+            self.LOCLradioClusterPix = 10
+        else:
+            self.LOCLradioClusterPix = LCL_radioClusterPix
 
         self.outputClusterAllDasoVarsFileNameSinPath = '{}_{}.{}'.format('clusterAllDasoVars', self.idInputDir, self.driverExtension)
         self.outputClusterTiposDeMasaFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasa', self.idInputDir, self.driverExtension)
@@ -1517,7 +1525,7 @@ and two more layers for forest type (land cover) and stand type.
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> Creando fichero para el layer tipoMasa {self.outputClusterTiposDeMasaFileNameSinPath}')
         outputDatasetTipoMasa, outputBandaTipoMasa = clidraster.CrearOutputRaster(
-            self.LOCLrutaMiOutputDir,
+            self.LOCLoutPathNameRuta,
             self.outputClusterTiposDeMasaFileNameSinPath,
             self.nMinX_tif,
             self.nMaxY_tif,
@@ -1543,7 +1551,7 @@ and two more layers for forest type (land cover) and stand type.
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> Creando fichero para el layer distanciaEu {self.outputClusterDistanciaEuFileNameSinPath}')
         outputDatasetDistanciaEuclideaMedia, outputBandaDistanciaEuclideaMedia = clidraster.CrearOutputRaster(
-            self.LOCLrutaMiOutputDir,
+            self.LOCLoutPathNameRuta,
             self.outputClusterDistanciaEuFileNameSinPath,
             self.nMinX_tif,
             self.nMaxY_tif,
@@ -1570,7 +1578,7 @@ and two more layers for forest type (land cover) and stand type.
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> Creando fichero para el layer factorProxi {self.outputClusterFactorProxiFileNameSinPath}')
         outputDatasetPorcentajeDeProximidad, outputBandaPorcentajeDeProximidad = clidraster.CrearOutputRaster(
-            self.LOCLrutaMiOutputDir,
+            self.LOCLoutPathNameRuta,
             self.outputClusterFactorProxiFileNameSinPath,
             self.nMinX_tif,
             self.nMaxY_tif,
@@ -1598,7 +1606,7 @@ and two more layers for forest type (land cover) and stand type.
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> Creando fichero para el multiLayer clusterAllDasoVars {self.outputClusterAllDasoVarsFileNameSinPath}')
         outputDatasetClusterDasoVarMultiple, outputBandaClusterDasoVarBanda1 = clidraster.CrearOutputRaster(
-            self.LOCLrutaMiOutputDir,
+            self.LOCLoutPathNameRuta,
             self.outputClusterAllDasoVarsFileNameSinPath,
             self.nMinX_tif,
             self.nMaxY_tif,
@@ -2669,11 +2677,10 @@ def obtenerExtensionDeCapaVectorial(
 # ==============================================================================
 def recortarRasterTiffPatronDasoLidar(
         self_LOCLrutaAscRaizBase,
-        self_LOCLrutaMiOutputDir,
-        self_LOCLmergedUniCellAllDasoVarsFileNameSinPath,
+        self_LOCLoutPathNameRuta,
+        self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
         noDataDasoVarAll,
         outputNpDatatypeAll,
-        nBandasPrevistasOutput,
         nMinTipoMasa,
         nMaxTipoMasa,
         nInputVars,
@@ -2741,8 +2748,8 @@ def recortarRasterTiffPatronDasoLidar(
         )
         print(
             '\t-> Raster con la zona analizada (envolvente de los asc): {}/{}'.format(
-                self_LOCLrutaMiOutputDir,
-                self_LOCLmergedUniCellAllDasoVarsFileNameSinPath,
+                self_LOCLoutPathNameRuta,
+                self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
             )
         )
         print('\t-> Vector file con el perimetro de referencia (patron):  {}'.format(patronVectrNameConPath))
@@ -2750,7 +2757,7 @@ def recortarRasterTiffPatronDasoLidar(
     #===========================================================================
 
     # ==========================================================================
-    mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self_LOCLrutaMiOutputDir, self_LOCLmergedUniCellAllDasoVarsFileNameSinPath)
+    mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
     outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global.', 'Patron.')
     print('\n{:_^80}'.format(''))
     print(f'clidtwins-> Abriendo raster creado mergedUniCellAllDasoVars:\n\t{mergedUniCellAllDasoVarsFileNameConPath}')
@@ -2797,8 +2804,8 @@ def recortarRasterTiffPatronDasoLidar(
     listaCeldasConDasoVarsPatron = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
     print(f'\tNumero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk}')
 
-    if nBandasRasterOutput != nBandasPrevistasOutput:
-        print(f'\nAVISO: el numero de bandas del raster generado ({nBandasRasterOutput}) no es igual al previsto ({nBandasPrevistasOutput}), es decir num. de variables + 2 (num variables: {nInputVars})')
+    # if nBandasRasterOutput != nBandasPrevistasOutput:
+    #     print(f'\nAVISO: el numero de bandas del raster generado ({nBandasRasterOutput}) no es igual al previsto ({nBandasPrevistasOutput}), es decir num. de variables + 2 (num variables: {nInputVars})')
     # Las nInputVars primeras bandas corresponden a las variables utilizadas (self_LOCLlistaDasoVarsFileTypes)
     # La penultima corresponde al tipo de bosque o cobertura MFE
     # La ultima corresponde al tipo de masa.
@@ -3188,7 +3195,7 @@ def recortarRasterTiffPatronDasoLidar(
 
 # ==============================================================================
 def mostrarExportarRangos(
-        self_LOCLrutaMiOutputDir,
+        self_LOCLoutPathNameRuta,
         self_outputRangosFileNpzSinPath,
         self_LOCLdictHistProb01,
         self_nInputVars,
@@ -3201,8 +3208,8 @@ def mostrarExportarRangos(
     self_nBandasRasterOutput = self_nInputVars + 2
 
     #===========================================================================
-    outputRangosFileTxtConPath = os.path.join(self_LOCLrutaMiOutputDir, self_LOCLvarsTxtFileName)
-    outputRangosFileNpzConPath = os.path.join(self_LOCLrutaMiOutputDir, self_outputRangosFileNpzSinPath)
+    outputRangosFileTxtConPath = os.path.join(self_LOCLoutPathNameRuta, self_LOCLvarsTxtFileName)
+    outputRangosFileNpzConPath = os.path.join(self_LOCLoutPathNameRuta, self_outputRangosFileNpzSinPath)
 
     outputRangosFileTxtControl = open(outputRangosFileTxtConPath, mode='w+')
     outputRangosFileTxtControl.write('Valores y rangos admisibles para el histograma de frecuencias de las variables analizadas.\n')
