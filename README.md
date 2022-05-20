@@ -147,13 +147,21 @@ In this case, there are no options: it runs with qlidtwins.cfg configuration (if
 
 Use examples
 ------------
+Read [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/) for details.
+
+
+1. Create an object of the class DasoLidarSource (myDasolidar)
+
+Requires LCL_listLstDasoVars argument (DLVs list in cartolidar specific format).
 ```
 from cartolidar.clidtools.clidtwins import DasoLidarSource
 myDasolidar = DasoLidarSource(
     LCL_listLstDasoVars=CFG_listLstDasoVars
 )
 ```
-Optional:
+
+
+2. Optional:
 ```
 myDasolidar.rangeUTM(
     LCL_marcoCoordMinX=CFG_marcoCoordMinX,
@@ -162,28 +170,38 @@ myDasolidar.rangeUTM(
     LCL_marcoCoordMaxY=CFG_marcoCoordMaxY,
 )
 ```
-Search for dasoLidar files:
+
+
+3. Search for dasoLidar files:
 ```
 myDasolidar.searchSourceFiles(
     LCL_rutaAscRaizBase=CFG_rutaAscRaizBase,
 )
 ```
-Create a Tiff file from the dasoLidar files found:
+where CFG_rutaAscRaizBase is the path where de asc files with DLVs can be found
+
+
+4. Create a Tiff file from the DLV files found:
 ```
 myDasolidar.createAnalizeMultiDasoLayerRasterFile(
-    LCL_rasterPixelSize=CFG_rasterPixelSize,
-    LCL_rutaCompletaMFE=CFG_rutaCompletaMFE,
-    LCL_cartoMFEcampoSp=CFG_cartoMFEcampoSp,
     LCL_patronVectrName=CFG_patronVectrName,
     LCL_patronLayerName=CFG_patronLayerName,
+    LCL_rutaCompletaMFE=CFG_rutaCompletaMFE,
+    LCL_cartoMFEcampoSp=CFG_cartoMFEcampoSp,
 )
 ```
-Create new Tiff files with similar zones and proximity to reference one:
+where:
+
+CFG_patronVectrName and CFG_patronLayerName are the file and vector layer with the reference area(s).
+
+CFG_rutaCompletaMFE and CFG_cartoMFEcampoSp are the vector layer and field with the forest types.
+
+
+5. Create new Tiff files with similar zones and proximity to reference one:
 ```
-myDasolidar.generarRasterCluster(
-    LCL_radioClusterPix=CFG_radioClusterPix,
-)
+myDasolidar.generarRasterCluster()
 ```
+
 
 to be continued...
 
