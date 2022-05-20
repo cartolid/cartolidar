@@ -88,8 +88,6 @@ from cartolidar.clidtools.clidtwins_config import GLO
 # from cartolidar.clidtools import clidtwins_config as CNFG
 # ==============================================================================
 
-print('clidraster-> GLO:', dir(GLO))
-
 GLO_GLBLsubLoteTiff = ''
 GLO_GLBLconvertirAlt = False
 

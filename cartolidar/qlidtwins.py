@@ -36,6 +36,7 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 0
 if __verbose__ > 2:
     print(f'qlidtwins-> __name__:     <{__name__}>')
@@ -349,6 +350,8 @@ def leerArgumentosEnLineaDeComandos(argv=None):
 # ==============================================================================
 def checkRun():
     '''Chequeo de la forma de ejecucion provisional para la version alpha'''
+    __verbose__ = 2
+    print(f'qlidtwins-> __verbose__: {__verbose__}')
     if __verbose__ > 1:
         print(f'\nqlidtwins-> sys.argv: {sys.argv}')
     # ==========================================================================
@@ -388,12 +391,14 @@ def checkRun():
             print('o bien:')
             print('\t  python qlidtwins.py')
             print('Sin embargo, se esta importando desde codigo python y no se pueden incluir')
-            print('argumentosen linea de comandos. Se usa fichero de configuracion (si existe)')
+            print('argumentos en linea de comandos. Se usa fichero de configuracion (si existe)')
             print('o configuracion por defecto (en caso contrario).')
-            if __verbose__ > 2:
+            if __verbose__ > 1:
                 selec = input('\nLanzar el modulo como si se ejecutara desde linea de comandos (S/n): ')
             else:
                 selec = 's'
+        else:
+            selec = 's'
     elif len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos:
         print('\nAVISO: no se han introducido argumentos en linea de comandos')
         print('\t-> Para obtener ayuda sobre estos argumentos escribir:')
@@ -409,8 +414,6 @@ def checkRun():
                 print('')
                 # print('Fin')
                 # sys.exit(0)
-            else:
-                print('')
         except (Exception) as thisError: # Raised when a generated error does not fall into any category.
             print(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
             print(f'\tRevisar error: {thisError}')
@@ -682,7 +685,6 @@ def clidtwinsUseCase(cfgDict):
         LCL_listLstDasoVars=cfgDict['listLstDasoVars'],
         LCL_nPatronDasoVars=cfgDict['nPatronDasoVars'],  # opcional
         LCL_leer_extra_args=TRNS_LEER_EXTRA_ARGS,  # opcional
-        LCL_verboseProgress=__verbose__,  # opcional
     )
 
     if __verbose__:

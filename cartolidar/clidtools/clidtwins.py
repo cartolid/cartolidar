@@ -69,17 +69,17 @@ from cartolidar.clidtools.clidtwins_config import GLO
 
 # ==============================================================================
 TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
-# TRNSmostrarClusterMatch = False
+# TRNSmostrarClusterMatch = False # Se define mas adelante
 # ==============================================================================
+
 
 # ==============================================================================
 class DasoLidarSource:
-    """Main clidtwins class with methods to read mandatory argument (dasoVars list)
-and other optional arguments.
+    """Class with methods to read main argument (dasoVars list) and other optional arguments.
     Attributes
     ----------
     LCL_listLstDasoVars : list
-        Default: None
+        Default: None (optional)
     LCL_nPatronDasoVars : int
         Default: 0 (optional)
     LCL_verboseProgress : bool
@@ -109,12 +109,14 @@ and other optional arguments.
     """
 
     # ==========================================================================
+    # Se leen los argumentos y se convierte la listLstDasoVars en listas individuales:
+    # NickNames, FileTypes, RangoLinf, RangoLsup, NumClases, Movilidad, Ponderado,
     def __init__(
             self,
-            LCL_listLstDasoVars=None,
-            LCL_nPatronDasoVars=0,  # opcional
-            LCL_verboseProgress=False,  # opcional
-            LCL_leer_extra_args=False,  # opcional
+            LCL_listLstDasoVars=None, # optional but advisable
+            LCL_nPatronDasoVars=0,  # optional
+            LCL_leer_extra_args=0,  # optional
+            LCL_verboseProgress=__verbose__,  # optional
             LCL_menuInteractivo=GLO.GLBLmenuInteractivoPorDefecto,  # extra: 0
             LCL_outRasterDriver=GLO.GLBLoutRasterDriverPorDefecto,  # extra: 'GTiff'
             LCL_outputSubdirNew=GLO.GLBLoutputSubdirNewPorDefecto,  # extra: 'dasoLayers'
@@ -126,22 +128,31 @@ and other optional arguments.
             LCL_noDataTipoDMasa=GLO.GLBLnoDataTipoDMasaPorDefecto,  # extra: 255
             LCL_umbralMatriDist=GLO.GLBLumbralMatriDistPorDefecto,  # extra: 20
         ):
+        self.LOCLverbose = LCL_verboseProgress
+
         if LCL_listLstDasoVars is None:
-            self.LOCLlistLstDasoVars = GLO.GLBLlistTxtDasoVars
-            print('\n{:_^80}'.format(''))
-            print('clidtwins-> AVISO: se lee GLBLlistTxtDasoVars del fichero de configuracion')
-            print('            (por defecto), por no haberse especificado LCL_listLstDasoVars')
-            print('            de forma explicita al instanciar la clase DasoLidarSource.')
-            print('{:=^80}'.format(''))
+            self.LOCLlistLstDasoVars = GLO.GLBLlistTxtDasoVarsPorDefecto
+            if self.LOCLverbose:
+                print('\n{:_^80}'.format(''))
+                print('clidtwins-> AVISO:')
+                if os.path.exists(GLO.configFileNameCfg):
+                    print(f'\tSe lee la lista de DasoVars del fichero de configuracion ({GLO.configFileNameCfg})')
+                else:
+                    print('\tSe usa la lista de DasoVars por defecto (incluida en clidtwins._config.py)')
+                print('\tpor no haberse especificado LCL_listLstDasoVars de forma explicita')
+                print('\tal instanciar la clase DasoLidarSource.')
+                print(f'listaDasoVars: {self.LOCLlistLstDasoVars}')
+                print('{:=^80}'.format(''))
         else:
             self.LOCLlistLstDasoVars = LCL_listLstDasoVars
 
         self.LOCLnPatronDasoVars = LCL_nPatronDasoVars
-        self.LOCLverbose = LCL_verboseProgress
 
-        # Esto es redundante con el valor por defecto dado a estos parametros
-        # Puedo elegir una de estas dos opciones o la mas sencilla que es poner
-        # valor por defecto None y asignar el valor de GLO cuando el parametro es None
+        # Esto parece redundante con el valor por defecto de estos parametros.
+        # Sin embargo, no lo es porque el argumento LCL_leer_extra_args,
+        # fuerza, si es True, a usar los parametros por defecto.
+        # La forma canonica de python para argumentos por defecto es usar None y
+        # asignar despues el valor que corresponda cuando el parametro es None.
         if LCL_leer_extra_args:
             self.GLBLmenuInteractivo = LCL_menuInteractivo
             self.GLBLoutRasterDriver = LCL_outRasterDriver
@@ -154,37 +165,38 @@ and other optional arguments.
             self.GLBLnoDataTipoDMasa = LCL_noDataTipoDMasa
             self.GLBLumbralMatriDist = LCL_umbralMatriDist
         else:
-            self.GLBLmenuInteractivo = GLO.GLBLmenuInteractivoPorDefecto  # 0
-            self.GLBLoutRasterDriver = GLO.GLBLoutRasterDriverPorDefecto  # 'GTiff'
-            self.GLBLoutputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto  # 'dasoLayers'
-            self.GLBLcartoMFErecorte = GLO.GLBLcartoMFErecortePorDefecto  # 'mfe50rec'
-            self.GLBLvarsTxtFileName = GLO.GLBLvarsTxtFileNamePorDefecto  # 'rangosDeDeferencia.txt'
-            self.GLBLambitoTiffNuevo = GLO.GLBLambitoTiffNuevoPorDefecto  # 'loteAsc'
-            self.GLBLnoDataTiffProvi = GLO.GLBLnoDataTiffProviPorDefecto  # -8888
-            self.GLBLnoDataTiffFiles = GLO.GLBLnoDataTiffFilesPorDefecto  # -9999
-            self.GLBLnoDataTipoDMasa = GLO.GLBLnoDataTipoDMasaPorDefecto  # 255
-            self.GLBLumbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto  # 20
+            self.GLBLmenuInteractivo = GLO.GLBLmenuInteractivoPorDefecto  # p.ej.: 0
+            self.GLBLoutRasterDriver = GLO.GLBLoutRasterDriverPorDefecto  # p.ej.: 'GTiff'
+            self.GLBLoutputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto  # p.ej.: 'dasoLayers'
+            self.GLBLcartoMFErecorte = GLO.GLBLcartoMFErecortePorDefecto  # p.ej.: 'mfe50rec'
+            self.GLBLvarsTxtFileName = GLO.GLBLvarsTxtFileNamePorDefecto  # p.ej.: 'rangosDeDeferencia.txt'
+            self.GLBLambitoTiffNuevo = GLO.GLBLambitoTiffNuevoPorDefecto  # p.ej.: 'loteAsc'
+            self.GLBLnoDataTiffProvi = GLO.GLBLnoDataTiffProviPorDefecto  # p.ej.: -8888
+            self.GLBLnoDataTiffFiles = GLO.GLBLnoDataTiffFilesPorDefecto  # p.ej.: -9999
+            self.GLBLnoDataTipoDMasa = GLO.GLBLnoDataTipoDMasaPorDefecto  # p.ej.: 255
+            self.GLBLumbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto  # p.ej.: 20
 
         if self.LOCLnPatronDasoVars == 0:
             if not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('MFE'):
                 dasoVarTipoBosquePorDefecto = ['MFE25', 'MFE', 0, 255, 255, 0, 0]
                 dasoVarTipoDeMasaPorDefecto = ['TMasa', 'TipoMasa', 0, 255, 255, 0, 0]
-                print('\n{:_^80}'.format(''))
-                print('clidtwins-> AVISO: la lista de variables dasolidar no incluye las dos adicionales')
-                print('            que deben ser tipo de bosque (MFE**) y tipo de masa (TMasa).')
-                print('            Se agregan a la lista con esta configuracion:')
-                print('            Tipos de bosque: {}'.format(dasoVarTipoBosquePorDefecto))
-                print('            Tipos de masa:   {}'.format(dasoVarTipoDeMasaPorDefecto))
-                rpta = input('Agregar estas dos variables? (S/n) ')
-                if rpta.upper() == 'N':
-                    print('Se ha elegido no agregar las variables TipoBosque y TipoDeMasa.')
-                    print('\nDefinir las variables de entrada con TipoBosque y TipoDeMasa como argumento'
-                          'en linea de comandos el fichero de configuracion o en codigo por defecto')
-                    print('Se interrumpe la ejecucion')
-                    sys.exit(0) 
+                if self.LOCLverbose:
+                    print('\n{:_^80}'.format(''))
+                    print('clidtwins-> AVISO: la lista de variables dasolidar no incluye las dos adicionales')
+                    print('            que deben ser tipo de bosque (MFE**) y tipo de masa (TMasa).')
+                    print('            Se agregan a la lista con esta configuracion:')
+                    print('            Tipos de bosque: {}'.format(dasoVarTipoBosquePorDefecto))
+                    print('            Tipos de masa:   {}'.format(dasoVarTipoDeMasaPorDefecto))
+                    rpta = input('Agregar estas dos variables? (S/n) ')
+                    if rpta.upper() == 'N':
+                        print('Se ha elegido no agregar las variables TipoBosque y TipoDeMasa.')
+                        print('\nDefinir las variables de entrada con TipoBosque y TipoDeMasa como argumento'
+                              'en linea de comandos el fichero de configuracion o en codigo por defecto')
+                        print('Se interrumpe la ejecucion')
+                        sys.exit(0)
+                    print('{:=^80}'.format(''))
                 self.LOCLlistLstDasoVars.append(dasoVarTipoBosquePorDefecto)
                 self.LOCLlistLstDasoVars.append(dasoVarTipoDeMasaPorDefecto)
-                print('{:=^80}'.format(''))
             self.nBandasPrevistasOutput = len(self.LOCLlistLstDasoVars)
         else:
             self.nBandasPrevistasOutput = self.LOCLnPatronDasoVars + 2
@@ -231,13 +243,21 @@ and other optional arguments.
                     'peso: {}'.format(pesoPonderado)
                 )
 
+        # Se inician estos atributos para evitar errores mas adelante
+        self.LOCLmarcoCoordMinX = 0
+        self.LOCLmarcoCoordMaxX = 0
+        self.LOCLmarcoCoordMinY = 0
+        self.LOCLmarcoCoordMaxY = 0
+        self.marcoCoordDisponible = False
+        self.GLBLmarcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto
+
     # ==========================================================================
     def rangeUTM(
             self,
-            LCL_marcoCoordMinX=0,
-            LCL_marcoCoordMaxX=0,
-            LCL_marcoCoordMinY=0,
-            LCL_marcoCoordMaxY=0,
+            LCL_marcoCoordMinX=0,  # opcional
+            LCL_marcoCoordMaxX=0,  # opcional
+            LCL_marcoCoordMinY=0,  # opcional
+            LCL_marcoCoordMaxY=0,  # opcional
             LCL_marcoPatronTest=None,  # extra: 0
             LCL_rutaAscRaizBase=None,  # opcional
             LCL_patronVectrName=None,  # opcional
@@ -245,7 +265,7 @@ and other optional arguments.
             LCL_testeoVectrName=None,  # opcional
             LCL_testeoLayerName=None,  # opcional
         ):
-        """Method for seting by default UTM range for analysis area
+        """Method for seting UTM range for analysis area
         Attributes
         ----------
         LCL_marcoCoordMinX : int
@@ -257,7 +277,7 @@ and other optional arguments.
         LCL_marcoCoordMaxY : int
             Default: 0
         LCL_marcoPatronTest = bool
-            Default: parameter GLBLmarcoPatronTestPorDefecto from cfg file (True)
+            Default: parameter GLBLmarcoPatronTestPorDefecto from cfg file or clidtwins_config.py module
         LCL_rutaAscRaizBase : str
             Default: None (optional)
         LCL_patronVectrName : str
@@ -269,59 +289,63 @@ and other optional arguments.
         LCL_testeoLayerName : str
             Default: None (optional)
         """
-        # Dar opcion a establecer unas coordenadas concretas o leerlas
-        # de los shapes que se usan como patron y testeo
-        # En ambos casos a partir del fichero de configuracion o
-        # de argumentos enviados a este metodo
-        self.LOCLmarcoCoordMinX = LCL_marcoCoordMinX
-        self.LOCLmarcoCoordMaxX = LCL_marcoCoordMaxX
-        self.LOCLmarcoCoordMinY = LCL_marcoCoordMinY
-        self.LOCLmarcoCoordMaxY = LCL_marcoCoordMaxY
 
         if LCL_marcoPatronTest is None:
-            self.GLBLmarcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto  # 0
+            self.GLBLmarcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto
         else:
             self.GLBLmarcoPatronTest = LCL_marcoPatronTest
-        if LCL_rutaAscRaizBase is None:
-            self.LOCLrutaAscRaizBase = GLO.GLBLrutaAscRaizBasePorDefecto
-        else:
-            self.LOCLrutaAscRaizBase = LCL_rutaAscRaizBase
-        if LCL_patronVectrName is None:
-            self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
-        else:
-            self.LOCLpatronVectrName = LCL_patronVectrName
-        if LCL_patronLayerName is None:
-            self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
-        else:
-            self.LOCLpatronLayerName = LCL_patronLayerName
-        if LCL_testeoVectrName is None:
-            self.LOCLtesteoVectrName = GLO.GLBLtesteoVectrNamePorDefecto
-        else:
-            self.LOCLtesteoVectrName = LCL_testeoVectrName
-        if LCL_testeoLayerName is None:
-            self.LOCLtesteoLayerName = GLO.GLBLtesteoLayerNamePorDefecto
-        else:
-            self.LOCLtesteoLayerName = LCL_testeoLayerName
 
-        # print('----->>> LCL_patronLayerName', type(LCL_patronLayerName))
-        # print('----->>> self.LOCLpatronLayerName', type(self.LOCLpatronLayerName))
+        if not self.GLBLmarcoPatronTest:
+            if (
+                LCL_marcoCoordMinX > 0
+                and LCL_marcoCoordMaxX > 0
+                and LCL_marcoCoordMinY > 0
+                and LCL_marcoCoordMaxY > 0
+            ):
+                self.marcoCoordDisponible = True
+                self.LOCLmarcoCoordMinX = LCL_marcoCoordMinX
+                self.LOCLmarcoCoordMaxX = LCL_marcoCoordMaxX
+                self.LOCLmarcoCoordMinY = LCL_marcoCoordMinY
+                self.LOCLmarcoCoordMaxY = LCL_marcoCoordMaxY
+            else:
+                self.marcoCoordDisponible = False
+                if self.LOCLverbose:
+                    print('clidtwins-> AVISO: no se han establecido coordenadas para la zona de estudio.')
+                    print('\t-> Se adopta la envolvente de los ficheros con variables dasoLidar.')
 
-        self.marcoCoordDisponible = True
-        if self.GLBLmarcoPatronTest:
+        if self.GLBLmarcoPatronTest or not self.marcoCoordDisponible:
+            if LCL_rutaAscRaizBase is None:
+                self.LOCLrutaAscRaizBase = GLO.GLBLrutaAscRaizBasePorDefecto
+            else:
+                self.LOCLrutaAscRaizBase = LCL_rutaAscRaizBase
+            if LCL_patronVectrName is None:
+                self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
+            else:
+                self.LOCLpatronVectrName = LCL_patronVectrName
+            if LCL_patronLayerName is None:
+                self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
+            else:
+                self.LOCLpatronLayerName = LCL_patronLayerName
+            if LCL_testeoVectrName is None:
+                self.LOCLtesteoVectrName = GLO.GLBLtesteoVectrNamePorDefecto
+            else:
+                self.LOCLtesteoVectrName = LCL_testeoVectrName
+            if LCL_testeoLayerName is None:
+                self.LOCLtesteoLayerName = GLO.GLBLtesteoLayerNamePorDefecto
+            else:
+                self.LOCLtesteoLayerName = LCL_testeoLayerName
+
             envolventePatron = obtenerExtensionDeCapaVectorial(
                 self.LOCLrutaAscRaizBase,
                 self.LOCLpatronVectrName,
                 LOCLlayerName=self.LOCLpatronLayerName,
+                LOCLverbose=self.LOCLverbose,
             )
             if not envolventePatron is None:
-                patronVectorXmin = envolventePatron[0]
-                patronVectorXmax = envolventePatron[1]
-                patronVectorYmin = envolventePatron[2]
-                patronVectorYmax = envolventePatron[3]
-                self.LOCLmarcoCoordMinX = patronVectorXmin
-                self.LOCLmarcoCoordMaxX = patronVectorXmax
-                self.LOCLmarcoCoordMinY = patronVectorYmin
-                self.LOCLmarcoCoordMaxY = patronVectorYmax
+                self.LOCLmarcoCoordMinX = envolventePatron[0]
+                self.LOCLmarcoCoordMaxX = envolventePatron[1]
+                self.LOCLmarcoCoordMinY = envolventePatron[2]
+                self.LOCLmarcoCoordMaxY = envolventePatron[3]
             else:
                 print('\nclidtwins-> ATENCION: no esta disponible el fichero {}'.format(self.LOCLpatronVectrName))
                 print('\t-> Ruta base: {}'.format(self.LOCLrutaAscRaizBase))
@@ -330,16 +354,14 @@ and other optional arguments.
                 self.LOCLrutaAscRaizBase,
                 self.LOCLtesteoVectrName,
                 LOCLlayerName=self.LOCLtesteoLayerName,
+                LOCLverbose=self.LOCLverbose,
             )
             if not envolventeTesteo is None:
-                testeoVectorXmin = envolventeTesteo[0]
-                testeoVectorXmax = envolventeTesteo[1]
-                testeoVectorYmin = envolventeTesteo[2]
-                testeoVectorYmax = envolventeTesteo[3]
-                self.LOCLmarcoCoordMinX = min(self.LOCLmarcoCoordMinX, testeoVectorXmin)
-                self.LOCLmarcoCoordMaxX = max(self.LOCLmarcoCoordMaxX, testeoVectorXmax)
-                self.LOCLmarcoCoordMinY = min(self.LOCLmarcoCoordMinY, testeoVectorYmin)
-                self.LOCLmarcoCoordMaxY = max(self.LOCLmarcoCoordMaxY, testeoVectorYmax)
+                self.LOCLmarcoCoordMinX = min(self.LOCLmarcoCoordMinX, envolventeTesteo[0])
+                self.LOCLmarcoCoordMaxX = max(self.LOCLmarcoCoordMaxX, envolventeTesteo[1])
+                self.LOCLmarcoCoordMinY = min(self.LOCLmarcoCoordMinY, envolventeTesteo[2])
+                self.LOCLmarcoCoordMaxY = max(self.LOCLmarcoCoordMaxY, envolventeTesteo[3])
+
             if self.LOCLverbose:
                 if envolventeTesteo is None:
                     print('clidtwins-> Se adopta la envolvente del shapes de referenia (patron) -no se dispone de shape de chequeo (testeo)-:')
@@ -348,25 +370,15 @@ and other optional arguments.
                 print(
                     '\t-> X: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
                         self.LOCLmarcoCoordMinX, self.LOCLmarcoCoordMaxX,
-                        self.LOCLmarcoCoordMaxX -self.LOCLmarcoCoordMinX
+                        self.LOCLmarcoCoordMaxX - self.LOCLmarcoCoordMinX
                     )
                 )
                 print(
                     '\t-> Y: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
                         self.LOCLmarcoCoordMinY, self.LOCLmarcoCoordMaxY,
-                        self.LOCLmarcoCoordMaxY -self.LOCLmarcoCoordMinY
+                        self.LOCLmarcoCoordMaxY - self.LOCLmarcoCoordMinY
                     )
                 )
-        elif (
-            self.LOCLmarcoCoordMinX == 0
-            or self.LOCLmarcoCoordMaxX == 0
-            or self.LOCLmarcoCoordMinY == 0
-            or self.LOCLmarcoCoordMaxY == 0
-        ):
-            self.marcoCoordDisponible = False
-            if self.LOCLverbose:
-                print('clidtwins-> AVISO: no se han establecido coordenadas para la zona de estudio.')
-                print('\t-> Se adopta la envolvente de los ficheros con variables dasoLidar.')
 
     # ==========================================================================
     def searchSourceFiles(
@@ -375,11 +387,9 @@ and other optional arguments.
             LCL_nivelSubdirExpl=0,  # opcional
             LCL_outputSubdirNew=None,  # opcional
         ):
-        """Method for seting by default UTM range for analysis area
+        """Search asc files with dasoLidar variables
         Attributes
         ----------
-        LCL_marcoCoordMinX : int
-            Default: 0
         LCL_rutaAscRaizBase : str
             Default: None,
         LCL_nivelSubdirExpl : str
@@ -387,7 +397,121 @@ and other optional arguments.
         LCL_outputSubdirNew : str
             Default: None (optional)
         """
+
+        # ======================================================================
+        # Si no se ha especificado LCL_rutaAscRaizBase, se elige una que exista:
+        if type(LCL_rutaAscRaizBase) == str:
+            LCL_rutaAscRaizBase = os.path.abspath(LCL_rutaAscRaizBase)
+            if 'site-packages' in LCL_rutaAscRaizBase:
+                import pathlib
+                LCL_rutaAscRaizBase = str(pathlib.Path.home())
+            if not os.path.isdir(LCL_rutaAscRaizBase):
+                print(f'\nclidtwins-> ATENCION: ruta {LCL_rutaAscRaizBase} no disponible, se interrumpe la ejecucion.')
+                sys.exit(0)
+        else:
+            LCL_rutaAscRaizBase = None
+
+        if LCL_rutaAscRaizBase is None:
+            print('\n{:_^80}'.format(''))
+            print(f'clidtwins-> AVISO: no se ha indicado ruta para los ficheros asc con las variables dasoLidar de entrada.')
+            if self.LOCLverbose:
+                print(f'\tRuta: {LCL_rutaAscRaizBase}')
+            if os.path.isdir(GLO.GLBLrutaAscRaizBasePorDefecto):
+                if os.path.exists(GLO.configFileNameCfg):
+                    print(f'\t-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
+                else:
+                    print(f'\t-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
+                LCL_rutaAscRaizBase = GLO.GLBLrutaAscRaizBasePorDefecto
+            else:
+                import pathlib
+                # Directorio que depende del entorno:
+                MAIN_HOME_DIR = str(pathlib.Path.home())
+                listaRutasDisponibles = [MAIN_HOME_DIR]
+                # Directorio desde el que se lanza la app (estos dos coinciden):
+                MAIN_THIS_DIR = os.getcwd()
+                if not 'site-packages' in MAIN_THIS_DIR and not MAIN_THIS_DIR in listaRutasDisponibles:
+                    listaRutasDisponibles.append(MAIN_THIS_DIR)
+                MAIN_BASE_DIR = os.path.abspath('.')
+                if not 'site-packages' in MAIN_BASE_DIR and not MAIN_BASE_DIR in listaRutasDisponibles:
+                    listaRutasDisponibles.append(MAIN_BASE_DIR)
+                # Directorios de la aplicacion:
+                try:
+                    MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+                except:
+                    MAIN_FILE_DIR = MAIN_BASE_DIR
+                if not 'site-packages' in MAIN_FILE_DIR and not MAIN_FILE_DIR in listaRutasDisponibles:
+                    listaRutasDisponibles.append(MAIN_FILE_DIR)
+                # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
+                MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))
+                if not 'site-packages' in MAIN_RAIZ_DIR and not MAIN_RAIZ_DIR in listaRutasDisponibles:
+                    listaRutasDisponibles.append(MAIN_RAIZ_DIR)
+
+                print(f'\t-> Elegir ruta: ')
+                for numRuta, txtRutaDisponible in enumerate(listaRutasDisponibles):
+                    print(f'\t   {numRuta + 1}. {txtRutaDisponible}')
+                print(f'\t   9. Interrumpir la ejecucion y especificar una ruta') # (como argumento en el codigo o en cmd, o en el fichero de configuracion)
+                txtNumRuta = input(f'\t-> Ruta elegida: ')
+                try:
+                    numRuta = int(txtNumRuta)
+                except:
+                    numRuta = 9
+                if numRuta < len(listaRutasDisponibles) + 1:
+                    LCL_rutaAscRaizBase = listaRutasDisponibles[numRuta - 1]
+                    print(
+                        f'Opcion selecionada: {numRuta} -> {LCL_rutaAscRaizBase}'
+                    )
+                else:
+                    if numRuta != 9:
+                        print(
+                            f'Opcion selecionada ({numRuta}) no disponible.'
+                        )
+                    print('\nSe interrumpe la ejecucion')
+                    sys.exit(0)
+            print('{:=^80}'.format(''))
+        # ======================================================================
         self.LOCLrutaAscRaizBase = LCL_rutaAscRaizBase
+        # ======================================================================
+
+        # ======================================================================
+        # Si no se ha especificado marco se usa el de la zona patron (si existe):
+        if (
+            self.LOCLmarcoCoordMinX == 0
+            or self.LOCLmarcoCoordMaxX == 0
+            or self.LOCLmarcoCoordMinY == 0
+            or self.LOCLmarcoCoordMaxY == 0
+        ):
+            self.marcoCoordDisponible = False
+            if self.LOCLverbose:
+                print('clidtwins-> AVISO: no se dispone de coordenadas para delimitar la zona de estudio.')
+            if self.GLBLmarcoPatronTest:
+                # Si no se ha establecido marcoPatronTest explicitamente,
+                # tiene el valor por defecto asignado al instanciar la clase
+                if hasattr(self, 'LOCLpatronVectrName') and hasattr(self, 'LOCLpatronLayerName'):
+                    (vectorFileDisponible, patronVectrNameConPath) = verificarExistencia(self.LOCLpatronVectrName)
+                else:
+                    (vectorFileDisponible, patronVectrNameConPath) = verificarExistencia(GLO.GLBLpatronVectrNamePorDefecto)
+                    if vectorFileDisponible:
+                        self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
+                        self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
+            else:
+                vectorFileDisponible = False
+            if vectorFileDisponible:
+                if self.LOCLverbose:
+                    print('\t-> Se adopta la envolvente del fichero de referencia para las variables dasoLidar (patron).')
+                self.rangeUTM(
+                    LCL_marcoPatronTest=True,
+                    LCL_rutaAscRaizBase=self.LOCLrutaAscRaizBase,
+                    LCL_patronVectrName=self.LOCLpatronVectrName,
+                    LCL_patronLayerName=self.LOCLpatronLayerName,
+                )
+            else:
+                self.GLBLmarcoPatronTest = False
+                self.LOCLpatronVectrName = None
+                self.LOCLpatronLayerName = None
+                if self.LOCLverbose:
+                    print('\t-> Se adopta la envolvente de los ficheros que se encuentren con variables dasoLidar.')
+        # ======================================================================
+
         self.LOCLnivelSubdirExpl = LCL_nivelSubdirExpl
         if LCL_outputSubdirNew is None:
             self.LOCLoutputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto
@@ -395,6 +519,7 @@ and other optional arguments.
             self.LOCLoutputSubdirNew = LCL_outputSubdirNew
 
         self.idInputDir = os.path.basename(self.LOCLrutaAscRaizBase)
+
         if self.LOCLverbose:
             print('\n{:_^80}'.format(''))
             print('clidtwins-> Explorando directorios...')
@@ -413,19 +538,6 @@ and other optional arguments.
                 print('\t\t{}'.format(os.path.join(self.LOCLrutaAscRaizBase, dirExcluido)))
             print('{:=^80}'.format(''))
 
-
-        if (
-            self.LOCLmarcoCoordMinX == 0
-            or self.LOCLmarcoCoordMaxX == 0
-            or self.LOCLmarcoCoordMinY == 0
-            or self.LOCLmarcoCoordMaxY == 0
-        ):
-            self.marcoCoordDisponible = False
-            if self.LOCLverbose:
-                print('clidtwins-> AVISO: no se dispone de coordenadas para delimitar la zona de estudio.')
-                print('\t-> Se adopta la envolvente a los ficheros que se encuentren con variables dasoLidar.')
-
-        # Listas de ficheros reunidas por tipoDeFichero
         if self.LOCLverbose:
             print('\n{:_^80}'.format(''))
             print('clidtwins-> Buscando ficheros de cada tipo en todos los directorios previstos:')
@@ -451,6 +563,8 @@ and other optional arguments.
                     )
                 )
 
+        # ======================================================================
+        # Listas de ficheros reunidas por tipoDeFichero
         self.inFilesListAllTypes = []
         for nInputVar, miTipoDeFicheroDasoLayer in enumerate(self.LOCLlistaDasoVarsFileTypes):
             miDasoVarNickName = self.LOCLlistaDasoVarsNickNames[nInputVar]
@@ -508,14 +622,19 @@ and other optional arguments.
 
                 #===================================================================
                 try:
-                    if not(
-                        self.LOCLmarcoCoordMinX == 0
-                        or self.LOCLmarcoCoordMaxX == 0
-                        or self.LOCLmarcoCoordMinY == 0
-                        or self.LOCLmarcoCoordMaxY == 0
-                    ) and self.marcoCoordDisponible and (
-                        self.GLBLmarcoPatronTest
-                        or TRNS_buscarBloquesSoloDentroDelMarcoUTM
+                    # Si se ha establecido marco UTM se incorporan los bloques
+                    # que esten dentro del marco; en caso contrario, todos.
+                    # Siempre y cuando tengan todas las variables dasoLidar.
+                    if (
+                        self.marcoCoordDisponible
+                        and self.LOCLmarcoCoordMinX > 0
+                        and self.LOCLmarcoCoordMaxX > 0
+                        and self.LOCLmarcoCoordMinY > 0
+                        and self.LOCLmarcoCoordMaxY > 0
+                        and (
+                            TRNS_buscarBloquesSoloDentroDelMarcoUTM
+                            or self.GLBLmarcoPatronTest
+                        )
                     ):
                         filenamesSeleccionadosX = [
                             filename for filename in filenames
@@ -589,6 +708,7 @@ and other optional arguments.
                 #===================================================================
 
             self.inFilesListAllTypes.append(infilesX)
+        # ======================================================================
 
         # Despues de buscar todos los ficheros disponibles de cada tipo (cada variable)
         # Elimino los ficheros de bloques que no tengan todos los tipos (todas las variables)
@@ -652,17 +772,17 @@ and other optional arguments.
                     if nameFile[:8] == codigoBloque:
                         # (self.inFilesListAllTypes[nLista]).remove([pathFile, nameFile])
                         del self.inFilesListAllTypes[nLista][numFile]
-                        print('clidtwins-> Eliminando codigoBloque:', codigoBloque, 'nameFile', nameFile)
+                        if self.LOCLverbose > 1:
+                            print('clidtwins-> Eliminando codigoBloque por no tener todas las dasoVars:', codigoBloque, 'nameFile', nameFile)
                 else:
                     hayAlgunBloqueCompleto = True
 
         if not hayAlgunBloqueCompleto:
             print('\nATENCION: No hay ningun bloque con todas las variables (todos los tipos de fichero).')
-            print('\t-> Ruta raiz: {}'.format(self.LOCLrutaAscRaizBase))
+            print('\t-> Ruta de busqueda de ficheros: {}'.format(self.LOCLrutaAscRaizBase))
             sys.exit(0)
 
-        # Actualizo el carco de coordenadas de la zona de estudio con los bloques encontrados y admitidos
-
+        # Actualizo el marco de coordenadas de la zona de estudio con los bloques encontrados y admitidos
         if self.LOCLverbose:
             if (
                 TRNS_buscarBloquesSoloDentroDelMarcoUTM
@@ -720,21 +840,72 @@ and other optional arguments.
     # ==========================================================================
     def createAnalizeMultiDasoLayerRasterFile(
             self,
-            LCL_rasterPixelSize=0,
-            LCL_rutaCompletaMFE=None,
-            LCL_cartoMFEcampoSp=None,
             LCL_patronVectrName=None,
             LCL_patronLayerName=None,
+            LCL_rutaCompletaMFE=None,
+            LCL_cartoMFEcampoSp=None,
+            LCL_rasterPixelSize=None,  # opcional
             LCL_outRasterDriver=None,  # opcional
             LCL_cartoMFErecorte=None,  # opcional
             LCL_varsTxtFileName=None,  # opcional
         ):
-        self.LOCLrasterPixelSize = LCL_rasterPixelSize
-        self.LOCLrutaCompletaMFE = LCL_rutaCompletaMFE
-        self.LOCLcartoMFEcampoSp = LCL_cartoMFEcampoSp
-        self.LOCLpatronVectrName = LCL_patronVectrName
-        self.LOCLpatronLayerName = LCL_patronLayerName
-        # print('----->>> self.LOCLpatronLayerName', type(self.LOCLpatronLayerName))
+        f"""Create a new raster file with one layer for every dasoLidar Variable
+and two more layers for forest type (land cover) and stand type.
+        Attributes
+        ----------
+        LCL_patronVectrName : str
+            Default: None (optional)
+        LCL_patronLayerName : str
+            Default: None (optional)
+        LCL_rutaCompletaMFE : str
+            Default: None (optional)
+        LCL_cartoMFEcampoSp : str
+            Default: None (optional)
+        LCL_rasterPixelSize : int
+            Default: {GLO.GLBLrasterPixelSizePorDefecto} (optional)
+        LCL_outRasterDriver : str
+            Default: '{GLO.GLBLoutRasterDriverPorDefecto}' (optional)
+        LCL_cartoMFErecorte : str
+            Default: '{GLO.GLBLcartoMFErecortePorDefecto}' (optional)
+        LCL_varsTxtFileName : str
+            Default: '{GLO.GLBLvarsTxtFileNamePorDefecto}' (optional)
+        """
+
+        if hasattr(self, 'inFilesListAllTypes'):
+            if len((self.inFilesListAllTypes)[0]) == 0:
+                print(f'clidtwins-> AVISO: no se han encontrado ficheros con las variables dasoLidar.')
+                print(f'\t-> Se interrume el metodo createAnalizeMultiDasoLayerRasterFile')
+                return
+        else:
+            if self.LOCLverbose:
+                print(f'clidtwins-> AVISO: antes de generar y analizar el nuevo raster con las variables dasoLidar')
+                print(f'\t-> hay que buscar ficheros con dichas variables (metodo searchSourceFiles)')
+                print(f'\t-> Se interrume el metodo createAnalizeMultiDasoLayerRasterFile')
+                return
+
+        if LCL_patronVectrName is None:
+            self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
+        else:
+            self.LOCLpatronVectrName = LCL_patronVectrName
+        if LCL_patronLayerName is None:
+            self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
+        else:
+            self.LOCLpatronLayerName = LCL_patronLayerName
+
+        if LCL_rutaCompletaMFE is None:
+            self.LOCLrutaCompletaMFE = GLO.GLBLrutaCompletaMFEPorDefecto
+        else:
+            self.LOCLrutaCompletaMFE = LCL_rutaCompletaMFE
+        if LCL_cartoMFEcampoSp is None:
+            self.LOCLcartoMFEcampoSp = GLO.GLBLcartoMFEcampoSpPorDefecto
+        else:
+            self.LOCLcartoMFEcampoSp = LCL_cartoMFEcampoSp
+
+        if LCL_rasterPixelSize is None:
+            self.LOCLrasterPixelSize = GLO.GLBLrasterPixelSizePorDefecto
+        else:
+            self.LOCLrasterPixelSize = LCL_outRasterDriver
+
         if LCL_outRasterDriver is None:
             self.LOCLoutRasterDriver = self.GLBLoutRasterDriver
         else:
@@ -752,10 +923,33 @@ and other optional arguments.
         self.LOCLcartoMFEfileName = os.path.basename(self.LOCLrutaCompletaMFE)
         self.LOCLcartoMFEfileNSinExt, self.LOCLcartoMFEfileSoloExt = os.path.splitext(self.LOCLcartoMFEfileName)
 
-        # print('clidtwuins-> self.LOCLcartoMFEfileName:', self.LOCLcartoMFEfileName)
-        # print('clidtwuins-> self.LOCLcartoMFEfileNSinExt:', self.LOCLcartoMFEfileNSinExt)
-        # print('clidtwuins-> self.LOCLcartoMFEfileSoloExt:', self.LOCLcartoMFEfileSoloExt)
-        # quit()
+        #===========================================================================
+        # Just in case, se verifica que se han establecido limites de coordenadas (con rangeUTM<>)
+        if (
+            self.LOCLmarcoCoordMinX <= 0
+            or self.LOCLmarcoCoordMaxX <= 0
+            or self.LOCLmarcoCoordMinY <= 0
+            or self.LOCLmarcoCoordMaxY <= 0
+        ):
+            if self.LOCLverbose:
+                print('\n{:_^80}'.format(''))
+                print(f'clidtwins-> AVISO: no se han establecido previamente los limites de la zona de analisis.')
+                print(f'\t-> Se adopta como rango de coordenadas la extension de la capa {self.LOCLpatronVectrName} layer {self.LOCLpatronLayerName}')
+                print('{:=^80}'.format(''))
+            self.rangeUTM(
+                LCL_marcoPatronTest=True,
+                LCL_rutaAscRaizBase=self.LOCLrutaAscRaizBase,
+                LCL_patronVectrName=self.LOCLpatronVectrName,
+                LCL_patronLayerName=self.LOCLpatronLayerName,
+            )
+            if (
+                self.LOCLmarcoCoordMinX == 0
+                or self.LOCLmarcoCoordMaxX == 0
+                or self.LOCLmarcoCoordMinY == 0
+                or self.LOCLmarcoCoordMaxY == 0
+            ):
+                self.marcoCoordDisponible = False
+        #===========================================================================
 
         #===========================================================================
         # Formatos raster alternativos a GTiff:
@@ -1125,7 +1319,7 @@ and other optional arguments.
                         tipoBosqueOk = 10
                     else:
                         binomioEspecies = f'{codeTipoBosqueTesteoMasFrecuente1}_{self.codeTipoBosquePatronMasFrecuente1}'
-                        if binomioEspecies in GLO.GLBLdictProximidadInterEspecies.keys():
+                        if binomioEspecies in (GLO.GLBLdictProximidadInterEspecies).keys():
                             tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies]
                         else:
                             tipoBosqueOk = 0
@@ -1145,7 +1339,7 @@ and other optional arguments.
                         tipoBosqueOk = 10
                     else:
                         binomioEspecies = f'{codeTipoBosqueTesteoMasFrecuente1}_{self.codeTipoBosquePatronMasFrecuente1}'
-                        if binomioEspecies in GLO.GLBLdictProximidadInterEspecies.keys():
+                        if binomioEspecies in (GLO.GLBLdictProximidadInterEspecies).keys():
                             tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies] - 1
                         else:
                             tipoBosqueOk = 0
@@ -2254,7 +2448,7 @@ def calculaClusterDasoVars(
                     print(f'\t-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
             else:
                 binomioEspecies = f'{codeTipoBosqueClusterMasFrecuente1}_{self_codeTipoBosquePatronMasFrecuente1}'
-                if binomioEspecies in GLO.GLBLdictProximidadInterEspecies.keys():
+                if binomioEspecies in (GLO.GLBLdictProximidadInterEspecies).keys():
                     tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies]
                 else:
                     tipoBosqueOk = 0
@@ -2280,7 +2474,7 @@ def calculaClusterDasoVars(
                     print(f'\t-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
             else:
                 binomioEspecies = f'{codeTipoBosqueClusterMasFrecuente1}_{self_codeTipoBosquePatronMasFrecuente1}'
-                if binomioEspecies in GLO.GLBLdictProximidadInterEspecies.keys():
+                if binomioEspecies in (GLO.GLBLdictProximidadInterEspecies).keys():
                     tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies] - 1
                 else:
                     tipoBosqueOk = 0
@@ -2369,24 +2563,45 @@ def calculaClusterDasoVars(
 
 
 # ==============================================================================
+def verificarExistencia(
+        LOCLvectorFileName,
+        LOCLrutaAscBase=None,
+    ):
+    if ':/' in LOCLvectorFileName or ':\\' in LOCLvectorFileName:
+        patronVectrNameConPath = LOCLvectorFileName
+    elif LOCLrutaAscBase is None:
+        patronVectrNameConPath = os.path.abspath(LOCLvectorFileName)
+    else:
+        patronVectrNameConPath = os.path.join(LOCLrutaAscBase, LOCLvectorFileName)
+    try:
+        if os.path.exists(patronVectrNameConPath):
+            return (True, patronVectrNameConPath)
+        else:
+            return (False, patronVectrNameConPath)
+    except:
+        return (False, patronVectrNameConPath)
+
+
+# ==============================================================================
 def obtenerExtensionDeCapaVectorial(
         LOCLrutaAscBase,
         LOCLvectorFileName,
         LOCLlayerName=None,
+        LOCLverbose=False,
     ):
     # print('----->>> LOCLlayerName', type(LOCLlayerName))
-    if ':/' in LOCLvectorFileName or ':\\' in LOCLvectorFileName:
-        patronVectrNameConPath = LOCLvectorFileName
-    else:
-        patronVectrNameConPath = os.path.join(LOCLrutaAscBase, LOCLvectorFileName)
-    if not os.path.exists(patronVectrNameConPath):
+    (vectorFileDisponible, patronVectrNameConPath) = verificarExistencia(
+        LOCLvectorFileName,
+        LOCLrutaAscBase=LOCLrutaAscBase,
+        )
+    if not vectorFileDisponible:
         print('\nclidtwins-> ATENCION: no esta disponible el fichero %s' % (patronVectrNameConPath))
         return None
     if not gdalOk:
         print('\nclidtwins-> ATENCION: Gdal no disponible; no se puede leer %s' % (patronVectrNameConPath))
         sys.exit(0)
 
-    if GLO.GLBLverbose:
+    if LOCLverbose:
         print('\n{:_^80}'.format(''))
         print('clidtwins-> Leyendo vector file {}'.format(patronVectrNameConPath))
     if (LOCLvectorFileName.lower()).endswith('.shp'):
@@ -2399,7 +2614,7 @@ def obtenerExtensionDeCapaVectorial(
         LOCLPatronVectorDriverName = ''
         print(f'clidtwins-> No se ha identificado bien el driver para este fichero: {patronVectrNameConPath}')
         sys.exit(0)
-    if GLO.GLBLverbose > 1:
+    if LOCLverbose > 1:
         print(f'\t-> inputVectorDriverName: {LOCLPatronVectorDriverName}')
 
     inputVectorRefOgrDriver = ogr.GetDriverByName(LOCLPatronVectorDriverName)
@@ -2438,7 +2653,7 @@ def obtenerExtensionDeCapaVectorial(
         patronVectorYmax,
     ) = patronVectorRefLayer.GetExtent()
 
-    if GLO.GLBLverbose:
+    if LOCLverbose:
         print(f'\t-> Layer:                           {LOCLlayerName}')
         print(f'\t-> Numero de elementos en el layer: {patronVectorRefFeatureCount}')
         print('{:=^80}'.format(''))
@@ -2490,6 +2705,7 @@ def recortarRasterTiffPatronDasoLidar(
         self_LOCLrutaAscRaizBase,
         self_LOCLpatronVectrName,
         LOCLlayerName=self_LOCLpatronLayerName,
+        LOCLverbose=False,
     )
     if envolventeShape is None:
         print('\nclidtwins-> ATENCION: no esta disponible el fichero {}'.format(self_LOCLpatronVectrName))

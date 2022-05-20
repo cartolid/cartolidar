@@ -355,6 +355,7 @@ def leerConfigDictPorDefecto():
         # 'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
         # Ruta de los lasFiles para Leon:
         'GLBLrutaAscRaizBasePorDefecto': ['K:/calendula/NW', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
+        'GLBLrutaAscRaizBasePorDefecto': ['', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
     
         # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
         # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/zonaEnsayoTolosana.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],

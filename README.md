@@ -178,7 +178,7 @@ myDasolidar.createAnalizeMultiDasoLayerRasterFile(
     LCL_patronLayerName=CFG_patronLayerName,
 )
 ```
-Create new Tiff files with simila zones and proximity to reference one:
+Create new Tiff files with similar zones and proximity to reference one:
 ```
 myDasolidar.generarRasterCluster(
     LCL_radioClusterPix=CFG_radioClusterPix,
