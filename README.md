@@ -147,25 +147,24 @@ clidtwins reads files in "asc" format (single vector layers) each with a dasoLid
 > Those files have to be named as: XXX_YYYY_\*IdFileType\*.asc where:
 > - XXX, YYYY are UTM coordinates (miles) that identifies the location (the block).
 >   - XXX, YYYY are usually the upper-left corner of a 2x2 km square area
-> - \*IdFileTypeº* is any string that includes a DVL identifier (like alt95, fcc05, etc.).
+> - \*IdFileType\* is any string that includes a DVL identifier (like alt95, fcc05, etc.).
 > 
-> Example: 318_4738_alt95.asc and 320_4738_alt95.asc are two files with alt95 variable.
-> They correspond to two blocks: 318_4738 and 320_4738.
+> Example: 318_4738_alt95.asc and 320_4738_alt95.asc are two files with alt95 variable (blocks: 318_4738 and 320_4738).
 > 
-> If we select two DLVs (e.g. alt95, fcc05), we need two files for every XXX_YYYY:
+> If we want to process two blocks (318_4738 and 320_4738) with two DLVs (e.g. alt95 and fcc05), we need these files:
 > 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
 
 
 Procedure:
 
-1. Import package or Class and instantiate DasoLidarSource class:
+1. Import package (or Class) and instantiate DasoLidarSource Class:
 ```
 from cartolidar.clidtools.clidtwins import DasoLidarSource
 myDasolidar = DasoLidarSource()
 ```
 
 
-2. Set the analysis zone (optional):
+2. Delimit the prospecting area (optional):
 ```
 myDasolidar.setRangeUTM(
     LCL_marcoCoordMiniX=CFG_marcoCoordMiniX,
@@ -176,20 +175,22 @@ myDasolidar.setRangeUTM(
 ```
 
 
-3. Search for dasoLidar files:
+3. Search for dasoLidar files in the prospecting zone (if any):
 First argument (LCL_listLstDasoVars) is a string with a sequence of DLV identifiers
-and second one (LCL_rutaAscRaizBase) is a path to look for the files.
+and second one (LCL_rutaAscRaizBase) is a path to look for the files with those DLV ids.
 ```
 myDasolidar.searchSourceFiles(
     LCL_listLstDasoVars='Alt95,Fcc05,Fcc03',
     LCL_rutaAscRaizBase='C:/myAscFiles',
 )
 ```
-This method creates a property named inFilesListAllTypes with one list of files for every DLV.
-It only includes blocks that have all the file types. For every file, a tuple of file path and file name is included.
+This method creates a property named inFilesListAllTypes. It is a list for every DLV,
+each with the list of found file tuples for that file type.
+It only includes files of blocks that have all the file types (one file type = one DLV).
+Every file tuple consist of a file path and file name.
 
 
-4. Create a Tiff file from the DLV files found and analyze the ranges of every DLV in the reference area:
+4. Create a raster (Tiff) file from the DLV found files:
 
 The createMultiDasoLayerRasterFile method requires the name (with path)
 of the forest or land cover vector layer (e.g. Spanish Forest Map -MFE25-)
@@ -202,9 +203,11 @@ myDasolidar.createMultiDasoLayerRasterFile(
 )
 ```
 
+5. Analyze the ranges of every DLV in the reference area:
+
 The analyzeMultiDasoLayerRasterFile method requires the name (with path)
-of the vector file with the reference polygon gor macthing (shp or gpkg).
-If it is ageopackage, also the layer name is required.
+of the vector file with the reference polygon for macthing (shp or gpkg).
+If it is ageopackage, the layer name is also required.
 ```
 myDasolidar.analyzeMultiDasoLayerRasterFile(
     LCL_patronVectrName='C:/vector/CorralesPlots.gpkg,
@@ -213,7 +216,7 @@ myDasolidar.analyzeMultiDasoLayerRasterFile(
 ```
 
 
-5. Create new Tiff files with similar zones and proximity to reference one (patron):
+6. Create new Tiff files with similar zones and proximity to reference one (patron):
 ```
 myDasolidar.generarRasterCluster()
 ```
