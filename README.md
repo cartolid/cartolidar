@@ -45,7 +45,7 @@ DLV: Lidar variables that describe or characterize forest or land cover structur
 > términos de determinadas variables dasoLidar (DLVs).
 
 
-+ info: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
+\+ info: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
 (página en construcción)
 
 
@@ -133,13 +133,13 @@ from cartolidar.clidtools.clidtwins import DasoLidarSource
 ```
 To execute module qlidtwins.py from python code:
 ```
-from cartolidar import qlidteins
+from cartolidar import qlidtwins
 ```
 In this case, there are no options: it runs with qlidtwins.cfg configuration (if exists) or by default.
 
 
-Use examples
-------------
+Required inputs
+----
 Read [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/) for details.
 
 clidtwins reads files in "asc" format (single vector layers) each with a dasoLidar variable (DLV).
@@ -155,6 +155,14 @@ clidtwins reads files in "asc" format (single vector layers) each with a dasoLid
 > 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
 
 
+It's also advisable to include a layer with forest type codes.
+
+> TODO: describe procedure
+
+
+
+Use example with python code
+----
 Procedure:
 
 1. Import package (or Class) and instantiate DasoLidarSource Class:
@@ -176,8 +184,9 @@ myDasolidar.setRangeUTM(
 
 
 3. Search for dasoLidar files in the prospecting zone (if any):
-First argument (LCL_listLstDasoVars) is a string with a sequence of DLV identifiers
-and second one (LCL_rutaAscRaizBase) is a path to look for the files with those DLV ids.
+> First argument (LCL_listLstDasoVars) is a string with a sequence of DLV identifiers
+> 
+> and second one (LCL_rutaAscRaizBase) is a path to look for the files with those DLV ids.
 ```
 myDasolidar.searchSourceFiles(
     LCL_listLstDasoVars='Alt95,Fcc05,Fcc03',
@@ -192,10 +201,10 @@ Every file tuple consist of a file path and file name.
 
 4. Create a raster (Tiff) file from the DLV found files:
 
-The createMultiDasoLayerRasterFile method requires the name (with path)
-of the forest or land cover vector layer (e.g. Spanish Forest Map -MFE25-)
-and the name of the field (type int) with the forest or land cover type
-identifier (e.g. main species code).
+> The createMultiDasoLayerRasterFile method requires the name (with path)
+> of the forest type or land cover type vector layer (e.g. Spanish Forest Map -MFE25-)
+> and the name of the field (type int) with the forest or land cover type
+> identifier (e.g. main species code).
 ```
 myDasolidar.createMultiDasoLayerRasterFile(
     LCL_rutaCompletaMFE='C:/mfe25/24_mfe25.shp',
@@ -205,9 +214,9 @@ myDasolidar.createMultiDasoLayerRasterFile(
 
 5. Analyze the ranges of every DLV in the reference area:
 
-The analyzeMultiDasoLayerRasterFile method requires the name (with path)
-of the vector file with the reference polygon for macthing (shp or gpkg).
-If it is ageopackage, the layer name is also required.
+> The analyzeMultiDasoLayerRasterFile method requires the name (with path)
+> of the vector file with the reference polygon for macthing (shp or gpkg).
+> If it is ageopackage, the layer name is also required.
 ```
 myDasolidar.analyzeMultiDasoLayerRasterFile(
     LCL_patronVectrName='C:/vector/CorralesPlots.gpkg,
