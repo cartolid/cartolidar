@@ -19,6 +19,7 @@ import os
 import sys
 import unicodedata
 import warnings
+import pathlib
 # import random
 
 import numpy as np
@@ -70,6 +71,10 @@ from cartolidar.clidtools.clidtwins_config import GLO
 # ==============================================================================
 TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
 # TRNSmostrarClusterMatch = False # Se define mas adelante
+MINIMO_PIXELS_POR_CLUSTER = 5
+TB = '\t'
+TB = ' ' * 12
+TV = ' ' * 2
 # ==============================================================================
 
 
@@ -78,12 +83,6 @@ class DasoLidarSource:
     """Class with methods to read main argument (dasoVars list) and other optional arguments.
     Attributes
     ----------
-    LCL_listLstDasoVars : list
-        Default: None (optional)
-    LCL_nPatronDasoVars : int
-        Default: 0 (optional)
-    LCL_verboseProgress : bool
-        Default: False (optional)
     LCL_leer_extra_args : bool
         Default: False (optional)
     LCL_menuInteractivo
@@ -106,17 +105,16 @@ class DasoLidarSource:
         Default: param GLBLnoDataTipoDMasaPorDefecto from cfg file (255)
     LCL_umbralMatriDist : int
         Default: param GLBLumbralMatriDistPorDefecto from cfg file (20)
+    LCL_verbose : bool
+        Default: __verbose__ (optional)
     """
 
     # ==========================================================================
     # Se leen los argumentos y se convierte la listLstDasoVars en listas individuales:
-    # NickNames, FileTypes, RangoLinf, RangoLsup, NumClases, Movilidad, Ponderado,
+    # FileTypes, NickNames, RangoLinf, RangoLsup, NumClases, Movilidad, Ponderado,
     def __init__(
             self,
-            LCL_listLstDasoVars=None, # optional but advisable
-            LCL_nPatronDasoVars=0,  # optional
             LCL_leer_extra_args=0,  # optional
-            LCL_verboseProgress=__verbose__,  # optional
             LCL_menuInteractivo=GLO.GLBLmenuInteractivoPorDefecto,  # extra: 0
             LCL_outRasterDriver=GLO.GLBLoutRasterDriverPorDefecto,  # extra: 'GTiff'
             LCL_outputSubdirNew=GLO.GLBLoutputSubdirNewPorDefecto,  # extra: 'dasoLayers'
@@ -127,32 +125,16 @@ class DasoLidarSource:
             LCL_noDataTiffFiles=GLO.GLBLnoDataTiffFilesPorDefecto,  # extra: -9999
             LCL_noDataTipoDMasa=GLO.GLBLnoDataTipoDMasaPorDefecto,  # extra: 255
             LCL_umbralMatriDist=GLO.GLBLumbralMatriDistPorDefecto,  # extra: 20
+            LCL_verbose=__verbose__,  # optional
         ):
-        self.LOCLverbose = LCL_verboseProgress
 
-        if LCL_listLstDasoVars is None:
-            self.LOCLlistLstDasoVars = GLO.GLBLlistTxtDasoVarsPorDefecto
-            if self.LOCLverbose:
-                print('\n{:_^80}'.format(''))
-                print('clidtwins-> AVISO:')
-                if os.path.exists(GLO.configFileNameCfg):
-                    print(f'\tSe lee la lista de DasoVars del fichero de configuracion ({GLO.configFileNameCfg})')
-                else:
-                    print('\tSe usa la lista de DasoVars por defecto (incluida en clidtwins._config.py)')
-                print('\tpor no haberse especificado LCL_listLstDasoVars de forma explicita')
-                print('\tal instanciar la clase DasoLidarSource.')
-                print(f'listaDasoVars: {self.LOCLlistLstDasoVars}')
-                print('{:=^80}'.format(''))
-        else:
-            self.LOCLlistLstDasoVars = LCL_listLstDasoVars
-
-        self.LOCLnPatronDasoVars = LCL_nPatronDasoVars
+        self.LOCLverbose = LCL_verbose
 
         # Esto parece redundante con el valor por defecto de estos parametros.
         # Sin embargo, no lo es porque el argumento LCL_leer_extra_args,
-        # fuerza, si es True, a usar los parametros por defecto.
-        # La forma canonica de python para argumentos por defecto es usar None y
-        # asignar despues el valor que corresponda cuando el parametro es None.
+        # fuerza, si es True, a usar los parametros por defecto. Uso esta modalidad
+        # a pesar de que la forma canonica de python para argumentos por defecto es
+        # usar None y asignar despues el valor que corresponda si el parametro es None.
         if LCL_leer_extra_args:
             self.GLBLmenuInteractivo = LCL_menuInteractivo
             self.GLBLoutRasterDriver = LCL_outRasterDriver
@@ -176,106 +158,42 @@ class DasoLidarSource:
             self.GLBLnoDataTipoDMasa = GLO.GLBLnoDataTipoDMasaPorDefecto  # p.ej.: 255
             self.GLBLumbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto  # p.ej.: 20
 
-        if self.LOCLnPatronDasoVars == 0:
-            if not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('MFE'):
-                dasoVarTipoBosquePorDefecto = ['MFE25', 'MFE', 0, 255, 255, 0, 0]
-                dasoVarTipoDeMasaPorDefecto = ['TMasa', 'TipoMasa', 0, 255, 255, 0, 0]
-                if self.LOCLverbose:
-                    print('\n{:_^80}'.format(''))
-                    print('clidtwins-> AVISO: la lista de variables dasolidar no incluye las dos adicionales')
-                    print('            que deben ser tipo de bosque (MFE**) y tipo de masa (TMasa).')
-                    print('            Se agregan a la lista con esta configuracion:')
-                    print('            Tipos de bosque: {}'.format(dasoVarTipoBosquePorDefecto))
-                    print('            Tipos de masa:   {}'.format(dasoVarTipoDeMasaPorDefecto))
-                    rpta = input('Agregar estas dos variables? (S/n) ')
-                    if rpta.upper() == 'N':
-                        print('Se ha elegido no agregar las variables TipoBosque y TipoDeMasa.')
-                        print('\nDefinir las variables de entrada con TipoBosque y TipoDeMasa como argumento'
-                              'en linea de comandos el fichero de configuracion o en codigo por defecto')
-                        print('Se interrumpe la ejecucion')
-                        sys.exit(0)
-                    print('{:=^80}'.format(''))
-                self.LOCLlistLstDasoVars.append(dasoVarTipoBosquePorDefecto)
-                self.LOCLlistLstDasoVars.append(dasoVarTipoDeMasaPorDefecto)
-            self.nBandasPrevistasOutput = len(self.LOCLlistLstDasoVars)
-        else:
-            self.nBandasPrevistasOutput = self.LOCLnPatronDasoVars + 2
-        self.nInputVars = self.nBandasPrevistasOutput - 2
-
-        if self.LOCLverbose:
-            print('clidtwins-> Lista de variables DasoLidar con indicacion para cada una de:')
-            print('            -> codigoFichero            -> para buscar ficheros con ese codigo')
-            print('            -> rango y numero de clases -> para crear histograma') 
-            print('            -> movilidad inter-clases   -> para buscar zonas similares')
-            print('            -> peso relativo            -> para ponderar al comparar con el patron')
-
-        self.LOCLlistaDasoVarsNickNames = []
-        self.LOCLlistaDasoVarsFileTypes = []
-        self.LOCLlistaDasoVarsRangoLinf = []
-        self.LOCLlistaDasoVarsRangoLsup = []
-        self.LOCLlistaDasoVarsNumClases = []
-        self.LOCLlistaDasoVarsMovilidad = []
-        self.LOCLlistaDasoVarsPonderado = []
-        for nVar in range(self.nBandasPrevistasOutput):
-            self.LOCLlistaDasoVarsNickNames.append(self.LOCLlistLstDasoVars[nVar][0])
-            self.LOCLlistaDasoVarsFileTypes.append(self.LOCLlistLstDasoVars[nVar][1])
-            self.LOCLlistaDasoVarsRangoLinf.append(self.LOCLlistLstDasoVars[nVar][2])
-            self.LOCLlistaDasoVarsRangoLsup.append(self.LOCLlistLstDasoVars[nVar][3])
-            self.LOCLlistaDasoVarsNumClases.append(self.LOCLlistLstDasoVars[nVar][4])
-            self.LOCLlistaDasoVarsMovilidad.append(self.LOCLlistLstDasoVars[nVar][5])
-            if len(self.LOCLlistLstDasoVars[nVar]) > 6:
-                self.LOCLlistaDasoVarsPonderado.append(self.LOCLlistLstDasoVars[nVar][6])
-            else:
-                self.LOCLlistaDasoVarsPonderado.append(10)
-            if self.LOCLverbose:
-                if self.LOCLlistLstDasoVars[nVar][0] == 'MFE25':
-                    pesoPonderado = 'Excluyente'
-                elif self.LOCLlistLstDasoVars[nVar][6] == 0:
-                    pesoPonderado = '-- -'
-                else:
-                    pesoPonderado = '{:>2} %'.format(self.LOCLlistLstDasoVars[nVar][6])
-                print(
-                    '\t-> variable {}-> nickName: {} ->'.format(nVar, self.LOCLlistLstDasoVars[nVar][0]),
-                    'codigoFichero: {:<35}'.format(self.LOCLlistLstDasoVars[nVar][1]),
-                    'intervalo: {} - {:>3};'.format(self.LOCLlistLstDasoVars[nVar][2], self.LOCLlistLstDasoVars[nVar][3]),
-                    'clases: {:>3};'.format(self.LOCLlistLstDasoVars[nVar][4]),
-                    'movilidad: {:>3} %'.format(self.LOCLlistLstDasoVars[nVar][5]),
-                    'peso: {}'.format(pesoPonderado)
-                )
-
-        # Se inician estos atributos para evitar errores mas adelante
-        self.LOCLmarcoCoordMinX = 0
-        self.LOCLmarcoCoordMaxX = 0
-        self.LOCLmarcoCoordMinY = 0
-        self.LOCLmarcoCoordMaxY = 0
+        # Se inician estos atributos por si no se ejecuta el metodo setRangeUTM<>
+        self.LOCLmarcoCoordMiniX = 0
+        self.LOCLmarcoCoordMaxiX = 0
+        self.LOCLmarcoCoordMiniY = 0
+        self.LOCLmarcoCoordMaxiY = 0
+        self.marcoCoordEjecutado = False
         self.marcoCoordDisponible = False
+        self.usarVectorFileParaDelimitarZona = False
         self.GLBLmarcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto
 
     # ==========================================================================
-    def rangeUTM(
+    def setRangeUTM(
             self,
-            LCL_marcoCoordMinX=0,  # opcional
-            LCL_marcoCoordMaxX=0,  # opcional
-            LCL_marcoCoordMinY=0,  # opcional
-            LCL_marcoCoordMaxY=0,  # opcional
+            LCL_marcoCoordMiniX=None,  # opcional
+            LCL_marcoCoordMaxiX=None,  # opcional
+            LCL_marcoCoordMiniY=None,  # opcional
+            LCL_marcoCoordMaxiY=None,  # opcional
             LCL_marcoPatronTest=None,  # extra: 0
             LCL_rutaAscRaizBase=None,  # opcional
             LCL_patronVectrName=None,  # opcional
             LCL_patronLayerName=None,  # opcional
             LCL_testeoVectrName=None,  # opcional
             LCL_testeoLayerName=None,  # opcional
+            LCL_verbose=None,
         ):
         """Method for seting UTM range for analysis area
         Attributes
         ----------
-        LCL_marcoCoordMinX : int
-            Default: 0
-        LCL_marcoCoordMaxX : int
-            Default: 0
-        LCL_marcoCoordMinY : int
-            Default: 0
-        LCL_marcoCoordMaxY : int
-            Default: 0
+        LCL_marcoCoordMiniX : int
+            Default: None
+        LCL_marcoCoordMaxiX : int
+            Default: None
+        LCL_marcoCoordMiniY : int
+            Default: None
+        LCL_marcoCoordMaxiY : int
+            Default: None
         LCL_marcoPatronTest = bool
             Default: parameter GLBLmarcoPatronTestPorDefecto from cfg file or clidtwins_config.py module
         LCL_rutaAscRaizBase : str
@@ -290,30 +208,59 @@ class DasoLidarSource:
             Default: None (optional)
         """
 
+        if not LCL_verbose is None:
+            self.LOCLverbose = LCL_verbose
+
+        self.marcoCoordEjecutado = True
+
         if LCL_marcoPatronTest is None:
             self.GLBLmarcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto
         else:
             self.GLBLmarcoPatronTest = LCL_marcoPatronTest
 
-        if not self.GLBLmarcoPatronTest:
-            if (
-                LCL_marcoCoordMinX > 0
-                and LCL_marcoCoordMaxX > 0
-                and LCL_marcoCoordMinY > 0
-                and LCL_marcoCoordMaxY > 0
-            ):
-                self.marcoCoordDisponible = True
-                self.LOCLmarcoCoordMinX = LCL_marcoCoordMinX
-                self.LOCLmarcoCoordMaxX = LCL_marcoCoordMaxX
-                self.LOCLmarcoCoordMinY = LCL_marcoCoordMinY
-                self.LOCLmarcoCoordMaxY = LCL_marcoCoordMaxY
-            else:
-                self.marcoCoordDisponible = False
-                if self.LOCLverbose:
-                    print('clidtwins-> AVISO: no se han establecido coordenadas para la zona de estudio.')
-                    print('\t-> Se adopta la envolvente de los ficheros con variables dasoLidar.')
+        if LCL_marcoCoordMiniX is None:
+            self.LOCLmarcoCoordMiniX = GLO.GLBLmarcoCoordMiniXPorDefecto
+        else:
+            self.LOCLmarcoCoordMiniX = LCL_marcoCoordMiniX
+        if LCL_marcoCoordMaxiX is None:
+            self.LOCLmarcoCoordMaxiX = GLO.GLBLmarcoCoordMaxiXPorDefecto
+        else:
+            self.LOCLmarcoCoordMaxiX = LCL_marcoCoordMaxiX
+        if LCL_marcoCoordMiniY is None:
+            self.LOCLmarcoCoordMiniY = GLO.GLBLmarcoCoordMiniYPorDefecto
+        else:
+            self.LOCLmarcoCoordMiniY = LCL_marcoCoordMiniY
+        if LCL_marcoCoordMaxiY is None:
+            self.LOCLmarcoCoordMaxiY = GLO.GLBLmarcoCoordMaxiYPorDefecto
+        else:
+            self.LOCLmarcoCoordMaxiY = LCL_marcoCoordMaxiY
 
-        if self.GLBLmarcoPatronTest or not self.marcoCoordDisponible:
+        if self.LOCLmarcoCoordMiniX > 0:
+            self.marcoCoordDisponible = True
+            self.LOCLmarcoLibreMiniX = False
+        else:
+            self.LOCLmarcoCoordMiniX = 0
+            self.LOCLmarcoLibreMiniX = True
+        if self.LOCLmarcoCoordMaxiX > 0:
+            self.marcoCoordDisponible = True
+            self.LOCLmarcoLibreMaxiX = False
+        else:
+            self.LOCLmarcoCoordMaxiX = 0
+            self.LOCLmarcoLibreMaxiX = True
+        if self.LOCLmarcoCoordMiniY > 0:
+            self.marcoCoordDisponible = True
+            self.LOCLmarcoLibreMiniY = False
+        else:
+            self.LOCLmarcoCoordMiniY = 0
+            self.LOCLmarcoLibreMiniY = True
+        if self.LOCLmarcoCoordMaxiY > 0:
+            self.marcoCoordDisponible = True
+            self.LOCLmarcoLibreMaxiY = False
+        else:
+            self.LOCLmarcoCoordMaxiY = 0
+            self.LOCLmarcoLibreMaxiY = True
+
+        if self.GLBLmarcoPatronTest:
             if LCL_rutaAscRaizBase is None:
                 self.LOCLrutaAscRaizBase = GLO.GLBLrutaAscRaizBasePorDefecto
             else:
@@ -335,6 +282,15 @@ class DasoLidarSource:
             else:
                 self.LOCLtesteoLayerName = LCL_testeoLayerName
 
+#ññ
+            # if hasattr(self, 'LOCLpatronVectrName') and hasattr(self, 'LOCLpatronLayerName'):
+            #     (usarVectorFileParaDelimitarZona, patronVectrNameConPath) = verificarExistencia(self.LOCLpatronVectrName)
+            # else:
+            #     (usarVectorFileParaDelimitarZona, patronVectrNameConPath) = verificarExistencia(GLO.GLBLpatronVectrNamePorDefecto)
+            #     if usarVectorFileParaDelimitarZona:
+            #         self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
+            #         self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
+
             envolventePatron = obtenerExtensionDeCapaVectorial(
                 self.LOCLrutaAscRaizBase,
                 self.LOCLpatronVectrName,
@@ -342,14 +298,15 @@ class DasoLidarSource:
                 LOCLverbose=self.LOCLverbose,
             )
             if not envolventePatron is None:
-                self.LOCLmarcoCoordMinX = envolventePatron[0]
-                self.LOCLmarcoCoordMaxX = envolventePatron[1]
-                self.LOCLmarcoCoordMinY = envolventePatron[2]
-                self.LOCLmarcoCoordMaxY = envolventePatron[3]
+                self.LOCLmarcoCoordMiniX = envolventePatron[0]
+                self.LOCLmarcoCoordMaxiX = envolventePatron[1]
+                self.LOCLmarcoCoordMiniY = envolventePatron[2]
+                self.LOCLmarcoCoordMaxiY = envolventePatron[3]
+                self.usarVectorFileParaDelimitarZona = True
             else:
                 print('\nclidtwins-> ATENCION: no esta disponible el fichero {}'.format(self.LOCLpatronVectrName))
-                print('\t-> Ruta base: {}'.format(self.LOCLrutaAscRaizBase))
-                sys.exit(0)
+                print('{}-> Ruta base: {}'.format(TB, self.LOCLrutaAscRaizBase))
+                # sys.exit(0)
             envolventeTesteo = obtenerExtensionDeCapaVectorial(
                 self.LOCLrutaAscRaizBase,
                 self.LOCLtesteoVectrName,
@@ -357,10 +314,11 @@ class DasoLidarSource:
                 LOCLverbose=self.LOCLverbose,
             )
             if not envolventeTesteo is None:
-                self.LOCLmarcoCoordMinX = min(self.LOCLmarcoCoordMinX, envolventeTesteo[0])
-                self.LOCLmarcoCoordMaxX = max(self.LOCLmarcoCoordMaxX, envolventeTesteo[1])
-                self.LOCLmarcoCoordMinY = min(self.LOCLmarcoCoordMinY, envolventeTesteo[2])
-                self.LOCLmarcoCoordMaxY = max(self.LOCLmarcoCoordMaxY, envolventeTesteo[3])
+                self.LOCLmarcoCoordMiniX = min(self.LOCLmarcoCoordMiniX, envolventeTesteo[0])
+                self.LOCLmarcoCoordMaxiX = max(self.LOCLmarcoCoordMaxiX, envolventeTesteo[1])
+                self.LOCLmarcoCoordMiniY = min(self.LOCLmarcoCoordMiniY, envolventeTesteo[2])
+                self.LOCLmarcoCoordMaxiY = max(self.LOCLmarcoCoordMaxiY, envolventeTesteo[3])
+                self.usarVectorFileParaDelimitarZona = True
 
             if self.LOCLverbose:
                 if envolventeTesteo is None:
@@ -368,28 +326,52 @@ class DasoLidarSource:
                 else:
                     print('clidtwins-> Se adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo):')
                 print(
-                    '\t-> X: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
-                        self.LOCLmarcoCoordMinX, self.LOCLmarcoCoordMaxX,
-                        self.LOCLmarcoCoordMaxX - self.LOCLmarcoCoordMinX
+                    '{}-> X: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
+                        TB,
+                        self.LOCLmarcoCoordMiniX, self.LOCLmarcoCoordMaxiX,
+                        self.LOCLmarcoCoordMaxiX - self.LOCLmarcoCoordMiniX
                     )
                 )
                 print(
-                    '\t-> Y: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
-                        self.LOCLmarcoCoordMinY, self.LOCLmarcoCoordMaxY,
-                        self.LOCLmarcoCoordMaxY - self.LOCLmarcoCoordMinY
+                    '{}-> Y: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
+                        TB,
+                        self.LOCLmarcoCoordMiniY, self.LOCLmarcoCoordMaxiY,
+                        self.LOCLmarcoCoordMaxiY - self.LOCLmarcoCoordMiniY
                     )
                 )
+        elif not self.marcoCoordDisponible:
+            if self.LOCLverbose:
+                print('clidtwins-> AVISO: tras ejecutar el metodo .setRangeUTM\n'
+                      f'{TB}no se han establecido coordenadas para la zona de estudio.')
 
     # ==========================================================================
     def searchSourceFiles(
             self,
-            LCL_rutaAscRaizBase=None,
+            LCL_listLstDasoVars=None,  # optional (si existe, prevalece sobre el siguiente)
+            LCL_listaTxtDasoVarsFileTypes=None,  # optional (alternativa simplificada al anterior)
+            LCL_nClasesDasoVars=None,  # optional
+            LCL_trasferDasoVars=None,  # optional
+            LCL_nPatronDasoVars=None,  # optional
+
+            LCL_rutaAscRaizBase=None,  # opcional
             LCL_nivelSubdirExpl=0,  # opcional
             LCL_outputSubdirNew=None,  # opcional
+            LCL_verbose=None,
         ):
         """Search asc files with dasoLidar variables
         Attributes
         ----------
+        LCL_listLstDasoVars : list
+            Default: None (optional)
+        LCL_listaTxtDasoVarsFileTypes : list
+            Default: None (optional)
+        LCL_nClasesDasoVars : int
+            Default: None (optional)
+        LCL_trasferDasoVars : int
+            Default: None (optional)
+        LCL_nPatronDasoVars : int
+            Default: None (optional)
+
         LCL_rutaAscRaizBase : str
             Default: None,
         LCL_nivelSubdirExpl : str
@@ -398,12 +380,607 @@ class DasoLidarSource:
             Default: None (optional)
         """
 
+        if not LCL_verbose is None:
+            self.LOCLverbose = LCL_verbose
+
+        # ======================================================================
+        self.verificarlistaDasoVars(
+            LCL_listLstDasoVars=LCL_listLstDasoVars,
+            LCL_listaTxtDasoVarsFileTypes=LCL_listaTxtDasoVarsFileTypes,
+            LCL_nClasesDasoVars=LCL_nClasesDasoVars,
+            LCL_trasferDasoVars=LCL_trasferDasoVars,
+            LCL_nPatronDasoVars=LCL_nPatronDasoVars,
+        )
+        self.verificarRutaAscRaiz(
+            LCL_rutaAscRaizBase=LCL_rutaAscRaizBase,
+            LCL_nivelSubdirExpl=LCL_nivelSubdirExpl,
+            LCL_outputSubdirNew=LCL_outputSubdirNew,
+        )
+        self.verificarMarcoCoord()
+        # ======================================================================
+
+        # ======================================================================
+        self.LOCLnivelSubdirExpl = LCL_nivelSubdirExpl
+        if LCL_outputSubdirNew is None:
+            self.LOCLoutputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto
+        else:
+            self.LOCLoutputSubdirNew = LCL_outputSubdirNew
+
+        self.idInputDir = os.path.basename(self.LOCLrutaAscRaizBase)
+
+        if self.LOCLverbose:
+            print('\n{:_^80}'.format(''))
+            print('clidtwins-> Explorando directorios...')
+            print(f'{TB}-> Directorio raiz para los ficheros dasolidar (asc):')
+            print('{}{}{}'.format(TB, TV, self.LOCLrutaAscRaizBase))
+            # print(f'{TB}-> Identificador de este lote de ficheros -> IdDir: {}'.format(self.idInputDir))
+            if self.LOCLnivelSubdirExpl:
+                print(f'{TB}{TV}-> Se van a explorar subdirectorios hasta nivel:    {self.LOCLnivelSubdirExpl}')
+            else:
+                print(f'{TB}{TV}-> Se van a explorar subdirectorios hasta el ultimo nivel')
+
+        listaDirsExcluidos = [self.LOCLoutputSubdirNew]
+        if self.LOCLverbose:
+            print(f'{TB}-> Directorios excluidos:')
+            for dirExcluido in listaDirsExcluidos:
+                print(f'{TB}{TV}{os.path.join(self.LOCLrutaAscRaizBase, dirExcluido)}')
+            print('{:=^80}'.format(''))
+
+        if self.LOCLverbose:
+            print('\n{:_^80}'.format(''))
+            print('clidtwins-> Buscando ficheros de cada tipo en todos los directorios previstos:')
+            if not self.marcoCoordDisponible:
+                print(f'{TB}-> Sin restricciones de coordendas porque no se han pre-establecido coordenadas para la zona de estudio.')
+            elif not TRNS_buscarBloquesSoloDentroDelMarcoUTM and not self.GLBLmarcoPatronTest:
+                print(f'{TB}-> Sin restricciones de coordendas porque se ha desabilitado temporalmente esta opcion.')
+            else:
+                if self.GLBLmarcoPatronTest:
+                    print(f'{TB}-> Que solapen con la envolvente de los shapes de referenia (patron) y chequeo (testeo):')
+                else:
+                    print(f'{TB}-> Dentro de las coordenadas establecidas en linea de comandos o configuracion por defecto:')
+                print(
+                    '{}{}X {:10.2f} - {:10.2f} -> {:4.0f} m:'.format(
+                        TB, TV,
+                        self.LOCLmarcoCoordMiniX, self.LOCLmarcoCoordMaxiX,
+                        self.LOCLmarcoCoordMaxiX - self.LOCLmarcoCoordMiniX
+                    )
+                )
+                print(
+                    '{}{}Y {:10.2f} - {:10.2f} -> {:4.0f} m:'.format(
+                        TB, TV,
+                        self.LOCLmarcoCoordMiniY, self.LOCLmarcoCoordMaxiY,
+                        self.LOCLmarcoCoordMaxiY - self.LOCLmarcoCoordMiniY
+                    )
+                )
+
+        # ======================================================================
+        # print('clidtwins-> self.LOCLlistaDasoVarsFileTypes:', self.LOCLlistaDasoVarsFileTypes)
+        # quit()
+        # Listas de ficheros reunidas por tipoDeFichero
+        self.inFilesListAllTypes = []
+        for nInputVar, miTipoDeFicheroDasoLayer in enumerate(self.LOCLlistaDasoVarsFileTypes):
+            if self.LOCLnPatronDasoVars != 0 and nInputVar >= self.LOCLnPatronDasoVars:
+                break
+            miDasoVarNickName = self.LOCLlistaDasoVarsNickNames[nInputVar]
+            if self.LOCLverbose:
+                print('-> Tipo {}: > Variable: {} - Identificador del tipo de fichero: {}'.format(nInputVar, miDasoVarNickName, miTipoDeFicheroDasoLayer))
+            if miDasoVarNickName == 'MFE25' or miDasoVarNickName == 'TMasa':
+                if self.LOCLverbose > 1:
+                    print(f'{TB}{TV}-> No requiere explorar directorios')
+                continue
+
+            dirIterator = iter(os.walk(self.LOCLrutaAscRaizBase))
+            # dirpath, dirnames, filenames = next(dirIterator)
+            # dirpathPrevio = os.path.abspath(os.path.join(self.LOCLrutaAscRaizBase, '..'))
+            # dirpathPrevio = self.LOCLrutaAscRaizBase
+            infilesX = []
+            for dirpathOk, dirnames, filenames in dirIterator:
+                if miDasoVarNickName == 'MFE' or miDasoVarNickName == 'TipoMasa':
+                    # El MFE se obtiene de una capa vectorial y el tipo de masa por ahoraa no lo uso (se generaria en esta aplicacion)
+                    continue
+                if dirpathOk.endswith(self.LOCLoutputSubdirNew):
+                    if self.LOCLverbose > 1:
+                        print(f'{TB}{TV}-> Saltando el directorio {dirpathOk}')
+                    continue
+
+                subDirExplorado = dirpathOk.replace(self.LOCLrutaAscRaizBase, '')
+                if dirpathOk == self.LOCLrutaAscRaizBase:
+                    nivelDeSubdir = 0
+                elif not '/' in subDirExplorado and not '\\' in subDirExplorado:
+                    nivelDeSubdir = 0
+                else:
+                    nivelDeSubdir = subDirExplorado.count('/') + subDirExplorado.count('\\')
+                if self.LOCLnivelSubdirExpl and nivelDeSubdir > self.LOCLnivelSubdirExpl:
+                    if self.LOCLverbose > 2:
+                        print(f'{TB}{TV}Se ha alcanzado el nivel de directorios maximo ({self.LOCLnivelSubdirExpl})\n')
+                    continue
+                else:
+                    pass
+                    # print(f'Explorando nivel de subdirectorios {nivelDeSubdir} de {self.LOCLnivelSubdirExpl}')
+
+                excluirDirectorio = False
+                for dirExcluido in listaDirsExcluidos:
+                    if dirpathOk == os.path.join(self.LOCLrutaAscRaizBase, dirExcluido):
+                        excluirDirectorio = True
+                        break
+                if excluirDirectorio:
+                    if self.LOCLverbose > 1:
+                        print(f'\n{TB}-> Directorio excluido: {dirpathOk}')
+                    continue
+                if self.LOCLverbose > 1:
+                    print(f'{TB}-> Explorando directorio: {dirpathOk}')
+                if len(filenames) == 0:
+                    if self.LOCLverbose > 1:
+                        print(f'{TB}{TV}-> No hay ficheros; se pasa al siguiente directorio')
+                    continue
+
+                #===================================================================
+                try:
+                    # Si se ha establecido marco UTM se incorporan los bloques
+                    # que esten dentro del marco; en caso contrario, todos.
+                    # Siempre y cuando tengan todas las variables dasoLidar.
+                    if (
+                        self.marcoCoordDisponible
+                        and TRNS_buscarBloquesSoloDentroDelMarcoUTM
+                    ):
+                        filenamesSeleccionadosX = [
+                            filename for filename in filenames
+                            if (
+                                miTipoDeFicheroDasoLayer.upper() in filename.upper()
+                                and filename[-4:].upper() == '.ASC'
+                                and (self.LOCLmarcoLibreMiniX or (int(filename[:3]) * 1000) + 2000 >= self.LOCLmarcoCoordMiniX)
+                                and (self.LOCLmarcoLibreMaxiX or int(filename[:3]) * 1000 < self.LOCLmarcoCoordMaxiX)
+                                and (self.LOCLmarcoLibreMiniY or int(filename[4:8]) * 1000 >= self.LOCLmarcoCoordMiniY)
+                                and (self.LOCLmarcoLibreMaxiY or (int(filename[4:8]) * 1000) - 2000 < self.LOCLmarcoCoordMaxiY)
+                            )
+                        ]
+                    else:
+                        filenamesSeleccionadosX = [
+                            filename for filename in filenames
+                            if (
+                                miTipoDeFicheroDasoLayer.upper() in filename.upper()
+                                and filename[-4:].upper() == '.ASC'
+                            )
+                        ]
+                except:
+                    print('\nAVISO: no se han podido filtrar los ficheros por coordenadas debido a que no siguen el patron XXX_YYYY...asc.')
+                    filenamesSeleccionadosX = [
+                        filename for filename in filenames
+                        if (
+                            miTipoDeFicheroDasoLayer.upper() in filename.upper()
+                            and filename[-4:].upper() == '.ASC'
+                        )
+                    ]
+
+                if filenamesSeleccionadosX:
+                    if self.LOCLverbose > 2:
+                        print(f'{TB}{TV}{TV}AscRaiz => subDir: {self.LOCLrutaAscRaizBase} => {subDirExplorado}')
+                        print(f'{TB}{TV}{TV}nivelDeSubdir:     {nivelDeSubdir}')
+                        print(f'{TB}{TV}{TV}dirnames:          {dirnames}')
+                        print(f'{TB}{TV}{TV}numFiles:          {len(filenames)}')
+                        print(f'{TB}{TV}{TV}Algunos files:     {filenames[:2]}, etc.')
+                        # print(f'{TB}{TV}{TV}dirpathPrevio:     {}'.format(dirpathPrevio))
+                        # dirpathPadre1 = os.path.abspath(os.path.join(dirpathOk, '..'))
+                        # print(f'{TB}{TV}{TV}dirpathPadre1:     {}'.format(dirpathPadre1))
+                        # dirpathPrevio = dirpathPadre1
+                    for filenameSel in filenamesSeleccionadosX:
+                        infilesX.append([dirpathOk, filenameSel])
+                    if self.LOCLverbose > 1:
+                        print(f'{TB}{TV}-> Encontrados: {len(filenamesSeleccionadosX)} ficheros.')
+                        print(f'{TB}{TV}-> Primeros {min(len(filenamesSeleccionadosX), 5)} ficheros:')
+                        for nFile, pathAndfilename in enumerate(filenamesSeleccionadosX[:5]):
+                            print(f'{TB}{TV}{TV}', nFile, pathAndfilename)
+                else:
+                    if self.LOCLverbose > 2:
+                        print(f'{TB}{TV}dirpathOk:         {dirpathOk}')
+                        print(f'{TB}{TV}numFiles:          {len(filenames)}')
+                    if self.LOCLverbose > 1:
+                        if self.marcoCoordDisponible and TRNS_buscarBloquesSoloDentroDelMarcoUTM:
+                            print(
+                                '{}{}{}No se ha localizado ningun fichero con el patron: <{}> que solape con el marco de coordenadas X: {} {} Y: {} {}'.format(
+                                    TB, TV, TV,
+                                    miTipoDeFicheroDasoLayer,
+                                    self.LOCLmarcoCoordMiniX,
+                                    self.LOCLmarcoCoordMaxiX,
+                                    self.LOCLmarcoCoordMiniY,
+                                    self.LOCLmarcoCoordMaxiY,
+                                )
+                            )
+                        else:
+                            print(
+                                '{}No se ha localizado ningun fichero con el patron: <{}>'.format(
+                                    TB,
+                                    miTipoDeFicheroDasoLayer,
+                                )
+                            )
+                #===================================================================
+
+            self.inFilesListAllTypes.append(infilesX)
+        # ======================================================================
+
+        # Despues de buscar todos los ficheros disponibles de cada tipo (cada variable)
+        # Elimino los ficheros de bloques que no tengan todos los tipos (todas las variables)
+
+        # print('\nNumero de ficheros en {}: {} {}'.format(self.LOCLrutaAscRaizBase, len(self.inFilesListAllTypes), len(self.LOCLlistaDasoVarsFileTypes)))
+        # print('Numero de tipos de fichero: {}'.format(min(self.LOCLnPatronDasoVars, len(self.LOCLlistLstDasoVars) - 2)))
+        self.numFicherosVariablesPorBloque = {}
+        if self.LOCLverbose > 2:
+            print('\nclidtwins-> Listas de bloques/ficheros seleccionados:')
+        hayAlgunBloqueCompleto = False
+        for nLista in range(len(self.inFilesListAllTypes)):
+            if (
+                self.LOCLlistLstDasoVars[nLista][1] == 'MFE25'
+                or self.LOCLlistLstDasoVars[nLista][1] == 'TMasa'
+            ):
+                continue
+            # print('------------>', self.inFilesListAllTypes[nLista])
+            # print('------------>', self.numFicherosVariablesPorBloque.keys())
+            for numFile, [pathFile, nameFile] in enumerate(self.inFilesListAllTypes[nLista]):
+                # print('------------>', nameFile)
+                codigoBloque = nameFile[:8]
+                if codigoBloque in self.numFicherosVariablesPorBloque.keys():
+                    self.numFicherosVariablesPorBloque[codigoBloque] += 1
+                else:
+                    self.numFicherosVariablesPorBloque[codigoBloque] = 1
+                    if self.LOCLverbose > 1:
+                        print(f'{TB}-> Nuevo codigoBloque encontrado:', codigoBloque)
+            if self.LOCLverbose > 2:
+                if len(self.inFilesListAllTypes[nLista]) == 0:
+                    print(
+                        '{}{} -> {} => fileType: {:<35} ATENCION: no hay ficheros'.format(
+                            TB,
+                            nLista,
+                            self.LOCLlistLstDasoVars[nLista][1],
+                            self.LOCLlistLstDasoVars[nLista][0],
+                        )
+                    )
+                else:
+                    print(
+                        '{}{:<2} -> {} => fileType: {:<35} ({:<2} files):'.format(
+                            TB,
+                            nLista,
+                            self.LOCLlistLstDasoVars[nLista][1],
+                            self.LOCLlistLstDasoVars[nLista][0],
+                            len(self.inFilesListAllTypes[nLista]),
+                        )
+                    )
+                    print(f'{TB}{TV}{self.inFilesListAllTypes[nLista][:2]}, etc.')
+
+        if self.LOCLverbose > 1:
+            print('\nclidtwins-> Lista de bloques encontrados (completos e incompletos): {}'.format(self.numFicherosVariablesPorBloque))
+            for bloqueKey in self.numFicherosVariablesPorBloque:
+                print(f'{TB}-> Bloque {bloqueKey}: {self.numFicherosVariablesPorBloque[bloqueKey]} ficheros')
+
+        for nLista in range(len(self.inFilesListAllTypes)):
+            if (
+                self.LOCLlistLstDasoVars[nLista][1] == 'MFE25'
+                or self.LOCLlistLstDasoVars[nLista][1] == 'TMasa'
+            ):
+                continue
+            # Si no se han localizado los N ficheros del bloque, se elimina todos los ficheros de ese bloque
+            for numFile, [pathFile, nameFile] in enumerate(self.inFilesListAllTypes[nLista]):
+                codigoBloque = nameFile[:8]
+                # print('---------->', codigoBloque, '->>', self.numFicherosVariablesPorBloque[codigoBloque], 'ficheros (variables)')
+                if self.numFicherosVariablesPorBloque[codigoBloque] < self.nInputVars:
+                    if nameFile[:8] == codigoBloque:
+                        # (self.inFilesListAllTypes[nLista]).remove([pathFile, nameFile])
+                        del self.inFilesListAllTypes[nLista][numFile]
+                        if self.LOCLverbose > 1:
+                            print('clidtwins-> Eliminando codigoBloque por no tener todas las dasoVars:', codigoBloque, 'nameFile', nameFile)
+                else:
+                    hayAlgunBloqueCompleto = True
+
+        if not hayAlgunBloqueCompleto:
+            print('\nATENCION: No hay ningun bloque con todas las variables (todos los tipos de fichero).')
+            print(f'{TB}-> Ruta de busqueda de ficheros: {self.LOCLrutaAscRaizBase}')
+            sys.exit(0)
+
+        # Actualizo el marco de coordenadas de la zona de estudio con los bloques encontrados y admitidos
+        if self.LOCLverbose > 1:
+            if not TRNS_buscarBloquesSoloDentroDelMarcoUTM or (
+                self.LOCLmarcoLibreMiniX
+                or self.LOCLmarcoLibreMaxiX
+                or self.LOCLmarcoLibreMiniY
+                or self.LOCLmarcoLibreMaxiY
+            ):
+                print('\nclidtwuins-> Actualizando marco de analisis:')
+        for codigoBloque in self.numFicherosVariablesPorBloque.keys():
+            if (
+                self.LOCLmarcoLibreMiniX
+                or (
+                    not TRNS_buscarBloquesSoloDentroDelMarcoUTM
+                    and int(codigoBloque[:3]) * 1000 < self.LOCLmarcoCoordMiniX
+                )
+            ):
+                if self.LOCLverbose > 1:
+                    print(
+                        '{}-> Actualizando marcoCoordMiniX de {:0.2f} a {}'.format(
+                            TB,
+                            self.LOCLmarcoCoordMiniX,
+                            int(codigoBloque[:3]) * 1000
+                        )
+                    )
+                self.LOCLmarcoCoordMiniX = int(codigoBloque[:3]) * 1000
+            if (
+                self.LOCLmarcoLibreMaxiX
+                or (
+                    not TRNS_buscarBloquesSoloDentroDelMarcoUTM
+                    and (int(codigoBloque[:3]) * 1000) + 2000 > self.LOCLmarcoCoordMaxiX
+                )
+            ):
+                if self.LOCLverbose > 1:
+                    print(
+                        '{}-> Actualizando marcoCoordMaxiX de {:0.2f} a {:0.2f}'.format(
+                            TB,
+                            self.LOCLmarcoCoordMaxiX,
+                            (int(codigoBloque[:3]) * 1000) + 2000
+                        )
+                    )
+                self.LOCLmarcoCoordMaxiX = (int(codigoBloque[:3]) * 1000) + 1999.99
+            if (
+                self.LOCLmarcoLibreMaxiY
+                or (
+                    not TRNS_buscarBloquesSoloDentroDelMarcoUTM
+                    and int(codigoBloque[4:8]) * 1000 > self.LOCLmarcoCoordMaxiY
+                )
+            ):
+                if self.LOCLverbose > 1:
+                    print(
+                        '{}-> Actualizando marcoCoordMaxiY de {:0.2f} a {:0.2f}'.format(
+                            TB,
+                            self.LOCLmarcoCoordMaxiY,
+                            int(codigoBloque[4:8]) * 1000
+                        )
+                    )
+                self.LOCLmarcoCoordMaxiY = int(codigoBloque[4:8]) * 1000
+            if (
+                self.LOCLmarcoLibreMiniY
+                or (
+                    not TRNS_buscarBloquesSoloDentroDelMarcoUTM
+                    and (int(codigoBloque[4:8]) * 1000) - 2000 < self.LOCLmarcoCoordMiniY
+                )
+            ):
+                if self.LOCLverbose > 1:
+                    print(
+                        '{}-> Actualizando marcoCoordMiniY de {:0.2f} a {:0.2f}'.format(
+                            TB,
+                        self.LOCLmarcoCoordMiniY,
+                        (int(codigoBloque[4:8]) * 1000) - 2000
+                        )
+                    )
+                self.LOCLmarcoCoordMiniY = (int(codigoBloque[4:8]) * 1000) - 2000
+
+        # print('Resultado tras eliminar los que procedan:')
+        # for nLista in range(len(self.inFilesListAllTypes)):
+        #     print('Variable num', nLista, 'Files ->', self.inFilesListAllTypes[nLista])
+
+    # ==========================================================================
+    def verificarlistaDasoVars(
+            self,
+            LCL_listLstDasoVars=None,  # optional (si existe, prevalece sobre el siguiente)
+            LCL_listaTxtDasoVarsFileTypes=None,  # optional (alternativa simplificada al anterior)
+            LCL_nClasesDasoVars=None,  # optional
+            LCL_trasferDasoVars=None,  # optional
+            LCL_nPatronDasoVars=None,  # optional
+        ):
+        # ======================================================================
+        if self.LOCLverbose:
+            print('\n{:_^80}'.format(''))
+        if not LCL_listLstDasoVars is None:
+            self.LOCLlistLstDasoVars = LCL_listLstDasoVars
+            if self.LOCLverbose:
+                print('clidtwins-> Se crea un objeto de la clase DasoLidarSource con las listas\n'
+                      f'{TB}de identificadores de tipo de fichero y demas propiedades de cada \n'
+                      f'{TB}variable pasadas oomo argumento (LCL_listLstDasoVars): nickName, rango'
+                      f'{TB}de valores, numero de clases, movilidad inter-clases y peso relativo.')
+            self.calcularRangoVariables = False
+        elif not LCL_listaTxtDasoVarsFileTypes is None:
+            if self.LOCLverbose > 1:
+                print('clidtwins-> Se crea un objeto de la clase DasoLidarSource con la lista de\n'
+                      f'{TB}identificadores de tipo de fichero (LCL_listaTxtDasoVarsFileTypes).\n'
+                      f'{TB}Cada tipo de fichero corresponde a una variable dasoLidar..\n'
+                      f'{TB}Ficheros: XXX_YYYY_*IdFileType*.asc; XXX, YYYY: coord. UTM /1000 m;\n'
+                      f'{TB}*IdFileType*: cadena que incluye el identificador de tipo de fichero.\n'
+                      f'{TB}Para cada variable se establecen clases dividiendo su rango absoluto\n'
+                      f'{TB}entre el num de clases. El numero de clases, la movilidad inter-clases,\n'
+                      f'{TB}y el peso relativo son iguales para todas las variables:'
+                      )
+            if LCL_nClasesDasoVars is None:
+                self.LOCLnClasesDasoVars = GLO.GLBLnClasesDasoVarsPorDefecto
+                if self.LOCLverbose > 1:
+                    print(f'{TB}{TV}Numero de clases: {self.LOCLnClasesDasoVars} clases (valor por defecto).')
+            else:
+                self.LOCLnClasesDasoVars = LCL_nClasesDasoVars
+                if self.LOCLverbose > 1:
+                    print(f'{TB}{TV}Numero de clases: {self.LOCLnClasesDasoVars} clases (argumeto LCL_nClasesDasoVars).')
+            if LCL_trasferDasoVars is None:
+                self.LOCLtrasferDasoVars = GLO.GLBLtrasferDasoVarsPorDefecto
+                if self.LOCLverbose > 1:
+                    print(f'{TB}{TV}Movilidad inter-clases: {self.LOCLtrasferDasoVars} % (valor por defecto).')
+            else:
+                self.LOCLtrasferDasoVars = LCL_trasferDasoVars
+                if self.LOCLverbose > 1:
+                    print(f'{TB}{TV}Movilidad inter-clases: {self.LOCLnClasesDasoVars} % (argumeto LCL_nClasesDasoVars).')
+            self.LOCLponderaDasoVars = 1
+            if self.LOCLverbose > 1:
+                    print(f'{TB}{TV}Todas las variables se poderan igual.')
+
+            self.calcularRangoVariables = True
+            self.LOCLlistaDasoVarsFileTypes = [item.strip() for item in LCL_listaTxtDasoVarsFileTypes.split(',')]
+            self.LOCLlistaDasoVarsNickNames = [
+                'alt95' if ('alt' in item.lower() and '95' in item) else
+                'fcc3m' if ('fcc' in item.lower() and '03' in item) else
+                'fcc5m' if ('fcc' in item.lower() and '05' in item) else
+                item[:5]
+                for item in self.LOCLlistaDasoVarsFileTypes
+            ]
+            self.LOCLlistaDasoVarsRangoLinf = [0] * len(self.LOCLlistaDasoVarsFileTypes)  # Se calcula al leer los ficheros
+            self.LOCLlistaDasoVarsRangoLsup = [100] * len(self.LOCLlistaDasoVarsFileTypes)  # Se calcula al leer los ficheros
+            self.LOCLlistaDasoVarsNumClases = [self.LOCLnClasesDasoVars] * len(self.LOCLlistaDasoVarsFileTypes)
+            self.LOCLlistaDasoVarsMovilidad = [self.LOCLtrasferDasoVars] * len(self.LOCLlistaDasoVarsFileTypes)
+            self.LOCLlistaDasoVarsPonderado = [self.LOCLponderaDasoVars] * len(self.LOCLlistaDasoVarsFileTypes)
+
+            self.LOCLlistLstDasoVars = []
+            for nVar in range(len(self.LOCLlistaDasoVarsFileTypes)):
+                self.LOCLlistLstDasoVars.append(
+                    [
+                        self.LOCLlistaDasoVarsFileTypes[nVar],
+                        self.LOCLlistaDasoVarsNickNames[nVar],
+                        self.LOCLlistaDasoVarsRangoLinf[nVar],
+                        self.LOCLlistaDasoVarsRangoLsup[nVar],
+                        self.LOCLlistaDasoVarsNumClases[nVar],
+                        self.LOCLlistaDasoVarsMovilidad[nVar],
+                        self.LOCLlistaDasoVarsPonderado[nVar],
+                    ]
+                )
+        else:
+            # LCL_listLstDasoVars is None and LCL_listaTxtDasoVarsFileTypes is None:
+            self.LOCLlistLstDasoVars = GLO.GLBLlistLstDasoVarsPorDefecto
+            self.calcularRangoVariables = False
+            if self.LOCLverbose:
+                print('clidtwins-> AVISO:')
+                if os.path.exists(GLO.configFileNameCfg):
+                    print(f'{TB}Se lee la lista de DasoVars del fichero de configuracion ({GLO.configFileNameCfg})')
+                else:
+                    print(f'{TB}Se usa la lista de DasoVars por defecto (incluida en clidtwins._config.py)')
+                print(f'{TB}por no haberse especificado LCL_listLstDasoVars de forma explicita')
+                print(f'{TB}al instanciar la clase DasoLidarSource.')
+                if self.LOCLverbose > 1:
+                    print(f'listaDasoVars: {self.LOCLlistLstDasoVars}')
+
+        if self.LOCLverbose:
+            print('{:=^80}'.format(''))
+
+        if not hasattr(self, 'LOCLlistaDasoVarsFileTypes'):
+            self.LOCLlistaDasoVarsFileTypes = []
+            self.LOCLlistaDasoVarsNickNames = []
+            self.LOCLlistaDasoVarsRangoLinf = []
+            self.LOCLlistaDasoVarsRangoLsup = []
+            self.LOCLlistaDasoVarsNumClases = []
+            self.LOCLlistaDasoVarsMovilidad = []
+            self.LOCLlistaDasoVarsPonderado = []
+            for thisListLstDasoVar in self.LOCLlistLstDasoVars:
+                self.LOCLlistaDasoVarsFileTypes.append(thisListLstDasoVar[0])
+                self.LOCLlistaDasoVarsNickNames.append(thisListLstDasoVar[1])
+                self.LOCLlistaDasoVarsRangoLinf.append(thisListLstDasoVar[2])
+                self.LOCLlistaDasoVarsRangoLsup.append(thisListLstDasoVar[3])
+                self.LOCLlistaDasoVarsNumClases.append(thisListLstDasoVar[4])
+                self.LOCLlistaDasoVarsMovilidad.append(thisListLstDasoVar[5])
+                if len(thisListLstDasoVar) > 6:
+                    self.LOCLlistaDasoVarsPonderado.append(thisListLstDasoVar[6])
+                else:
+                    self.LOCLlistaDasoVarsPonderado.append(10)
+
+        if (
+            not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('MFE')
+            and not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('LAND')
+        ):
+            dasoVarTipoBosquePorDefecto = ['MFE25', 'MFE25', 0, 255, 255, 0, 0]
+            dasoVarTipoDeMasaPorDefecto = ['TMasa', 'TMasa', 0, 255, 255, 0, 0]
+            if self.LOCLverbose:
+                print('\n{:_^80}'.format(''))
+                print('clidtwins-> AVISO: la lista de variables dasolidar no incluye las dos adicionales')
+                print(f'{TB}que deben ser tipo de bosque (MFE**) y tipo de masa (TMasa).')
+                print(f'{TB}Se agregan a la lista con esta configuracion:')
+                print(f'{TB}Tipos de bosque: {dasoVarTipoBosquePorDefecto}')
+                print(f'{TB}Tipos de masa:   {dasoVarTipoDeMasaPorDefecto}')
+                if self.LOCLverbose > 3:
+                    rpta = input('Agregar estas dos variables? (S/n) ')
+                    if rpta.upper() == 'N':
+                        print('Se ha elegido no agregar las variables TipoBosque y TipoDeMasa.')
+                        print('\nDefinir las variables de entrada con TipoBosque y TipoDeMasa como argumento'
+                              'en linea de comandos el fichero de configuracion o en codigo por defecto')
+                        print('Se interrumpe la ejecucion')
+                        sys.exit(0)
+                else:
+                    print(f'{TB}Se agregan estas dos variables.')
+                print('{:=^80}'.format(''))
+            self.LOCLlistLstDasoVars.append(dasoVarTipoBosquePorDefecto)
+            self.LOCLlistLstDasoVars.append(dasoVarTipoDeMasaPorDefecto)
+            for dasoVarMFE25TMasaPorDefecto in [dasoVarTipoBosquePorDefecto, dasoVarTipoDeMasaPorDefecto]:
+                self.LOCLlistaDasoVarsFileTypes.append(dasoVarMFE25TMasaPorDefecto[0])
+                self.LOCLlistaDasoVarsNickNames.append(dasoVarMFE25TMasaPorDefecto[1])
+                self.LOCLlistaDasoVarsRangoLinf.append(dasoVarMFE25TMasaPorDefecto[2])
+                self.LOCLlistaDasoVarsRangoLsup.append(dasoVarMFE25TMasaPorDefecto[3])
+                self.LOCLlistaDasoVarsNumClases.append(dasoVarMFE25TMasaPorDefecto[4])
+                self.LOCLlistaDasoVarsMovilidad.append(dasoVarMFE25TMasaPorDefecto[5])
+                self.LOCLlistaDasoVarsPonderado.append(dasoVarMFE25TMasaPorDefecto[6])
+        # ======================================================================
+
+        # ======================================================================
+        if LCL_nPatronDasoVars is None:
+            self.LOCLnPatronDasoVars = GLO.GLBLnPatronDasoVarsPorDefecto
+        else:
+            self.LOCLnPatronDasoVars = LCL_nPatronDasoVars
+
+        if self.LOCLnPatronDasoVars == 0:
+            self.nBandasPrevistasOutput = len(self.LOCLlistLstDasoVars)
+        else:
+            self.nBandasPrevistasOutput = self.LOCLnPatronDasoVars + 2
+        self.nInputVars = self.nBandasPrevistasOutput - 2
+        # ======================================================================
+
+        # ======================================================================
+        if self.LOCLverbose:
+            print('\n{:_^80}'.format(''))
+            print('clidtwins-> Lista de variables DasoLidar con indicacion para cada una de:')
+            print(f'{TB}-> codigoFichero             -> para buscar ficheros con ese codigo')
+            print(f'{TB}-> (nickName)                -> sin uso interno, unicamente para identificacion rapida')
+            print(f'{TB}-> rango y numero de clases  -> para crear histograma') 
+            print(f'{TB}-> movilidad inter-clases    -> para buscar zonas similares')
+            print(f'{TB}-> peso relativo             -> para ponderar al comparar con el patron')
+
+        # Esto es reiterativo:
+        # self.LOCLlistaDasoVarsFileTypes = []
+        # self.LOCLlistaDasoVarsNickNames = []
+        # self.LOCLlistaDasoVarsRangoLinf = []
+        # self.LOCLlistaDasoVarsRangoLsup = []
+        # self.LOCLlistaDasoVarsNumClases = []
+        # self.LOCLlistaDasoVarsMovilidad = []
+        # self.LOCLlistaDasoVarsPonderado = []
+        for nVar, thisListLstDasoVar in enumerate(self.LOCLlistLstDasoVars):
+            # self.LOCLlistaDasoVarsFileTypes.append(thisListLstDasoVar[0])
+            # self.LOCLlistaDasoVarsNickNames.append(thisListLstDasoVar[1])
+            # self.LOCLlistaDasoVarsRangoLinf.append(thisListLstDasoVar[2])
+            # self.LOCLlistaDasoVarsRangoLsup.append(thisListLstDasoVar[3])
+            # self.LOCLlistaDasoVarsNumClases.append(thisListLstDasoVar[4])
+            # self.LOCLlistaDasoVarsMovilidad.append(thisListLstDasoVar[5])
+            # if len(thisListLstDasoVar) > 6:
+            #     self.LOCLlistaDasoVarsPonderado.append(thisListLstDasoVar[6])
+            # else:
+            #     self.LOCLlistaDasoVarsPonderado.append(10)
+            if self.LOCLverbose:
+                if thisListLstDasoVar[0] == 'MFE25':
+                    pesoPonderado = 'Excluyente'
+                elif thisListLstDasoVar[6] == 0:
+                    pesoPonderado = '--'
+                else:
+                    pesoPonderado = '{:>2} (/10)'.format(thisListLstDasoVar[6])
+                print(
+                    '{}-> variable {}-> codigoFichero: {:<35}'.format(TB, nVar, thisListLstDasoVar[0]),
+                    '({}) ->'.format(thisListLstDasoVar[1]),
+                    'rango: {} - {:>3};'.format(thisListLstDasoVar[2], thisListLstDasoVar[3]),
+                    'clases: {:>3};'.format(thisListLstDasoVar[4]),
+                    'movilidad: {:>3} %'.format(thisListLstDasoVar[5]),
+                    'peso: {}'.format(pesoPonderado)
+                )
+
+        if self.LOCLverbose:
+            print('{:=^80}'.format(''))
+        # ======================================================================
+
+    # ==========================================================================
+    def verificarRutaAscRaiz(
+            self,
+            LCL_rutaAscRaizBase=None,  # opcional
+            LCL_nivelSubdirExpl=0,  # opcional
+            LCL_outputSubdirNew=None,  # opcional
+        ):
         # ======================================================================
         # Si no se ha especificado LCL_rutaAscRaizBase, se elige una que exista:
         if type(LCL_rutaAscRaizBase) == str:
             LCL_rutaAscRaizBase = os.path.abspath(LCL_rutaAscRaizBase)
             if 'site-packages' in LCL_rutaAscRaizBase:
-                import pathlib
                 LCL_rutaAscRaizBase = str(pathlib.Path.home())
             if not os.path.isdir(LCL_rutaAscRaizBase):
                 print(f'\nclidtwins-> ATENCION: ruta {LCL_rutaAscRaizBase} no disponible, se interrumpe la ejecucion.')
@@ -415,15 +992,14 @@ class DasoLidarSource:
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> AVISO: no se ha indicado ruta para los ficheros asc con las variables dasoLidar de entrada.')
             if self.LOCLverbose:
-                print(f'\tRuta: {LCL_rutaAscRaizBase}')
+                print(f'{TB}Ruta: {LCL_rutaAscRaizBase}')
             if os.path.isdir(GLO.GLBLrutaAscRaizBasePorDefecto):
                 if os.path.exists(GLO.configFileNameCfg):
-                    print(f'\t-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
+                    print(f'{TB}-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
                 else:
-                    print(f'\t-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
+                    print(f'{TB}-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
                 LCL_rutaAscRaizBase = GLO.GLBLrutaAscRaizBasePorDefecto
             else:
-                import pathlib
                 # Directorio que depende del entorno:
                 MAIN_HOME_DIR = str(pathlib.Path.home())
                 listaRutasDisponibles = [MAIN_HOME_DIR]
@@ -446,404 +1022,82 @@ class DasoLidarSource:
                 if not 'site-packages' in MAIN_RAIZ_DIR and not MAIN_RAIZ_DIR in listaRutasDisponibles:
                     listaRutasDisponibles.append(MAIN_RAIZ_DIR)
 
-                print(f'\t-> Elegir ruta: ')
-                for numRuta, txtRutaDisponible in enumerate(listaRutasDisponibles):
-                    print(f'\t   {numRuta + 1}. {txtRutaDisponible}')
-                print(f'\t   9. Interrumpir la ejecucion y especificar una ruta') # (como argumento en el codigo o en cmd, o en el fichero de configuracion)
-                txtNumRuta = input(f'\t-> Ruta elegida: ')
-                try:
-                    numRuta = int(txtNumRuta)
-                except:
-                    numRuta = 9
-                if numRuta < len(listaRutasDisponibles) + 1:
-                    LCL_rutaAscRaizBase = listaRutasDisponibles[numRuta - 1]
-                    print(
-                        f'Opcion selecionada: {numRuta} -> {LCL_rutaAscRaizBase}'
-                    )
-                else:
-                    if numRuta != 9:
+                if self.LOCLverbose > 3:
+                    print(f'{TB}-> Elegir ruta: ')
+                    for numRuta, txtRutaDisponible in enumerate(listaRutasDisponibles):
+                        print(f'{TB}   {numRuta + 1}. {txtRutaDisponible}')
+                    print(f'{TB}   9. Interrumpir la ejecucion y especificar una ruta') # (como argumento en el codigo o en cmd, o en el fichero de configuracion)
+                    txtNumRuta = input(f'{TB}-> Ruta elegida: ')
+                    try:
+                        numRuta = int(txtNumRuta)
+                    except:
+                        numRuta = 9
+                    if numRuta < len(listaRutasDisponibles) + 1:
+                        LCL_rutaAscRaizBase = listaRutasDisponibles[numRuta - 1]
                         print(
-                            f'Opcion selecionada ({numRuta}) no disponible.'
+                            f'Opcion selecionada: {numRuta} -> {LCL_rutaAscRaizBase}'
                         )
-                    print('\nSe interrumpe la ejecucion')
-                    sys.exit(0)
+                    else:
+                        if numRuta != 9:
+                            print(
+                                f'Opcion selecionada ({numRuta}) no disponible.'
+                            )
+                        print('\nSe interrumpe la ejecucion')
+                        sys.exit(0)
+                else:
+                    if len(listaRutasDisponibles) >= 2:
+                        LCL_rutaAscRaizBase = listaRutasDisponibles[1]
+                    else:
+                        LCL_rutaAscRaizBase = listaRutasDisponibles[0]
             print('{:=^80}'.format(''))
         # ======================================================================
         self.LOCLrutaAscRaizBase = LCL_rutaAscRaizBase
         # ======================================================================
 
+    # ==========================================================================
+    def verificarMarcoCoord(self):
         # ======================================================================
-        # Si no se ha especificado marco se usa el de la zona patron (si existe):
-        if (
-            self.LOCLmarcoCoordMinX == 0
-            or self.LOCLmarcoCoordMaxX == 0
-            or self.LOCLmarcoCoordMinY == 0
-            or self.LOCLmarcoCoordMaxY == 0
-        ):
-            self.marcoCoordDisponible = False
-            if self.LOCLverbose:
-                print('clidtwins-> AVISO: no se dispone de coordenadas para delimitar la zona de estudio.')
-            if self.GLBLmarcoPatronTest:
-                # Si no se ha establecido marcoPatronTest explicitamente,
-                # tiene el valor por defecto asignado al instanciar la clase
-                if hasattr(self, 'LOCLpatronVectrName') and hasattr(self, 'LOCLpatronLayerName'):
-                    (vectorFileDisponible, patronVectrNameConPath) = verificarExistencia(self.LOCLpatronVectrName)
-                else:
-                    (vectorFileDisponible, patronVectrNameConPath) = verificarExistencia(GLO.GLBLpatronVectrNamePorDefecto)
-                    if vectorFileDisponible:
-                        self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
-                        self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
-            else:
-                vectorFileDisponible = False
-            if vectorFileDisponible:
-                if self.LOCLverbose:
-                    print('\t-> Se adopta la envolvente del fichero de referencia para las variables dasoLidar (patron).')
-                self.rangeUTM(
-                    LCL_marcoPatronTest=True,
-                    LCL_rutaAscRaizBase=self.LOCLrutaAscRaizBase,
-                    LCL_patronVectrName=self.LOCLpatronVectrName,
-                    LCL_patronLayerName=self.LOCLpatronLayerName,
-                )
-            else:
-                self.GLBLmarcoPatronTest = False
-                self.LOCLpatronVectrName = None
-                self.LOCLpatronLayerName = None
-                if self.LOCLverbose:
-                    print('\t-> Se adopta la envolvente de los ficheros que se encuentren con variables dasoLidar.')
-        # ======================================================================
-
-        self.LOCLnivelSubdirExpl = LCL_nivelSubdirExpl
-        if LCL_outputSubdirNew is None:
-            self.LOCLoutputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto
-        else:
-            self.LOCLoutputSubdirNew = LCL_outputSubdirNew
-
-        self.idInputDir = os.path.basename(self.LOCLrutaAscRaizBase)
+        # Si no se ha ejecutado setRangeUTM<> se usan todos los asc disponibles.
+        if not self.marcoCoordEjecutado:
+            TRNS_verbose = self.LOCLverbose
+            self.setRangeUTM(
+                LCL_marcoCoordMiniX=0,
+                LCL_marcoCoordMaxiX=0,
+                LCL_marcoCoordMiniY=0,
+                LCL_marcoCoordMaxiY=0,
+                LCL_marcoPatronTest=False,
+                LCL_verbose=False,
+            )
+            self.marcoCoordEjecutado = False
+            self.LOCLverbose = TRNS_verbose
+            
+            self.LOCLpatronVectrName = None
+            self.LOCLpatronLayerName = None
+            self.LOCLtesteoVectrName = None
+            self.LOCLtesteoLayerName = None
 
         if self.LOCLverbose:
-            print('\n{:_^80}'.format(''))
-            print('clidtwins-> Explorando directorios...')
-            print('\t-> Directorio raiz para los ficheros dasolidar (asc):')
-            print('\t\t{}'.format(self.LOCLrutaAscRaizBase))
-            # print('\t-> Identificador de este lote de ficheros -> IdDir: {}'.format(self.idInputDir))
-            if self.LOCLnivelSubdirExpl:
-                print('\t\t-> Se van a explorar subdirectorios hasta nivel:    {}'.format(self.LOCLnivelSubdirExpl))
+            if not self.marcoCoordEjecutado:
+                print('clidtwins-> AVISO: no se ha ejecurtado el metodo .setRangeUTM para delimitar la zona de estudio.\n'
+                      f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
+                      f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
+            elif not self.marcoCoordDisponible and not self.GLBLmarcoPatronTest:
+                print('clidtwins-> AVISO: no se dispone de coordenadas para delimitar la zona de estudio.\n'
+                      f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
+                      f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
+            elif self.marcoCoordDisponible and self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
+                print('clidtwins-> AVISO: se delimita la zona de estudio que abarca tanto las coordenadas indicadas expresamente\n'
+                      f'{TB}como la envolvente de los ficheros de referencia y chequeo para las variables dasoLidar (patron y testeo).')
+            elif self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
+                print('clidtwins-> Se delimita la zona de estudio con la envolvente de los ficheros\n'
+                      f'{TB}de referencia y chequeo para las variables dasoLidar (patron y testeo).')
             else:
-                print('\t\t-> Se van a explorar subdirectorios hasta el ultimo nivel')
-
-        listaDirsExcluidos = [self.LOCLoutputSubdirNew]
-        if self.LOCLverbose:
-            print('\t-> Directorios excluidos:')
-            for dirExcluido in listaDirsExcluidos:
-                print('\t\t{}'.format(os.path.join(self.LOCLrutaAscRaizBase, dirExcluido)))
-            print('{:=^80}'.format(''))
-
-        if self.LOCLverbose:
-            print('\n{:_^80}'.format(''))
-            print('clidtwins-> Buscando ficheros de cada tipo en todos los directorios previstos:')
-            if not self.marcoCoordDisponible:
-                print('\t-> Sin restricciones de coordendas porque no se han pre-establecido coordenadas para la zona de estudio.')
-            elif not TRNS_buscarBloquesSoloDentroDelMarcoUTM and not self.GLBLmarcoPatronTest:
-                print('\t-> Sin restricciones de coordendas porque se ha desabilitado temporalmente esta opcion.')
-            else:
-                if self.GLBLmarcoPatronTest:
-                    print('\t-> Que solapen con la envolvente de los shapes de referenia (patron) y chequeo (testeo):')
-                else:
-                    print('\t-> Dentro de las coordenadas establecidas en linea de comandos o configuracion por defecto:')
-                print(
-                    '\t\tX {:10.2f} - {:10.2f} -> {:4.0f} m:'.format(
-                        self.LOCLmarcoCoordMinX, self.LOCLmarcoCoordMaxX,
-                        self.LOCLmarcoCoordMaxX - self.LOCLmarcoCoordMinX
-                    )
-                )
-                print(
-                    '\t\tY {:10.2f} - {:10.2f} -> {:4.0f} m:'.format(
-                        self.LOCLmarcoCoordMinY, self.LOCLmarcoCoordMaxY,
-                        self.LOCLmarcoCoordMaxY - self.LOCLmarcoCoordMinY
-                    )
-                )
-
+                print('clidtwins-> Se delimita la zona de estudio con las coordenadas indicadas expresamente.')
         # ======================================================================
-        # Listas de ficheros reunidas por tipoDeFichero
-        self.inFilesListAllTypes = []
-        for nInputVar, miTipoDeFicheroDasoLayer in enumerate(self.LOCLlistaDasoVarsFileTypes):
-            if self.LOCLnPatronDasoVars != 0 and nInputVar >= self.LOCLnPatronDasoVars:
-                break
-            miDasoVarNickName = self.LOCLlistaDasoVarsNickNames[nInputVar]
-            if self.LOCLverbose:
-                print('-> Tipo {}: > Variable: {} - Identificador del tipo de fichero: {}'.format(nInputVar, miDasoVarNickName, miTipoDeFicheroDasoLayer))
-            if miDasoVarNickName == 'MFE25' or miDasoVarNickName == 'TMasa':
-                if self.LOCLverbose:
-                    print('\t\t-> No requiere explorar directorios')
-                continue
-
-            dirIterator = iter(os.walk(self.LOCLrutaAscRaizBase))
-            # dirpath, dirnames, filenames = next(dirIterator)
-            # dirpathPrevio = os.path.abspath(os.path.join(self.LOCLrutaAscRaizBase, '..'))
-            # dirpathPrevio = self.LOCLrutaAscRaizBase
-            infilesX = []
-            for dirpathOk, dirnames, filenames in dirIterator:
-                if miDasoVarNickName == 'MFE' or miDasoVarNickName == 'TipoMasa':
-                    # El MFE se obtiene de una capa vectorial y el tipo de masa por ahoraa no lo uso (se generaria en esta aplicacion)
-                    continue
-                if dirpathOk.endswith(self.LOCLoutputSubdirNew):
-                    if self.LOCLverbose > 1:
-                        print('\t\t-> Saltando el directorio {}'.format(dirpathOk))
-                    continue
-
-                subDirExplorado = dirpathOk.replace(self.LOCLrutaAscRaizBase, '')
-                if dirpathOk == self.LOCLrutaAscRaizBase:
-                    nivelDeSubdir = 0
-                elif not '/' in subDirExplorado and not '\\' in subDirExplorado:
-                    nivelDeSubdir = 0
-                else:
-                    nivelDeSubdir = subDirExplorado.count('/') + subDirExplorado.count('\\')
-                if self.LOCLnivelSubdirExpl and nivelDeSubdir > self.LOCLnivelSubdirExpl:
-                    if self.LOCLverbose > 1:
-                        print(f'\t\tSe ha alcanzado el nivel de directorios maximo ({self.LOCLnivelSubdirExpl})\n')
-                    continue
-                else:
-                    pass
-                    # print(f'Explorando nivel de subdirectorios {nivelDeSubdir} de {self.LOCLnivelSubdirExpl}')
-
-                excluirDirectorio = False
-                for dirExcluido in listaDirsExcluidos:
-                    if dirpathOk == os.path.join(self.LOCLrutaAscRaizBase, dirExcluido):
-                        excluirDirectorio = True
-                        break
-                if excluirDirectorio:
-                    if self.LOCLverbose > 1:
-                        print(f'\n\t-> Directorio excluido: {dirpathOk}')
-                    continue
-                if self.LOCLverbose > 1:
-                    print(f'\t-> Explorando directorio: {dirpathOk}')
-                if len(filenames) == 0:
-                    if self.LOCLverbose > 1:
-                        print('\t\t-> No hay ficheros; se pasa al siguiente directorio')
-                    continue
-
-                #===================================================================
-                try:
-                    # Si se ha establecido marco UTM se incorporan los bloques
-                    # que esten dentro del marco; en caso contrario, todos.
-                    # Siempre y cuando tengan todas las variables dasoLidar.
-                    if (
-                        self.marcoCoordDisponible
-                        and self.LOCLmarcoCoordMinX > 0
-                        and self.LOCLmarcoCoordMaxX > 0
-                        and self.LOCLmarcoCoordMinY > 0
-                        and self.LOCLmarcoCoordMaxY > 0
-                        and (
-                            TRNS_buscarBloquesSoloDentroDelMarcoUTM
-                            or self.GLBLmarcoPatronTest
-                        )
-                    ):
-                        filenamesSeleccionadosX = [
-                            filename for filename in filenames
-                            if (
-                                miTipoDeFicheroDasoLayer.upper() in filename.upper()
-                                and filename[-4:].upper() == '.ASC'
-                                and (int(filename[:3]) * 1000) + 2000 >= self.LOCLmarcoCoordMinX
-                                and int(filename[:3]) * 1000 < self.LOCLmarcoCoordMaxX
-                                and int(filename[4:8]) * 1000 >= self.LOCLmarcoCoordMinY
-                                and (int(filename[4:8]) * 1000) - 2000 < self.LOCLmarcoCoordMaxY
-                            )
-                        ]
-                    else:
-                        filenamesSeleccionadosX = [
-                            filename for filename in filenames
-                            if (
-                                miTipoDeFicheroDasoLayer.upper() in filename.upper()
-                                and filename[-4:].upper() == '.ASC'
-                            )
-                        ]
-                except:
-                    print('\nAVISO: no se han podido filtrar los ficheros por coordenadas debido a que no siguen el patron XXX_YYYY...asc.')
-                    filenamesSeleccionadosX = [
-                        filename for filename in filenames
-                        if (
-                            miTipoDeFicheroDasoLayer.upper() in filename.upper()
-                            and filename[-4:].upper() == '.ASC'
-                        )
-                    ]
-
-                if filenamesSeleccionadosX:
-                    if self.LOCLverbose > 1:
-                        print('\t\t\tAscRaiz => subDir: {} => {}'.format(self.LOCLrutaAscRaizBase, subDirExplorado))
-                        print('\t\t\tnivelDeSubdir:     {}'.format(nivelDeSubdir))
-                        print('\t\t\tdirnames:          {}'.format(dirnames))
-                        print('\t\t\tnumFiles:          {}'.format(len(filenames)))
-                        print('\t\t\tAlgunos files:     {}, etc.'.format(filenames[:2]))
-                        # print('\t\t\tdirpathPrevio:     {}'.format(dirpathPrevio))
-                        # dirpathPadre1 = os.path.abspath(os.path.join(dirpathOk, '..'))
-                        # print('\t\t\tdirpathPadre1:     {}'.format(dirpathPadre1))
-                        # dirpathPrevio = dirpathPadre1
-                    for filenameSel in filenamesSeleccionadosX:
-                        infilesX.append([dirpathOk, filenameSel])
-                    if self.LOCLverbose > 1:
-                        print('\t\t-> Encontrados: {} ficheros.'.format(len(filenamesSeleccionadosX)))
-                        print('\t\t-> Primeros {} ficheros:'.format(min(len(filenamesSeleccionadosX), 5)))
-                    if self.LOCLverbose:
-                        for nFile, pathAndfilename in enumerate(filenamesSeleccionadosX[:5]):
-                            print('\t\t\t', nFile, pathAndfilename)
-                # elif self.LOCLverbose > 1:
-                else:
-                    if self.LOCLverbose > 1:
-                        print('\t\tdirpathOk:         {}'.format(dirpathOk))
-                        print('\t\tnumFiles:          {}'.format(len(filenames)))
-                        if self.marcoCoordDisponible and TRNS_buscarBloquesSoloDentroDelMarcoUTM:
-                            print(
-                                '\t\t\tNo se ha localizado ningun fichero con el patron: <{}> que solape con el marco de coordenadas X: {} {} Y: {} {}'.format(
-                                    miTipoDeFicheroDasoLayer,
-                                    self.LOCLmarcoCoordMinX,
-                                    self.LOCLmarcoCoordMaxX,
-                                    self.LOCLmarcoCoordMinY,
-                                    self.LOCLmarcoCoordMaxY,
-                                )
-                            )
-                        else:
-                            print(
-                                '\tNo se ha localizado ningun fichero con el patron: <{}>'.format(
-                                    miTipoDeFicheroDasoLayer,
-                                )
-                            )
-                #===================================================================
-
-            self.inFilesListAllTypes.append(infilesX)
-        # ======================================================================
-
-        # Despues de buscar todos los ficheros disponibles de cada tipo (cada variable)
-        # Elimino los ficheros de bloques que no tengan todos los tipos (todas las variables)
-
-        # print('\nNumero de ficheros en {}: {} {}'.format(self.LOCLrutaAscRaizBase, len(self.inFilesListAllTypes), len(self.LOCLlistaDasoVarsFileTypes)))
-        # print('Numero de tipos de fichero: {}'.format(len(self.LOCLlistLstDasoVars)))
-        self.numFicherosVariablesPorBloque = {}
-        if self.LOCLverbose > 1:
-            print('\nListas de ficheros seleccionados:')
-        hayAlgunBloqueCompleto = False
-        for nLista in range(len(self.inFilesListAllTypes)):
-            if (
-                self.LOCLlistLstDasoVars[nLista][0] == 'MFE25'
-                or self.LOCLlistLstDasoVars[nLista][0] == 'TMasa'
-            ):
-                continue
-            # print('------------>', self.inFilesListAllTypes[nLista])
-            # print('------------>', self.numFicherosVariablesPorBloque.keys())
-            for numFile, [pathFile, nameFile] in enumerate(self.inFilesListAllTypes[nLista]):
-                # print('------------>', nameFile)
-                codigoBloque = nameFile[:8]
-                if codigoBloque in self.numFicherosVariablesPorBloque.keys():
-                    self.numFicherosVariablesPorBloque[codigoBloque] += 1
-                else:
-                    self.numFicherosVariablesPorBloque[codigoBloque] = 1
-                    if self.LOCLverbose > 1:
-                        print('clidtwins-> Nuevo codigoBloque encontrado:', codigoBloque)
-            if self.LOCLverbose > 1:
-                if len(self.inFilesListAllTypes[nLista]) == 0:
-                    print(
-                        '\t{} -> tipo {} <=> {} ATENCION: no hay ficheros'.format(
-                            nLista,
-                            self.LOCLlistLstDasoVars[nLista][0],
-                            self.LOCLlistLstDasoVars[nLista][1],
-                        )
-                    )
-                else:
-                    print(
-                        '\t{} -> tipo {} <=> {:<35} ({:<2} files): {}, etc.'.format(
-                            nLista,
-                            self.LOCLlistLstDasoVars[nLista][0],
-                            self.LOCLlistLstDasoVars[nLista][1],
-                            len(self.inFilesListAllTypes[nLista]),
-                            self.inFilesListAllTypes[nLista][:2],
-                        )
-                    )
-        if self.LOCLverbose > 1:
-            print('clidtwins-> Lista de bloques encontrados (completos e incompletos): {}'.format(self.numFicherosVariablesPorBloque))
-
-        for nLista in range(len(self.inFilesListAllTypes)):
-            if (
-                self.LOCLlistLstDasoVars[nLista][0] == 'MFE25'
-                or self.LOCLlistLstDasoVars[nLista][0] == 'TMasa'
-            ):
-                continue
-            # Si no se han localizado los N ficheros del bloque, se elimina todos los ficheros de ese bloque
-            for numFile, [pathFile, nameFile] in enumerate(self.inFilesListAllTypes[nLista]):
-                codigoBloque = nameFile[:8]
-                # print('---------->', codigoBloque, '->>', self.numFicherosVariablesPorBloque[codigoBloque], 'ficheros (variables)')
-                if self.numFicherosVariablesPorBloque[codigoBloque] < self.nInputVars:
-                    if nameFile[:8] == codigoBloque:
-                        # (self.inFilesListAllTypes[nLista]).remove([pathFile, nameFile])
-                        del self.inFilesListAllTypes[nLista][numFile]
-                        if self.LOCLverbose > 1:
-                            print('clidtwins-> Eliminando codigoBloque por no tener todas las dasoVars:', codigoBloque, 'nameFile', nameFile)
-                else:
-                    hayAlgunBloqueCompleto = True
-
-        if not hayAlgunBloqueCompleto:
-            print('\nATENCION: No hay ningun bloque con todas las variables (todos los tipos de fichero).')
-            print('\t-> Ruta de busqueda de ficheros: {}'.format(self.LOCLrutaAscRaizBase))
-            sys.exit(0)
-
-        # Actualizo el marco de coordenadas de la zona de estudio con los bloques encontrados y admitidos
-        if self.LOCLverbose:
-            if (
-                TRNS_buscarBloquesSoloDentroDelMarcoUTM
-                or self.GLBLmarcoPatronTest
-            ) and (
-                self.GLBLmarcoPatronTest
-                or self.LOCLmarcoCoordMinX == 0
-                or self.LOCLmarcoCoordMaxX == 0
-                or self.LOCLmarcoCoordMinY == 0
-                or self.LOCLmarcoCoordMaxY == 0
-            ):
-                print('clidtwuins-> Actualizando marco de analisis:')
-        for codigoBloque in self.numFicherosVariablesPorBloque.keys():
-            if int(codigoBloque[:3]) * 1000 < self.LOCLmarcoCoordMinX:
-                if self.LOCLverbose:
-                    print(
-                        '\t-> Actualizando marcoCoordMinX de {:0.2f} a {}'.format(
-                            self.LOCLmarcoCoordMinX,
-                            int(codigoBloque[:3]) * 1000
-                        )
-                    )
-                self.LOCLmarcoCoordMinX = int(codigoBloque[:3]) * 1000
-            if (int(codigoBloque[:3]) * 1000) + 2000 > self.LOCLmarcoCoordMaxX:
-                if self.LOCLverbose:
-                    print(
-                        '\t-> Actualizando marcoCoordMaxX de {:0.2f} a {:0.2f}'.format(
-                            self.LOCLmarcoCoordMaxX,
-                            (int(codigoBloque[:3]) * 1000) + 2000
-                        )
-                    )
-                self.LOCLmarcoCoordMaxX = (int(codigoBloque[:3]) * 1000) + 1999.99
-            if int(codigoBloque[4:8]) * 1000 > self.LOCLmarcoCoordMaxY:
-                if self.LOCLverbose:
-                    print(
-                        '\t-> Actualizando marcoCoordMaxY de {:0.2f} a {:0.2f}'.format(
-                            self.LOCLmarcoCoordMaxY,
-                            int(codigoBloque[4:8]) * 1000
-                        )
-                    )
-                self.LOCLmarcoCoordMaxY = int(codigoBloque[4:8]) * 1000
-            if (int(codigoBloque[4:8]) * 1000) - 2000 < self.LOCLmarcoCoordMinY:
-                if self.LOCLverbose:
-                    print(
-                        '\t-> Actualizando marcoCoordMinY de {:0.2f} a {:0.2f}'.format(
-                        self.LOCLmarcoCoordMinY,
-                        (int(codigoBloque[4:8]) * 1000) - 2000
-                        )
-                    )
-                self.LOCLmarcoCoordMinY = (int(codigoBloque[4:8]) * 1000) - 2000
-
-        # print('Resultado tras eliminar los que procedan:')
-        # for nLista in range(len(self.inFilesListAllTypes)):
-        #     print('Variable num', nLista, 'Files ->', self.inFilesListAllTypes[nLista])
 
     # ==========================================================================
-    def createAnalizeMultiDasoLayerRasterFile(
+    def createMultiDasoLayerRasterFile(
             self,
-            LCL_patronVectrName=None,
-            LCL_patronLayerName=None,
             LCL_rutaCompletaMFE=None,
             LCL_cartoMFEcampoSp=None,
             LCL_rasterPixelSize=None,  # opcional
@@ -855,10 +1109,6 @@ class DasoLidarSource:
 and two more layers for forest type (land cover) and stand type.
         Attributes
         ----------
-        LCL_patronVectrName : str
-            Default: None (optional)
-        LCL_patronLayerName : str
-            Default: None (optional)
         LCL_rutaCompletaMFE : str
             Default: None (optional)
         LCL_cartoMFEcampoSp : str
@@ -876,23 +1126,14 @@ and two more layers for forest type (land cover) and stand type.
         if hasattr(self, 'inFilesListAllTypes'):
             if len((self.inFilesListAllTypes)[0]) == 0:
                 print(f'clidtwins-> AVISO: no se han encontrado ficheros con las variables dasoLidar.')
-                print(f'\t-> Se interrume el metodo createAnalizeMultiDasoLayerRasterFile')
+                print(f'{TB}-> Se interrume el metodo createMultiDasoLayerRasterFile')
                 return
         else:
             if self.LOCLverbose:
                 print(f'clidtwins-> AVISO: antes de generar y analizar el nuevo raster con las variables dasoLidar')
-                print(f'\t-> hay que buscar ficheros con dichas variables (metodo searchSourceFiles)')
-                print(f'\t-> Se interrume el metodo createAnalizeMultiDasoLayerRasterFile')
+                print(f'{TB}-> hay que buscar ficheros con dichas variables (metodo searchSourceFiles)')
+                print(f'{TB}-> Se interrume el metodo createMultiDasoLayerRasterFile')
                 return
-
-        if LCL_patronVectrName is None:
-            self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
-        else:
-            self.LOCLpatronVectrName = LCL_patronVectrName
-        if LCL_patronLayerName is None:
-            self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
-        else:
-            self.LOCLpatronLayerName = LCL_patronLayerName
 
         if LCL_rutaCompletaMFE is None:
             self.LOCLrutaCompletaMFE = GLO.GLBLrutaCompletaMFEPorDefecto
@@ -926,31 +1167,40 @@ and two more layers for forest type (land cover) and stand type.
         self.LOCLcartoMFEfileNSinExt, self.LOCLcartoMFEfileSoloExt = os.path.splitext(self.LOCLcartoMFEfileName)
 
         #===========================================================================
-        # Just in case, se verifica que se han establecido limites de coordenadas (con rangeUTM<>)
-        if (
-            self.LOCLmarcoCoordMinX <= 0
-            or self.LOCLmarcoCoordMaxX <= 0
-            or self.LOCLmarcoCoordMinY <= 0
-            or self.LOCLmarcoCoordMaxY <= 0
-        ):
-            if self.LOCLverbose:
-                print('\n{:_^80}'.format(''))
-                print(f'clidtwins-> AVISO: no se han establecido previamente los limites de la zona de analisis.')
-                print(f'\t-> Se adopta como rango de coordenadas la extension de la capa {self.LOCLpatronVectrName} layer {self.LOCLpatronLayerName}')
-                print('{:=^80}'.format(''))
-            self.rangeUTM(
-                LCL_marcoPatronTest=True,
-                LCL_rutaAscRaizBase=self.LOCLrutaAscRaizBase,
-                LCL_patronVectrName=self.LOCLpatronVectrName,
-                LCL_patronLayerName=self.LOCLpatronLayerName,
-            )
+        # En teoria no pasa por aqui si antes no se ha ejecutado el metodo .searchSourceFiles<>
+        # que, a su vez llama al metodo .setRangeUTM<> para establecer los limites de la zona de analisis.
+        # Con esto, los limites quedan establecidos con setRangeUTM<> o, en su defecto, al leer los ficheros.
+        # Al ejecutar estos metodos, ningun limite del marco puede quedar a 0. No obstante,
+        # si se llega aqui sin pasar por esos metodos (creando manualmente la propiedad inFilesListAllTypes) 
+        # se verifica de nuevo que haya limites de coordenadas por los cuatro costados.
+        if hasattr(self, 'LOCLpatronVectrName') and not self.LOCLpatronVectrName is None:
             if (
-                self.LOCLmarcoCoordMinX == 0
-                or self.LOCLmarcoCoordMaxX == 0
-                or self.LOCLmarcoCoordMinY == 0
-                or self.LOCLmarcoCoordMaxY == 0
+                self.LOCLmarcoCoordMiniX <= 0
+                or self.LOCLmarcoCoordMaxiX <= 0
+                or self.LOCLmarcoCoordMiniY <= 0
+                or self.LOCLmarcoCoordMaxiY <= 0
             ):
-                self.marcoCoordDisponible = False
+                if self.LOCLverbose:
+                    print('\n{:_^80}'.format(''))
+                    print(f'clidtwins-> AVISO: no se han establecido previamente los limites de la zona de analisis.')
+                    if self.LOCLpatronLayerName == '' or self.LOCLpatronLayerName is None or (self.LOCLpatronVectrName.lower()).endswith('.shp'):
+                        print(f'{TB}-> Se adopta como rango de coordenadas la extension de la capa {self.LOCLpatronVectrName}')
+                    else:
+                        print(f'{TB}-> Se adopta como rango de coordenadas la extension de la capa {self.LOCLpatronVectrName} layer {self.LOCLpatronLayerName}')
+                    print('{:=^80}'.format(''))
+                self.setRangeUTM(
+                    LCL_marcoPatronTest=True,
+                    LCL_rutaAscRaizBase=self.LOCLrutaAscRaizBase,
+                    LCL_patronVectrName=self.LOCLpatronVectrName,
+                    LCL_patronLayerName=self.LOCLpatronLayerName,
+                )
+                if (
+                    self.LOCLmarcoCoordMiniX == 0
+                    or self.LOCLmarcoCoordMaxiX == 0
+                    or self.LOCLmarcoCoordMiniY == 0
+                    or self.LOCLmarcoCoordMaxiY == 0
+                ):
+                    self.marcoCoordDisponible = False
         #===========================================================================
 
         #===========================================================================
@@ -990,47 +1240,38 @@ and two more layers for forest type (land cover) and stand type.
             self.outputOptions = []
         #===========================================================================
 
-        #===========================================================================
-        # DistanciaEuclideaMedia
-        # PorcentajeDeProximidad
-        # CoeficienteParidad
-        # Paridad
-        # Proximidad
-        # Semejanza
-        # Similitud
-        # Analogia
-        # Homogeneidad
-        #===========================================================================
         self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars = '{}_{}_Global.{}'.format('uniCellAllDasoVars', self.idInputDir, self.driverExtension)
         self.LOCLoutPathNameRuta = os.path.join(self.LOCLrutaAscRaizBase, self.LOCLoutputSubdirNew)
 
         if self.LOCLverbose:
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> Outputs:')
-            print(f'\t-> Ruta para los ficheros de salida:')
-            print(f'\t\t{self.LOCLoutPathNameRuta}')
-            print(f'\t-> Se crea un fichero merge con todas las variables dasoLidar:')
-            print(f'\t\t{self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars}')
+            print(f'{TB}-> Ruta para los ficheros de salida:')
+            print(f'{TB}{TV}{self.LOCLoutPathNameRuta}')
+            print(f'{TB}-> Se crea un fichero merge con todas las variables dasoLidar:')
+            print(f'{TB}{TV}{self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars}')
 
             if self.marcoCoordDisponible and TRNS_buscarBloquesSoloDentroDelMarcoUTM:
-                    print(f'\t\t-> Integra todos los bloques localizados dentro del rango de coordenadas: X: {self.LOCLmarcoCoordMinX}-{self.LOCLmarcoCoordMaxX}; Y: {self.LOCLmarcoCoordMinY}-{self.LOCLmarcoCoordMaxY}')
+                    print(f'{TB}{TV}-> Integra todos los bloques localizados dentro del rango de coordenadas: '
+                          f'X: {self.LOCLmarcoCoordMiniX}-{self.LOCLmarcoCoordMaxiX}; '
+                          f'Y: {self.LOCLmarcoCoordMiniY}-{self.LOCLmarcoCoordMaxiY}')
             else:
-                print(f'\t\t-> Integra todos los bloques localizados ')
-            print(f'\t\t-> Una variable en cada banda mas dos bandas adicionales con tipo de bosque (MFE) y tipo de masa (ad-hoc)')
+                print(f'{TB}{TV}-> Integra todos los bloques localizados ')
+            print(f'{TB}{TV}-> Una variable en cada banda mas dos bandas adicionales con tipo de bosque (MFE) y tipo de masa (ad-hoc)')
 
         if not os.path.exists(self.LOCLoutPathNameRuta):
             if self.LOCLverbose:
-                print('\t-> No existe directorio %s -> Se crea automaticamente' % (self.LOCLoutPathNameRuta))
+                print(f'{TB}-> No existe directorio %s -> Se crea automaticamente' % (self.LOCLoutPathNameRuta))
             try:
                 os.makedirs(self.LOCLoutPathNameRuta)
             except:
                 print('\nATENCION: No se ha podido crear el directorio {}'.format(self.LOCLoutPathNameRuta))
-                print('\tRevisar derechos de escritura en esa ruta')
+                print(f'{TB}Revisar derechos de escritura en esa ruta')
                 sys.exit(0)
         else:
             if self.LOCLverbose:
-                print('\t-> Ya existe el directorio {}'.format(self.LOCLoutPathNameRuta))
-                print('\t\t-> Se agregan los outputs (tif, txt, npz, ...) a este directorio')
+                print(f'{TB}-> Ya existe el directorio {self.LOCLoutPathNameRuta}')
+                print(f'{TB}{TV}-> Se agregan los outputs (tif, txt, npz, ...) a este directorio')
         if self.LOCLverbose:
             print('{:=^80}'.format(''))
         # ======================================================================
@@ -1080,6 +1321,41 @@ and two more layers for forest type (land cover) and stand type.
             PAR_ambitoTiffNuevo=self.GLBLambitoTiffNuevo,
             PAR_verbose=self.LOCLverbose,
         )
+
+
+    # ==========================================================================
+    def analyzeMultiDasoLayerRasterFile(
+            self,
+            LCL_patronVectrName=None,
+            LCL_patronLayerName=None,
+        ):
+        f"""Analize the dasoLidar Variables included in the created raster file (with one band for every DLV).
+        ----------
+        LCL_patronVectrName : str
+            Default: None (optional)
+        LCL_patronLayerName : str
+            Default: None (optional)
+        """
+        #===========================================================================
+        # DistanciaEuclideaMedia
+        # PorcentajeDeProximidad
+        # CoeficienteParidad
+        # Proximidad
+        # Semejanza
+        # Similitud
+        # Analogia
+        # Homogeneidad
+        #===========================================================================
+
+        if LCL_patronVectrName is None:
+            self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
+        else:
+            self.LOCLpatronVectrName = LCL_patronVectrName
+        if LCL_patronLayerName is None:
+            self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
+        else:
+            self.LOCLpatronLayerName = LCL_patronLayerName
+
         #===========================================================================
         (
             self.outputRangosFileNpzSinPath,
@@ -1123,7 +1399,7 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         if self.nBandasRasterOutput != self.nBandasPrevistasOutput:
             print('clidtwins-> ATENCION: la capa creada con las dasoVars en la zona de referencia (patron) no niene el numero previsto de bandas')
-            print(f'\t-> Numero previsto: {self.nBandasPrevistasOutput}; numero de bandas en la capa creada {self.nBandasRasterOutput}')
+            print(f'{TB}-> Numero previsto: {self.nBandasPrevistasOutput}; numero de bandas en la capa creada {self.nBandasRasterOutput}')
             sys.exit(0)
 
         mostrarExportarRangos(
@@ -1195,8 +1471,8 @@ and two more layers for forest type (land cover) and stand type.
             )
         except:
             print(f'\nclidtwins-> No se ha podido recortar el raster generado con {testeoVectrNameConPath}, cutlineLayer: {self.LOCLtesteoLayerName}, {type(self.LOCLtesteoLayerName)}')
-            print(f'\tRevisar si se ha generado adecuadamente el raster {mergedUniCellAllDasoVarsFileNameConPath}')
-            print(f'\tRevisar si la capa vectorial de recorte es correcta, no esta bloqueada y (tiene un poligono) {testeoVectrNameConPath}')
+            print(f'{TB}Revisar si se ha generado adecuadamente el raster {mergedUniCellAllDasoVarsFileNameConPath}')
+            print(f'{TB}Revisar si la capa vectorial de recorte es correcta, no esta bloqueada y (tiene un poligono) {testeoVectrNameConPath}')
             sys.exit(0)
 
         rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
@@ -1228,10 +1504,10 @@ and two more layers for forest type (land cover) and stand type.
             nInputVar = nBanda - 1
             if nInputVar >= 0 and nInputVar < self.nInputVars:
                 if self.nFicherosDisponiblesPorTipoVariable[nInputVar] != self.nFicherosDisponiblesPorTipoVariable[0]:
-                    # print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self.LOCLlistLstDasoVars[nInputVar][0]})')
-                    claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][0]}_ref'
+                    # print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self.LOCLlistLstDasoVars[nInputVar][1]})')
+                    claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_ref'
                     print(f'\n(2) Chequeando rangos admisibles para: {claveDef}')
-                    print(f'\tAVISO: La banda {nBanda} (variable {nInputVar}) no cuenta con fichero para todos los bloques ({self.nFicherosDisponiblesPorTipoVariable[nInputVar]} de {self.nFicherosDisponiblesPorTipoVariable[0]})')
+                    print(f'{TB}AVISO: La banda {nBanda} (variable {nInputVar}) no cuenta con fichero para todos los bloques ({self.nFicherosDisponiblesPorTipoVariable[nInputVar]} de {self.nFicherosDisponiblesPorTipoVariable[0]})')
                     continue
             outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
             arrayBandaXClip = outputBandXClip.ReadAsArray().astype(self.outputNpDatatypeAll)
@@ -1262,11 +1538,11 @@ and two more layers for forest type (land cover) and stand type.
             #     print(f'\nHistograma para tipos de bosque (banda {nBanda})')
             # else:
             #     if nInputVar < len(self.LOCLlistLstDasoVars):
-            #         print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self.LOCLlistLstDasoVars[nInputVar][0]})')
+            #         print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self.LOCLlistLstDasoVars[nInputVar][1]})')
             #     else:
             #         print(f'\nHistograma para banda {nBanda} (variable {nInputVar} de {self.LOCLlistLstDasoVars})')
-            # print(f'\t-> Numero puntos: {(histNumberTesteo[0]).sum()}-> {histNumberTesteo}')
-            # # print(f'\t-> Suma frecuencias: {round(histProb01Testeo.sum(), 2)}')
+            # print(f'{TB}-> Numero puntos: {(histNumberTesteo[0]).sum()}-> {histNumberTesteo}')
+            # # print(f'{TB}-> Suma frecuencias: {round(histProb01Testeo.sum(), 2)}')
 
             if nBanda == nBandasRasterOutput - 1:
                 print(f'\nChequeando Tipos de bosque (banda {nBanda}):')
@@ -1279,21 +1555,21 @@ and two more layers for forest type (land cover) and stand type.
                 codeTipoBosqueTesteoMasFrecuente1 = (histNumberTesteo[0]).argmax(axis=0)
                 arrayPosicionTipoBosqueTesteo1 = np.where(histNumberTesteo[0] == histogramaTemp[-1])
                 arrayPosicionTipoBosqueTesteo2 = np.where(histNumberTesteo[0] == histogramaTemp[-2])
-                print(f'\t-> Tipo de bosque principal (testeo): {codeTipoBosqueTesteoMasFrecuente1}; frecuencia: {int(round(100 * histProb01Testeo[codeTipoBosqueTesteoMasFrecuente1], 0))} %')
-                # print(f'\t-> {arrayPosicionTipoBosqueTesteo1}')
+                print(f'{TB}-> Tipo de bosque principal (testeo): {codeTipoBosqueTesteoMasFrecuente1}; frecuencia: {int(round(100 * histProb01Testeo[codeTipoBosqueTesteoMasFrecuente1], 0))} %')
+                # print(f'{TB}-> {arrayPosicionTipoBosqueTesteo1}')
                 for contadorTB1, numPosicionTipoBosqueTesteo1 in enumerate(arrayPosicionTipoBosqueTesteo1[0]):
-                    # print(f'\t-> {numPosicionTipoBosqueTesteo1}')
-                    print(f'\t-> {contadorTB1} Tipo de bosque primero (testeo): {numPosicionTipoBosqueTesteo1}; frecuencia: {int(round(100 * histProb01Testeo[numPosicionTipoBosqueTesteo1], 0))} %')
+                    # print(f'{TB}-> {numPosicionTipoBosqueTesteo1}')
+                    print(f'{TB}-> {contadorTB1} Tipo de bosque primero (testeo): {numPosicionTipoBosqueTesteo1}; frecuencia: {int(round(100 * histProb01Testeo[numPosicionTipoBosqueTesteo1], 0))} %')
                 if self.histProb01Patron[arrayPosicionTipoBosqueTesteo2[0][0]] != 0:
                     for contadorTB2, numPosicionTipoBosqueTesteo2 in enumerate(arrayPosicionTipoBosqueTesteo2[0]):
-                        # print(f'\t-> {numPosicionTipoBosqueTesteo2}')
+                        # print(f'{TB}-> {numPosicionTipoBosqueTesteo2}')
                         if histProb01Testeo[numPosicionTipoBosqueTesteo2] != 0:
-                            print(f'\t-> {contadorTB2} Tipo de bosque segundo (testeo): {numPosicionTipoBosqueTesteo2}; frecuencia: {int(round(100 * histProb01Testeo[numPosicionTipoBosqueTesteo2], 0))} %')
+                            print(f'{TB}-> {contadorTB2} Tipo de bosque segundo (testeo): {numPosicionTipoBosqueTesteo2}; frecuencia: {int(round(100 * histProb01Testeo[numPosicionTipoBosqueTesteo2], 0))} %')
                 else:
-                    print(f'\t-> Solo hay tipo de bosque princial')
+                    print(f'{TB}-> Solo hay tipo de bosque princial')
 
                 if codeTipoBosqueTesteoMasFrecuente1 != arrayPosicionTipoBosqueTesteo1[0][0]:
-                    print('\t-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosqueTesteoMasFrecuente1} != {arrayPosicionTipoBosqueTesteo1[0][0]}')
+                    print(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosqueTesteoMasFrecuente1} != {arrayPosicionTipoBosqueTesteo1[0][0]}')
                 if len(arrayPosicionTipoBosqueTesteo1[0]) == 1:
                     codeTipoBosqueTesteoMasFrecuente2 = arrayPosicionTipoBosqueTesteo2[0][0]
                 else:
@@ -1302,19 +1578,19 @@ and two more layers for forest type (land cover) and stand type.
                 pctjTipoBosqueTesteoMasFrecuente1 = int(round(100 * histProb01Testeo[codeTipoBosqueTesteoMasFrecuente1], 0))
                 pctjTipoBosqueTesteoMasFrecuente2 = int(round(100 * histProb01Testeo[codeTipoBosqueTesteoMasFrecuente2], 0))
 
-                print(f'\t-> Tipos de bosque mas frecuentes (testeo): 1-> {codeTipoBosqueTesteoMasFrecuente1} ({pctjTipoBosqueTesteoMasFrecuente1} %); 2-> {codeTipoBosqueTesteoMasFrecuente2} ({pctjTipoBosqueTesteoMasFrecuente2} %)')
+                print(f'{TB}-> Tipos de bosque mas frecuentes (testeo): 1-> {codeTipoBosqueTesteoMasFrecuente1} ({pctjTipoBosqueTesteoMasFrecuente1} %); 2-> {codeTipoBosqueTesteoMasFrecuente2} ({pctjTipoBosqueTesteoMasFrecuente2} %)')
 
-                # print(f'\t-> Numero pixeles de cada tipo de bosque (testeo) ({(histNumberTesteo[0]).sum()}):\n{histNumberTesteo[0][:tipoBosqueUltimoNumero + 1]}')
-                print(f'\t-> Numero pixeles de cada tipo de bosque (testeo) ({(histNumberTesteo[0]).sum()}):')
+                # print(f'{TB}-> Numero pixeles de cada tipo de bosque (testeo) ({(histNumberTesteo[0]).sum()}):\n{histNumberTesteo[0][:tipoBosqueUltimoNumero + 1]}')
+                print(f'{TB}-> Numero pixeles de cada tipo de bosque (testeo) ({(histNumberTesteo[0]).sum()}):')
                 for numTipoBosque in range(len(histNumberTesteo[0])):
                     if histNumberTesteo[0][numTipoBosque] != 0:
                         print(f'tipoBosque: {numTipoBosque} -> nPixeles: {histNumberTesteo[0][numTipoBosque]}')
 
                 if self.pctjTipoBosquePatronMasFrecuente1 >= 70 and pctjTipoBosqueTesteoMasFrecuente1 >= 70:
                     if (codeTipoBosqueTesteoMasFrecuente1 == self.codeTipoBosquePatronMasFrecuente1):
-                        print(f'\t-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
-                        print(f'\t\t-> Tipo mas frecuente (patron): 1-> {self.codeTipoBosquePatronMasFrecuente1} ({self.pctjTipoBosquePatronMasFrecuente1} %)')
-                        print(f'\t\t-> Tipo mas frecuente (testeo): 1-> {codeTipoBosqueTesteoMasFrecuente1} ({pctjTipoBosqueTesteoMasFrecuente1} %)')
+                        print(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
+                        print(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self.codeTipoBosquePatronMasFrecuente1} ({self.pctjTipoBosquePatronMasFrecuente1} %)')
+                        print(f'{TB}{TV}-> Tipo mas frecuente (testeo): 1-> {codeTipoBosqueTesteoMasFrecuente1} ({pctjTipoBosqueTesteoMasFrecuente1} %)')
                         tipoBosqueOk = 10
                     else:
                         binomioEspecies = f'{codeTipoBosqueTesteoMasFrecuente1}_{self.codeTipoBosquePatronMasFrecuente1}'
@@ -1322,19 +1598,19 @@ and two more layers for forest type (land cover) and stand type.
                             tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies]
                         else:
                             tipoBosqueOk = 0
-                        print(f'\t-> Tipo de bosque principal con mas del 70 de ocupacion NO ok: {tipoBosqueOk}')
+                        print(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion NO ok: {tipoBosqueOk}')
                 else:
                     if (
                         codeTipoBosqueTesteoMasFrecuente1 == self.codeTipoBosquePatronMasFrecuente1
                         and codeTipoBosqueTesteoMasFrecuente2 == self.codeTipoBosquePatronMasFrecuente2
                     ):
-                        print(f'\t-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo SI ok:')
+                        print(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo SI ok:')
                         tipoBosqueOk = 10
                     elif (
                         codeTipoBosqueTesteoMasFrecuente1 == self.codeTipoBosquePatronMasFrecuente2
                         and codeTipoBosqueTesteoMasFrecuente2 == self.codeTipoBosquePatronMasFrecuente1
                     ):
-                        print(f'\t-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
+                        print(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
                         tipoBosqueOk = 10
                     else:
                         binomioEspecies = f'{codeTipoBosqueTesteoMasFrecuente1}_{self.codeTipoBosquePatronMasFrecuente1}'
@@ -1342,21 +1618,29 @@ and two more layers for forest type (land cover) and stand type.
                             tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies] - 1
                         else:
                             tipoBosqueOk = 0
-                        print(f'\t-> Tipos de bosque principal (menos del 70 de ocupacion) y segundo NO ok: {tipoBosqueOk}')
-                    print(f'\t\t-> Tipo mas frecuente (patron): 1-> {self.codeTipoBosquePatronMasFrecuente1} ({self.pctjTipoBosquePatronMasFrecuente1} %)')
-                    print(f'\t\t-> Tipo mas frecuente (testeo): 1-> {codeTipoBosqueTesteoMasFrecuente1} ({pctjTipoBosqueTesteoMasFrecuente1} %)')
-                    print(f'\t\t-> Tipo mas frecuente (patron): 2-> {self.codeTipoBosquePatronMasFrecuente2} ({self.pctjTipoBosquePatronMasFrecuente2} %)')
-                    print(f'\t\t-> Tipo mas frecuente (testeo): 2-> {codeTipoBosqueTesteoMasFrecuente2} ({pctjTipoBosqueTesteoMasFrecuente2} %)')
+                        print(f'{TB}-> Tipos de bosque principal (menos del 70 de ocupacion) y segundo NO ok: {tipoBosqueOk}')
+                    print(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self.codeTipoBosquePatronMasFrecuente1} ({self.pctjTipoBosquePatronMasFrecuente1} %)')
+                    print(f'{TB}{TV}-> Tipo mas frecuente (testeo): 1-> {codeTipoBosqueTesteoMasFrecuente1} ({pctjTipoBosqueTesteoMasFrecuente1} %)')
+                    print(f'{TB}{TV}-> Tipo mas frecuente (patron): 2-> {self.codeTipoBosquePatronMasFrecuente2} ({self.pctjTipoBosquePatronMasFrecuente2} %)')
+                    print(f'{TB}{TV}-> Tipo mas frecuente (testeo): 2-> {codeTipoBosqueTesteoMasFrecuente2} ({pctjTipoBosqueTesteoMasFrecuente2} %)')
 
             elif nInputVar >= 0 and nInputVar < self.nInputVars:
-                claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][0]}_ref'
-                claveMin = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][0]}_min'
-                claveMax = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][0]}_max'
+                claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_ref'
+                claveMin = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_min'
+                claveMax = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_max'
                 # self.dictHistProb01[claveDef] = histProb01Testeo
 
+
+
+                if self.calcularRangoVariables:
+                    print('\n{:_^80}'.format(''))
+                    print('\n\n\nclidtwins-> ATENCION: calcular rangos aqui.\n\n\n')
+                    print('{:=^80}'.format(''))
+
+
                 print(f'\n(3) Chequeando rangos admisibles para: {claveDef}')
-                # print(f'\tValores de referencia:')
-                # print('\t\t-> self.dictHistProb01[claveDef]:', self.dictHistProb01[claveDef])
+                # print(f'{TB}Valores de referencia:')
+                # print(f'{TB}{TV}-> self.dictHistProb01[claveDef]:', self.dictHistProb01[claveDef])
                 todosLosRangosOk = True
                 nTramosFueraDeRango = 0
                 # for nRango in range(len(histProb01Testeo)):
@@ -1366,17 +1650,17 @@ and two more layers for forest type (land cover) and stand type.
                     limSup = (nRango + 1) * (self.myRange[nBanda][1] - self.myRange[nBanda][0]) / self.myNBins[nBanda]
                     miRango = f'{limInf}-{limSup}'
                     if histProb01Testeo[nRango] < self.dictHistProb01[claveMin][nRango]:
-                        print(f'\t-> {claveDef}-> nRango {nRango} de {self.myNBins[nBanda]} ({miRango}): {histProb01Testeo[nRango]} debajo del rango {self.dictHistProb01[claveMin][nRango]} - {self.dictHistProb01[claveMax][nRango]}; Valor de referencia: {self.dictHistProb01[claveDef][nRango]}')
+                        print(f'{TB}-> {claveDef}-> nRango {nRango} de {self.myNBins[nBanda]} ({miRango}): {histProb01Testeo[nRango]} debajo del rango {self.dictHistProb01[claveMin][nRango]} - {self.dictHistProb01[claveMax][nRango]}; Valor de referencia: {self.dictHistProb01[claveDef][nRango]}')
                         todosLosRangosOk = False
                         nTramosFueraDeRango += 1
                     if histProb01Testeo[nRango] > self.dictHistProb01[claveMax][nRango]:
-                        print(f'\t-> {claveDef}-> nRango {nRango} ({miRango}): {histProb01Testeo[nRango]} encima del rango {self.dictHistProb01[claveMin][nRango]} - {self.dictHistProb01[claveMax][nRango]}; Valor de referencia: {self.dictHistProb01[claveDef][nRango]}')
+                        print(f'{TB}-> {claveDef}-> nRango {nRango} ({miRango}): {histProb01Testeo[nRango]} encima del rango {self.dictHistProb01[claveMin][nRango]} - {self.dictHistProb01[claveMax][nRango]}; Valor de referencia: {self.dictHistProb01[claveDef][nRango]}')
                         todosLosRangosOk = False
                         nTramosFueraDeRango += 1
                 if todosLosRangosOk:
-                    print(f'\t-> Todos los tramos ok.')
+                    print(f'{TB}-> Todos los tramos ok.')
                 else:
-                    print(f'\t-> TestShape-> Numero de tramos fuera de rango: {nTramosFueraDeRango}')
+                    print(f'{TB}-> TestShape-> Numero de tramos fuera de rango: {nTramosFueraDeRango}')
                     if nTramosFueraDeRango >= 1:
                         nVariablesNoOk += 1
 
@@ -1390,11 +1674,11 @@ and two more layers for forest type (land cover) and stand type.
         # print('clidtwins-> Matriz de distancias:')
         # print(matrizDeDistancias[:5,:5])
         print(f'Resumen del match:')
-        print(f'\t-> tipoBosqueOk:             {tipoBosqueOk}')
-        print(f'\t-> nVariablesNoOk:           {nVariablesNoOk}')
-        print(f'\t-> matrizDeDistancias.shape: {matrizDeDistancias.shape}') 
-        print(f'\t-> Distancia media:          {distanciaEuclideaMedia}')
-        print(f'\t-> Factor de proximidad:     {pctjPorcentajeDeProximidad}')
+        print(f'{TB}-> tipoBosqueOk:             {tipoBosqueOk}')
+        print(f'{TB}-> nVariablesNoOk:           {nVariablesNoOk}')
+        print(f'{TB}-> matrizDeDistancias.shape: {matrizDeDistancias.shape}') 
+        print(f'{TB}-> Distancia media:          {distanciaEuclideaMedia}')
+        print(f'{TB}-> Factor de proximidad:     {pctjPorcentajeDeProximidad}')
         print('{:=^80}'.format(''))
 
 
@@ -1455,21 +1739,21 @@ and two more layers for forest type (land cover) and stand type.
         if self.LOCLverbose:
             print('\n{:_^80}'.format(''))
             print('clidtwins-> Ficheros que se generan:')
-            print(f'\t Fichero multibanda* con las variables dasoLidar clusterizadas (radio de {self.LOCLradioClusterPix} pixeles): {self.outputClusterAllDasoVarsFileNameSinPath}')
-            print(f'\t\t * Con todas las variables dasoLidar (una en cada banda) y dos bandas adicionales con tipo de bosque y tipo de masa.')
-            print(f'\t Fichero biBanda con presencia del tipo de masa patron y proximidad a especie principal:')
-            print(f'\t\t {self.outputClusterTiposDeMasaFileNameSinPath}')
-            print(f'\t\t * Segunda banda: MFE')
-            print(f'\t Fichero biBanda con la distancia euclidea al patron y especie principal clusterizados:')
-            print(f'\t\t {self.outputClusterDistanciaEuFileNameSinPath}')
-            print(f'\t\t * Segunda banda: MFE')
-            print(f'\t Fichero monoBanda con el factor de proximidad al patron y proximidad a especie principal:')
-            print(f'\t\t {self.outputClusterFactorProxiFileNameSinPath}')
+            print(f'{TB} Fichero multibanda* con las variables dasoLidar clusterizadas (radio de {self.LOCLradioClusterPix} pixeles): {self.outputClusterAllDasoVarsFileNameSinPath}')
+            print(f'{TB}{TV} * Con todas las variables dasoLidar (una en cada banda) y dos bandas adicionales con tipo de bosque y tipo de masa.')
+            print(f'{TB} Fichero biBanda con presencia del tipo de masa patron y proximidad a especie principal:')
+            print(f'{TB}{TV} {self.outputClusterTiposDeMasaFileNameSinPath}')
+            print(f'{TB}{TV} * Segunda banda: MFE')
+            print(f'{TB} Fichero biBanda con la distancia euclidea al patron y especie principal clusterizados:')
+            print(f'{TB}{TV} {self.outputClusterDistanciaEuFileNameSinPath}')
+            print(f'{TB}{TV} * Segunda banda: MFE')
+            print(f'{TB} Fichero monoBanda con el factor de proximidad al patron y proximidad a especie principal:')
+            print(f'{TB}{TV} {self.outputClusterFactorProxiFileNameSinPath}')
 
         # ======================================================================
         # Lectura del raster con todas las variables en distintas bandas,
         # mas el tipo de bosque y el tipo de masa, por el momento sin asignar.
-        # Requiere haver ejecutado antes createAnalizeMultiDasoLayerRasterFile<>
+        # Requiere haver ejecutado antes createMultiDasoLayerRasterFile<>
         # Para generar el dict rasterDatasetAll con los datos de todas las bandas.
         # ======================================================================
         arrayBandaXinputMonoPixelAll = {}
@@ -1635,10 +1919,11 @@ and two more layers for forest type (land cover) and stand type.
             ramMem = psutil.virtual_memory()
             megasLibres = ramMem.available / 1048576 # ~1E6
             megasReservados = 1000 if megasLibres > 2000 else megasLibres / 2
-            print('\t-> Megas libres: {:0.2f} MB'.format(megasLibres))
+            print('{}-> Megas libres: {:0.2f} MB'.format(TB, megasLibres))
             numMaximoPixeles = (megasLibres - megasReservados) * 1e6 / (self.nBandasRasterOutput * nBytesPorBanda)
             print(
-                '\t-> Num max. Pixeles: {:0.2f} MegaPixeles ({} bandas, {} bytes por pixel)'.format(
+                '{}-> Num max. Pixeles: {:0.2f} MegaPixeles ({} bandas, {} bytes por pixel)'.format(
+                    TB,
                     numMaximoPixeles / 1e6,
                     self.nBandasRasterOutput,
                     nBytesPorBanda
@@ -1649,7 +1934,8 @@ and two more layers for forest type (land cover) and stand type.
         nMegaPixeles = self.nCeldasX_Destino * self.nCeldasY_Destino / 1e6
         nMegaBytes = nMegaPixeles * self.nBandasRasterOutput * nBytesPorBanda
         print(
-            '\t-> nCeldas previstas:  {} x {} = {:0.2f} MegaPixeles = {:0.2f} MegaBytes'.format(
+            '{}-> nCeldas previstas:  {} x {} = {:0.2f} MegaPixeles = {:0.2f} MegaBytes'.format(
+                TB,
                 self.nCeldasX_Destino,
                 self.nCeldasY_Destino,
                 nMegaPixeles,
@@ -1660,11 +1946,11 @@ and two more layers for forest type (land cover) and stand type.
             # Se puede cargar toda la banda1 en memoria
             cargarRasterEnMemoria = True
             # Creo un ndarray con el contenido de la banda 1 del raster dataset creado
-            print('\t-> SI se carga toda la banda en memoria.')
+            print(f'{TB}-> SI se carga toda la banda en memoria.')
         else:
             cargarRasterEnMemoria = False
-            print('\t-> NO se carga toda la banda en memoria.')
-            print('\t\t OPCION PARCIALMENTE IMPLEMENTADA: seguir el procedimiento usado en mergeBloques<>')
+            print(f'{TB}-> NO se carga toda la banda en memoria.')
+            print(f'{TB}{TV} OPCION PARCIALMENTE IMPLEMENTADA: seguir el procedimiento usado en mergeBloques<>')
             sys.exit(0)
         print('{:=^80}'.format(''))
         # ======================================================================
@@ -1689,36 +1975,36 @@ and two more layers for forest type (land cover) and stand type.
         for outputNBand in range(1, self.nBandasPrevistasOutput + 1):
             dictSelecMultiBandaClusterDasoVars[outputNBand] = outputDatasetClusterDasoVarMultiple.GetRasterBand(outputNBand)
             dictArrayMultiBandaClusterDasoVars[outputNBand] = dictSelecMultiBandaClusterDasoVars[outputNBand].ReadAsArray().astype(self.outputNpDatatypeAll)
-            # print(f'\t-> Banda: {outputNBand} -> shape: {dictArrayMultiBandaClusterDasoVars[outputNBand].shape}')
-        # print(f'\tclaves de dictArrayMultiBandaClusterDasoVars: {dictArrayMultiBandaClusterDasoVars.keys()}')
+            # print(f'{TB}-> Banda: {outputNBand} -> shape: {dictArrayMultiBandaClusterDasoVars[outputNBand].shape}')
+        # print(f'{TB}claves de dictArrayMultiBandaClusterDasoVars: {dictArrayMultiBandaClusterDasoVars.keys()}')
         if self.LOCLverbose > 1:
             print('\n{:_^80}'.format(''))
             print(f'clidtwins-> Dimensiones de los raster creados (pixeles): {arrayBandaTipoMasa.shape}')
             print(f'-> Tipo de dato de los rasters creados::')
             print(
-                f'\t-> Raster bibanda con el tipo de masa:           '
+                f'{TB}-> Raster bibanda con el tipo de masa:           '
                 f'{type(arrayBandaTipoMasa)}, dtype: {arrayBandaTipoMasa.dtype} '
                 f'-> {self.outputClusterTiposDeMasaFileNameSinPath}'
             )
             print(
-                f'\t-> Raster bibanda con la DistanciaEuclideaMedia: '
+                f'{TB}-> Raster bibanda con la DistanciaEuclideaMedia: '
                 f'{type(arrayBandaDistanciaEuclideaMedia)}, dtype: {arrayBandaDistanciaEuclideaMedia.dtype} '
                 f'-> {self.outputClusterDistanciaEuFileNameSinPath}'
             )
             print(
-                f'\t-> Raster bibanda con el PorcentajeDeProximidad: '
+                f'{TB}-> Raster bibanda con el PorcentajeDeProximidad: '
                 f'{type(arrayBandaPorcentajeDeProximidad)}, dtype: {arrayBandaPorcentajeDeProximidad.dtype} '
                 f'-> {self.outputClusterFactorProxiFileNameSinPath}'
             )
             print(
-                f'\t-> Raster multibanda con las clusterDasoVars:    '
+                f'{TB}-> Raster multibanda con las clusterDasoVars:    '
                 f'{type(arrayBandaClusterDasoVarBanda1)}, dtype: {arrayBandaClusterDasoVarBanda1.dtype} '
                 f'-> {self.outputClusterAllDasoVarsFileNameSinPath}'
             )
             # print(f'-> Otros datos del rater cluster multibanda creado ({self.outputClusterAllDasoVarsFileNameSinPath}:')
             # print(f'-> Datos del raster cluster multibanda creado ({self.outputClusterAllDasoVarsFileNameSinPath}:')
-            # print(f'\t-> Tipo de dato:              {type(dictArrayMultiBandaClusterDasoVars[1])} = {self.outputNpDatatypeAll}, dtype: {dictArrayMultiBandaClusterDasoVars[1].dtype}')
-            # print(f'\t-> Dimensiones de las bandas: {dictArrayMultiBandaClusterDasoVars[1].shape}')
+            # print(f'{TB}-> Tipo de dato:              {type(dictArrayMultiBandaClusterDasoVars[1])} = {self.outputNpDatatypeAll}, dtype: {dictArrayMultiBandaClusterDasoVars[1].dtype}')
+            # print(f'{TB}-> Dimensiones de las bandas: {dictArrayMultiBandaClusterDasoVars[1].shape}')
             print('{:=^80}'.format(''))
         # ======================================================================
 
@@ -1734,6 +2020,7 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
 
         # ======================================================================
+        contadorAvisosCluster = 0
         if self.LOCLverbose:
             print('\n{:_^80}'.format(''))
             print(f'Recorriendo raster multibanda para calcular clusterVars, tipoDeMasa y parametros de proximidad (nBandas: {self.nBandasRasterOutput}; ladoCluster: {ladoCluster})\n')
@@ -1768,7 +2055,7 @@ and two more layers for forest type (land cover) and stand type.
                         TRNSmostrarClusterMatch = False
                 # TRNSmostrarClusterMatch = False
 
-                clusterRelleno = rellenarLocalCluster(
+                (clusterRelleno, contadorAvisosCluster) = rellenarLocalCluster(
                     arrayBandaXinputMonoPixelAll,
                     nRowRaster,
                     nColRaster,
@@ -1777,6 +2064,7 @@ and two more layers for forest type (land cover) and stand type.
                     self_outputNpDatatypeAll=self.outputNpDatatypeAll,
                     self_LOCLverbose=self.LOCLverbose,
                     TRNSmostrarClusterMatch=TRNSmostrarClusterMatch,
+                    contadorAvisosCluster=contadorAvisosCluster,
                 )
                 if not clusterRelleno[0]:
                     continue
@@ -1790,7 +2078,7 @@ and two more layers for forest type (land cover) and stand type.
 
                 # if not nCeldasConDasoVarsOk and self.LOCLverbose > 1:
                 #     # Por aqui no pasa porque ya he interceptado este problema mas arriba
-                #     print(f'\t\t-> AVISO (c): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                #     print(f'{TB}{TV}-> AVISO (c): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
                 #     continue
 
                 # ==============================================================
@@ -1804,10 +2092,10 @@ and two more layers for forest type (land cover) and stand type.
                     multiplicadorDeFueraDeRangoParaLaVariable = ponderacionDeLaVariable
                     if TRNSmostrarClusterMatch:
                         if nBanda == self.nBandasRasterOutput - 1:
-                            print(f'\t-> Banda {nBanda} -> (cluster) Chequeando tipo de bosque.')
+                            print(f'{TB}-> Banda {nBanda} -> (cluster) Chequeando tipo de bosque.')
                         elif nInputVar >= 0 and nInputVar < self.nInputVars:
-                            claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][0]}_ref'
-                            print(f'\t-> Banda {nBanda} -> (cluster) Chequeando rangos admisibles para: {claveDef} (pondera: {ponderacionDeLaVariable})')
+                            claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_ref'
+                            print(f'{TB}-> Banda {nBanda} -> (cluster) Chequeando rangos admisibles para: {claveDef} (pondera: {ponderacionDeLaVariable})')
 
                     # if clusterCompleto:
                     #     localClusterArrayMultiBandaDasoVars[nBanda-1] = arrayBandaXinputMonoPixelAll[nBanda - 1][
@@ -1877,7 +2165,7 @@ and two more layers for forest type (land cover) and stand type.
                         # print(f'clidtwins-> ATENCION: revisar porque que el cluster no tiene elementos no nulos (clusterCompleto: {clusterCompleto}):')
                         # print('nRowColRaster:', nRowRaster, nColRaster, 'nBanda:', nBanda, 'self.myRange[nBanda]:', self.myRange[nBanda], 'self.myNBins[nBanda]:', self.myNBins[nBanda], 'self.myNBins:', self.myNBins)
                         # if nInputVar < len(self.LOCLlistLstDasoVars):
-                        #     print('Variable:', self.LOCLlistLstDasoVars[nInputVar][0], 'nBins:', self.LOCLlistLstDasoVars[nInputVar][4], 'nRango:', self.LOCLlistLstDasoVars[nInputVar][2:4])
+                        #     print('Variable:', self.LOCLlistLstDasoVars[nInputVar][1], 'nBins:', self.LOCLlistLstDasoVars[nInputVar][4], 'nRango:', self.LOCLlistLstDasoVars[nInputVar][2:4])
                         # print('localClusterArrayMultiBandaDasoVars:', localClusterArrayMultiBandaDasoVars[nBanda-1])
                         # print('nonzero:', np.nonzero(histNumberCluster[0]))
                         continue
@@ -2011,6 +2299,7 @@ def rellenarLocalCluster(
         self_outputNpDatatypeAll=None,
         self_LOCLverbose=False,
         TRNSmostrarClusterMatch=False,
+        contadorAvisosCluster=0,
     ):
     self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll)
     if self_outputNpDatatypeAll is None:
@@ -2096,25 +2385,34 @@ def rellenarLocalCluster(
             if (localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll).all():
                 localClusterOk = False
                 return (
-                    localClusterOk,
+                    (
+                        localClusterOk,
+                    ),
+                    contadorAvisosCluster,
                 )
                 # continue
             arrayBandaXMaskCluster[localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
 
         if (arrayBandaXMaskCluster == 1).all():
             if self_LOCLverbose > 1:
-                print(f'\t\t-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                print(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
             localClusterOk = False
             return (
-                localClusterOk,
+                (
+                    localClusterOk,
+                ),
+                contadorAvisosCluster,
             )
             # continue
-        elif (arrayBandaXMaskCluster != 1).sum() < 5:
-            if self_LOCLverbose > 1:
-                print(f'\t\t-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
+        elif (arrayBandaXMaskCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
+            if self_LOCLverbose > 2:
+                print(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
             localClusterOk = False
             return (
-                localClusterOk,
+                (
+                    localClusterOk,
+                ),
+                contadorAvisosCluster,
             )
             # continue
 
@@ -2177,25 +2475,42 @@ def rellenarLocalCluster(
             if (localSubClusterArrayMultiBandaDasoVars == self_noDataDasoVarAll).all():
                 localClusterOk = False
                 return (
-                    localClusterOk,
+                    (
+                        localClusterOk,
+                    ),
+                    contadorAvisosCluster,
                 )
                 # continue
             arrayBandaXMaskSubCluster[localSubClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
 
         if (arrayBandaXMaskSubCluster == 1).all():
             if self_LOCLverbose > 1:
-                print(f'\t\t-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                if contadorAvisosCluster < 20:
+                    print(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                elif contadorAvisosCluster == 20:
+                    print(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
             localClusterOk = False
             return (
-                localClusterOk,
+                (
+                    localClusterOk,
+                ),
+                contadorAvisosCluster,
             )
             # continue
-        elif (arrayBandaXMaskSubCluster != 1).sum() < 5:
-            if self_LOCLverbose > 1:
-                print(f'\t\t-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
+        elif (arrayBandaXMaskSubCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
+            if self_LOCLverbose > 2:
+                if contadorAvisosCluster < 20:
+                    print(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
+                elif contadorAvisosCluster == 20:
+                    print(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
             localClusterOk = False
             return (
-                localClusterOk,
+                (
+                    localClusterOk,
+                ),
+                contadorAvisosCluster,
             )
             # continue
 
@@ -2205,21 +2520,25 @@ def rellenarLocalCluster(
 
     if TRNSmostrarClusterMatch:
         print(f'\n-> nRowColRaster: {nRowRaster} {nColRaster}; coordXY: {coordX} {coordY}')
-        print(f'\t\t-> clusterCompleto: {clusterCompleto}')
-        print(f'\t\t-> Numero de celdas con dasoVars ok en todas las bandas: {nCeldasConDasoVarsOk}')
-        print(f'\t\t-> Celdas noData (valor=1): {arrayBandaXMaskSubCluster}')
+        print(f'{TB}{TV}-> clusterCompleto: {clusterCompleto}')
+        print(f'{TB}{TV}-> Numero de celdas con dasoVars ok en todas las bandas: {nCeldasConDasoVarsOk}')
+        print(f'{TB}{TV}-> Celdas noData (valor=1): {arrayBandaXMaskSubCluster}')
 
     localClusterOk = True
     return (
-        localClusterOk,
-        clusterCompleto,
-        localClusterArrayMultiBandaDasoVars,
-        localSubClusterArrayMultiBandaDasoVars,
-        listaCeldasConDasoVarsCluster,
-        listaCeldasConDasoVarsSubCluster,
-        arrayBandaXMaskCluster,
-        arrayBandaXMaskSubCluster,
+        (
+            localClusterOk,
+            clusterCompleto,
+            localClusterArrayMultiBandaDasoVars,
+            localSubClusterArrayMultiBandaDasoVars,
+            listaCeldasConDasoVarsCluster,
+            listaCeldasConDasoVarsSubCluster,
+            arrayBandaXMaskCluster,
+            arrayBandaXMaskSubCluster,
+        ),
+        contadorAvisosCluster,
     )
+
 
 
 # ==============================================================================
@@ -2281,9 +2600,9 @@ def calculaHistogramas(
             / self_myNBins[nBanda]
         )
         if TRNSmostrarClusterMatch:
-            print('\t\t->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
-            print('\t\t->->localClusterArrayMultiBandaDasoVarsMasked', localClusterArrayMultiBandaDasoVarsMasked[nBanda-1])
-            print('\t\t->->histNumberCluster', histNumberCluster)
+            print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
+            print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVarsMasked', localClusterArrayMultiBandaDasoVarsMasked[nBanda-1])
+            print(f'{TB}{TV}->->histNumberCluster', histNumberCluster)
     else:
         # print('---->>>>', localSubClusterArrayMultiBandaDasoVars.shape)
         # print('---->>>>', arrayBandaXMaskSubCluster.shape, nRowClustFin - nRowClustIni, nColClustFin - nColClustIni)
@@ -2340,11 +2659,11 @@ def calculaHistogramas(
             # histProb01cluster = np.array([])
             sys.exit(0)
         if TRNSmostrarClusterMatch:
-            print('\t\t->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
+            print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
             print('-------->self_outputNpDatatypeAll:', self_outputNpDatatypeAll)
-            print('\t\t->->localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars[nBanda-1])
-            print('\t\t->->arrayRoundSubCluster', arrayRoundSubCluster)
-            print('\t\t->->histNumberCluster', histNumberCluster)
+            print(f'{TB}{TV}->->localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars[nBanda-1])
+            print(f'{TB}{TV}->->arrayRoundSubCluster', arrayRoundSubCluster)
+            print(f'{TB}{TV}->->histNumberCluster', histNumberCluster)
 
     return (
         histNumberCluster,
@@ -2400,27 +2719,27 @@ def calculaClusterDasoVars(
         arrayPosicionTipoBosqueCluster2 = np.where(histNumberCluster[0] == histogramaTemp[-2])
 
         if TRNSmostrarClusterMatch:
-            print(f'\t\t-->>> Valor original de la celda: '
+            print(f'{TB}{TV}-->>> Valor original de la celda: '
                   f'{dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster]}; ' 
                   f'TipoBosqueClusterMasFrecuente: '
                   f'{codeTipoBosqueClusterMasFrecuente1}'
                   f' = {arrayPosicionTipoBosqueCluster1[0][0]}')
 
-        # print(f'\t-> Tipo de bosque principal (cluster): {codeTipoBosqueClusterMasFrecuente1}; frecuencia: {int(round(100 * histProb01cluster[codeTipoBosqueClusterMasFrecuente1], 0))} %')
-        # print(f'\t-> {arrayPosicionTipoBosqueCluster1}')
+        # print(f'{TB}-> Tipo de bosque principal (cluster): {codeTipoBosqueClusterMasFrecuente1}; frecuencia: {int(round(100 * histProb01cluster[codeTipoBosqueClusterMasFrecuente1], 0))} %')
+        # print(f'{TB}-> {arrayPosicionTipoBosqueCluster1}')
 
         # for contadorTB1, numPosicionTipoBosqueCluster1 in enumerate(arrayPosicionTipoBosqueCluster1[0]):
-        #     print(f'\t-> {numPosicionTipoBosqueCluster1}')
-        #     print(f'\t-> {contadorTB1} Tipo de bosque primero (cluster): {numPosicionTipoBosqueCluster1}; frecuencia: {int(round(100 * histProb01cluster[numPosicionTipoBosqueCluster1], 0))} %')
+        #     print(f'{TB}-> {numPosicionTipoBosqueCluster1}')
+        #     print(f'{TB}-> {contadorTB1} Tipo de bosque primero (cluster): {numPosicionTipoBosqueCluster1}; frecuencia: {int(round(100 * histProb01cluster[numPosicionTipoBosqueCluster1], 0))} %')
         # if histProb01cluster[arrayPosicionTipoBosqueCluster2[0][0]] != 0:
         #     for contadorTB2, numPosicionTipoBosqueCluster2 in enumerate(arrayPosicionTipoBosqueCluster2[0]):
-        #         print(f'\t-> {numPosicionTipoBosqueCluster2}')
-        #         print(f'\t-> {contadorTB2} Tipo de bosque segundo (cluster): {numPosicionTipoBosqueCluster2}; frecuencia: {int(round(100 * histProb01cluster[numPosicionTipoBosqueCluster2], 0))} %')
+        #         print(f'{TB}-> {numPosicionTipoBosqueCluster2}')
+        #         print(f'{TB}-> {contadorTB2} Tipo de bosque segundo (cluster): {numPosicionTipoBosqueCluster2}; frecuencia: {int(round(100 * histProb01cluster[numPosicionTipoBosqueCluster2], 0))} %')
         # else:
-        #     print(f'\t-> Solo hay tipo de bosque princial')
+        #     print(f'{TB}-> Solo hay tipo de bosque princial')
 
         if codeTipoBosqueClusterMasFrecuente1 != arrayPosicionTipoBosqueCluster1[0][0]:
-            print('\t-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosqueClusterMasFrecuente1} != {arrayPosicionTipoBosqueCluster1[0][0]}')
+            print(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosqueClusterMasFrecuente1} != {arrayPosicionTipoBosqueCluster1[0][0]}')
         if len(arrayPosicionTipoBosqueCluster1[0]) == 1:
             codeTipoBosqueClusterMasFrecuente2 = arrayPosicionTipoBosqueCluster2[0][0]
         else:
@@ -2432,7 +2751,7 @@ def calculaClusterDasoVars(
         # codeTipoBosqueClusterMasFrecuente1 = (localClusterArrayMultiBandaDasoVars[nBanda-1]).flatten()[(localClusterArrayMultiBandaDasoVars[nBanda-1]).argmax()]
         # if nRowRaster >= 16 and nRowRaster <= 30 and nColRaster <= 5:
         #     print(
-        #         '\t', nRowRaster, nColRaster, 'nBanda', nBanda, 
+        #         f'{TB}', nRowRaster, nColRaster, 'nBanda', nBanda, 
         #         f'-> codeTipoBosqueClusterMasFrecuente1: {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1})',
         #         f'-> codeTipoBosqueClusterMasFrecuente2: {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2})')
 
@@ -2442,9 +2761,9 @@ def calculaClusterDasoVars(
 
         if TRNSmostrarClusterMatch:
             if codeTipoBosqueClusterMasFrecuente1 != 0:
-                # print(f'\t-> nRowColRaster: {nRowRaster} {nColRaster} -> (cluster) Chequeando tipo de bosque: codeTipoBosqueClusterMasFrecuente1: {dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster]} = {codeTipoBosqueClusterMasFrecuente1}')
-                print(f'\t\t-> Tipos de bosque mas frecuentes (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %); 2-> {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2} %)')
-                print(f'\t\t-> Numero pixeles de cada tipo de bosque (cluster) ({(histNumberCluster[0]).sum()}):\n{histNumberCluster[0][:tipoBosqueUltimoNumero + 1]}')
+                # print(f'{TB}-> nRowColRaster: {nRowRaster} {nColRaster} -> (cluster) Chequeando tipo de bosque: codeTipoBosqueClusterMasFrecuente1: {dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster]} = {codeTipoBosqueClusterMasFrecuente1}')
+                print(f'{TB}{TV}-> Tipos de bosque mas frecuentes (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %); 2-> {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2} %)')
+                print(f'{TB}{TV}-> Numero pixeles de cada tipo de bosque (cluster) ({(histNumberCluster[0]).sum()}):\n{histNumberCluster[0][:tipoBosqueUltimoNumero + 1]}')
             else:
                 # print('nRow:', nRowRaster, 'nCol', nColRaster, '->codeTipoBosqueClusterMasFrecuente1:', localClusterArrayMultiBandaDasoVars[nBanda-1][nRowRaster, nColRaster], 'Revisar')
                 print('nRow:', nRowRaster, 'nCol', nColRaster, '-> Revisar')
@@ -2453,7 +2772,7 @@ def calculaClusterDasoVars(
             if (codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente1):
                 tipoBosqueOk = 10
                 if TRNSmostrarClusterMatch:
-                    print(f'\t-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
+                    print(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
             else:
                 binomioEspecies = f'{codeTipoBosqueClusterMasFrecuente1}_{self_codeTipoBosquePatronMasFrecuente1}'
                 if binomioEspecies in (GLO.GLBLdictProximidadInterEspecies).keys():
@@ -2461,10 +2780,10 @@ def calculaClusterDasoVars(
                 else:
                     tipoBosqueOk = 0
                 if TRNSmostrarClusterMatch:
-                    print(f'\t-> Tipo de bosque principal con mas del 70 de ocupacion NO ok: {tipoBosqueOk}')
+                    print(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion NO ok: {tipoBosqueOk}')
             if TRNSmostrarClusterMatch:
-                print(f'\t\t-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
-                print(f'\t\t-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
+                print(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
+                print(f'{TB}{TV}-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
         else:
             if (
                 codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente1
@@ -2472,14 +2791,14 @@ def calculaClusterDasoVars(
             ):
                 tipoBosqueOk = 10
                 if TRNSmostrarClusterMatch:
-                    print(f'\t-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo SI ok:')
+                    print(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo SI ok:')
             elif (
                 codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente2
                 and codeTipoBosqueClusterMasFrecuente2 == self_codeTipoBosquePatronMasFrecuente1
             ):
                 tipoBosqueOk = 7
                 if TRNSmostrarClusterMatch:
-                    print(f'\t-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
+                    print(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
             else:
                 binomioEspecies = f'{codeTipoBosqueClusterMasFrecuente1}_{self_codeTipoBosquePatronMasFrecuente1}'
                 if binomioEspecies in (GLO.GLBLdictProximidadInterEspecies).keys():
@@ -2487,18 +2806,18 @@ def calculaClusterDasoVars(
                 else:
                     tipoBosqueOk = 0
                 if TRNSmostrarClusterMatch:
-                    print(f'\t-> Tipos de bosque principal (menos del 70 de ocupacion) y segundo NO ok: {tipoBosqueOk}')
+                    print(f'{TB}-> Tipos de bosque principal (menos del 70 de ocupacion) y segundo NO ok: {tipoBosqueOk}')
 
             if TRNSmostrarClusterMatch:
-                print(f'\t\t-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
-                print(f'\t\t-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
-                print(f'\t\t-> Tipo mas frecuente (patron): 2-> {self_codeTipoBosquePatronMasFrecuente2} ({self_pctjTipoBosquePatronMasFrecuente2} %)')
-                print(f'\t\t-> Tipo mas frecuente (cluster): 2-> {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2} %)')
+                print(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
+                print(f'{TB}{TV}-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
+                print(f'{TB}{TV}-> Tipo mas frecuente (patron): 2-> {self_codeTipoBosquePatronMasFrecuente2} ({self_pctjTipoBosquePatronMasFrecuente2} %)')
+                print(f'{TB}{TV}-> Tipo mas frecuente (cluster): 2-> {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2} %)')
 
     elif nInputVar >= 0 and nInputVar < self_nInputVars:
-        claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_ref'
-        claveMin = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_min'
-        claveMax = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_max'
+        claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_ref'
+        claveMin = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_min'
+        claveMax = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_max'
         # self_dictHistProb01[claveDef] = histProb01cluster
 
         todosLosRangosOk = True
@@ -2518,7 +2837,7 @@ def calculaClusterDasoVars(
                 nTramosFueraDeRango += esteTramoFueraDeRango
                 if TRNSmostrarClusterMatch:
                     print(
-                        f'\t\t-> {claveDef}-> nRango {nRango} ({miRango}): '
+                        f'{TB}{TV}-> {claveDef}-> nRango {nRango} ({miRango}): '
                         f'{histProb01cluster[nRango]} debajo del rango '
                         f'{self_dictHistProb01[claveMin][nRango]} '
                         f'- {self_dictHistProb01[claveMax][nRango]};'
@@ -2535,7 +2854,7 @@ def calculaClusterDasoVars(
                 nTramosFueraDeRango += esteTramoFueraDeRango
                 if TRNSmostrarClusterMatch:
                     print(
-                        f'\t\t-> {claveDef}-> nRango {nRango} ({miRango}): '
+                        f'{TB}{TV}-> {claveDef}-> nRango {nRango} ({miRango}): '
                         f'{histProb01cluster[nRango]} encima del rango '
                         f'{self_dictHistProb01[claveMin][nRango]} '
                         f'- {self_dictHistProb01[claveMax][nRango]}; '
@@ -2543,11 +2862,12 @@ def calculaClusterDasoVars(
                         f'-> fuera: {esteTramoFueraDeRango}')
         if todosLosRangosOk:
             if TRNSmostrarClusterMatch:
-                print(f'\t\t-> Todos los tramos ok.')
+                print(f'{TB}{TV}-> Todos los tramos ok.')
         else:
             if TRNSmostrarClusterMatch:
                 print(
-                    '\t\t-> Cluster-> Numero de tramos fuera de rango: {} (ponderado: {:0.2f})'.format(
+                    '{}{}-> Cluster-> Numero de tramos fuera de rango: {} (ponderado: {:0.2f})'.format(
+                        TB, TV,
                         nTramosFueraDeRango,
                         nTramosFueraDeRango * multiplicadorDeFueraDeRangoParaLaVariable
                     )
@@ -2556,7 +2876,8 @@ def calculaClusterDasoVars(
                 nVariablesNoOk += 1 * ponderacionDeLaVariable 
                 if TRNSmostrarClusterMatch:
                     print(
-                        '\t\t\t-> Esta variable desviaciones respecto a zona de referencia (patron) con {:0.2f} puntos'.format(
+                        '{}{}{}-> Esta variable desviaciones respecto a zona de referencia (patron) con {:0.2f} puntos'.format(
+                            TB, TV, TV,
                             ponderacionDeLaVariable
                         )
                     )
@@ -2598,11 +2919,11 @@ def obtenerExtensionDeCapaVectorial(
         LOCLverbose=False,
     ):
     # print('----->>> LOCLlayerName', type(LOCLlayerName))
-    (vectorFileDisponible, patronVectrNameConPath) = verificarExistencia(
+    (usarVectorFileParaDelimitarZona, patronVectrNameConPath) = verificarExistencia(
         LOCLvectorFileName,
         LOCLrutaAscBase=LOCLrutaAscBase,
         )
-    if not vectorFileDisponible:
+    if not usarVectorFileParaDelimitarZona:
         print('\nclidtwins-> ATENCION: no esta disponible el fichero %s' % (patronVectrNameConPath))
         return None
     if not gdalOk:
@@ -2623,7 +2944,7 @@ def obtenerExtensionDeCapaVectorial(
         print(f'clidtwins-> No se ha identificado bien el driver para este fichero: {patronVectrNameConPath}')
         sys.exit(0)
     if LOCLverbose > 1:
-        print(f'\t-> inputVectorDriverName: {LOCLPatronVectorDriverName}')
+        print(f'{TB}-> inputVectorDriverName: {LOCLPatronVectorDriverName}')
 
     inputVectorRefOgrDriver = ogr.GetDriverByName(LOCLPatronVectorDriverName)
     if inputVectorRefOgrDriver is None:
@@ -2635,8 +2956,8 @@ def obtenerExtensionDeCapaVectorial(
         print('\nclidtwins-> No se puede abrir {}-> revisar si esta corrupto, faltan ficheros o esta bloqueado'.format(patronVectrNameConPath))
         sys.exit(0)
     try:
-        # if LOCLlayerName is None or LOCLlayerName == 'None':
-        if LOCLlayerName is None or (LOCLvectorFileName.lower()).endswith('.shp'):
+        if LOCLlayerName == '' or LOCLlayerName is None or (LOCLvectorFileName.lower()).endswith('.shp'):
+            # or LOCLlayerName == 'None':
             patronVectorRefLayer = patronVectorRefDataSource.GetLayer()
         else:
             # Ver: https://developer.ogc.org/samples/build/python-osgeo-gdal/text/load-data.html#using-the-gdal-ogr-library
@@ -2647,11 +2968,11 @@ def obtenerExtensionDeCapaVectorial(
             patronVectorRefLayer = patronVectorRefDataSource.GetLayer(LOCLlayerName)
     except:
         print('\nclidtwins-> ATENCION: el fichero {} no tiene al layer {} (o da error al intentar leerlo).'.format(patronVectrNameConPath, LOCLlayerName))
-        print('\t-> LOCLlayerName: {} {}'.format(LOCLlayerName, type(LOCLlayerName)))
+        print(f'{TB}-> LOCLlayerName: {LOCLlayerName} {type(LOCLlayerName)}')
         sys.exit(0)
     if patronVectorRefLayer is None:
         print('\nclidtwins-> ATENCION: el fichero {} no tiene al layer {} (o no esta accesible).'.format(patronVectrNameConPath, LOCLlayerName))
-        print('\t-> LOCLlayerName: {} {}'.format(LOCLlayerName, type(LOCLlayerName)))
+        print(f'{TB}-> LOCLlayerName: {LOCLlayerName} {type(LOCLlayerName)}')
         sys.exit(0)
     patronVectorRefFeatureCount = patronVectorRefLayer.GetFeatureCount()
     (
@@ -2662,8 +2983,8 @@ def obtenerExtensionDeCapaVectorial(
     ) = patronVectorRefLayer.GetExtent()
 
     if LOCLverbose:
-        print(f'\t-> Layer:                           {LOCLlayerName}')
-        print(f'\t-> Numero de elementos en el layer: {patronVectorRefFeatureCount}')
+        print(f'{TB}-> Layer:                           {LOCLlayerName}')
+        print(f'{TB}-> Numero de elementos en el layer: {patronVectorRefFeatureCount}')
         print('{:=^80}'.format(''))
 
     return (
@@ -2716,7 +3037,7 @@ def recortarRasterTiffPatronDasoLidar(
     )
     if envolventeShape is None:
         print('\nclidtwins-> ATENCION: no esta disponible el fichero {}'.format(self_LOCLpatronVectrName))
-        print('\t-> Ruta base: {}'.format(self_LOCLrutaAscRaizBase))
+        print(f'{TB}-> Ruta base: {self_LOCLrutaAscRaizBase}')
         sys.exit(0)
     patronVectorXmin = envolventeShape[0]
     patronVectorXmax = envolventeShape[1]
@@ -2734,12 +3055,14 @@ def recortarRasterTiffPatronDasoLidar(
     ):
         print('\nclidtwins-> ATENCION: el perimetro de referencia (patron) no esta dentro de la zona analizada:')
         print(
-            '\t-> Rango de coordenadas UTM de la zona analizada: X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
+            '{}-> Rango de coordenadas UTM de la zona analizada: X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
+                TB,
                 self_nMinX_tif, self_nMaxX_tif, self_nMinY_tif, self_nMaxY_tif,
             )
         )
         print(
-            '\t-> Rango de coord UTM del perimetro del patron:   X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
+            '{}-> Rango de coord UTM del perimetro del patron:   X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
+                TB,
                 patronVectorXmin,
                 patronVectorXmax,
                 patronVectorYmin,
@@ -2747,12 +3070,13 @@ def recortarRasterTiffPatronDasoLidar(
             )
         )
         print(
-            '\t-> Raster con la zona analizada (envolvente de los asc): {}/{}'.format(
+            '{}-> Raster con la zona analizada (envolvente de los asc): {}/{}'.format(
+                TB,
                 self_LOCLoutPathNameRuta,
                 self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
             )
         )
-        print('\t-> Vector file con el perimetro de referencia (patron):  {}'.format(patronVectrNameConPath))
+        print(f'{TB}-> Vector file con el perimetro de referencia (patron):  {patronVectrNameConPath}')
         sys.exit(0)
     #===========================================================================
 
@@ -2760,7 +3084,7 @@ def recortarRasterTiffPatronDasoLidar(
     mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
     outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global.', 'Patron.')
     print('\n{:_^80}'.format(''))
-    print(f'clidtwins-> Abriendo raster creado mergedUniCellAllDasoVars:\n\t{mergedUniCellAllDasoVarsFileNameConPath}')
+    print(f'clidtwins-> Abriendo raster creado mergedUniCellAllDasoVars:\n{TB}{mergedUniCellAllDasoVarsFileNameConPath}')
     rasterDatasetAll = gdal.Open(mergedUniCellAllDasoVarsFileNameConPath, gdalconst.GA_ReadOnly)
     # print('--->>> rasterDatasetAll (1):', rasterDatasetAll)
     #===========================================================================
@@ -2770,22 +3094,36 @@ def recortarRasterTiffPatronDasoLidar(
 
     # outputBand1 = rasterDatasetAll.GetRasterBand(1)
     # arrayBanda1 = outputBand1.ReadAsArray().astype(outputNpDatatypeAll)
-    print(f'Recortando el raster con poligono de referencia (patron):\n\t{patronVectrNameConPath}')
+    if self_LOCLverbose:
+        print(f'\nclidtwins-> Recortando el raster con poligono de referencia (patron):\n'
+              f'{TB}File:  {patronVectrNameConPath}')
     # Ver: https://gdal.org/python/osgeo.gdal-module.html
     try:
-        rasterDatasetClip = gdal.Warp(
-            outputRasterNameClip,
-            rasterDatasetAll,
-            cutlineDSName=patronVectrNameConPath,
-            cutlineLayer=self_LOCLpatronLayerName,
-            cropToCutline=True,
-            # dstNodata=np.nan,
-            dstNodata=noDataDasoVarAll,
-        )
+        if self_LOCLpatronLayerName == '' or self_LOCLpatronLayerName is None:
+            rasterDatasetClip = gdal.Warp(
+                outputRasterNameClip,
+                rasterDatasetAll,
+                cutlineDSName=patronVectrNameConPath,
+                cropToCutline=True,
+                # dstNodata=np.nan,
+                dstNodata=noDataDasoVarAll,
+            )
+        else:
+            if self_LOCLverbose:
+                print(f'{TB}Layer: {self_LOCLpatronLayerName}')
+            rasterDatasetClip = gdal.Warp(
+                outputRasterNameClip,
+                rasterDatasetAll,
+                cutlineDSName=patronVectrNameConPath,
+                cutlineLayer=self_LOCLpatronLayerName,
+                cropToCutline=True,
+                # dstNodata=np.nan,
+                dstNodata=noDataDasoVarAll,
+            )
     except:
         print(f'\nclidtwins-> No se ha podido recortar el raster generado con {patronVectrNameConPath}, cutlineLayer: {self_LOCLpatronLayerName}, {type(self_LOCLpatronLayerName)}')
-        print(f'\tRevisar si se ha generado adecuadamente el raster {mergedUniCellAllDasoVarsFileNameConPath}')
-        print(f'\tRevisar si la capa vectorial de recorte es correcta, no esta bloqueada (y tiene un poligono) {patronVectrNameConPath}')
+        print(f'{TB}Revisar si se ha generado adecuadamente el raster {mergedUniCellAllDasoVarsFileNameConPath}')
+        print(f'{TB}Revisar si la capa vectorial de recorte es correcta, no esta bloqueada (y tiene un poligono) {patronVectrNameConPath}')
         sys.exit(0)
 
     rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
@@ -2802,7 +3140,7 @@ def recortarRasterTiffPatronDasoLidar(
 
     nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskClip == 0)
     listaCeldasConDasoVarsPatron = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
-    print(f'\tNumero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk}')
+    print(f'{TB}Numero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk}')
 
     # if nBandasRasterOutput != nBandasPrevistasOutput:
     #     print(f'\nAVISO: el numero de bandas del raster generado ({nBandasRasterOutput}) no es igual al previsto ({nBandasPrevistasOutput}), es decir num. de variables + 2 (num variables: {nInputVars})')
@@ -2838,10 +3176,10 @@ def recortarRasterTiffPatronDasoLidar(
         nInputVar = nBanda - 1
         if nInputVar >= 0 and nInputVar < nInputVars:
             if nFicherosDisponiblesPorTipoVariable[nInputVar] != nFicherosDisponiblesPorTipoVariable[0]:
-                print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][0]})')
-                # claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_ref'
+                print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][1]})')
+                # claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_ref'
                 # print(f'\n(1) Chequeando rangos admisibles para: {claveDef}')
-                print(f'\tAVISO: La banda {nBanda} (variable {nInputVar}) no cuenta con fichero para todos los bloques ({nFicherosDisponiblesPorTipoVariable[nInputVar]} de {nFicherosDisponiblesPorTipoVariable[0]})')
+                print(f'{TB}AVISO: La banda {nBanda} (variable {nInputVar}) no cuenta con fichero para todos los bloques ({nFicherosDisponiblesPorTipoVariable[nInputVar]} de {nFicherosDisponiblesPorTipoVariable[0]})')
                 continue
         outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
         arrayBandaXClip = outputBandXClip.ReadAsArray().astype(outputNpDatatypeAll)
@@ -2856,7 +3194,7 @@ def recortarRasterTiffPatronDasoLidar(
             mask=arrayBandaXMaskClip,
             dtype=outputNpDatatypeAll
             )
-        print('\tNumero de puntos patron con dasoVars ok:', len(ma.compressed(arrayBandaXClipMasked)))
+        print(f'{TB}Numero de puntos patron con dasoVars ok:', len(ma.compressed(arrayBandaXClipMasked)))
         listaCeldasConDasoVarsPatron[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
 
         histNumberPatron = np.histogram(arrayBandaXClip, bins=myNBins[nBanda], range=myRange[nBanda])
@@ -2867,7 +3205,7 @@ def recortarRasterTiffPatronDasoLidar(
         if nBanda == nBandasRasterOutput:
             if self_LOCLverbose:
                 print(f'\nHistograma para tipos de masa (banda {nBanda})')
-                print(f'\tPor el momento no utilizo esta informacion.')
+                print(f'{TB}Por el momento no utilizo esta informacion.')
             try:
                 tipoDeMasaUltimoNumero = np.max(np.nonzero(histNumberPatron[0]))
             except:
@@ -2878,18 +3216,18 @@ def recortarRasterTiffPatronDasoLidar(
             arrayPosicionTipoDeMasaPatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoDeMasaPatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
             if self_LOCLverbose:
-                print(f'\t-> Tipo de masa principal (patron): {codeTipoDeMasaPatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01Patron[codeTipoDeMasaPatronMasFrecuente1], 0))} %')
-                # print(f'\t-> {arrayPosicionTipoDeMasaPatron1}')
+                print(f'{TB}-> Tipo de masa principal (patron): {codeTipoDeMasaPatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01Patron[codeTipoDeMasaPatronMasFrecuente1], 0))} %')
+                # print(f'{TB}-> {arrayPosicionTipoDeMasaPatron1}')
                 for contadorTB1, numPosicionTipoDeMasaPatron1 in enumerate(arrayPosicionTipoDeMasaPatron1[0]):
-                    # print(f'\t-> {numPosicionTipoDeMasaPatron1}')
-                    print(f'\t-> {contadorTB1} Tipo de masa primero (patron): {numPosicionTipoDeMasaPatron1}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoDeMasaPatron1], 0))} %')
+                    # print(f'{TB}-> {numPosicionTipoDeMasaPatron1}')
+                    print(f'{TB}-> {contadorTB1} Tipo de masa primero (patron): {numPosicionTipoDeMasaPatron1}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoDeMasaPatron1], 0))} %')
                 if histProb01Patron[arrayPosicionTipoDeMasaPatron2[0][0]] != 0:
                     for contadorTB2, numPosicionTipoDeMasaPatron2 in enumerate(arrayPosicionTipoDeMasaPatron2[0]):
-                        # print(f'\t-> {numPosicionTipoDeMasaPatron2}')
-                        print(f'\t-> {contadorTB2} Tipo de masa segundo (patron): {numPosicionTipoDeMasaPatron2}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoDeMasaPatron2], 0))} %')
+                        # print(f'{TB}-> {numPosicionTipoDeMasaPatron2}')
+                        print(f'{TB}-> {contadorTB2} Tipo de masa segundo (patron): {numPosicionTipoDeMasaPatron2}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoDeMasaPatron2], 0))} %')
 
             if codeTipoDeMasaPatronMasFrecuente1 != arrayPosicionTipoDeMasaPatron1[0][0]:
-                print('\t-> ATENCION: revisar esto porque debe haber algun error: {codeTipoDeMasaPatronMasFrecuente1} != {arrayPosicionTipoDeMasaPatron1[0][0]}')
+                print(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoDeMasaPatronMasFrecuente1} != {arrayPosicionTipoDeMasaPatron1[0][0]}')
             if len(arrayPosicionTipoDeMasaPatron1[0]) == 1:
                 codeTipoDeMasaPatronMasFrecuente2 = arrayPosicionTipoDeMasaPatron2[0][0]
             else:
@@ -2899,11 +3237,11 @@ def recortarRasterTiffPatronDasoLidar(
             pctjTipoDeMasaPatronMasFrecuente2 = int(round(100 * histProb01Patron[codeTipoDeMasaPatronMasFrecuente2], 0))
 
             if self_LOCLverbose:
-                print(f'\t-> Tipos de masa mas frecuentes (patron): 1-> {codeTipoDeMasaPatronMasFrecuente1} ({pctjTipoDeMasaPatronMasFrecuente1} %); 2-> {codeTipoDeMasaPatronMasFrecuente2} ({pctjTipoDeMasaPatronMasFrecuente2} %)')
-                print(f'\t-> Numero pixeles de cada tipo de masa (patron) ({(histNumberPatron[0]).sum()}):')
+                print(f'{TB}-> Tipos de masa mas frecuentes (patron): 1-> {codeTipoDeMasaPatronMasFrecuente1} ({pctjTipoDeMasaPatronMasFrecuente1} %); 2-> {codeTipoDeMasaPatronMasFrecuente2} ({pctjTipoDeMasaPatronMasFrecuente2} %)')
+                print(f'{TB}-> Numero pixeles de cada tipo de masa (patron) ({(histNumberPatron[0]).sum()}):')
                 for numTipoMasa in range(len(histNumberPatron[0])):
                     if histNumberPatron[0][numTipoMasa] != 0:
-                        print(f'\t\t-> tipoMasa: {numTipoMasa} -> nPixeles: {histNumberPatron[0][numTipoMasa]}')
+                        print(f'{TB}{TV}-> tipoMasa: {numTipoMasa} -> nPixeles: {histNumberPatron[0][numTipoMasa]}')
 
         elif nBanda == nBandasRasterOutput - 1:
             if self_LOCLverbose:
@@ -2919,20 +3257,20 @@ def recortarRasterTiffPatronDasoLidar(
             arrayPosicionTipoBosquePatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoBosquePatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
             if self_LOCLverbose:
-                print(f'\t-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01Patron[codeTipoBosquePatronMasFrecuente1], 0))} %')
-                # print(f'\t-> {arrayPosicionTipoBosquePatron1}')
+                print(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01Patron[codeTipoBosquePatronMasFrecuente1], 0))} %')
+                # print(f'{TB}-> {arrayPosicionTipoBosquePatron1}')
                 for contadorTB1, numPosicionTipoBosquePatron1 in enumerate(arrayPosicionTipoBosquePatron1[0]):
-                    # print(f'\t-> {numPosicionTipoBosquePatron1}')
-                    print(f'\t-> {contadorTB1} Tipo de bosque primero (patron): {numPosicionTipoBosquePatron1}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoBosquePatron1], 0))} %')
+                    # print(f'{TB}-> {numPosicionTipoBosquePatron1}')
+                    print(f'{TB}-> {contadorTB1} Tipo de bosque primero (patron): {numPosicionTipoBosquePatron1}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoBosquePatron1], 0))} %')
                 if histProb01Patron[arrayPosicionTipoBosquePatron2[0][0]] != 0:
                     for contadorTB2, numPosicionTipoBosquePatron2 in enumerate(arrayPosicionTipoBosquePatron2[0]):
-                        # print(f'\t-> {numPosicionTipoBosquePatron2}')
-                        print(f'\t-> {contadorTB2} Tipo de bosque segundo (patron): {numPosicionTipoBosquePatron2}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoBosquePatron2], 0))} %')
+                        # print(f'{TB}-> {numPosicionTipoBosquePatron2}')
+                        print(f'{TB}-> {contadorTB2} Tipo de bosque segundo (patron): {numPosicionTipoBosquePatron2}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoBosquePatron2], 0))} %')
             else:
                 if self_LOCLverbose:
-                    print(f'\t-> Solo hay tipo de bosque princial')
+                    print(f'{TB}-> Solo hay tipo de bosque princial')
             if codeTipoBosquePatronMasFrecuente1 != arrayPosicionTipoBosquePatron1[0][0]:
-                print('\t-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosquePatronMasFrecuente1} != {arrayPosicionTipoBosquePatron1[0][0]}')
+                print(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosquePatronMasFrecuente1} != {arrayPosicionTipoBosquePatron1[0][0]}')
             if len(arrayPosicionTipoBosquePatron1[0]) == 1:
                 codeTipoBosquePatronMasFrecuente2 = arrayPosicionTipoBosquePatron2[0][0]
             else:
@@ -2942,34 +3280,34 @@ def recortarRasterTiffPatronDasoLidar(
             pctjTipoBosquePatronMasFrecuente2 = int(round(100 * histProb01Patron[codeTipoBosquePatronMasFrecuente2], 0))
 
             if self_LOCLverbose:
-                print(f'\t-> Tipos de bosque mas frecuentes (patron): 1-> {codeTipoBosquePatronMasFrecuente1} ({pctjTipoBosquePatronMasFrecuente1} %); 2-> {codeTipoBosquePatronMasFrecuente2} ({pctjTipoBosquePatronMasFrecuente2} %)')
-                print(f'\t-> Numero pixeles de cada tipo de bosque (patron) ({(histNumberPatron[0]).sum()}):')
+                print(f'{TB}-> Tipos de bosque mas frecuentes (patron): 1-> {codeTipoBosquePatronMasFrecuente1} ({pctjTipoBosquePatronMasFrecuente1} %); 2-> {codeTipoBosquePatronMasFrecuente2} ({pctjTipoBosquePatronMasFrecuente2} %)')
+                print(f'{TB}-> Numero pixeles de cada tipo de bosque (patron) ({(histNumberPatron[0]).sum()}):')
                 for numTipoBosque in range(len(histNumberPatron[0])):
                     if histNumberPatron[0][numTipoBosque] != 0:
                         print(f'tipoBosque: {numTipoBosque} -> nPixeles: {histNumberPatron[0][numTipoBosque]}')
         else:
             if self_LOCLverbose:
                 if nInputVar < len(self_LOCLlistLstDasoVars):
-                    print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][0]}) con {myNBins[nBanda]} Clases')
+                    print(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][1]}) con {myNBins[nBanda]} Clases')
                 else:
                     print(f'\nHistograma para banda {nBanda} (variable {nInputVar} de {self_LOCLlistLstDasoVars})')
-                print(f'\t-> myRange: {myRange[nBanda]}; nBins: {myNBins[nBanda]}')
+                print(f'{TB}-> myRange: {myRange[nBanda]}; nBins: {myNBins[nBanda]}')
             try:
                 ultimoNoZero = np.max(np.nonzero(histNumberPatron[0]))
             except:
                 ultimoNoZero = 0
             if self_LOCLverbose:
-                print(f'\t-> Numero puntos: {(histNumberPatron[0]).sum()} -> Histograma: {histNumberPatron[0][:ultimoNoZero + 2]}')
-            # print(f'\t-> Numero pixeles de cada rango de la variable (patron) (total: {(histNumberPatron[0]).sum()}):')
+                print(f'{TB}-> Numero puntos: {(histNumberPatron[0]).sum()} -> Histograma: {histNumberPatron[0][:ultimoNoZero + 2]}')
+            # print(f'{TB}-> Numero pixeles de cada rango de la variable (patron) (total: {(histNumberPatron[0]).sum()}):')
             # for numRango in range(len(histNumberPatron[0])):
             #     if histNumberPatron[0][numRango] != 0:
-            #         print(f'\t\t-> Rango num: {numRango} -> nPixeles: {histNumberPatron[0][numRango]}')
-        # print(f'\t-> Suma frecuencias: {round(histProb01Patron.sum(), 2)}')
+            #         print(f'{TB}{TV}-> Rango num: {numRango} -> nPixeles: {histNumberPatron[0][numRango]}')
+        # print(f'{TB}-> Suma frecuencias: {round(histProb01Patron.sum(), 2)}')
 
         if nInputVar >= 0 and nInputVar < nInputVars:
-            claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_ref'
-            claveMin = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_min'
-            claveMax = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_max'
+            claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_ref'
+            claveMin = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_min'
+            claveMax = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_max'
             LOCLdictHistProb01[claveDef] = histProb01Patron
             LOCLdictHistProb01[claveMin] = np.zeros(myNBins[nBanda], dtype=np.float32)
             LOCLdictHistProb01[claveMax] = np.zeros(myNBins[nBanda], dtype=np.float32)
@@ -2982,9 +3320,9 @@ def recortarRasterTiffPatronDasoLidar(
             except:
                 ultimoNoZero = 0
             if self_LOCLverbose > 1:
-                print(f'\t-> Creando rangos admisibles para: {claveDef}')
-                print(f'\t\tValores de referencia (patron):')
-                print(f'\t\t-> LOCLdictHistProb01[{claveDef}]:', LOCLdictHistProb01[claveDef][:ultimoNoZero + 2])
+                print(f'{TB}-> Creando rangos admisibles para: {claveDef}')
+                print(f'{TB}{TV}Valores de referencia (patron):')
+                print(f'{TB}{TV}-> LOCLdictHistProb01[{claveDef}]:', LOCLdictHistProb01[claveDef][:ultimoNoZero + 2])
             # print('LOCLdictHistProb01[claveMin]:', LOCLdictHistProb01[claveMin])
             # print('LOCLdictHistProb01[claveMax]:', LOCLdictHistProb01[claveMax])
             for nRango in range(len(histProb01Patron)):
@@ -3013,7 +3351,8 @@ def recortarRasterTiffPatronDasoLidar(
                     )
                     if self_LOCLverbose > 1:
                         print(
-                            '\t\t\t+{:03}-> claveDef: {} nRango: {}; prev: {}; this: {:0.3f}; post: {:0.3f}'.format(
+                            '{}{}{}+{:03}-> claveDef: {} nRango: {}; prev: {}; this: {:0.3f}; post: {:0.3f}'.format(
+                                TB, TV, TV,
                                 incrementoMinimo * 100,
                                 claveDef,
                                 nRango,
@@ -3040,7 +3379,8 @@ def recortarRasterTiffPatronDasoLidar(
                     )
                     if self_LOCLverbose > 1:
                         print(
-                            '\t\t\t+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {}'.format(
+                            '{}{}{}+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {}'.format(
+                                TB, TV, TV,
                                 incrementoMinimo * 100,
                                 claveDef,
                                 nRango,
@@ -3054,7 +3394,8 @@ def recortarRasterTiffPatronDasoLidar(
                         incrementoMinimo = 0.1
                         if self_LOCLverbose > 1:
                             print(
-                                '\t\t\t+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {:0.3f}'.format(
+                                '{}{}{}+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {:0.3f}'.format(
+                                    TB, TV, TV,
                                     10,
                                     claveDef,
                                     nRango,
@@ -3067,7 +3408,8 @@ def recortarRasterTiffPatronDasoLidar(
                         incrementoMinimo = 0.05
                         if self_LOCLverbose > 1:
                             print(
-                                '\t\t\t+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {:0.3f}'.format(
+                                '{}{}{}+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {:0.3f}'.format(
+                                    TB, TV, TV,
                                     5,
                                     claveDef,
                                     nRango,
@@ -3080,7 +3422,8 @@ def recortarRasterTiffPatronDasoLidar(
                         incrementoMinimo = 0.01
                         if self_LOCLverbose > 1:
                             print(
-                                '\t\t\t+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {:0.3f}'.format(
+                                '{}{}{}+{:03}-> claveDef: {} nRango: {}; prev: {:0.3f}; this: {:0.3f}; post: {:0.3f}'.format(
+                                    TB, TV, TV,
                                     1,
                                     claveDef,
                                     nRango,
@@ -3109,7 +3452,8 @@ def recortarRasterTiffPatronDasoLidar(
                 LOCLdictHistProb01[claveMax][nRango] = round(LOCLdictHistProb01[claveDef][nRango] + incrementoFrecuencia, 3)
                 if self_LOCLverbose > 1:
                     print(
-                        '\t\t\t-> Rango: {} -> decrementoFrecuencia: {} incrementoFrecuencia: {} -> min/max: {:0.3f} / {:0.3f}'.format(
+                        '{}{}{}-> Rango: {} -> decrementoFrecuencia: {} incrementoFrecuencia: {} -> min/max: {:0.3f} / {:0.3f}'.format(
+                            TB, TV, TV,
                             nRango,
                             decrementoFrecuencia,
                             incrementoFrecuencia,
@@ -3145,19 +3489,19 @@ def recortarRasterTiffPatronDasoLidar(
                     LOCLdictHistProb01[claveMax][nRango] = 0
 
             if self_LOCLverbose:
-                print(f'\t\tRangos admisibles:')
+                print(f'{TB}{TV}Rangos admisibles:')
                 # print('LOCLdictHistProb01[claveDef]:', LOCLdictHistProb01[claveDef])
                 try:
                     ultimoNoZero = np.max(np.nonzero(LOCLdictHistProb01[claveMin]))
                 except:
                     ultimoNoZero = 0
-                print('\t\t\t-> LOCLdictHistProb01[claveMin]:', LOCLdictHistProb01[claveMin][:ultimoNoZero + 2])
-                print('\t\t\t-> LOCLdictHistProb01[claveMax]:', LOCLdictHistProb01[claveMax][:ultimoNoZero + 9])
+                print(f'{TB}{TV}{TV}-> LOCLdictHistProb01[claveMin]:', LOCLdictHistProb01[claveMin][:ultimoNoZero + 2])
+                print(f'{TB}{TV}{TV}-> LOCLdictHistProb01[claveMax]:', LOCLdictHistProb01[claveMax][:ultimoNoZero + 9])
 
         # if nInputVar >= 0:
-        #     print(f'\t-> valores de referencia: {histProb01Patron}')
-        #     print(f'\t\t-> Rango min admisible:   {LOCLdictHistProb01[claveMin]}')
-        #     print(f'\t\t-> Rango max admisible:   {LOCLdictHistProb01[claveMax]}')
+        #     print(f'{TB}-> valores de referencia: {histProb01Patron}')
+        #     print(f'{TB}{TV}-> Rango min admisible:   {LOCLdictHistProb01[claveMin]}')
+        #     print(f'{TB}{TV}-> Rango max admisible:   {LOCLdictHistProb01[claveMax]}')
 
 
         mostrarGraficaHistograma = False
@@ -3171,7 +3515,7 @@ def recortarRasterTiffPatronDasoLidar(
             elif nBanda == nBandasRasterOutput - 1:
                 plt.title(f'\nHistograma para tipos de bosque (banda {nBanda})')
             else:
-                plt.title(f'Histograma para (banda {nBanda})-> variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][0]}')
+                plt.title(f'Histograma para (banda {nBanda})-> variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][1]}')
             plt.show()
 
     # Descartado porque no funciona:
@@ -3220,31 +3564,31 @@ def mostrarExportarRangos(
             ultimoNoZero = np.max(np.nonzero(self_LOCLdictHistProb01[claveDef]))
         except:
             ultimoNoZero = 0
-        print(f'\t-> claveDef: {claveDef} -> num. de rangos: {len(self_LOCLdictHistProb01[claveDef])} -> self_LOCLdictHistProb01: {self_LOCLdictHistProb01[claveDef][:ultimoNoZero + 2]}')
+        print(f'{TB}-> claveDef: {claveDef} -> num. de rangos: {len(self_LOCLdictHistProb01[claveDef])} -> self_LOCLdictHistProb01: {self_LOCLdictHistProb01[claveDef][:ultimoNoZero + 2]}')
 
     print('\nclidtwins-> Recorriendo bandas para guardar intervalos para el histograma de cada variable:')
     for nBanda in range(1, self_nBandasRasterOutput + 1):
         nInputVar = nBanda - 1
         if nInputVar < 0 or nInputVar >= self_nInputVars:
             continue
-        claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_ref'
-        claveMin = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_min'
-        claveMax = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][0]}_max'
+        claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_ref'
+        claveMin = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_min'
+        claveMax = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_max'
         # self_myRange[nBanda] = (self_LOCLlistLstDasoVars[nInputVar][2], self_LOCLlistLstDasoVars[nInputVar][3])
         # self_myNBins[nBanda] = self_LOCLlistLstDasoVars[nInputVar][4]
         if nBanda == self_nBandasRasterOutput:
-            outputRangosFileTxtControl.write(f'\nTipoMasa\tBand{nBanda}\t\n')
+            outputRangosFileTxtControl.write(f'\nTipoMasa{TB}Band{nBanda}{TB}\n')
         else:
-            outputRangosFileTxtControl.write(f'\n{self_LOCLlistLstDasoVars[nInputVar][0]}\tVar{nInputVar}\tRangoVar:\t{self_myRange[nBanda][0]}\t{self_myRange[nBanda][1]}\tnClases\t{self_myNBins[nBanda]}\n')
-        print('\t-> nBanda: ', nBanda)
-        print('\t\t-> self_myRange:', self_myRange[nBanda])
-        print('\t\t-> nBins:  ', self_myNBins[nBanda])
+            outputRangosFileTxtControl.write(f'\n{self_LOCLlistLstDasoVars[nInputVar][1]}{TB}Var{nInputVar}{TB}RangoVar:{TB}{self_myRange[nBanda][0]}{TB}{self_myRange[nBanda][1]}{TB}nClases{TB}{self_myNBins[nBanda]}\n')
+        print(f'{TB}-> nBanda: ', nBanda)
+        print(f'{TB}{TV}-> self_myRange:', self_myRange[nBanda])
+        print(f'{TB}{TV}-> nBins:  ', self_myNBins[nBanda])
         try:
             ultimoNoZero = np.max(np.nonzero(self_LOCLdictHistProb01[claveDef]))
         except:
             ultimoNoZero = 0
 
-        print('\t\t\t-> self_LOCLdictHistProb01[claveDef]:', self_LOCLdictHistProb01[claveDef][:ultimoNoZero + 2])
+        print(f'{TB}{TV}{TV}-> self_LOCLdictHistProb01[claveDef]:', self_LOCLdictHistProb01[claveDef][:ultimoNoZero + 2])
         for nRango in range(self_myNBins[nBanda]):
             self_LOCLdictHistProb01[claveDef][nRango] = round(self_LOCLdictHistProb01[claveDef][nRango], 3)
             self_LOCLdictHistProb01[claveMin][nRango] = round(self_LOCLdictHistProb01[claveMin][nRango], 3)
@@ -3266,23 +3610,24 @@ def mostrarExportarRangos(
                 valSup = round(100 * self_LOCLdictHistProb01[claveMax][nRango], 0)
                 signoDef = '+' if valDef < 10 else ''
                 if valDef != 0 or valInf != 0 or valSup > 5:
-                    textoWrite = '\t\tnClase\t{:02}\tTramoVar->\t{:0.2f}\t{:0.2f}\tvalDef\t{:0.2f}\tlimInf\t{:0.2f}\tlimSup\t{:0.2f}'.format(
-                        nRango,
-                        limInf,
-                        limSup,
-                        valDef,
-                        valInf,
-                        valSup,
+                    textoWrite = '{}{}nClase{}{:02}{}TramoVar->{}{:0.2f}{}{:0.2f}{}valDef{}{:0.2f}{}limInf{}{:0.2f}{}limSup{}{:0.2f}'.format(
+                        TB, TV, TV,
+                        nRango, TB,
+                        TB, limInf,
+                        TB, limSup, TB,
+                        TB, valDef, TB,
+                        TB, valInf, TB,
+                        TB, valSup,
                         )
-                    print(f'\t\t\t{textoWrite}')
+                    print(f'{TB}{TV}{TV}{textoWrite}')
                     outputRangosFileTxtControl.write(f'{textoWrite}\n')
     outputRangosFileTxtControl.close()
 
     if os.path.exists(outputRangosFileNpzConPath):
-        print('\t-> clidnat-> Antes se va a eliminar el fichero npz existente: {}'.format(outputRangosFileNpzConPath))
+        print(f'{TB}-> clidnat-> Antes se va a eliminar el fichero npz existente: {outputRangosFileNpzConPath}')
         os.remove(outputRangosFileNpzConPath)
         if os.path.exists(outputRangosFileNpzConPath):
-            print('\tNo se ha podido eliminar el fichero npz existente: {}'.format(outputRangosFileNpzConPath))
+            print(f'{TB}No se ha podido eliminar el fichero npz existente: {outputRangosFileNpzConPath}')
     np.savez_compressed(
         outputRangosFileNpzConPath,
         listaDasoVars=self_LOCLlistLstDasoVars,
@@ -3356,7 +3701,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
     print('clidtwins-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
     # ==========================================================================
     if not os.path.exists(LOCL_configFileNameCfg):
-        print('\t  clidtwins-> Fichero no encontrado: se crea con valores por defecto')
+        print(f'{TB}  clidtwins-> Fichero no encontrado: se crea con valores por defecto')
         # En ausencia de fichero de configuracion, uso valores por defecto y los guardo en un nuevo fichero cfg
         config = RawConfigParser()
         config.optionxform = str  # Avoid change to lowercase
@@ -3365,13 +3710,13 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
             grupoParametroConfiguracion = LOCL_configDictPorDefecto[nombreParametroDeConfiguracion][1]
             if not grupoParametroConfiguracion in config.sections():
                 if LOCL_verbose and False:
-                    print('\t\tclidtwins-> grupoParametros nuevo:', grupoParametroConfiguracion)
+                    print(f'{TB}{TV}clidtwins-> grupoParametros nuevo:', grupoParametroConfiguracion)
                 config.add_section(grupoParametroConfiguracion)
         # Puedo agregar otras secciones:
         config.add_section('Custom')
 
         if LOCL_verbose and False:
-            print('\t\tclidtwins-> Lista de parametros de configuracion por defecto:')
+            print(f'{TB}{TV}clidtwins-> Lista de parametros de configuracion por defecto:')
         for nombreParametroDeConfiguracion in LOCL_configDictPorDefecto.keys():
             listaParametroConfiguracion = LOCL_configDictPorDefecto[nombreParametroDeConfiguracion]
             valorParametroConfiguracion = listaParametroConfiguracion[0]
@@ -3406,14 +3751,14 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                 listaConcatenada
             )
             if LOCL_verbose and False:
-                print('\t\t\t-> {}: {} (tipo {})-> {}'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion, tipoParametroConfiguracion, descripcionParametroConfiguracion))
+                print(f'{TB}{TV}{TV}-> {nombreParametroDeConfiguracion}: {valorParametroConfiguracion} (tipo {tipoParametroConfiguracion})-> {descripcionParametroConfiguracion}')
 
         try:
             with open(LOCL_configFileNameCfg, mode='w+') as configfile:
                 config.write(configfile)
         except:
             print('\nclidtwins-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion:', LOCL_configFileNameCfg)
-            print('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
+            print(f'{TB}Ejemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
 
     # Asigno los parametros de configuracion a varaible globales:
     config = RawConfigParser()
@@ -3422,14 +3767,14 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
     # Confirmo que se ha creado correctamente el fichero de configuracion
     if not os.path.exists(LOCL_configFileNameCfg):
         print('\nclidtwins-> ATENCION: fichero de configuracion no encontrado ni creado:', LOCL_configFileNameCfg)
-        print('\t-> Revisar derechos de escritura en la ruta en la que esta la aplicacion')
+        print(f'{TB}-> Revisar derechos de escritura en la ruta en la que esta la aplicacion')
         sys.exit(0)
 
     try:
         LOCL_configDict = {}
         config.read(LOCL_configFileNameCfg)
         if LOCL_verbose:
-            print('\t-> clidtwins-> Parametros de configuracion (guardados en {}):'.format(LOCL_configFileNameCfg))
+            print(f'{TB}-> clidtwins-> Parametros de configuracion (guardados en {LOCL_configFileNameCfg}):')
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
@@ -3462,7 +3807,13 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                     tipoParametroConfiguracion,
                 ]
                 if LOCL_verbose:
-                    print('\t\t-> parametro {:<35} -> {}'.format(nombreParametroDeConfiguracion, LOCL_configDict[nombreParametroDeConfiguracion]))
+                    print(
+                        '{}{}-> parametro {:<35} -> {}'.format(
+                            TB, TV,
+                            nombreParametroDeConfiguracion,
+                            LOCL_configDict[nombreParametroDeConfiguracion]
+                        )
+                    )
 
         # Compruebo que el fichero de configuracion tiene todos los parametros de LOCL_configDictPorDefecto
         for nombreParametroDeConfiguracion in LOCL_configDictPorDefecto.keys():
@@ -3489,14 +3840,15 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                     descripcionParametroConfiguracion,
                 ]
                 if LOCL_verbose or True:
-                    print('\t-> AVISO: el parametro <{}> no esta en el fichero de configuacion; se adopta valor por defecto: <{}>'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion))
+                    print(f'{TB}-> AVISO: el parametro <{nombreParametroDeConfiguracion}> no esta en' ,
+                          f'el fichero de configuacion; se adopta valor por defecto: <{valorParametroConfiguracion}>')
 
         config_ok = True
     except:
         print('clidtwins-> Error al leer la configuracion del fichero:', LOCL_configFileNameCfg)
         config_ok = False
         sys.exit(0)
-    # print('\t\tclidtwins-> LOCL_configDict:', LOCL_configDict)
+    # print(f'{TB}{TV}clidtwins-> LOCL_configDict:', LOCL_configDict)
 
     print('{:=^80}'.format(''))
     return LOCL_configDict

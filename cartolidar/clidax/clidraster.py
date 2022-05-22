@@ -1771,9 +1771,11 @@ def crearRasterTiff(
                     if PAR_verbose:
                         if nInputVar < len(self_LOCLlistaDasoVarsFileTypes):
                             if nInputVar < len(arrayMinVariables) and nInputVar < len(arrayMaxVariables):
-                                print(f'\t-> ok banda {outputNBand} escrita',
-                                      f'(variable {nInputVar}: {self_LOCLlistaDasoVarsFileTypes[nInputVar]};',
-                                      f'Rango: {arrayMinVariables[nInputVar]} -> {arrayMaxVariables[nInputVar]})')
+                                print(
+                                    f'\t-> ok banda {outputNBand} escrita',
+                                    f'(variable {nInputVar}: {self_LOCLlistaDasoVarsFileTypes[nInputVar]};',
+                                    'Rango: {:0.1f} -> {:0.1f})'.format(arrayMinVariables[nInputVar], arrayMaxVariables[nInputVar])
+                                )
                             else:
                                 print(f'\t-> ok banda {outputNBand} escrita',
                                       f'(variable {nInputVar}: {self_LOCLlistaDasoVarsFileTypes[nInputVar]}; Rango: sin datos.')

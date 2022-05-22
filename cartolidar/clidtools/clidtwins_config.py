@@ -275,8 +275,8 @@ def foo0():
 # GLO.GLBLtesteoLayerNamePorDefecto = None
 # GLO.GLBLnPatronDasoVarsPorDefecto = None
 #
-# GLO.GLBLlistaDasoVarsNickNames = None
 # GLO.GLBLlistaDasoVarsFileTypes = None
+# GLO.GLBLlistaDasoVarsNickNames = None
 # GLO.GLBLlistaDasoVarsRangoLinf = None
 # GLO.GLBLlistaDasoVarsRangoLsup = None
 # GLO.GLBLlistaDasoVarsNumClases = None
@@ -309,8 +309,8 @@ def foo0():
 # GLO.GLBLtesteoLayerName = None
 # GLO.GLBLnPatronDasoVars = None
 #
-# GLO.GLBLlistaDasoVarsNickNames = None
 # GLO.GLBLlistaDasoVarsFileTypes = None
+# GLO.GLBLlistaDasoVarsNickNames = None
 # GLO.GLBLlistaDasoVarsRangoLinf = None
 # GLO.GLBLlistaDasoVarsRangoLsup = None
 # GLO.GLBLlistaDasoVarsNumClases = None
@@ -331,10 +331,10 @@ def foo0():
 # GLO.GLBLnoDataTipoDMasa = None
 # GLO.GLBLumbralMatriDist = None
 #
-# GLO.GLBLmarcoCoordMinX = 0
-# GLO.GLBLmarcoCoordMaxX = 0
-# GLO.GLBLmarcoCoordMinY = 0
-# GLO.GLBLmarcoCoordMaxY = 0
+# GLO.GLBLmarcoCoordMiniX = 0
+# GLO.GLBLmarcoCoordMaxiX = 0
+# GLO.GLBLmarcoCoordMiniY = 0
+# GLO.GLBLmarcoCoordMaxiY = 0
 #
 # GLO.configFileNameCfg = None
 
@@ -379,15 +379,18 @@ def leerConfigDictPorDefecto():
     
         'GLBLnPatronDasoVarsPorDefecto': [0, 'dasoLidar', 'int', 'Si es distinto de cero, numero de dasoVars con las que se caracteriza el patron (n primeras dasoVars)'],
     
+        'GLBLnClasesDasoVarsPorDefecto': [5, 'dasoLidar', 'int', 'Numero de clases por defecto para todas las variables si no se especifica para cada variable.'],
+        'GLBLtrasferDasoVarsPorDefecto': [25, 'dasoLidar', 'int', 'Porcentaje de movilidad admisible interclases si no se especifica para cada variable.'],
+
+            'GLBLlistaDasoVarsFileTypes': [
+            'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE25,TMasa',
+            # 'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,MFE,TipoMasa',
+            'dasoLidar', 'list_str', 'Lista de tipos de fichero para el dasoLidar'
+        ],
         'GLBLlistaDasoVarsNickNames': [
             'Alt95,FCC5m,FCC3m,FCmat,FCsub,MFE25,TMasa',
             # 'Alt95,FCC5m,FCC3m,FCmat,MFE25,TMasa',
             'dasoLidar', 'list_str', 'Lista de variables para el dasoLidar'
-        ],
-        'GLBLlistaDasoVarsFileTypes': [
-            'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE,TipoMasa',
-            # 'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,MFE,TipoMasa',
-            'dasoLidar', 'list_str', 'Lista de tipos de fichero para el dasoLidar'
         ],
         'GLBLlistaDasoVarsRangoLinf': [
             '0,0,0,0,0,0,0',
@@ -428,6 +431,12 @@ def leerConfigDictPorDefecto():
         'GLBLnoDataTiffFilesPorDefecto': [-9999, 'dasoLidar', 'int', 'NoData definitivo para los ficheros raster de salida para el dasolidar'],
         'GLBLnoDataTipoDMasaPorDefecto': [255, 'dasoLidar', 'int', 'NoData definitivo para el raster de salida con el tipo de masa para el dasolidar'],
         'GLBLumbralMatriDistPorDefecto': [20, 'dasoLidar', 'int', 'Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars'],
+
+        'GLBLmarcoCoordMiniXPorDefecto': [0, 'dasoLidar', 'int', 'Limite inferior X para delimitar la zona de analisis'],
+        'GLBLmarcoCoordMaxiXPorDefecto': [0, 'dasoLidar', 'int', 'Limite superior X para delimitar la zona de analisis'],
+        'GLBLmarcoCoordMiniYPorDefecto': [0, 'dasoLidar', 'int', 'Limite inferior Y para delimitar la zona de analisis'],
+        'GLBLmarcoCoordMaxiYPorDefecto': [0, 'dasoLidar', 'int', 'Limite superior Y para delimitar la zona de analisis'],
+
     }
     return configDictPorDefecto
 
@@ -488,28 +497,29 @@ def checkGLO(GLO):
         GLO.GLBLinputVectorDriverNameMFE = ''
         print(f'clidtwins_config-> No se ha identificado bien el driver de esta extension: {GLO.GLBLinputVectorMfeFileExt} (fichero: {GLO.GLBLrutaCompletaMFEPorDefecto})')
         sys.exit(0)
+
     # ==============================================================================
     if (
-        len(GLO.GLBLlistaDasoVarsFileTypes) < len(GLO.GLBLlistaDasoVarsNickNames)
-        or len(GLO.GLBLlistaDasoVarsRangoLinf) < len(GLO.GLBLlistaDasoVarsNickNames)
-        or len(GLO.GLBLlistaDasoVarsRangoLsup) < len(GLO.GLBLlistaDasoVarsNickNames)
-        or len(GLO.GLBLlistaDasoVarsNumClases) < len(GLO.GLBLlistaDasoVarsNickNames)
-        or len(GLO.GLBLlistaDasoVarsMovilidad) < len(GLO.GLBLlistaDasoVarsNickNames)
-        or len(GLO.GLBLlistaDasoVarsPonderado) < len(GLO.GLBLlistaDasoVarsNickNames)
+        len(GLO.GLBLlistaDasoVarsNickNames) < len(GLO.GLBLlistaDasoVarsFileTypes) 
+        or len(GLO.GLBLlistaDasoVarsRangoLinf) < len(GLO.GLBLlistaDasoVarsFileTypes)
+        or len(GLO.GLBLlistaDasoVarsRangoLsup) < len(GLO.GLBLlistaDasoVarsFileTypes)
+        or len(GLO.GLBLlistaDasoVarsNumClases) < len(GLO.GLBLlistaDasoVarsFileTypes)
+        or len(GLO.GLBLlistaDasoVarsMovilidad) < len(GLO.GLBLlistaDasoVarsFileTypes)
+        or len(GLO.GLBLlistaDasoVarsPonderado) < len(GLO.GLBLlistaDasoVarsFileTypes)
         
     ):
         print(
             '\nclidtwins_config-> ATENCION: revisar lista de variables en el fichero de parametros de configuracion:',
-            len(GLO.GLBLlistaDasoVarsNickNames),
             len(GLO.GLBLlistaDasoVarsFileTypes),
+            len(GLO.GLBLlistaDasoVarsNickNames),
             len(GLO.GLBLlistaDasoVarsRangoLinf),
             len(GLO.GLBLlistaDasoVarsRangoLsup),
             len(GLO.GLBLlistaDasoVarsNumClases),
             len(GLO.GLBLlistaDasoVarsMovilidad),
             len(GLO.GLBLlistaDasoVarsPonderado),
         )
-        print('\t', type(GLO.GLBLlistaDasoVarsNickNames), len(GLO.GLBLlistaDasoVarsNickNames), GLO.GLBLlistaDasoVarsNickNames)
         print('\t', type(GLO.GLBLlistaDasoVarsFileTypes), len(GLO.GLBLlistaDasoVarsFileTypes), GLO.GLBLlistaDasoVarsFileTypes)
+        print('\t', type(GLO.GLBLlistaDasoVarsNickNames), len(GLO.GLBLlistaDasoVarsNickNames), GLO.GLBLlistaDasoVarsNickNames)
         print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLinf), GLO.GLBLlistaDasoVarsRangoLinf)
         print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLsup), GLO.GLBLlistaDasoVarsRangoLinf)
         print('\t', type(GLO.GLBLlistaDasoVarsNumClases), len(GLO.GLBLlistaDasoVarsNumClases), GLO.GLBLlistaDasoVarsNumClases)
@@ -517,13 +527,14 @@ def checkGLO(GLO):
         print('\t', type(GLO.GLBLlistaDasoVarsPonderado), len(GLO.GLBLlistaDasoVarsPonderado), GLO.GLBLlistaDasoVarsPonderado)
         print(f'Corregir o eliminar el fichero almacenado ({GLO.configFileNameCfg}).')
         sys.exit(0)
+
+    nBandasPrevistasOutput = len(GLO.GLBLlistaDasoVarsFileTypes)
     GLO.GLBLlistTxtDasoVarsPorDefecto = []
-    nBandasPrevistasOutput = len(GLO.GLBLlistaDasoVarsNickNames)
     for nVar in range(nBandasPrevistasOutput):
         GLO.GLBLlistTxtDasoVarsPorDefecto.append(
             '{},{},{},{},{},{},{}'.format(
-                GLO.GLBLlistaDasoVarsNickNames[nVar],
                 GLO.GLBLlistaDasoVarsFileTypes[nVar],
+                GLO.GLBLlistaDasoVarsNickNames[nVar],
                 GLO.GLBLlistaDasoVarsRangoLinf[nVar],
                 GLO.GLBLlistaDasoVarsRangoLsup[nVar],
                 GLO.GLBLlistaDasoVarsNumClases[nVar],
@@ -531,10 +542,36 @@ def checkGLO(GLO):
                 GLO.GLBLlistaDasoVarsPonderado[nVar],
             )
         )
-        GLO.GLBLlistLstDasoVarsPorDefecto = []
-        for txtListaDasovar in GLO.GLBLlistTxtDasoVarsPorDefecto:
-            listDasoVar = [item.strip() for item in txtListaDasovar.split(',')]
-            GLO.GLBLlistLstDasoVarsPorDefecto.append(listDasoVar)
+
+    GLO.GLBLlistLstDasoVarsPorDefecto = []
+    for nVar in range(nBandasPrevistasOutput):
+        GLO.GLBLlistLstDasoVarsPorDefecto.append(
+            [
+                GLO.GLBLlistaDasoVarsFileTypes[nVar],
+                GLO.GLBLlistaDasoVarsNickNames[nVar],
+                GLO.GLBLlistaDasoVarsRangoLinf[nVar],
+                GLO.GLBLlistaDasoVarsRangoLsup[nVar],
+                GLO.GLBLlistaDasoVarsNumClases[nVar],
+                GLO.GLBLlistaDasoVarsMovilidad[nVar],
+                GLO.GLBLlistaDasoVarsPonderado[nVar],
+            ]
+        )
+
+    # # Partiendo del formato listTxtDasoVars (lista de textos emulando listas):
+    # GLO.GLBLlistLstDasoVarsPorDefecto = []
+    # for nVar in range(nBandasPrevistasOutput):
+    #     for numLista, txtListaDasovar in enumerate(GLO.GLBLlistTxtDasoVarsPorDefecto):
+    #         if nVar == 0 or nVar == 1:
+    #             # FileTypes y NickNames
+    #             listDasoVar = [item.strip() for item in txtListaDasovar.split(',')]
+    #         elif nVar == 2 or nVar == 3:
+    #             # RangoLinf y RangoLinf
+    #             listDasoVar = [float(item.strip()) for item in txtListaDasovar.split(',')]
+    #         else:
+    #             # NumClases, Movilidad y Ponderado
+    #             listDasoVar = [int(item.strip()) for item in txtListaDasovar.split(',')]
+    #         GLO.GLBLlistLstDasoVarsPorDefecto.append(listDasoVar)
+
         # print('clidtwins_config->', nVar, type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar], end=' -> ')
         # GLO.GLBLlistaDasoVarsRangoLinf[nVar] = int(GLO.GLBLlistaDasoVarsRangoLinf[nVar])
         # GLO.GLBLlistaDasoVarsRangoLsup[nVar] = int(GLO.GLBLlistaDasoVarsRangoLsup[nVar])
@@ -555,8 +592,8 @@ def checkGLO(GLO):
     GLO.GLBLtesteoLayerNamePorDefecto = GLO.GLBLtesteoLayerNamePorDefecto
     GLO.GLBLnPatronDasoVarsPorDefecto = int(GLO.GLBLnPatronDasoVarsPorDefecto)
     
-    GLO.GLBLlistaDasoVarsNickNames = list(GLO.GLBLlistaDasoVarsNickNames)
     GLO.GLBLlistaDasoVarsFileTypes = list(GLO.GLBLlistaDasoVarsFileTypes)
+    GLO.GLBLlistaDasoVarsNickNames = list(GLO.GLBLlistaDasoVarsNickNames)
     GLO.GLBLlistaDasoVarsRangoLinf = list(GLO.GLBLlistaDasoVarsRangoLinf)
     GLO.GLBLlistaDasoVarsRangoLsup = list(GLO.GLBLlistaDasoVarsRangoLsup)
     GLO.GLBLlistaDasoVarsNumClases = list(GLO.GLBLlistaDasoVarsNumClases)
@@ -605,6 +642,21 @@ def readGLO():
     GLO = clidconfig.VariablesGlobales(GRAL_configDict)
     GLO.configFileNameCfg = configFileNameCfg
     checkGLO(GLO)
+
+
+    if __verbose__ > 2:
+        print('clidtwins_config-> GLO:')
+        for myParameter in dir(GLO):
+            if not myParameter.startswith('__'):
+                print('\t', myParameter)
+                if hasattr(GLO, myParameter) and (
+                    'listaDasoVars' in myParameter
+                    or 'listLstDasoVars' in myParameter
+                    or 'listTxtDasoVars' in myParameter
+                ):
+                    
+                    print('\t\t->', getattr(GLO, myParameter))
+        quit()
     return GLO
 
 

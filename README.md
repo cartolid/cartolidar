@@ -149,55 +149,78 @@ Use examples
 ------------
 Read [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/) for details.
 
+clidtwins reads files in "asc" format (single vector layers) each with a dasoLidar variable (DLV).
 
-1. Create an object of the class DasoLidarSource (myDasolidar)
+# Those files have to be named as: XXX_YYYY_*IdFileType*.asc where:
+# - XXX, YYYY are UTM coordinates (miles) that identifies the location (the block)
+# -- Usually the upper-left corner of a 2x2 km square area
+# - *IdFileType* is any string that includes a DVL identifier (like alt95, fcc05, etc.).
+# 
+# Example: 318_4738_alt95.asc and 320_4738_alt95.asc are two files with alt95 variable.
+# 
+# If we select two DLVs (e.g. alt95, fcc05), we need two files for every XXX_YYYY:
+# 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
 
-Requires LCL_listLstDasoVars argument (DLVs list in cartolidar specific format).
+
+Procedure:
+
+1. Import package or Class and instantiate DasoLidarSource class:
 ```
 from cartolidar.clidtools.clidtwins import DasoLidarSource
-myDasolidar = DasoLidarSource(
-    LCL_listLstDasoVars=CFG_listLstDasoVars
-)
+myDasolidar = DasoLidarSource()
 ```
 
 
-2. Optional:
+2. Set the analysis zone (optional):
 ```
-myDasolidar.rangeUTM(
-    LCL_marcoCoordMinX=CFG_marcoCoordMinX,
-    LCL_marcoCoordMaxX=CFG_marcoCoordMaxX,
-    LCL_marcoCoordMinY=CFG_marcoCoordMinY,
-    LCL_marcoCoordMaxY=CFG_marcoCoordMaxY,
+myDasolidar.setRangeUTM(
+    LCL_marcoCoordMiniX=CFG_marcoCoordMiniX,
+    LCL_marcoCoordMaxiX=CFG_marcoCoordMaxiX,
+    LCL_marcoCoordMiniY=CFG_marcoCoordMiniY,
+    LCL_marcoCoordMaxiY=CFG_marcoCoordMaxiY,
 )
 ```
 
 
 3. Search for dasoLidar files:
+<!-- First argument (LCL_listLstDasoVars) is a string with a sequence of DLV identifiers
+and second one (LCL_rutaAscRaizBase) is a path to look for the files.
+ -->
 ```
 myDasolidar.searchSourceFiles(
-    LCL_rutaAscRaizBase=CFG_rutaAscRaizBase,
+    LCL_listLstDasoVars='Alt95,Fcc05,Fcc03',
+    LCL_rutaAscRaizBase='C:/myAscFiles',
 )
 ```
-where CFG_rutaAscRaizBase is the path where de asc files with DLVs can be found
+This method creates a property named inFilesListAllTypes with one list of files for every DLV.
+It only includes blocks that have all the file types. For every file, a tuple of file path and file name is included.
 
 
-4. Create a Tiff file from the DLV files found:
+4. Create a Tiff file from the DLV files found and analyze the ranges of every DLV in the reference area:
+
+The createMultiDasoLayerRasterFile method requires the name (with path)
+of the forest or land cover vector layer (e.g. Spanish Forest Map -MFE25-)
+and the name of the field (type int) with the forest or land cover type
+identifier (e.g. main species code).
 ```
-myDasolidar.createAnalizeMultiDasoLayerRasterFile(
-    LCL_patronVectrName=CFG_patronVectrName,
-    LCL_patronLayerName=CFG_patronLayerName,
-    LCL_rutaCompletaMFE=CFG_rutaCompletaMFE,
-    LCL_cartoMFEcampoSp=CFG_cartoMFEcampoSp,
+myDasolidar.createMultiDasoLayerRasterFile(
+    LCL_rutaCompletaMFE='C:/mfe25/24_mfe25.shp',
+    LCL_cartoMFEcampoSp='SP1',
 )
 ```
-where:
 
-CFG_patronVectrName and CFG_patronLayerName are the file and vector layer with the reference area(s).
+The analyzeMultiDasoLayerRasterFile method requires the name (with path)
+of the vector file with the reference polygon gor macthing (shp or gpkg).
+If it is ageopackage, also the layer name is required.
+```
+myDasolidar.analyzeMultiDasoLayerRasterFile(
+    LCL_patronVectrName='C:/vector/CorralesPlots.gpkg,
+    LCL_patronLayerName='plot01Quercus',
+)
+```
 
-CFG_rutaCompletaMFE and CFG_cartoMFEcampoSp are the vector layer and field with the forest types.
 
-
-5. Create new Tiff files with similar zones and proximity to reference one:
+5. Create new Tiff files with similar zones and proximity to reference one (patron):
 ```
 myDasolidar.generarRasterCluster()
 ```

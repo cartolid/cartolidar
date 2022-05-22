@@ -21,6 +21,14 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 # import random
 
+from clidax.clidaux import Bar
+
+bar = Bar('Procesando', max=100)
+for i in range(100):
+    bar.next()
+bar.finish()
+
+
 __version__ = '0.0a2'
 __date__ = '2016-2022'
 __updated__ = '2022-05-18'
@@ -570,10 +578,10 @@ def creaConfigDict(args):
     # === Pte rematar que se puedan definir con el parametro ambitoTiffNuevo, ==
     # ============ en linea de comandos o a partir de los shapes ===============
     # ==========================================================================
-    cfgDict['marcoCoordMinX'] = 318000
-    cfgDict['marcoCoordMaxX'] = 322000
-    cfgDict['marcoCoordMinY'] = 4734000
-    cfgDict['marcoCoordMaxY'] = 4740000
+    cfgDict['marcoCoordMiniX'] = 318000
+    cfgDict['marcoCoordMaxiX'] = 322000
+    cfgDict['marcoCoordMiniY'] = 4734000
+    cfgDict['marcoCoordMaxiY'] = 4740000
     # ==========================================================================
 
     return cfgDict
@@ -607,24 +615,24 @@ def mostrarConfiguracion(cfgDict):
         print('\t\tSe adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
         print('\t\tVer valores mas adelante.')
     elif (
-        cfgDict['marcoCoordMinX'] == 0
-        or cfgDict['marcoCoordMaxX'] == 0
-        or cfgDict['marcoCoordMinY'] == 0
-        or cfgDict['marcoCoordMaxY'] == 0
+        cfgDict['marcoCoordMiniX'] == 0
+        or cfgDict['marcoCoordMaxiX'] == 0
+        or cfgDict['marcoCoordMiniY'] == 0
+        or cfgDict['marcoCoordMaxiY'] == 0
         ):
         print('\t\tNo se han establecido coordenadas para la zona de estudio.')
         print('\t\tSe adopta la envolvente de los ficheros con variables dasoLidar.')
     else:
         print(
             '\t\tX {:07f} - {:07f} -> {:04.0f} m:'.format(
-                cfgDict['marcoCoordMinX'], cfgDict['marcoCoordMaxX'],
-                cfgDict['marcoCoordMaxX'] - cfgDict['marcoCoordMinX']
+                cfgDict['marcoCoordMiniX'], cfgDict['marcoCoordMaxiX'],
+                cfgDict['marcoCoordMaxiX'] - cfgDict['marcoCoordMiniX']
             )
         )
         print(
             '\t\tY {:07f} - {:07f} -> {:04.0f} m:'.format(
-                cfgDict['marcoCoordMinY'], cfgDict['marcoCoordMaxY'],
-                cfgDict['marcoCoordMaxY'] - cfgDict['marcoCoordMinY']
+                cfgDict['marcoCoordMiniY'], cfgDict['marcoCoordMaxiY'],
+                cfgDict['marcoCoordMaxiY'] - cfgDict['marcoCoordMiniY']
             )
         )
     print('\t--> Ruta base (raiz) y ficheros:')
@@ -682,8 +690,6 @@ def clidtwinsUseCase(cfgDict):
             print('qlidtwins-> Creando objeto de la clase DasoLidarSource...')
 
     myDasolidar = DasoLidarSource(
-        LCL_listLstDasoVars=cfgDict['listLstDasoVars'],
-        LCL_nPatronDasoVars=cfgDict['nPatronDasoVars'],  # opcional
         LCL_leer_extra_args=TRNS_LEER_EXTRA_ARGS,  # opcional
     )
 
@@ -691,33 +697,32 @@ def clidtwinsUseCase(cfgDict):
         print('{:=^80}'.format(''))
         print('\n{:_^80}'.format(''))
         if __verbose__ > 1:
-            print('qlidtwins-> Ejecutando rangeUTM...')
+            print('qlidtwins-> Ejecutando setRangeUTM...')
 
-    myDasolidar.rangeUTM(
-        LCL_marcoCoordMinX=cfgDict['marcoCoordMinX'],
-        LCL_marcoCoordMaxX=cfgDict['marcoCoordMaxX'],
-        LCL_marcoCoordMinY=cfgDict['marcoCoordMinY'],
-        LCL_marcoCoordMaxY=cfgDict['marcoCoordMaxY'],
+    myDasolidar.setRangeUTM(
+        LCL_marcoCoordMiniX=cfgDict['marcoCoordMiniX'],
+        LCL_marcoCoordMaxiX=cfgDict['marcoCoordMaxiX'],
+        LCL_marcoCoordMiniY=cfgDict['marcoCoordMiniY'],
+        LCL_marcoCoordMaxiY=cfgDict['marcoCoordMaxiY'],
     )
 
     if __verbose__:
         print('{:=^80}'.format(''))
         print('\n{:_^80}'.format(''))
         print('qlidtwins-> Ejecutando searchSourceFiles...')
-
     myDasolidar.searchSourceFiles(
+        LCL_listLstDasoVars=cfgDict['listLstDasoVars'],
+        LCL_nPatronDasoVars=cfgDict['nPatronDasoVars'],  # opcional
         LCL_rutaAscRaizBase=cfgDict['rutaAscRaizBase'],
         LCL_nivelSubdirExpl=cfgDict['nivelSubdirExpl'],  # opcional
         LCL_outputSubdirNew=cfgDict['outputSubdirNew'],  # opcional
     )
+
     if __verbose__:
         print('{:=^80}'.format(''))
         print('\n{:_^80}'.format(''))
-        print('qlidtwins-> Ejecutando createAnalizeMultiDasoLayerRasterFile...')
-
-    myDasolidar.createAnalizeMultiDasoLayerRasterFile(
-        LCL_patronVectrName=cfgDict['patronVectrName'],
-        LCL_patronLayerName=cfgDict['patronLayerName'],
+        print('qlidtwins-> Ejecutando createMultiDasoLayerRasterFile...')
+    myDasolidar.createMultiDasoLayerRasterFile(
         LCL_rutaCompletaMFE=cfgDict['rutaCompletaMFE'],
         LCL_cartoMFEcampoSp=cfgDict['cartoMFEcampoSp'],
 
@@ -725,6 +730,15 @@ def clidtwinsUseCase(cfgDict):
         # LCL_outRasterDriver=cfgDict['outRasterDriver'],
         # LCL_cartoMFErecorte=cfgDict['cartoMFErecorte'],
         # LCL_varsTxtFileName=cfgDict['varsTxtFileName'],
+    )
+
+    if __verbose__:
+        print('{:=^80}'.format(''))
+        print('\n{:_^80}'.format(''))
+        print('qlidtwins-> Ejecutando analyzeMultiDasoLayerRasterFile...')
+    myDasolidar.analyzeMultiDasoLayerRasterFile(
+        LCL_patronVectrName=cfgDict['patronVectrName'],
+        LCL_patronLayerName=cfgDict['patronLayerName'],
     )
 
     if __verbose__:
