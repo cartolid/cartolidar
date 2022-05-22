@@ -11,7 +11,7 @@ CartoLidar
 
 Lidar data processing tools focused on Spanish PNOA datasets
 
-Herramientas para procesado de datos Lidar del PNOA
+> Herramientas para procesado de datos Lidar del PNOA
 
 Lidar PNOA: https://pnoa.ign.es/el-proyecto-pnoa-lidar
 
@@ -19,34 +19,33 @@ Lidar PNOA: https://pnoa.ign.es/el-proyecto-pnoa-lidar
 Introduction
 ------------
 
-CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar
-(las y laz) para clasificar los puntos y generar ficheros ráster con DEM y DLVs.
+CartoLidar is a collection of tools to process lidar files "las" and "laz" and
+generate other products aimed to forestry and natural environment management.
 
-DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
+This project is in alpha version and includes only the "clidtwins" tool.
 
-DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos
-aspectos de la estructura de una formación arbolada, arbustiva o de matorral.
+"clidtwins" searchs for similar areas to a reference one in terms of dasoLidar Variables (DLVs)
+DLV: Lidar variables that describe or characterize forest or land cover structure.
 
-CartoLidar también proporciona herramientas adicionales para generar otros
-productos de utilidad en selvicultura y otras areas de gestión del medio
-natural a partir de los ficheros ráster con las DLVs. 
+> CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar
+> (las y laz) para clasificar los puntos y generar ficheros ráster con DEM y DLVs.
+> 
+> DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
+> 
+> DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos
+> aspectos de la estructura de una formación arbolada, arbustiva o de matorral.
+> 
+> CartoLidar también proporciona herramientas adicionales para generar otros
+> productos de utilidad en selvicultura y otras areas de gestión del medio
+> natural a partir de los ficheros ráster con las DLVs. 
+> 
+> El proyecto está en fase alpha e incluye únicamente la herramienta "clidtwins".
+> 
+> clidtwins está destinada a buscar zonas similares a una(s) de referencia en
+> términos de determinadas variables dasoLidar (DLVs).
 
-El proyecto está en fase alpha e incluye únicamente la herramienta "clidtwins".
 
-clidtwins está destinada a buscar zonas similares a una(s) de referencia en
-términos de determinadas variables dasoLidar (DLVs).
-
-
->CartoLidar is a collection of tools to process lidar files "las" and "laz" and
->generate other products aimed to forestry and natural environment management.
->
->This project is in alpha version and includes only the "clidtwins" tool.
->
->"clidtwins" searchs for similar areas to a reference one in terms of dasoLidar Variables (DLVs)
->DLV: Lidar variables that describe or characterize forest or land cover structure.
-
-
-Consultar documentación en: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
++ info: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
 (página en construcción)
 
 
@@ -77,14 +76,14 @@ pip install .
 
 
 Requeriments
-------------
+----
 cartolidar requires Python 3.7 or higher.
 
 See other package requirements in requirements.txt.
 
 
 Use
---------
+---
 
 ### From the command line (cmd or bash)
 a) Run cartolidar package:
@@ -93,29 +92,23 @@ python -m cartolidar [options]
 ```
 Se inicia el menu principal con las herramientas disponibles en cartolidar:
 
-&nbsp;&nbsp;&nbsp;&nbsp;Inicialmente solo está disponible la herramienta qlidtwins
+Inicialmente solo está disponible la herramienta qlidtwins
 
 >It starts the main menu with the avaliable tools
 
-&nbsp;&nbsp;&nbsp;&nbsp;options:
-
-&nbsp;&nbsp;&nbsp;&nbsp;-h, --help          show this help message and exit
-
-&nbsp;&nbsp;&nbsp;&nbsp;-v, --verbose       set verbosity level [default: False]
-
-&nbsp;&nbsp;&nbsp;&nbsp;-V, --version       show program's version number and exit
-
-&nbsp;&nbsp;&nbsp;&nbsp;-a ACCIONPRINCIPAL  0. Show main menu; 1. qlidtwins: buscar o verificar
-
-&nbsp;&nbsp;&nbsp;&nbsp;                      zonas analogas a una de referencia (con un determinado
-
-&nbsp;&nbsp;&nbsp;&nbsp;                      patron dasoLidar); 2. qlidmerge: integrar ficheros asc
-
-&nbsp;&nbsp;&nbsp;&nbsp;                      de 2x2 km en una capa tif unica (componer mosaico:
-
-&nbsp;&nbsp;&nbsp;&nbsp;                      merge). Default: 0
-
-&nbsp;&nbsp;&nbsp;&nbsp;other options       are tool-specific (see below).
+<pre>
+    options:
+        -h, --help          show this help message and exit</p>
+        -h, --help          show this help message and exit
+        -v, --verbose       set verbosity level [default: False]
+        -V, --version       show program's version number and exit
+        -a ACCIONPRINCIPAL  0. Show main menu; 1. qlidtwins: buscar o verificar
+                            zonas analogas a una de referencia (con un determinado
+                            patron dasoLidar); 2. qlidmerge: integrar ficheros asc
+                            de 2x2 km en una capa tif unica (componer mosaico:
+                            merge). Default: 0
+    other options are tool-specific (see below).
+</pre>
 
 
 b) It is also possible to run a tool (a module) without displayin the main menu (if the module is accesible). E.g.:
@@ -151,15 +144,16 @@ Read [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/lates
 
 clidtwins reads files in "asc" format (single vector layers) each with a dasoLidar variable (DLV).
 
-# Those files have to be named as: XXX_YYYY_*IdFileType*.asc where:
-# - XXX, YYYY are UTM coordinates (miles) that identifies the location (the block)
-# -- Usually the upper-left corner of a 2x2 km square area
-# - *IdFileType* is any string that includes a DVL identifier (like alt95, fcc05, etc.).
-# 
-# Example: 318_4738_alt95.asc and 320_4738_alt95.asc are two files with alt95 variable.
-# 
-# If we select two DLVs (e.g. alt95, fcc05), we need two files for every XXX_YYYY:
-# 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
+> Those files have to be named as: XXX_YYYY_\*IdFileType\*.asc where:
+> - XXX, YYYY are UTM coordinates (miles) that identifies the location (the block).
+>   - XXX, YYYY are usually the upper-left corner of a 2x2 km square area
+> - \*IdFileTypeº* is any string that includes a DVL identifier (like alt95, fcc05, etc.).
+> 
+> Example: 318_4738_alt95.asc and 320_4738_alt95.asc are two files with alt95 variable.
+> They correspond to two blocks: 318_4738 and 320_4738.
+> 
+> If we select two DLVs (e.g. alt95, fcc05), we need two files for every XXX_YYYY:
+> 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
 
 
 Procedure:
@@ -183,9 +177,8 @@ myDasolidar.setRangeUTM(
 
 
 3. Search for dasoLidar files:
-<!-- First argument (LCL_listLstDasoVars) is a string with a sequence of DLV identifiers
+First argument (LCL_listLstDasoVars) is a string with a sequence of DLV identifiers
 and second one (LCL_rutaAscRaizBase) is a path to look for the files.
- -->
 ```
 myDasolidar.searchSourceFiles(
     LCL_listLstDasoVars='Alt95,Fcc05,Fcc03',
@@ -228,6 +221,7 @@ myDasolidar.generarRasterCluster()
 
 to be continued...
 
+<!-- This content will not appear in the rendered Markdown -->
 
 
 [Ayuda Markdown](https://guides.github.com/features/mastering-markdown/)
