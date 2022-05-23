@@ -134,7 +134,13 @@ callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=ins
 if CONFIGverbose:
     print('clidcarto-> Pila de llamadas revisada-> callingModulePrevio:', callingModulePrevio, 'callingModuleInicial:', callingModuleInicial)
 
-from cartolidar.clidax import clidconfig
+try:
+    from cartolidar.clidax import clidconfig
+except:
+    if __verbose__ > 2:
+        print(f'qlidtwins-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools')
+        print('\tNo hay vesion de cartolidar instalada en site-packages.')
+    from clidax import clidconfig
 
 if (
     callingModuleInicial != 'runpy'

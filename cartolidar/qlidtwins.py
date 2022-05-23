@@ -21,14 +21,6 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 # import random
 
-from clidax.clidaux import Bar
-
-bar = Bar('Procesando', max=100)
-for i in range(100):
-    bar.next()
-bar.finish()
-
-
 __version__ = '0.0a2'
 __date__ = '2016-2022'
 __updated__ = '2022-05-18'
@@ -45,7 +37,7 @@ elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
     # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
-    __verbose__ = 0
+    __verbose__ = 2
 if __verbose__ > 2:
     print(f'qlidtwins-> __name__:     <{__name__}>')
     print(f'qlidtwins-> __package__ : <{__package__ }>')
@@ -66,13 +58,15 @@ else:
 # ==============================================================================
 
 # ==============================================================================
-from cartolidar.clidtools.clidtwins_config import GLO
-from cartolidar.clidtools.clidtwins import DasoLidarSource
-# try:
-#     # from clidtools import clidtwins_config as GLO
-#     from cartolidar.clidtools.clidtwins_config import GLO
-#     # from cartolidar.clidtools.clidtwins_config import getConfigFileName
-#     from cartolidar.clidtools.clidtwins import DasoLidarSource
+try:
+    from cartolidar.clidtools.clidtwins_config import GLO
+    from cartolidar.clidtools.clidtwins import DasoLidarSource
+except ModuleNotFoundError:
+    if __verbose__ > 2:
+        print(f'qlidtwins-> Se importa clidtwins desde qlidtwins del directorio local {os.getcwd()}/clidtools')
+        print('\tNo hay vesion de cartolidar instalada en site-packages.')
+    from clidtools.clidtwins_config import GLO
+    from clidtools.clidtwins import DasoLidarSource
 # except ModuleNotFoundError:
 #     sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
 #     sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
@@ -80,13 +74,23 @@ from cartolidar.clidtools.clidtwins import DasoLidarSource
 #     sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
 #     sys.stderr.write(f'              $ python qlidtwins -h\n')
 #     sys.exit(0)
-# except Exception as e:
-#     program_name = 'qlidtwins-> import error: qlidtwins.py'
-#     indent = len(program_name) * " "
-#     sys.stderr.write(program_name + ": " + repr(e) + "\n")
-#     sys.stderr.write(indent + "  for help use --help")
-#     sys.exit(0)
+except Exception as e:
+    program_name = 'qlidtwins'
+    indent = len(program_name) * " "
+    sys.stderr.write(f'{program_name}-> {repr(e)}\n')
+    sys.stderr.write(f'{indent}   for help use {program_name} -h')
+    sys.exit(0)
 # ==============================================================================
+
+# ==============================================================================
+from clidax.clidaux import Bar
+
+bar = Bar('Procesando', max=100)
+for i in range(100):
+    bar.next()
+bar.finish()
+# ==============================================================================
+
 
 
 # ==============================================================================
@@ -110,6 +114,104 @@ class CLIError(Exception):
         return self.msg
     def __unicode__(self):
         return self.msg
+
+
+# ==============================================================================
+def checkRun():
+    '''Chequeo de la forma de ejecucion provisional para la version alpha'''
+    if __verbose__ > 1:
+        print(f'\nqlidtwins-> __verbose__: {__verbose__}')
+        if __verbose__ > 2:
+            print(f'\nqlidtwins-> sys.argv: {sys.argv}')
+    # ==========================================================================
+    tipoEjecucion = 0
+    try:
+        if len(sys.argv) == 0:
+            print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
+            sys.exit(0)
+        elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+            tipoEjecucion = 1
+            if __verbose__ > 1:
+                print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
+                print('\t  python -m cartolidar')
+        elif sys.argv[0].endswith('qlidtwins.py'):
+            tipoEjecucion = 2
+            if __verbose__ > 1:
+                print('\nqlidtwins.py se ha lanzado desde linea de comandos:')
+                print('\t  python qlidtwins.py')
+        elif sys.argv[0] == '':
+            tipoEjecucion = 3
+            if __verbose__ > 1:
+                # Al importar el modulo no se pueden incluir el argumento -v (ni ningun otro)
+                print('\nqlidtwins se esta importando desde el interprete interactivo:')
+                print('\t>>> from cartolidar import qlidtwins')
+                print('o, si esta accesible (en el path):')
+                print('\t>>> import qlidtwins')
+        else:
+            tipoEjecucion = 4
+            if __verbose__ > 1 or True:
+                print(f'\nqlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
+    except:
+        print('\nqlidtwins-> Revisar MAIN_idProceso:')
+        print(f'MAIN_idProceso: <{MAIN_idProceso}> type: {type(MAIN_idProceso)}')
+        print(f'sys.argv:       <{sys.argv}>')
+        print(f'sys.argv[0]:    <{sys.argv[0]}>')
+    # ==========================================================================
+    if 'qlidtwins' in __name__:
+        # El modulo se esta cargando mediante import desde otro modulo o desde el interprete interactivo
+        if __verbose__ > 1:
+            print('\nAVISO: clidqins.py es un modulo escrito para ejecutarse desde linea de comandos:')
+            print('\t  python -m cartolidar')
+            print('o bien:')
+            print('\t  python qlidtwins.py')
+            print('Sin embargo, se esta importando desde codigo python y no se pueden incluir')
+            print('argumentos en linea de comandos. Se usa fichero de configuracion (si existe)')
+            print('o configuracion por defecto (en caso contrario).')
+            if __verbose__ > 1:
+                selec = input('\nLanzar el modulo como si se ejecutara desde linea de comandos (S/n): ')
+            else:
+                selec = 's'
+        else:
+            selec = 's'
+    elif len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos:
+        print('\nAVISO: no se han introducido argumentos en linea de comandos')
+        print('\t-> Para obtener ayuda sobre estos argumentos escribir:')
+        print('\t\tpython {} -h'.format(os.path.basename(sys.argv[0])))
+        selec = input('\nContinuar con la configuracion por defecto? (S/n): ')
+    if (
+        'qlidtwins' in __name__
+        or len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos
+    ):
+        try:
+            if selec.upper() == 'N':
+                sys.argv.append("-h")
+                print('')
+                # print('Fin')
+                # sys.exit(0)
+        except (Exception) as thisError: # Raised when a generated error does not fall into any category.
+            print(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
+            print(f'\tRevisar error: {thisError}')
+            sys.exit(0)
+        print('{:=^80}'.format(''))
+
+    return tipoEjecucion
+
+# ==============================================================================
+def testRun():
+    if TESTRUN:
+        import doctest
+        doctest.testmod()
+    if PROFILE:
+        import cProfile
+        import pstats
+        profile_filename = 'qlidtwins_profile.txt'
+        cProfile.run('leerArgumentosEnLineaDeComandos()', profile_filename)
+        statsfile = open("profile_stats.txt", "wb")
+        p = pstats.Stats(profile_filename, stream=statsfile)
+        stats = p.strip_dirs().sort_stats('cumulative')
+        stats.print_stats()
+        statsfile.close()
+        sys.exit(0)
 
 
 # ==============================================================================
@@ -285,10 +387,13 @@ def leerArgumentosEnLineaDeComandos(argv=None):
         # Argumentos posicionales:
         # Opcionales
         parser.add_argument(dest='listTxtDasoVars',
-                            help='Lista de variables dasoLidar: lista de cadenas de texto, del tipo '
-                            '["texto1", "texto2", etc] con cada texto consistente en cinco elementos '
-                            'separados por comas (elementos que identifican a la variable), con el formato: '
-                            '["nick_name, file_type, limite_inf, limite_sup, num_clases, movilidad_interclases_(0-100), ponderacion_(0-10)", etc.]. '
+                            help='Lista de variables dasoLidar:'
+                            'Secuencia de cadenas de texto (uno por variable), del tipo:'
+                            '"texto1", "texto2", etc. de forma que cada elementos de esta secuencia sea:'
+                            '    Opcion a: identificadores de DLVs (FileTypeId). P. ej. alt95 fcc05 fcc03 (no llevan comas ni comillas)' 
+                            '    Opcion b: una secuencia de cinco elementos separados por comas del tipo:'
+                            '        "FileTypeId, NickName, RangoLinf, RangoLsup, NumClases, Movilidad(0-100), Ponderacion(0-10)"'
+                            '        Ejemplo: ["alt95,hDom,0,36,18,40,10", "fcc05,FCC,0,100,5,30,8"]'
                             '[default: %(default)s]',
                             default = GLO.GLBLlistTxtDasoVarsPorDefecto,
                             nargs='*') # Admite entre 0 y n valores
@@ -356,98 +461,6 @@ def leerArgumentosEnLineaDeComandos(argv=None):
 
 
 # ==============================================================================
-def checkRun():
-    '''Chequeo de la forma de ejecucion provisional para la version alpha'''
-    __verbose__ = 2
-    print(f'qlidtwins-> __verbose__: {__verbose__}')
-    if __verbose__ > 1:
-        print(f'\nqlidtwins-> sys.argv: {sys.argv}')
-    # ==========================================================================
-    try:
-        if len(sys.argv) == 0:
-            print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
-            sys.exit(0)
-        elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
-            if __verbose__ > 1:
-                print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
-                print('\t  python -m cartolidar')
-        elif sys.argv[0].endswith('qlidtwins.py'):
-            if __verbose__ > 1:
-                print('\nqlidtwins.py se ha lanzado desde linea de comandos:')
-                print('\t  python qlidtwins.py')
-        elif sys.argv[0] == '':
-            if __verbose__ > 1:
-                # Al importar el modulo no se pueden incluir el argumento -v (ni ningun otro)
-                print('\nqlidtwins se esta importando desde el interprete interactivo:')
-                print('\t>>> from cartolidar import qlidtwins')
-                print('o, si esta accesible (en el path):')
-                print('\t>>> import qlidtwins')
-        else:
-            if __verbose__ > 1 or True:
-                print(f'\nqlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
-    except:
-        print('\nqlidtwins-> Revisar MAIN_idProceso:')
-        print(f'MAIN_idProceso: <{MAIN_idProceso}> type: {type(MAIN_idProceso)}')
-        print(f'sys.argv:       <{sys.argv}>')
-        print(f'sys.argv[0]:    <{sys.argv[0]}>')
-    # ==========================================================================
-    if 'qlidtwins' in __name__:
-        # El modulo se esta cargando mediante import desde otro modulo o desde el interprete interactivo
-        if __verbose__ > 1:
-            print('\nAVISO: clidqins.py es un modulo escrito para ejecutarse desde linea de comandos:')
-            print('\t  python -m cartolidar')
-            print('o bien:')
-            print('\t  python qlidtwins.py')
-            print('Sin embargo, se esta importando desde codigo python y no se pueden incluir')
-            print('argumentos en linea de comandos. Se usa fichero de configuracion (si existe)')
-            print('o configuracion por defecto (en caso contrario).')
-            if __verbose__ > 1:
-                selec = input('\nLanzar el modulo como si se ejecutara desde linea de comandos (S/n): ')
-            else:
-                selec = 's'
-        else:
-            selec = 's'
-    elif len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos:
-        print('\nAVISO: no se han introducido argumentos en linea de comandos')
-        print('\t-> Para obtener ayuda sobre estos argumentos escribir:')
-        print('\t\tpython {} -h'.format(os.path.basename(sys.argv[0])))
-        selec = input('\nContinuar con la configuracion por defecto? (S/n): ')
-    if (
-        'qlidtwins' in __name__
-        or len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos
-    ):
-        try:
-            if selec.upper() == 'N':
-                sys.argv.append("-h")
-                print('')
-                # print('Fin')
-                # sys.exit(0)
-        except (Exception) as thisError: # Raised when a generated error does not fall into any category.
-            print(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
-            print(f'\tRevisar error: {thisError}')
-            sys.exit(0)
-        print('{:=^80}'.format(''))
-
-
-# ==============================================================================
-def testRun():
-    if TESTRUN:
-        import doctest
-        doctest.testmod()
-    if PROFILE:
-        import cProfile
-        import pstats
-        profile_filename = 'qlidtwins_profile.txt'
-        cProfile.run('leerArgumentosEnLineaDeComandos()', profile_filename)
-        statsfile = open("profile_stats.txt", "wb")
-        p = pstats.Stats(profile_filename, stream=statsfile)
-        stats = p.strip_dirs().sort_stats('cumulative')
-        stats.print_stats()
-        statsfile.close()
-        sys.exit(0)
-
-
-# ==============================================================================
 def saveArgs(args):
     argsFileName = sys.argv[0].replace('.py', '.args')
     try:
@@ -510,7 +523,16 @@ def saveArgs(args):
 
 
 # ==============================================================================
-def creaConfigDict(args):
+def creaConfigDict(
+        args,
+        tipoEjecucion=0,
+    ):
+    """
+    Se crea el diccionario usando los argumentos leidos en linea de comandos
+    o, en su defecto, los valores por defecto del fichero de configuracion
+    o, en su defecto, los valores por defecto del modulo clidtwins_config.py
+    """
+
     cfgDict = {}
     # Parametros de configuracion principales
     cfgDict['accionPrincipal'] = args.accionPrincipal
@@ -518,8 +540,10 @@ def creaConfigDict(args):
         cfgDict['rutaAscRaizBase'] = os.path.dirname(os.path.abspath(__file__))
     else:
         cfgDict['rutaAscRaizBase'] = args.rutaAscRaizBase
+
     cfgDict['rutaCompletaMFE'] = args.rutaCompletaMFE
     cfgDict['cartoMFEcampoSp'] = args.cartoMFEcampoSp
+
     cfgDict['patronVectrName'] = args.patronVectrName
     if args.patronLayerName == 'None':
         cfgDict['patronLayerName'] = None
@@ -531,27 +555,49 @@ def creaConfigDict(args):
     else:
         cfgDict['testeoLayerName'] = args.testeoLayerName
 
-    args_listLstDasoVars = []
-    for numDasoVar, txtListaDasovar in enumerate(args.listTxtDasoVars):
-        listDasoVar = [item.strip() for item in txtListaDasovar.split(',')]
-        if len(listDasoVar) <= 5:
-            print(f'\nqlidtwins-> ATENCION: el argumento posicional (listTxtDasoVars) debe ser una')
-            print(f'\t lista de cadenas de texto (uno por variable), del tipo ["texto1", "texto2", etc]')
-            print(f'\t cada uno consistente en cinco elementos separados por comas:')
-            print(f'\t\t ["NickName, FileType, RangoLinf, RangoLsup, NumClases, Movilidad(0-100), Ponderacion(0-10)"]')
-            print(f'\t Ejemplo: {GLO.GLBLlistTxtDasoVarsPorDefecto}')
-            print(f'\t-> La variable {numDasoVar} ({listDasoVar[0]}) solo tiene {len(listDasoVar)} elementos: {listDasoVar}')
-            sys.exit(0)
-        listDasoVar[2] = int(listDasoVar[2])
-        listDasoVar[3] = int(listDasoVar[3])
-        listDasoVar[4] = int(listDasoVar[4])
-        listDasoVar[5] = int(listDasoVar[5])
-        if len(listDasoVar) > 6:
-            listDasoVar[6] = int(listDasoVar[6])
-        else:
-            listDasoVar[6] = 10
-        args_listLstDasoVars.append(listDasoVar)
-    cfgDict['listLstDasoVars'] = args_listLstDasoVars
+
+    if __verbose__ > 2:
+        print(f'qlidtwins-> args.listTxtDasoVars de tipos {type(args.listTxtDasoVars)} -> {args.listTxtDasoVars}')
+        print(f'\tEl primer argumento posicional tiene {len((args.listTxtDasoVars[0]).split(","))} elementos: {(args.listTxtDasoVars[0]).split(",")}')
+
+    # args.listTxtDasoVars es una lista de cadenas (argumentos posicionales)
+    if len((args.listTxtDasoVars[0]).split(',')) == 1:
+        # Los argumentos posicionales son simplificados, solo incluyen FileTypeId
+        # Los textos de la lista de textos se usa directamente son los FileTypeId
+        # cfgDict['listLstDasoVars'] = args.listTxtDasoVars
+        cfgDict['listaTxtDasoVarsFileTypes'] = args.listTxtDasoVars
+        if __verbose__ > 2 and (tipoEjecucion == 1 or tipoEjecucion == 2):
+            print(f'\nqlidtwins-> Los argumentos posicionales (listTxtDasoVars) son una secuencia de FileTypeId')
+    else:
+        args_listLstDasoVars = []
+        # Argumentos posicionales completos: FileTypeId,NickName,RangoLinf,RangoLsup,NumClases,Movilidad,Ponderacion
+        # La lista de textos se convierte a lista de listas y el primer elemento de esas listas es FileTypeId
+        for numDasoVar, txtListaDasovar in enumerate(args.listTxtDasoVars):
+            # Los argumentos posicionales son completos:
+            # "FileTypeId, NickName, RangoLinf, RangoLsup, NumClases, Movilidad(0-100), Ponderacion(0-10)"
+            listDasoVar = [item.strip() for item in txtListaDasovar.split(',')]
+            if len(listDasoVar) <= 5:
+                print(f'\nqlidtwins-> ATENCION: el argumento posicional (listTxtDasoVars) debe ser una')
+                print(f'\t Secuencia (uno por variable) de cadenas de texto separados por espacios del tipo:')
+                print(f'\t     texto1 texto2 ...')
+                print(f'\t Los elementos de esta secuencia deben ser:')
+                print(f'\t     Opcion a: identificadores de DLVs (FileTypeId). P. ej. alt95 fcc05 fcc03') 
+                print(f'\t     Opcion b: una secuencia de cinco elementos separados por comas (sin espacios) del tipo:')
+                print(f'\t         FileTypeId,NickName,RangoLinf,RangoLsup,NumClases,Movilidad,Ponderacion')
+                print(f'\t         Ejemplo: {GLO.GLBLlistTxtDasoVarsPorDefecto}')
+                print(f'\t-> La variable {numDasoVar} ({listDasoVar[0]}) solo tiene {len(listDasoVar)} elementos: {listDasoVar}')
+                sys.exit(0)
+            listDasoVar[2] = int(listDasoVar[2])
+            listDasoVar[3] = int(listDasoVar[3])
+            listDasoVar[4] = int(listDasoVar[4])
+            listDasoVar[5] = int(listDasoVar[5])
+            if len(listDasoVar) > 6:
+                listDasoVar[6] = int(listDasoVar[6])
+            else:
+                listDasoVar.append(10)
+            args_listLstDasoVars.append(listDasoVar)
+        # La lista de textos se ha convertido a lista de listas
+        cfgDict['listLstDasoVars'] = args_listLstDasoVars
     # ==========================================================================
 
     # ==========================================================================
@@ -607,9 +653,14 @@ def mostrarConfiguracion(cfgDict):
         '2. Generar raster con presencia de un determinado patron dasoLidar.'
     ]
     print('\t--> Accion: {}'.format(accionesPrincipales[cfgDict['accionPrincipal'] - 1]))
-    print('\t--> Listado de dasoVars [nombre, codigo fichero, limite inf, limite sup, num clases, movilidad_interclases (0-100), ponderacion (0-10)]:')
-    for numDasoVar, listDasoVar in enumerate(cfgDict['listLstDasoVars']):
-        print('\t\tVariable {}: {}'.format(numDasoVar, listDasoVar))
+    if 'listLstDasoVars' in cfgDict.keys():
+        print('\t--> Listado de dasoVars [codigo fichero, nombre, limite inf, limite sup, num clases, movilidad_interclases (0-100), ponderacion (0-10)]:')
+        for numDasoVar, listDasoVar in enumerate(cfgDict['listLstDasoVars']):
+            print('\t\tVariable {}: {}'.format(numDasoVar, listDasoVar))
+    elif 'listaTxtDasoVarsFileTypes' in cfgDict.keys():
+        print('\t--> Listado de FileTypeId (identificadores de dasoVars:')
+        for numDasoVar, FileTypeId in enumerate(cfgDict['listaTxtDasoVarsFileTypes']):
+            print('\t\tVariable {}: {}'.format(numDasoVar, FileTypeId))
     print('\t--> Rango de coordenadas UTM:')
     if cfgDict['marcoPatronTest']:
         print('\t\tSe adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
@@ -689,9 +740,7 @@ def clidtwinsUseCase(cfgDict):
         if __verbose__ > 1:
             print('qlidtwins-> Creando objeto de la clase DasoLidarSource...')
 
-    myDasolidar = DasoLidarSource(
-        LCL_leer_extra_args=TRNS_LEER_EXTRA_ARGS,  # opcional
-    )
+    myDasolidar = DasoLidarSource(LCL_verbose=__verbose__)
 
     if __verbose__:
         print('{:=^80}'.format(''))
@@ -710,13 +759,48 @@ def clidtwinsUseCase(cfgDict):
         print('{:=^80}'.format(''))
         print('\n{:_^80}'.format(''))
         print('qlidtwins-> Ejecutando searchSourceFiles...')
-    myDasolidar.searchSourceFiles(
-        LCL_listLstDasoVars=cfgDict['listLstDasoVars'],
-        LCL_nPatronDasoVars=cfgDict['nPatronDasoVars'],  # opcional
-        LCL_rutaAscRaizBase=cfgDict['rutaAscRaizBase'],
-        LCL_nivelSubdirExpl=cfgDict['nivelSubdirExpl'],  # opcional
-        LCL_outputSubdirNew=cfgDict['outputSubdirNew'],  # opcional
-    )
+
+    if (
+        'listLstDasoVars' in cfgDict.keys()
+        and type(cfgDict['listLstDasoVars'][0]) == list
+    ):
+        # los argumentos listaDasoVars son completos 
+        myDasolidar.searchSourceFiles(
+            LCL_listLstDasoVars=cfgDict['listLstDasoVars'],
+            LCL_nPatronDasoVars=cfgDict['nPatronDasoVars'],  # opcional
+            LCL_rutaAscRaizBase=cfgDict['rutaAscRaizBase'],
+            LCL_nivelSubdirExpl=cfgDict['nivelSubdirExpl'],  # opcional
+            LCL_outputSubdirNew=cfgDict['outputSubdirNew'],  # opcional
+        )
+    elif (
+        'listaTxtDasoVarsFileTypes' in cfgDict.keys()
+        and type(cfgDict['listaTxtDasoVarsFileTypes'][0]) == str
+    ):
+        # Los argumentos posicionales listaDasoVars solo tienen los FileTypeId
+        myDasolidar.searchSourceFiles(
+            LCL_listaTxtDasoVarsFileTypes=cfgDict['listaTxtDasoVarsFileTypes'],
+            LCL_nPatronDasoVars=cfgDict['nPatronDasoVars'],  # opcional
+            LCL_rutaAscRaizBase=cfgDict['rutaAscRaizBase'],
+            LCL_nivelSubdirExpl=cfgDict['nivelSubdirExpl'],  # opcional
+            LCL_outputSubdirNew=cfgDict['outputSubdirNew'],  # opcional
+        )
+
+    elif (
+        # Esta situacion no debe darse, porque si los argumentos posicionales son de tipo
+        # FileTypeId se guardan como listaTxtDasoVarsFileTypes y no como listLstDasoVars
+        'listLstDasoVars' in cfgDict.keys()
+        and type(cfgDict['listLstDasoVars'][0]) == str
+    ):
+        myDasolidar.searchSourceFiles(
+            LCL_listaTxtDasoVarsFileTypes=cfgDict['listLstDasoVars'],
+            LCL_nPatronDasoVars=cfgDict['nPatronDasoVars'],  # opcional
+            LCL_rutaAscRaizBase=cfgDict['rutaAscRaizBase'],
+            LCL_nivelSubdirExpl=cfgDict['nivelSubdirExpl'],  # opcional
+            LCL_outputSubdirNew=cfgDict['outputSubdirNew'],  # opcional
+        )
+    else:
+        print(f'\nqlidtwins-> Revisar los argumentos pasados en linea de comandos. sys.argv: <{sys.argv}>')
+        sys.exit(0)
 
     if __verbose__:
         print('{:=^80}'.format(''))
@@ -745,6 +829,7 @@ def clidtwinsUseCase(cfgDict):
         print('{:=^80}'.format(''))
 
     if cfgDict['accionPrincipal'] == 0 or cfgDict['menuInteractivo']:
+        # Sin uso por el momento, probablemente quite esta opcion
         pass
     elif cfgDict['accionPrincipal'] == 1:
         if __verbose__:
@@ -771,12 +856,12 @@ def clidtwinsUseCase(cfgDict):
 # ==============================================================================
 if __name__ == '__main__' or 'qlidtwins' in __name__:
 
-    checkRun()
+    tipoEjecucion = checkRun()
     testRun()
 
     args = leerArgumentosEnLineaDeComandos()
     saveArgs(args)
-    cfgDict = creaConfigDict(args)
+    cfgDict = creaConfigDict(args, tipoEjecucion=tipoEjecucion)
     if __verbose__ or True:
         mostrarConfiguracion(cfgDict)
 

@@ -20,7 +20,6 @@ import sys
 import unicodedata
 import warnings
 import pathlib
-from operator import itemgetter, attrgetter
 # import random
 
 import numpy as np
@@ -606,8 +605,6 @@ that usually take the default values (from configuration file or clidtwins_confi
                             )
                 #===================================================================
 
-            # Las listas infilesX pueden diferir de un tipo de fichero a otro
-            # Mas adelante se ordenan y cuadran para que sean listas paralelas
             self.inFilesListAllTypes.append(infilesX)
         # ======================================================================
 
@@ -616,86 +613,72 @@ that usually take the default values (from configuration file or clidtwins_confi
 
         # print('\nNumero de ficheros en {}: {} {}'.format(self.LOCLrutaAscRaizBase, len(self.inFilesListAllTypes), len(self.LOCLlistaDasoVarsFileTypes)))
         # print('Numero de tipos de fichero: {}'.format(min(self.LOCLnPatronDasoVars, len(self.LOCLlistLstDasoVars) - 2)))
-        self.dictNumFicherosConDLVsPorBloque = {}
-        self.inFilesDictAllTypes = {}
+        self.numFicherosVariablesPorBloque = {}
         if self.LOCLverbose > 2:
             print('\nclidtwins-> Listas de bloques/ficheros seleccionados:')
         hayAlgunBloqueCompleto = False
-        # Hay una lista de tuplas (path, file) por cada fileType (DLV)
-        for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
+        for nLista in range(len(self.inFilesListAllTypes)):
             if (
-                self.LOCLlistLstDasoVars[numDasoVarX][1] == 'MFE25'
-                or self.LOCLlistLstDasoVars[numDasoVarX][1] == 'TMasa'
+                self.LOCLlistLstDasoVars[nLista][1] == 'MFE25'
+                or self.LOCLlistLstDasoVars[nLista][1] == 'TMasa'
             ):
-                print('clidtwins-> ATENCION: por aqui no debiera pasar')
                 continue
-            if self.LOCLverbose > 1:
-                print('\nclidtwins-> Codigos de Bloque encontrados:')
-            for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
+            # print('------------>', self.inFilesListAllTypes[nLista])
+            # print('------------>', self.numFicherosVariablesPorBloque.keys())
+            for numFile, [pathFile, nameFile] in enumerate(self.inFilesListAllTypes[nLista]):
                 # print('------------>', nameFile)
                 codigoBloque = nameFile[:8]
-                if codigoBloque in self.inFilesDictAllTypes.keys():
-                    self.inFilesDictAllTypes[codigoBloque].append([pathFile, nameFile])
-                    self.dictNumFicherosConDLVsPorBloque[codigoBloque] += 1
+                if codigoBloque in self.numFicherosVariablesPorBloque.keys():
+                    self.numFicherosVariablesPorBloque[codigoBloque] += 1
                 else:
-                    self.inFilesDictAllTypes[codigoBloque] = []
-                    self.dictNumFicherosConDLVsPorBloque[codigoBloque] = 1
+                    self.numFicherosVariablesPorBloque[codigoBloque] = 1
                     if self.LOCLverbose > 1:
                         print(f'{TB}-> Nuevo codigoBloque encontrado:', codigoBloque)
             if self.LOCLverbose > 2:
-                if len(listaFileTuplesDasoVarX) == 0:
+                if len(self.inFilesListAllTypes[nLista]) == 0:
                     print(
                         '{}{} -> {} => fileType: {:<35} ATENCION: no hay ficheros'.format(
                             TB,
-                            numDasoVarX,
-                            self.LOCLlistLstDasoVars[numDasoVarX][1],
-                            self.LOCLlistLstDasoVars[numDasoVarX][0],
+                            nLista,
+                            self.LOCLlistLstDasoVars[nLista][1],
+                            self.LOCLlistLstDasoVars[nLista][0],
                         )
                     )
                 else:
                     print(
                         '{}{:<2} -> {} => fileType: {:<35} ({:<2} files):'.format(
                             TB,
-                            numDasoVarX,
-                            self.LOCLlistLstDasoVars[numDasoVarX][1],
-                            self.LOCLlistLstDasoVars[numDasoVarX][0],
-                            len(listaFileTuplesDasoVarX),
+                            nLista,
+                            self.LOCLlistLstDasoVars[nLista][1],
+                            self.LOCLlistLstDasoVars[nLista][0],
+                            len(self.inFilesListAllTypes[nLista]),
                         )
                     )
-                    print(f'{TB}{TV}{listaFileTuplesDasoVarX[:2]}, etc.')
+                    print(f'{TB}{TV}{self.inFilesListAllTypes[nLista][:2]}, etc.')
 
         if self.LOCLverbose > 1:
-            print('\nclidtwins-> Lista de bloques encontrados (completos e incompletos): {}'.format(self.dictNumFicherosConDLVsPorBloque))
-            print('clidtwins-> ------------->self.inFilesDictAllTypes.keys()', (self.inFilesDictAllTypes).keys())
+            print('\nclidtwins-> Lista de bloques encontrados (completos e incompletos): {}'.format(self.numFicherosVariablesPorBloque))
+            for bloqueKey in self.numFicherosVariablesPorBloque:
+                print(f'{TB}-> Bloque {bloqueKey}: {self.numFicherosVariablesPorBloque[bloqueKey]} ficheros')
 
-        # # Corregir: RuntimeError: dictionary changed size during iteration
-        # for bloqueKey in self.inFilesDictAllTypes.keys():
-        #     if self.LOCLverbose > 1:
-        #         print('clidtwins-> ----> self.inFilesDictAllTypes.keys()', (self.inFilesDictAllTypes).keys())
-        #         print(f'{TB}-> Bloque {bloqueKey}: {len(self.inFilesDictAllTypes[bloqueKey])} ficheros')
-        #     if len(self.inFilesDictAllTypes[bloqueKey]) < self.nInputVars:
-        #         if self.LOCLverbose > 1:
-        #             if len(self.inFilesDictAllTypes[bloqueKey]) < self.nInputVars:
-        #                 print(f'clidtwins-> Eliminando codigoBloque por no tener todas las dasoVars ({self.nInputVars}): {codigoBloque}; nameFile: {nameFile}')
-        #         # del self.inFilesDictAllTypes[bloqueKey]
-        #         (self.inFilesDictAllTypes).pop(bloqueKey, None)
-        #     else:
-        #         hayAlgunBloqueCompleto = True
-
-        for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
+        for nLista in range(len(self.inFilesListAllTypes)):
             if (
-                self.LOCLlistLstDasoVars[numDasoVarX][1] == 'MFE25'
-                or self.LOCLlistLstDasoVars[numDasoVarX][1] == 'TMasa'
+                self.LOCLlistLstDasoVars[nLista][1] == 'MFE25'
+                or self.LOCLlistLstDasoVars[nLista][1] == 'TMasa'
             ):
-                print('clidtwins-> ATENCION: por aqui no debiera pasar')
                 continue
             # Si no se han localizado los N ficheros del bloque, se elimina todos los ficheros de ese bloque
-            for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
+            for numFile, [pathFile, nameFile] in enumerate(self.inFilesListAllTypes[nLista]):
                 codigoBloque = nameFile[:8]
-                if len(self.inFilesDictAllTypes[codigoBloque]) < self.nInputVars:
-                    del listaFileTuplesDasoVarX[numFile]
-        for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
-            self.inFilesListAllTypes[numDasoVarX] = sorted(listaFileTuplesDasoVarX, key=itemgetter(1))
+                # print('---------->', codigoBloque, '->>', self.numFicherosVariablesPorBloque[codigoBloque], 'ficheros (variables)')
+                if self.numFicherosVariablesPorBloque[codigoBloque] < self.nInputVars:
+                    if nameFile[:8] == codigoBloque:
+                        # (self.inFilesListAllTypes[nLista]).remove([pathFile, nameFile])
+                        del self.inFilesListAllTypes[nLista][numFile]
+                        if self.LOCLverbose > 1:
+                            print('clidtwins-> Eliminando codigoBloque por no tener todas las dasoVars:', codigoBloque, 'nameFile', nameFile)
+                else:
+                    hayAlgunBloqueCompleto = True
 
         if not hayAlgunBloqueCompleto:
             print('\nATENCION: No hay ningun bloque con todas las variables (todos los tipos de fichero).')
@@ -711,7 +694,7 @@ that usually take the default values (from configuration file or clidtwins_confi
                 or self.LOCLmarcoLibreMaxiY
             ):
                 print('\nclidtwuins-> Actualizando marco de analisis:')
-        for codigoBloque in self.dictNumFicherosConDLVsPorBloque.keys():
+        for codigoBloque in self.numFicherosVariablesPorBloque.keys():
             if (
                 self.LOCLmarcoLibreMiniX
                 or (
@@ -777,13 +760,9 @@ that usually take the default values (from configuration file or clidtwins_confi
                     )
                 self.LOCLmarcoCoordMiniY = (int(codigoBloque[4:8]) * 1000) - 2000
 
-        if self.LOCLverbose > 2:
-            print('Resultado tras eliminar los que procedan y ordenar los ficheros por codigoBloque:')
-            for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
-                print(f'Variable num {numDasoVarX} -> Files: {listaFileTuplesDasoVarX}')
-            for bloqueKey in self.inFilesDictAllTypes.keys():
-                print(f'Bloque: {bloqueKey} -> Files -> {self.inFilesDictAllTypes[bloqueKey]}')
-
+        # print('Resultado tras eliminar los que procedan:')
+        # for nLista in range(len(self.inFilesListAllTypes)):
+        #     print('Variable num', nLista, 'Files ->', self.inFilesListAllTypes[nLista])
 
     # ==========================================================================
     def verificarlistaDasoVars(
@@ -1336,7 +1315,6 @@ and two more layers for forest type (land cover) and stand type.
         ) = clidraster.crearRasterTiff(
             # self.LOCLrutaAscRaizBase,
             self_inFilesListAllTypes=self.inFilesListAllTypes,
-            self_inFilesDictAllTypes=self.inFilesDictAllTypes,
             self_LOCLoutPathNameRuta=self.LOCLoutPathNameRuta,
             self_LOCLoutFileNameWExt=self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
             self_LOCLlistaDasoVarsFileTypes=self.LOCLlistaDasoVarsFileTypes,

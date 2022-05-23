@@ -46,7 +46,13 @@ if __verbose__ > 2:
 # ==============================================================================
 
 # Acceso a un modulo del package clidax
-from cartolidar.clidax import clidconfig
+try:
+    from cartolidar.clidax import clidconfig
+except:
+    if __verbose__ > 2:
+        print(f'qlidtwins-> Se importa clidconfig desde clidtwins_config del directorio local {os.getcwd()}/clidtools')
+        print('\tNo hay vesion de cartolidar instalada en site-packages.')
+    from clidax import clidconfig
 
 
 # ==============================================================================
@@ -77,8 +83,8 @@ def getConfigFileName():
             configFileNameCfg = sys.argv[0].replace('.py', '{:006}.cfg'.format(MAIN_idProceso))
         else:
             configFileNameCfg = sys.argv[0].replace('.py', '.cfg')
-    if __verbose__ > 1:
-        print(f'qlidtwins se ejecuta con las opciones de {configFileNameCfg} (o por defecto).')
+    if __verbose__ > 2:
+        print(f'clidtwins_config-> Fichero de configuracion: {configFileNameCfg}. Disponible: {os.path.exists(configFileNameCfg)}.')
     return configFileNameCfg
 
 
@@ -352,20 +358,20 @@ def leerConfigDictPorDefecto():
     
         'GLBLaccionPrincipalPorDefecto': ['2', 'dasoLidar', 'bool', '1. Verificar analog�a con un determinado patron dasoLidar; 2. Generar raster con presencia de un determinado patron dasoLidar.'],
     
-        # 'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
         # Ruta de los lasFiles para Leon:
         'GLBLrutaAscRaizBasePorDefecto': ['K:/calendula/NW', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
         'GLBLrutaAscRaizBasePorDefecto': ['', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
+        'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
     
-        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
         # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/zonaEnsayoTolosana.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
         # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/perimetrosDeReferencia.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
         'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
+        'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
     
         # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/MUP_rodales_zonaEstudio.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
-        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
         # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/testeo_roble.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
         'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
+        'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
     
         'GLBLpatronLayerNamePorDefecto': [r'robleAlto1', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
         'GLBLtesteoLayerNamePorDefecto': [r'robleAlto2', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],

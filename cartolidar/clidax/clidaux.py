@@ -38,19 +38,6 @@ from _ast import Or
 # from scipy.spatial.distance import pdist
 
 try:
-    import tensorflow as tf
-    tfOk = True
-except:
-    print('clidaux-> tensorflow no disponible')
-    print('clidaux-> Version de {}: {}'.format(platform.system(), platform.release()))
-    tfOk = False
-if tfOk and False:
-    print('\t-> tensorflow cargado ok desde clidaux')
-    print('\t\t-> Version de tensorflow:', tf.version.VERSION)
-    print('\t\t-> Uso de GPU:', tf.config.list_physical_devices('GPU')) 
-    print('\t\t-> Uso de GPU:', tf.test.gpu_device_name())
-
-try:
     # print(os.path.abspath(os.curdir))
     # print(os.environ['PATH'])
     import gdal, ogr, osr
@@ -108,15 +95,6 @@ else:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
 # ==============================================================================
-if MAIN_ENTORNO == 'windows':
-    tf.config.threading.set_intra_op_parallelism_threads(2)
-    tf.config.threading.set_inter_op_parallelism_threads(1)
-    # tf.compat.v1.ConfigProto(1) # Para f 2.0
-    N = 2
-    os.environ["OMP_NUM_THREADS"] = f"{N}"
-    os.environ['TF_NUM_INTEROP_THREADS'] = f"{N}"
-    os.environ['TF_NUM_INTRAOP_THREADS'] = f"{N}"
-# ==============================================================================
 
 
 # ==============================================================================
@@ -173,7 +151,7 @@ callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=ins
 if CONFIGverbose:
     print('clidaux-> Pila de llamadas revisada-> callingModulePrevio:', callingModulePrevio, 'callingModuleInicial:', callingModuleInicial)
 
-# print('clidaux-> Cargando clidaux desde callingModuleInicial:', callingModuleInicial)
+# print('\nclidaux-> Cargando clidaux desde callingModuleInicial:', callingModuleInicial)
 
 # ==============================================================================
 if (
@@ -194,8 +172,9 @@ if (
     GLO.MAINidProceso = 0
     GLO.GLBLficheroLasTemporal = ''
     GLO.GLBLverbose = True
-    if GLO.GLBLverbose:
-        print('clidaux-> Modulo importado desde {os.getcwd()} -> {callingModuleInicial} -> No se cargan las variables globales')
+    if GLO.GLBLverbose > 2:
+        print(f'clidaux-> Modulo importado desde la ruta: {os.getcwd()} -> Modulo: {callingModuleInicial}')
+        print('\t-> No se cargan las variables globales')
 
 else:
     if __name__ == '__main__': # callingModuleInicial != 'clidaux'
@@ -671,8 +650,6 @@ def mostrarEntornoDeTrabajo(verbosePlus=False):
     print('  Version de numpy:     ', np.__version__) # <=> np.version.version
     print('  Version de scipy:     ', scipy.__version__) # <=> scipy.version.version
     print('  Version de Numba:     ', numba.__version__)
-    if tfOk:
-        print('  Version de TensorFlow:', tf.version.VERSION) # <=> __version__
     print('  Version de gdal:      ', gdal.VersionInfo())
     try:
         import pyproj
@@ -2154,341 +2131,6 @@ if __name__ == "__main__" and False:
     back = p.vars(b)
     print("~ back again:", back)
     print("max |back - x|: %.2g" % np.linalg.norm(back - x, np.inf))
-
-
-# ==============================================================================
-def leerRedNeuronalDeFichero(
-        pathNameNpzNlnAcum='',
-        fileNameNlnAcum='',
-        nInputsNN=83,
-        nOutputsNN=10,
-        LCLhiddenLayers=[64, 32, 16, 8],
-        listaNumerosClasesUsadas=[],
-        LCL_PC='',
-        dropoutInputHiddenLayer=False,
-        dropoutPrimerHiddenLayer=False,
-        dropoutUltimoHiddenLayer=False,
-        dropoutParesHiddenLayers=False,
-        dropoutTodosHiddenLayers=False,
-        aplicarBathcNormalization=False,
-        usarSkipConections=False,
-        leerModelo=True,
-        prefijoNN='NN',
-        loteBloquesUsadosParaEntrenar='',
-    ):
-
-    if loteBloquesUsadosParaEntrenar == '':
-        miCuadrante = os.path.basename(pathNameNpzNlnAcum)
-        if (
-            miCuadrante.endswith('CE')
-            or miCuadrante.endswith('NE')
-            or miCuadrante.endswith('NW')
-            or miCuadrante.endswith('SE')
-            or miCuadrante.endswith('SW')
-            or miCuadrante.endswith('XX')
-        ):
-            loteBloquesUsadosParaEntrenar = 'lote{}'.format(miCuadrante[-2:])
-        else:
-            loteBloquesUsadosParaEntrenar = 'lote{}'.format(miCuadrante)
-
-    printMsg('{:_^80}'.format(''))
-
-    if not fileNameNlnAcum is None and fileNameNlnAcum != '':
-        fileNameNlnAcumConArquitectura1 = os.path.join(
-            pathNameNpzNlnAcum,
-            fileNameNlnAcum
-        )
-        fileNameNlnAcumConArquitectura2 = ''
-        fileNameNlnAcumConArquitectura3 = ''
-        printMsg(
-            'clidaux-> Nombre del fichero a leer:\n\t{}'.format(
-                fileNameNlnAcumConArquitectura1
-            )
-        )
-    else:
-        printMsg(
-            'clidaux-> Nombre del fichero a leer-> se construye a partir de:\
-            \n\t-> loteBloques: {}; nInputsNN:{}; LCLhiddenLayers: {}; nOutputsNN: {};\
-            \n\t-> inputDropout {}; priDropout: {}; ultDropout: {}; allDropouts: {}; parDropout: {};\
-            \n\t-> normalizarHL: {}; usarSkipConections: {})'.format(
-                loteBloquesUsadosParaEntrenar,
-                nInputsNN,
-                LCLhiddenLayers,
-                nOutputsNN,
-                dropoutInputHiddenLayer,
-                dropoutPrimerHiddenLayer,
-                dropoutUltimoHiddenLayer,
-                dropoutParesHiddenLayers,
-                dropoutTodosHiddenLayers,
-                aplicarBathcNormalization,
-                usarSkipConections,
-            )
-        )
-        # nOutputsNN=10
-        # ======================================================================
-        # Si no ha pasado pr entrenaLas<> y GLBLentrenarNeuronalNetworkConTF
-        # no se recibe LCLhiddenLayers, por lo que se lee de GLO o se asigna por defecto
-        # ======================================================================
-        LCLhiddenLayersPorDefecto = [64, 32, 16, 8]
-        if LCLhiddenLayers is None or LCLhiddenLayers == '':
-            if GLO.GLBLredNeuronalHiddenLayers:
-                try:
-                    printMsg('clidaux-> GLBLredNeuronalHiddenLayers: {}'.format(GLO.GLBLredNeuronalHiddenLayers))
-                    LCLhiddenLayers = [np.uint8(nNodos) for nNodos in GLO.GLBLredNeuronalHiddenLayers.split()]
-                except:
-                    printMsg('clidaux-> ATENCION: error en GLBLredNeuronalHiddenLayers: {}'.format(GLO.GLBLredNeuronalHiddenLayers))
-                    LCLhiddenLayers = LCLhiddenLayersPorDefecto
-                    printMsg('\t Se usa una red por defecto: {}'.format(LCLhiddenLayers))
-            else:
-                LCLhiddenLayers = LCLhiddenLayersPorDefecto
-        # ======================================================================
-    
-        if listaNumerosClasesUsadas == []:
-            listaNumerosClasesUsadas = list(range(nOutputsNN))
-        # ======================================================================
-
-        # ======================================================================
-        strHiddenLayers = ''
-        for nNeurons in LCLhiddenLayers:
-            strHiddenLayers += 'h{}_'.format(nNeurons)
-        strArquitectura = 'i{:03}_{}o{}'.format(
-            nInputsNN,
-            strHiddenLayers,
-            nOutputsNN,
-        )
-        if (
-            dropoutInputHiddenLayer
-            or dropoutPrimerHiddenLayer
-            or dropoutUltimoHiddenLayer
-            or dropoutParesHiddenLayers
-            or dropoutTodosHiddenLayers
-        ):
-            strArquitectura = strArquitectura + '_dropout'
-            if dropoutInputHiddenLayer:
-                strArquitectura = strArquitectura + 'Inp'
-            if dropoutTodosHiddenLayers:
-                strArquitectura = strArquitectura + 'All'
-            elif dropoutParesHiddenLayers:
-                strArquitectura = strArquitectura + 'Par'
-            else:
-                if dropoutPrimerHiddenLayer:
-                    strArquitectura = strArquitectura + 'Pri'
-                if dropoutUltimoHiddenLayer:
-                    strArquitectura = strArquitectura + 'Ult'
-
-        if aplicarBathcNormalization:
-            strArquitectura = strArquitectura + '_normHL'
-        if usarSkipConections:
-            strArquitectura = strArquitectura + '_RNN'
-        if LCL_PC == 'calendula':
-            LCL_PC2 = 'Casa'
-            LCL_PC3 = 'JCyL'
-        elif LCL_PC == 'Casa':
-            LCL_PC2 = 'calendula'
-            LCL_PC3 = 'JCyL'
-        else:
-            LCL_PC2 = 'calendula'
-            LCL_PC3 = 'Casa'
-        # prefijoNN = 'NeuralNetworkAcum'
-        # prefijoNN = 'NN'
-        fileNameNlnAcumConArquitectura1 = os.path.join(
-            pathNameNpzNlnAcum,
-            '{}{}{}_{}.h5'.format(
-                prefijoNN,
-                LCL_PC.capitalize()[:4],
-                loteBloquesUsadosParaEntrenar[0].upper() + loteBloquesUsadosParaEntrenar[1:],
-                strArquitectura,
-            )
-        )
-        fileNameNlnAcumConArquitectura2 = os.path.join(
-            pathNameNpzNlnAcum,
-            '{}{}{}_{}.h5'.format(
-                prefijoNN,
-                LCL_PC2.capitalize()[:4],
-                loteBloquesUsadosParaEntrenar[0].upper() + loteBloquesUsadosParaEntrenar[1:],
-                strArquitectura,
-            )
-        )
-        fileNameNlnAcumConArquitectura3 = os.path.join(
-            pathNameNpzNlnAcum,
-            'NeuralNetworkAcum{}{}_{}.h5'.format(
-                LCL_PC3.capitalize()[:4],
-                loteBloquesUsadosParaEntrenar[0].upper() + loteBloquesUsadosParaEntrenar[1:],
-                strArquitectura,
-            )
-        )
-
-        print('clidaux-> leyendo modelo-> Probando:')
-        print(fileNameNlnAcumConArquitectura1)
-        print(fileNameNlnAcumConArquitectura2)
-        print(fileNameNlnAcumConArquitectura3)
-
-    # ======================================================================
-    fileNameNlnAcumConArquitecturaXX1 = ((((
-        fileNameNlnAcumConArquitectura1.replace('CE', 'XX')
-        ).replace('NE', 'XX')
-        ).replace('NW', 'XX')
-        ).replace('SE', 'XX')
-    ).replace('SW', 'XX')
-    fileNameNlnAcumConArquitecturaXX2 = ((((
-        fileNameNlnAcumConArquitectura2.replace('CE', 'XX')
-        ).replace('NE', 'XX')
-        ).replace('NW', 'XX')
-        ).replace('SE', 'XX')
-    ).replace('SW', 'XX')
-    fileNameNlnAcumConArquitecturaXX3 = ((((
-        fileNameNlnAcumConArquitectura3.replace('CE', 'XX')
-        ).replace('NE', 'XX')
-        ).replace('NW', 'XX')
-        ).replace('SE', 'XX')
-    ).replace('SW', 'XX')
-    # ======================================================================
-    lecturaRedNeuronalOk = False
-    miRedNeuronalLeidaDeFichero = None
-    if leerModelo:
-        if os.path.exists(fileNameNlnAcumConArquitectura1):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitectura1
-        elif os.path.isdir(fileNameNlnAcumConArquitectura1.replace('.h5', '')):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitectura1.replace('.h5', '')
-        elif os.path.exists(fileNameNlnAcumConArquitectura2):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitectura2
-        elif os.path.exists(fileNameNlnAcumConArquitectura2.replace('.h5', '')):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitectura2.replace('.h5', '')
-        elif os.path.exists(fileNameNlnAcumConArquitectura3):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitectura3
-        elif os.path.exists(fileNameNlnAcumConArquitectura3.replace('.h5', '')):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitectura3.replace('.h5', '')
-        elif os.path.exists(fileNameNlnAcumConArquitecturaXX1):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitecturaXX1
-        elif os.path.isdir(fileNameNlnAcumConArquitecturaXX1.replace('.h5', '')):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitecturaXX1.replace('.h5', '')
-        elif os.path.exists(fileNameNlnAcumConArquitecturaXX2):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitecturaXX2
-        elif os.path.exists(fileNameNlnAcumConArquitecturaXX2.replace('.h5', '')):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitecturaXX2.replace('.h5', '')
-        elif os.path.exists(fileNameNlnAcumConArquitecturaXX3):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitecturaXX3
-        elif os.path.exists(fileNameNlnAcumConArquitecturaXX3.replace('.h5', '')):
-            fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitecturaXX3.replace('.h5', '')
-        else:
-            printMsg('clidaux-> ATENCION: no hay fichero con el modelo entrenado: \n\t{}\n\t{}\n\t{}'.format(
-                fileNameNlnAcumConArquitectura1, fileNameNlnAcumConArquitectura2, fileNameNlnAcumConArquitectura3))
-            return (
-                lecturaRedNeuronalOk,
-                miRedNeuronalLeidaDeFichero,
-                fileNameNlnAcumConArquitectura1,
-                )
-
-        printMsg('clidaux-> Modelo encontrado (file o dir):\n\t-> {}'.format(fileNameNlnAcumConArquitectura))
-        # ======================================================================
-        # ATENCION: Si el modelo guardado tiene custom objets (una clase o una metrica)
-        # hay que cuidar la customizacion y la carga (load_model):
-        #    -> Customizacion de la clase MySequential (subclase de tf.keras.Sequential):
-        #        => incluir la propiedad name en la funcion __init__():
-        #             def __init__(self,
-        #                          name='mySequential', **kwargs):
-        #                 super(MySequential, self).__init__(name=name, **kwargs)
-        #    -> Customizacion de la clase ConfusionMatrixMetric (subclase de tf.keras.metrics.Metric):
-        #        => incluir la propiedad name en la funcion __init__():
-        #             def __init__(self, num_classes,
-        #                          name='confusion_matrix_metric', **kwargs):
-        #                 super(ConfusionMatrixMetric, self).__init__(name=name, **kwargs) # handles base args (e.g., dtype)
-        #        => incluir la funcion get_config():
-        #             def get_config(self):
-        #                 config = super(ConfusionMatrixMetric, self).get_config()
-        #                 config.update({"num_classes": self.num_classes})
-        #                 #return {"num_classes": self.num_classes}
-        #                 return config
-        #         Ver: https://www.tensorflow.org/guide/keras/custom_layers_and_models#you_can_optionally_enable_serialization_on_your_layers
-        #    -> Modificar la carga del modelo:
-        #        En load_model() incluir el parametro
-        #             custom_objects=customClases
-        #        donde:
-        #             customClases = {
-        #                 'MySequential': clidmachine.MySequential,
-        #                 'ConfusionMatrixMetric': clidmachine.ConfusionMatrixMetric,
-        #             }
-        # ======================================================================
-        # Disquisiciones previas ya descartadas que me permitian solventar la clase customizada MySequential pero no ConfusionMatrixMetric:
-        #    Al cargar el modelo guardado puede dar este error: KeyError: 'name' when try to load saved model
-        #    Esto se debe a que cuando no ocurre que class_name == 'Sequential', el load_model() lo carga como modelo funcional
-        # Eso esta en el modulo:
-        #    "C:\OSGeo4W64\apps\Python37\Lib\site-packages\tensorflow\python\keras\saving\saved_model\load.py", line 467
-        # Para solucionarlo, en ese modulo sustituyo:
-        #    if class_name == 'Sequential':
-        # por:
-        #    if 'Sequential' in class_name:
-        # ======================================================================
-
-#         try:
-        customClases = {
-            'MySequential': clidmachine.MySequential,
-            'ConfusionMatrixMetric': clidmachine.ConfusionMatrixMetric,
-        }
-        miRedNeuronalLeidaDeFichero = tf.keras.models.load_model(
-            fileNameNlnAcumConArquitectura,
-            custom_objects=customClases
-        )
-        printMsg('\t\t-> Ok modelo leido de fichero.')
-        lecturaRedNeuronalOk = True
-#         except:
-#             printMsg('clidaux-> ATENCION: error al cargar el modelo entrenado: {}'.format(fileNameNlnAcumConArquitectura))
-        if not miRedNeuronalLeidaDeFichero is None:
-            try:
-                # print('clidaux-> type(layer):', type(miRedNeuronalLeidaDeFichero.layers[0])) # <class 'tensorflow.python.keras.engine.input_layer.InputLayer'>
-                # print('clidaux-> Propiedades de los Layers:', dir(miRedNeuronalLeidaDeFichero.layers[0]))
-                #    'activity_regularizer', 'add_loss', 'add_metric', 'add_update', 'add_variable', 'add_weight', 'apply', 'batch_size', 'build', 'built', 'call', 'compute_dtype', 'compute_mask', 'compute_output_shape', 'compute_output_signature', 'count_params', 'dtype', 'dtype_policy', 'dynamic', 'from_config', 'get_config', 'get_input_at', 'get_input_mask_at',
-                #    'get_input_shape_at', 'get_losses_for', 'get_output_at', 'get_output_mask_at', 'get_output_shape_at', 'get_updates_for', 'get_weights', 'inbound_nodes', 'input', 'input_mask', 'input_shape', 'input_spec', 'is_placeholder', 'losses', 'metrics', 'name', 'name_scope', 'non_trainable_variables', 'non_trainable_weights', 'outbound_nodes',
-                #    'output', 'output_mask', 'output_shape', 'ragged', 'set_weights', 'sparse', 'stateful', 'submodules', 'supports_masking', 'trainable', 'trainable_variables', 'trainable_weights', 'updates', 'variable_dtype', 'variables', 'weights', 'with_name_scope']
-                # print('clidaux-> Layer0.input_shape: ', miRedNeuronalLeidaDeFichero.layers[0].input_shape)  # [(None, 81)]
-                # print('clidaux-> Layer0.output_shape:', miRedNeuronalLeidaDeFichero.layers[0].output_shape) # [(None, 81)]
-                # print('clidaux-> Layer1.input_shape:', miRedNeuronalLeidaDeFichero.layers[1].input_shape)   # (None, 81)
-                # print('clidaux-> Layer1.output_shape:', miRedNeuronalLeidaDeFichero.layers[1].output_shape) # (None, 64)
-                miRedNeuronalnumInputVars = miRedNeuronalLeidaDeFichero.layers[1].get_weights()[0].shape[0]
-                printMsg(
-                    '\t\t-> num input variables: {} = {}'.format(
-                        miRedNeuronalnumInputVars,
-                        miRedNeuronalLeidaDeFichero.layers[0].output_shape[0][1],
-                    )
-                )
-            except:
-                printMsg('\t\t-> Revisar el error al leer num input variables')
-                try:
-                    printMsg(miRedNeuronalLeidaDeFichero.layers)
-                except:
-                    printMsg('\t-> Error')
-
-            printMsg('\t\t-> Summary del modelo leido de fichero')
-            miRedNeuronalLeidaDeFichero.summary()
-
-            try:
-                if GLO.GLBLverbose:
-                    printMsg('\t-> Algunas propiedades de cada layer (antes de entrenar:):')
-                    for layer in miRedNeuronalLeidaDeFichero.layers:
-                        printMsg('\t\tNombre: {}'.format(layer.name))
-                        printMsg('\t\t\tConfig:          {}-> {}'.format(type(layer.get_config()), layer.get_config()))
-                        try:
-                            printMsg('\t\t\ttype(Weights):   {}'.format(type(layer.get_weights())))
-                            printMsg('\t\t\ttype(Weights[0]):   {}'.format(type(layer.get_weights()[0])))
-                            printMsg('\t\t\tWeights-> Shape: {}'.format(layer.get_weights()[0].shape))
-                            printMsg('\t\t\tBias-> Shape:    {}'.format(layer.get_weights()[1].shape))
-                        except:
-                            printMsg('\t\t\tWeights-> len: {}'.format(len(layer.get_weights())))
-                        # printMsg('\t\t\t\tWeights->  {}'.format(layer.get_weights()[0]))
-                        # printMsg('\t\t\t\tBias->     {}'.format(layer.get_weights()[1]))
-            except:
-                printMsg('clidaux-> ATENCION: error al mostrar el modelo entrenado: {}'.format(fileNameNlnAcumConArquitectura))
-    else:
-        fileNameNlnAcumConArquitectura = fileNameNlnAcumConArquitectura1
-        printMsg('clidaux-> Nombre para el fichero con el modelo: {}'.format(fileNameNlnAcumConArquitectura))
-
-    printMsg('{:=^80}'.format(''))
-
-    return (
-        lecturaRedNeuronalOk,
-        miRedNeuronalLeidaDeFichero,
-        fileNameNlnAcumConArquitectura,
-        )
 
 
 # ==============================================================================

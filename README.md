@@ -185,7 +185,6 @@ myDasolidar.setRangeUTM(
 
 3. Search for dasoLidar files in the prospecting zone (if any):
 > First argument (LCL_listLstDasoVars) is a string with a sequence of DLV identifiers
-> 
 > and second one (LCL_rutaAscRaizBase) is a path to look for the files with those DLV ids.
 ```
 myDasolidar.searchSourceFiles(
