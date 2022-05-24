@@ -201,22 +201,62 @@ def crearRasterTiff(
             LCL_driverExtension = 'xxx'
         self_LOCLoutFileNameWExt = '{}_{}_Global.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
 
+    # ==========================================================================
     if self_LOCLlistaDasoVarsFileTypes is None:
         print('clidraster-> ATENCION: esto no debiera ocurrir')
         self_LOCLlistaDasoVarsFileTypes = []
         if not self_inFilesListAllTypes is None:
             # Se lee de las listas de ficheros (el priero de cada lista)
             for inFileTypeList in self_inFilesListAllTypes:
-                self_LOCLlistaDasoVarsFileTypes.append(inFileTypeList[0][9:-4])
+                self_LOCLlistaDasoVarsFileTypes.append(inFileTypeList[0][1][9:-4])
         else:
             for inFileTypePathName in list(self_inFilesDictAllTypes.values())[0]:
                 self_LOCLlistaDasoVarsFileTypes.append(inFileTypePathName[1][9:-4])
+        self_LOCLlistaDasoVarsFileTypes.append('MFE25')
+        self_LOCLlistaDasoVarsFileTypes.append('TMasa')
+        print('\t-> Creado self_LOCLlistaDasoVarsFileTypes', self_LOCLlistaDasoVarsFileTypes)
     # ==========================================================================
 
     if not self_inFilesListAllTypes is None:
-        nBandasOutput = len(self_inFilesListAllTypes) + 2
+        numDLVs = len(self_inFilesListAllTypes)
+        numBloques = len(self_inFilesListAllTypes[0])
+        listaCodigosBloque = list(inFileBloqueX[1][:8] for inFileBloqueX in self_inFilesListAllTypes[0])
+        for inFilesListTypeX in self_inFilesListAllTypes:
+            # Debiera haber el mismo numero de ficheros por fileType.
+            # Se verifica por si self_inFilesListAllTypes llegara incorrecto.
+            if numBloques != len(inFilesListTypeX):
+                print('clidraster-> ATENCION: todas las listas en self_inFilesListAllTypes deben tener el mismo numero de ficheros (ordenados por codBloque).')
+                print('{TB}-> Se inerrume la ejecucion.')
+                sys.exit(0)
     else:
-        nBandasOutput = len(self_inFilesDictAllTypes) + 2
+        numDLVs = len(list(self_inFilesDictAllTypes.values())[0])
+        numBloques = len(self_inFilesDictAllTypes)
+        listaCodigosBloque = sorted(list(self_inFilesDictAllTypes.keys()))
+
+        # inFilesListAllTypesBloque0 = self_inFilesDictAllTypes[listaCodigosBloque[0]]
+        # print('\n->->-> Bloque0', inFilesListAllTypesBloque0)
+        # print('\n->->-> Bloque0', list(self_inFilesDictAllTypes.values())[0])
+
+        numOrdenCodigoBloque0 = 0
+        inFilesListPorCodigoBloque0 = list(self_inFilesDictAllTypes.values())[numOrdenCodigoBloque0]
+        nFilesPorCodigoBloque0 = len(inFilesListPorCodigoBloque0)
+        for numOrdenCodigoBloqueX in range(numBloques):
+            # Debiera haber el mismo numero de ficheros por fileType.
+            # Si no es asi con self_inFilesDictAllTypes significaria que algun codigoBloque
+            # no tiene todos los fileTypes, pero eso ya se ha controlado en clidtwins
+            inFilesListPorCodigoBloqueX = list(self_inFilesDictAllTypes.values())[numOrdenCodigoBloqueX]
+            if nFilesPorCodigoBloque0 != len(inFilesListPorCodigoBloqueX):
+                print('clidraster-> ATENCION: todos los bloques de self_inFilesDictAllTypes deben tener el mismo numero de ficheros (ordenados por DLV).')
+                print('{TB}-> Se inerrume la ejecucion.')
+                sys.exit(0)
+
+    nBandasOutput = numDLVs + 2
+    if PAR_verbose > 1:
+        print('\n->->-> Num DLVs           ', numDLVs)
+        print('\n->->-> Num bloques:       ', numBloques)
+        print('\n->->-> listaCodigosBloque:', listaCodigosBloque)
+    # myDasoVarsFileType0 = self_LOCLlistaDasoVarsFileTypes[0]
+            
     txtTipoFichero = self_LOCLlistaDasoVarsFileTypes[AUX_numTipoFichero]
 
     # Para transformar coordenadas de huso 29 a 30 uso gdal.osr.SpatialReference(), que no se puede usar con nb.
@@ -294,15 +334,16 @@ def crearRasterTiff(
     # Las listas incluidas en self_inFilesListAllTypes estan ordenadas
     # por nombre de fichero (y por lo tanto por codigoBloque) 
     if not self_inFilesListAllTypes is None:
+        # Lista de duplas (list) de [pathName, fileNme]
         infilesListTipo0 = self_inFilesListAllTypes[0]
     else:
-        infilesListTipo0 = list(self_inFilesDictAllTypes.values())[0]
+        infilesListTipo0 = []
+        for (codigoBloque, listaInFilesAllTypesPorCodigoBloque) in self_inFilesDictAllTypes.items():
+            # Lista de duplas (tuple) de (pathName, fileNme)
+            infilesListTipo0.append(listaInFilesAllTypesPorCodigoBloque[0])
+            # for listaInFilesType0PorCodigoBloque in listaInFilesAllTypesPorCodigoBloque:
+            #     print(f'\t\t---->>>> listaInFilesType0PorCodigoBloque[1]: {listaInFilesType0PorCodigoBloque[1]}')
 
-    print('--------> infilesListTipo0:', self_inFilesListAllTypes[0])
-    print('--------> infilesListTipo0:', list(self_inFilesDictAllTypes.values())[0])
-    quit()
-
-    # print('Numero de infilesListTipo0:', len(infilesListTipo0))
     print('\n{:_^80}'.format(''))
     if PAR_verbose:
         if PAR_generarDasoLayers:
@@ -331,14 +372,9 @@ def crearRasterTiff(
     arrayMaxVariables.fill(-999999)
     noDataDasoVarAll = 255
 
-    print('---------->self_inFilesListAllTypes:', self_inFilesListAllTypes)
-    print('---------->self_LOCLlistaDasoVarsFileTypes:', self_LOCLlistaDasoVarsFileTypes)
-    print('---------->AUX_numTipoFichero:', AUX_numTipoFichero)
-    print('---------->infilesListTipo0:', infilesListTipo0)
-
     # ==========================================================================
     for contadorInFiles, (inputAscDirTipo0, inputAscName1) in enumerate(infilesListTipo0):
-        # print('-->>1', inputAscDirTipo0, inputAscName1)
+        print('-->>1', inputAscDirTipo0, inputAscName1)
         #=======================================================================
         if PAR_ambitoTiffNuevo[:3] == 'CyL':
             nMinX_NombreAsc = int(inputAscName1[:3]) * 1000
@@ -382,21 +418,21 @@ def crearRasterTiff(
             continue
         #===================================================================
         if PAR_verbose:
-            if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                 print('\nProcesando bloque {}/{}:'.format(contadorBloquesProcesando, len(infilesListTipo0)))
                 print(f'\t-> Primero se abren todos los tipos de fichero para este bloque ({inputAscName1[:8]}):')
         #===================================================================
         nInputVar = 0
         if PAR_verbose:
-            if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
-                print(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                print(f'\t\t-> Tipo de fichero_0: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
                 # print('clidraster---->>>1-> self_LOCLlistaDasoVarsFileTypes[0]:        ', self_LOCLlistaDasoVarsFileTypes[0])
                 # print('clidraster---->>>2-> self_LOCLlistaDasoVarsFileTypes[nInputVar]:', self_LOCLlistaDasoVarsFileTypes[nInputVar])
 
         try:
             dictAscFileObjet[0] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
             if PAR_verbose > 1:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                     print(f'\t\t\t-> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
         except:
             print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
@@ -408,63 +444,41 @@ def crearRasterTiff(
         if PAR_generarDasoLayers:
             for nInputVar in range(1, PAR_nInputVars):
                 # fileTypeX = self_LOCLlistaDasoVarsFileTypes[nInputVar]
-                if self_inFilesListAllTypes[nInputVar] == []:
-                    if PAR_verbose:
-                        print(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): -')
-                        print(f'\t\t\t-> Tipo de fichero no disponible para el bloque {inputAscName1[:13]}')
-                    dictInputAscNameSinPath[nInputVar] = ''
-                    dictInputAscNameConPath[nInputVar] = ''
-                    # if nInputVar in dictAscFileObjet: del dictAscFileObjet[nInputVar]
-                    # dictAscFileObjet.pop(nInputVar, None)
+                nFicherosDisponiblesPorTipoVariable[nInputVar] += 1
+
+                # inputAscNameNew = inputAscName1.replace(self_LOCLlistaDasoVarsFileTypes[0], self_LOCLlistaDasoVarsFileTypes[nInputVar])
+                # La lista self_inFilesListAllTypes tiene los ficheros ordenados por nombre (y por lo tanto por bloque)
+                if not self_inFilesListAllTypes is None:
+                    (inputAscPathNew, inputAscNameNew) = self_inFilesListAllTypes[nInputVar][contadorInFiles]
                 else:
-                    nFicherosDisponiblesPorTipoVariable[nInputVar] += 1
+                    (inputAscPathNew, inputAscNameNew) = self_inFilesDictAllTypes[codigoBloque][nInputVar]
+                if PAR_verbose:
+                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                        print(f'\t\t-> Tipo de fichero_{nInputVar}: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscNameNew}')
+
+                dictInputAscNameSinPath[nInputVar] = inputAscNameNew
+                dictInputAscNameConPath[nInputVar] = os.path.join(inputAscPathNew, inputAscNameNew)
+                if not os.path.exists(dictInputAscNameConPath[nInputVar]):
+                    print('\nclidraster-> ATENCION: no se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                    print('\t-> Revisar codigo, porque ha sido previamente localizado.')
+                    sys.exit(0)
+                fileBytes2 = os.stat(dictInputAscNameConPath[nInputVar]).st_size
+                if fileBytes2 <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
                     if PAR_verbose:
-                        if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
-                            print(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {self_inFilesListAllTypes[nInputVar][contadorInFiles][1]}')
-                    # ==========================================================
-
-                    # inputAscNameNew = inputAscName1.replace(self_LOCLlistaDasoVarsFileTypes[0], self_LOCLlistaDasoVarsFileTypes[nInputVar])
-                    if not self_inFilesListAllTypes is None:
-                        inputAscNameNew = self_inFilesListAllTypes[nInputVar][contadorInFiles]
-                    else:
-                        (inputAscPathNew, inputAscNameNew) = self_inFilesDictAllTypes[codigoBloque][nInputVar]
-
-                    # Busco la ruta en la que esta el fichero, buscandolo en el diccionario self_inFilesListAllTypes[nInputVar]
-                    ficheroTipoNewEncontrado = False
-                    for inputAscDirX, inputAscNameX in self_inFilesListAllTypes[nInputVar]:
-                        if inputAscNameX == inputAscNameNew:
-                            inputAscDirNew = inputAscDirX
-                            ficheroTipoNewEncontrado = True
-                            break
-                    if not ficheroTipoNewEncontrado:
-                        if PAR_verbose:
-                            print('ATENCION: No existe el fichero {}'.format(inputAscNameNew))
-                            print('En esa zona no se puede caracterizar el patron, testearlo, localizar ese tipoDeMasa o generar los rasters (cluster) dasoVars, distanciaEu, factorSimil')
-                            print('\t-> Se pasa al siguiente.')
-                        continue
-                    dictInputAscNameSinPath[nInputVar] = inputAscNameNew
-                    dictInputAscNameConPath[nInputVar] = os.path.join(inputAscDirNew, inputAscNameNew)
-                    if not os.path.exists(dictInputAscNameConPath[nInputVar]):
-                        print('\nclidraster-> ATENCION: no se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                        print('\t-> Revisar codigo, porque ha sido previamente localizado.')
-                        sys.exit(0)
-                    fileBytes2 = os.stat(dictInputAscNameConPath[nInputVar]).st_size
-                    if fileBytes2 <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
-                        if PAR_verbose:
-                            print('\t\t\t{}/{} Fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
-                            print('\t\t\t\t-> Se pasa al siguiente.')
-                        continue
-                    try:
-                        dictAscFileObjet[nInputVar] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
-                        if PAR_verbose > 1:
-                            if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
-                                print(f'\t\t\t-> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
-                    except:
-                        print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                        print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
-                        sys.exit(0)
+                        print('\t\t\t{}/{} Fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
+                        print('\t\t\t\t-> Se pasa al siguiente.')
+                    continue
+                try:
+                    dictAscFileObjet[nInputVar] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
+                    if PAR_verbose > 1:
+                        if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                            print(f'\t\t\t-> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
+                except:
+                    print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                    print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
+                    sys.exit(0)
             if PAR_verbose:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                     print('\t-> Se toma como referencia la cabecera de los ficheros tipo {}: {}'.format(txtTipoFichero, inputAscName1))
                     print('\t\t-> Los demas tipos deben tener las mismas coordenadas, dimensiones y pixel, pero pueden tener distinto noData')
                     print('\t\t-> Para el raster generado uso el noData y tipo de dato que sea apto para todos:')
@@ -567,7 +581,7 @@ def crearRasterTiff(
             noDataValuesPorTipoFichero[PAR_nInputVars + 1] = PAR_noDataMergeTiff
 
             if PAR_verbose:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                     print(f'\t\t\t-> noDataValuesPorTipoFichero: {noDataValuesPorTipoFichero}')
             # Adopto el valor de noData mas elevado en valor absoluto (normalmente -9999)
             for nInputVar in noDataValuesPorTipoFichero.keys():
@@ -580,7 +594,7 @@ def crearRasterTiff(
             if contadorBloquesProcesando == 1:
                 noDataIni = nodata_valueRef
                 if PAR_verbose:
-                    if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                         print('\t\t-> noData_valueRef:', nodata_valueRef)
             elif noDataIni != nodata_valueRef:
                 if PAR_verbose:
@@ -604,11 +618,6 @@ def crearRasterTiff(
         listaMetrosBloqueX.sort(reverse=True)
         listaMetrosBloqueY.sort(reverse=True)
 
-        nMinX_HeaderAsc = xllcenterRef - (cellsizeRef / 2)
-        nMaxX_HeaderAsc = xllcenterRef - (cellsizeRef / 2) + (cellsizeRef * ncolsRef)
-        nMinY_HeaderAsc = yllcenterRef - (cellsizeRef / 2)
-        nMaxY_HeaderAsc = yllcenterRef - (cellsizeRef / 2) + (cellsizeRef * nrowsRef)
-        # if (int(inputAscName1[:3]) * 1000) >= 650:
         if xllcenterRef > 650000:
             hayBloquesH29 = True
             TRNShuso29 = True
@@ -633,11 +642,13 @@ def crearRasterTiff(
                 nMaxY_tif = max(nMaxY_tif, nMaxY_HeaderAsc)
 
         if PAR_verbose:
-            if mostrarNumFicheros and (
+            print('--->>> nMinX_HeaderAsc:', nMinX_HeaderAsc)
+            print('--->>> nMaxX_HeaderAsc:', nMaxX_HeaderAsc)
+            if mostrarNumFicheros == 0 or (
                 contadorInFiles < mostrarNumFicheros
                 or contadorInFiles == len(infilesListTipo0) - 1
             ):
-                print(f'\t-> Resultado tras leer todas las cabeceras ({contadorInFiles}/{len(infilesListTipo0)}:')
+                print(f'\t-> Resultado tras leer todas las cabeceras ({contadorInFiles + 1}/{len(infilesListTipo0)}:')
                 if mostrarNumFicheros < len(infilesListTipo0):
                     print(f'\t\tSe muestran {mostrarNumFicheros} del total de {len(infilesListTipo0)} + el ultimo.')
                 print(f'\t\t-> noDataDasoVarAll:     {noDataDasoVarAll}')
@@ -1053,6 +1064,7 @@ def crearRasterTiff(
             if PAR_verbose > 1:
                 print(f'\t-> Solo se Muestran los {mostrarNumFicheros} primeros bloques.')
         for contadorInFiles, (inputAscDir, inputAscName1) in enumerate(infilesListTipo0):
+            codigoBloque = inputAscName1[:8]
             # if PAR_ambitoTiffNuevo != 'FicherosTiffIndividuales' and PAR_ambitoTiffNuevo != 'ConvertirSoloUnFicheroASC':
             #     if inputAscName1[14:-4].upper() != txtTipoFichero.upper() or inputAscName1[-4:].upper() != '.ASC':
             #         # El fichero no responde a la mascara elegida
@@ -1087,11 +1099,11 @@ def crearRasterTiff(
             #===================================================================
             contadorFicherosIntegrando += 1
             if PAR_verbose > 1:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
-                    print('\nProcesando bloque {}/{}:'.format(contadorFicherosIntegrando, len(infilesListTipo0)))
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                    print('\nProcesando bloque {}/{}:'.format(contadorInFiles + 1, len(infilesListTipo0)))
             nInputVar = 0
             if PAR_verbose > 1:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                     print(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
             try:
                 dictAscFileObjet[0] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
@@ -1106,48 +1118,37 @@ def crearRasterTiff(
             #===================================================================
             if PAR_generarDasoLayers:
                 for nInputVar in range(1, PAR_nInputVars):
-                    if self_inFilesListAllTypes[nInputVar] == []:
-                        print(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): -')
-                        print(f'\t\t\t-> Tipo de fichero no disponible.')
+                    # inputAscNameNew = inputAscName1.replace(self_LOCLlistaDasoVarsFileTypes[0], self_LOCLlistaDasoVarsFileTypes[nInputVar])
+                    # La lista self_inFilesListAllTypes tiene los ficheros ordenados por nombre (y por lo tanto por bloque)
+                    if not self_inFilesListAllTypes is None:
+                        (inputAscPathNew, inputAscNameNew) = self_inFilesListAllTypes[nInputVar][contadorInFiles]
                     else:
+                        (inputAscPathNew, inputAscNameNew) = self_inFilesDictAllTypes[codigoBloque][nInputVar]
+
+                    if PAR_verbose > 1:
+                        if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                            print(f'\t\t-> nFile: {contadorInFiles + 1}; Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscNameNew}')
+
+                    dictInputAscNameSinPath[nInputVar] = inputAscNameNew
+                    dictInputAscNameConPath[nInputVar] = os.path.join(inputAscPathNew, inputAscNameNew)
+                    if not os.path.exists(dictInputAscNameConPath[nInputVar]):
+                        print('ATENCION: No se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                        print('\t-> Revisar codigo, porque ha sido previamente localizado.')
+                        sys.exit(0)
+                    fileBytes2 = os.stat(dictInputAscNameConPath[nInputVar]).st_size
+                    if fileBytes2 <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
+                        print('\n{}/{} Fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
+                        print('\t-> Se pasa al siguiente.')
+                        continue
+                    try:
+                        dictAscFileObjet[nInputVar] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
                         if PAR_verbose > 1:
-                            if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
-                                print(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {self_inFilesListAllTypes[nInputVar][contadorInFiles][1]}')
-                        # ==========================================================
-                        inputAscNameNew = inputAscName1.replace(self_LOCLlistaDasoVarsFileTypes[0], self_LOCLlistaDasoVarsFileTypes[nInputVar])
-                        # Busco la ruta en la que esta el fichero, buscandolo en el diccionario self_inFilesListAllTypes[nInputVar]
-                        ficheroTipoNewEncontrado = False
-                        for inputAscDirX, inputAscNameX in self_inFilesListAllTypes[nInputVar]:
-                            if inputAscNameX == inputAscNameNew:
-                                inputAscDirNew = inputAscDirX
-                                ficheroTipoNewEncontrado = True
-                                break
-                        if not ficheroTipoNewEncontrado:
-                            if PAR_verbose:
-                                print('ATENCION: No existe el fichero {}'.format(inputAscNameNew))
-                                print('En esa zona no se puede caracterizar el patron, testearlo, localizar ese tipoDeMasa o generar los rasters (cluster) dasoVars, distanciaEu, factorSimil')
-                                print('\t-> Se pasa al siguiente.')
-                            continue
-                        dictInputAscNameSinPath[nInputVar] = inputAscNameNew
-                        dictInputAscNameConPath[nInputVar] = os.path.join(inputAscDirNew, inputAscNameNew)
-                        if not os.path.exists(dictInputAscNameConPath[nInputVar]):
-                            print('ATENCION: No se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                            print('\t-> Revisar codigo, porque ha sido previamente localizado.')
-                            sys.exit(0)
-                        fileBytes2 = os.stat(dictInputAscNameConPath[nInputVar]).st_size
-                        if fileBytes2 <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
-                            print('\n{}/{} Fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
-                            print('\t-> Se pasa al siguiente.')
-                            continue
-                        try:
-                            dictAscFileObjet[nInputVar] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
-                            if PAR_verbose > 1:
-                                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
-                                    print(f'\t\t\t->> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
-                        except:
-                            print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                            print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
-                            sys.exit(0)
+                            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                                print(f'\t\t\t->> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
+                    except:
+                        print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                        print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
+                        sys.exit(0)
             #===================================================================
 
             # print('\nResumen de ficheros abiertos:')
@@ -1157,7 +1158,7 @@ def crearRasterTiff(
             #     else:
             #         print('dictAscFileObjet[{}]: {}'.format(nInputVar, 'No hay fichero'))
             if PAR_verbose > 1:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                     print('\t-> Segundo se toma como referencia la cabecera de los ficheros tipo {}: {}'.format(txtTipoFichero, inputAscName1))
             cabeceraLeida = True
             for nLinea in range(6):
@@ -1300,7 +1301,7 @@ def crearRasterTiff(
                 nOffsetX = int((nMinX_NombreAsc - nMinX_tif) / nPixelX_Origen)  # Numero de celdas del asc
                 nOffsetY = int((nMaxY_NombreAsc - nMaxY_tif) / nPixelY_Origen)  # nPixelY_Origen es negativo
                 if PAR_verbose > 1:
-                    if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                         print('\t\t-> Coordenadas y dimensiones del bloque:')
                         if TRNShuso29:
                             print('\t\t\t-> nMinX nMaxY del asc origen en H29:   {:9.2f}, {:10.2f}'.format(nMinX_HeaderAscH29, nMaxY_HeaderAscH29))
@@ -1361,7 +1362,7 @@ def crearRasterTiff(
             nMaxColumnaAsc = 0
             nMaxFilaAsc = 0
             if PAR_verbose > 1:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                     print('\t-> Se continua leyendo todos los datos en todos los tipos de fichero (todas las variables).')
                     # print(f'\t\t-> dictAscFileObjet.keys(): {dictAscFileObjet.keys()}')
             # ==================================================================
@@ -1557,8 +1558,8 @@ def crearRasterTiff(
 
             # ==================================================================
             if PAR_verbose > 1:
-                if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
-                    print('\tclidraster-> Rellenando posibles huecos (interpolando):')
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                    print('\t-> clidraster-> Rellenando posibles huecos (interpolando):')
             # Relleno los posibles huecos puntuales que puedan quedar debido a la transformacion de coordenadas
             listaDesplXY = [[-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1]]
             nPixelesAcumConValor = 0
@@ -1621,7 +1622,7 @@ def crearRasterTiff(
                 nPixelesAcumInterpolados += nPixelesInterpolados
 
                 if PAR_verbose > 1:
-                    if mostrarNumFicheros and contadorInFiles < mostrarNumFicheros:
+                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                         print(f'\t\t-> outputNBand: {outputNBand}')
                         print(
                             '\t\t\t-> Num de pixeles recorridos para rellenar huecos: {} x {} = {}'.format(
@@ -1681,7 +1682,7 @@ def crearRasterTiff(
                     print('ok WriteArray')
 
         # ======================================================================
-        if PAR_verbose > 1:
+        if PAR_verbose > 2:
             for nInputVar in range(PAR_nInputVars):
                 nBanda = nInputVar + 1
                 if not nBanda in dictArrayBandaX.keys():

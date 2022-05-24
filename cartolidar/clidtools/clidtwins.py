@@ -82,7 +82,7 @@ TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
 MINIMO_PIXELS_POR_CLUSTER = 5
 # TB = '\t'
 TB = ' ' * 12
-TV = ' ' * 2
+TV = ' ' * 3
 # ==============================================================================
 
 
@@ -616,10 +616,10 @@ that usually take the default values (from configuration file or clidtwins_confi
 
         # print('\nNumero de ficheros en {}: {} {}'.format(self.LOCLrutaAscRaizBase, len(self.inFilesListAllTypes), len(self.LOCLlistaDasoVarsFileTypes)))
         # print('Numero de tipos de fichero: {}'.format(min(self.LOCLnPatronDasoVars, len(self.LOCLlistLstDasoVars) - 2)))
-        self.dictNumFicherosConDLVsPorBloque = {}
+        self.inFilesNumPorBloque = {}
         self.inFilesDictAllTypes = {}
-        if self.LOCLverbose > 2:
-            print('\nclidtwins-> Listas de bloques/ficheros seleccionados:')
+        if self.LOCLverbose > 1:
+            print('\nclidtwins-> Buscando codigos de Bloque:')
         hayAlgunBloqueCompleto = False
         # Hay una lista de tuplas (path, file) por cada fileType (DLV)
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
@@ -629,32 +629,34 @@ that usually take the default values (from configuration file or clidtwins_confi
             ):
                 print('clidtwins-> ATENCION: por aqui no debiera pasar')
                 continue
-            if self.LOCLverbose > 1:
-                print('\nclidtwins-> Codigos de Bloque encontrados:')
             for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
                 # print('------------>', nameFile)
                 codigoBloque = nameFile[:8]
                 if codigoBloque in self.inFilesDictAllTypes.keys():
-                    self.inFilesDictAllTypes[codigoBloque].append([pathFile, nameFile])
-                    self.dictNumFicherosConDLVsPorBloque[codigoBloque] += 1
+                    self.inFilesDictAllTypes[codigoBloque].append((pathFile, nameFile))
+                    self.inFilesNumPorBloque[codigoBloque] += 1
                 else:
-                    self.inFilesDictAllTypes[codigoBloque] = []
-                    self.dictNumFicherosConDLVsPorBloque[codigoBloque] = 1
+                    self.inFilesDictAllTypes[codigoBloque] = [(pathFile, nameFile)]
+                    self.inFilesNumPorBloque[codigoBloque] = 1
                     if self.LOCLverbose > 1:
                         print(f'{TB}-> Nuevo codigoBloque encontrado:', codigoBloque)
-            if self.LOCLverbose > 2:
-                if len(listaFileTuplesDasoVarX) == 0:
-                    print(
-                        '{}{} -> {} => fileType: {:<35} ATENCION: no hay ficheros'.format(
-                            TB,
-                            numDasoVarX,
-                            self.LOCLlistLstDasoVars[numDasoVarX][1],
-                            self.LOCLlistLstDasoVars[numDasoVarX][0],
-                        )
+
+        if self.LOCLverbose > 2:
+            print('\nclidtwins-> Muestra de bloques encontrados por fileType (DLV):')
+        for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
+            if len(listaFileTuplesDasoVarX) == 0:
+                print(
+                    '{}-> DLV {:<2} (nickName: {}; fileType: {:<35}) -> ATENCION: no hay ficheros para este fileType (DLV).'.format(
+                        TB,
+                        numDasoVarX,
+                        self.LOCLlistLstDasoVars[numDasoVarX][1],
+                        self.LOCLlistLstDasoVars[numDasoVarX][0],
                     )
-                else:
+                )
+            else:
+                if self.LOCLverbose > 2:
                     print(
-                        '{}{:<2} -> {} => fileType: {:<35} ({:<2} files):'.format(
+                        '{}-> DLV {:<2} (nickName: {}; fileType: {:<35}) -> {:<2} ficheros totales (antes de revisar completitud de DLVs):'.format(
                             TB,
                             numDasoVarX,
                             self.LOCLlistLstDasoVars[numDasoVarX][1],
@@ -662,25 +664,36 @@ that usually take the default values (from configuration file or clidtwins_confi
                             len(listaFileTuplesDasoVarX),
                         )
                     )
-                    print(f'{TB}{TV}{listaFileTuplesDasoVarX[:2]}, etc.')
+                    for tuplaFiles in listaFileTuplesDasoVarX[:2]:
+                        print(f'{TB}{TV}{tuplaFiles[1]}')
+                    if len(listaFileTuplesDasoVarX) > 2:
+                        print(f'{TB}Etc.')
 
         if self.LOCLverbose > 1:
-            print('\nclidtwins-> Lista de bloques encontrados (completos e incompletos): {}'.format(self.dictNumFicherosConDLVsPorBloque))
-            print('clidtwins-> ------------->self.inFilesDictAllTypes.keys()', (self.inFilesDictAllTypes).keys())
+            print('\nclidtwins-> Numero total de bloques encontrados por codigoBloque:')
+        # Corregir: RuntimeError: dictionary changed size during iteration
+        listaCodigosBloque = list(self.inFilesDictAllTypes.keys())
+        for bloqueKey in listaCodigosBloque:
+            if self.LOCLverbose > 1:
+                print(f'{TB}-> Bloque {bloqueKey}: {len(self.inFilesDictAllTypes[bloqueKey])} ficheros')
+            if len(self.inFilesDictAllTypes[bloqueKey]) < self.nInputVars:
+                if self.LOCLverbose > 1:
+                    if len(self.inFilesDictAllTypes[bloqueKey]) < self.nInputVars:
+                        print(f'{TB}   Eliminando codigoBloque por no tener todas las dasoVars ({len(self.inFilesDictAllTypes[bloqueKey])} < {self.nInputVars})')
+                # del self.inFilesDictAllTypes[bloqueKey]
+                self.inFilesDictAllTypes.pop(bloqueKey, None)
+                self.inFilesNumPorBloque[bloqueKey] = 0
+            else:
+                hayAlgunBloqueCompleto = True
 
-        # # Corregir: RuntimeError: dictionary changed size during iteration
-        # for bloqueKey in self.inFilesDictAllTypes.keys():
-        #     if self.LOCLverbose > 1:
-        #         print('clidtwins-> ----> self.inFilesDictAllTypes.keys()', (self.inFilesDictAllTypes).keys())
-        #         print(f'{TB}-> Bloque {bloqueKey}: {len(self.inFilesDictAllTypes[bloqueKey])} ficheros')
-        #     if len(self.inFilesDictAllTypes[bloqueKey]) < self.nInputVars:
-        #         if self.LOCLverbose > 1:
-        #             if len(self.inFilesDictAllTypes[bloqueKey]) < self.nInputVars:
-        #                 print(f'clidtwins-> Eliminando codigoBloque por no tener todas las dasoVars ({self.nInputVars}): {codigoBloque}; nameFile: {nameFile}')
-        #         # del self.inFilesDictAllTypes[bloqueKey]
-        #         (self.inFilesDictAllTypes).pop(bloqueKey, None)
-        #     else:
-        #         hayAlgunBloqueCompleto = True
+        if self.LOCLverbose > 2:
+            print(f'\nclidtwins-> Numero de ficheros por bloque (con todas las DLVs):')
+            for codigoBloque in self.inFilesNumPorBloque.keys():
+                print(f'{TB}Bloque {codigoBloque} -> {self.inFilesNumPorBloque[codigoBloque]} ficheros en list', end = ' <=> ')
+                if codigoBloque in self.inFilesDictAllTypes.keys():
+                    print(f'{len(self.inFilesDictAllTypes[codigoBloque])} ficheros en dict')
+                else:
+                    print(f'Clave no disponible en dict')
 
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
             if (
@@ -711,7 +724,7 @@ that usually take the default values (from configuration file or clidtwins_confi
                 or self.LOCLmarcoLibreMaxiY
             ):
                 print('\nclidtwuins-> Actualizando marco de analisis:')
-        for codigoBloque in self.dictNumFicherosConDLVsPorBloque.keys():
+        for codigoBloque in self.inFilesNumPorBloque.keys():
             if (
                 self.LOCLmarcoLibreMiniX
                 or (
@@ -809,12 +822,14 @@ that usually take the default values (from configuration file or clidtwins_confi
             if self.LOCLverbose > 1:
                 print('clidtwins-> Se crea un objeto de la clase DasoLidarSource con la lista de\n'
                       f'{TB}identificadores de tipo de fichero (LCL_listaTxtDasoVarsFileTypes).\n'
-                      f'{TB}Cada tipo de fichero corresponde a una variable dasoLidar..\n'
-                      f'{TB}Ficheros: XXX_YYYY_*IdFileType*.asc; XXX, YYYY: coord. UTM /1000 m;\n'
-                      f'{TB}*IdFileType*: cadena que incluye el identificador de tipo de fichero.\n'
-                      f'{TB}Para cada variable se establecen clases dividiendo su rango absoluto\n'
-                      f'{TB}entre el num de clases. El numero de clases, la movilidad inter-clases,\n'
-                      f'{TB}y el peso relativo son iguales para todas las variables:')
+                      f'{TB}Cada tipo de fichero corresponde a una variable dasoLidar.\n'
+                      f'{TB}Ficheros: XXX_YYYY_*IdFileType*.asc\n'
+                      f'{TB}{TV}XXX, YYYY: coord. UTM /1000 m;\n'
+                      f'{TB}{TV}*IdFileType*: cadena que incluye el\n'
+                      f'{TB}{TV}{TV}identificador de tipo de fichero.\n'
+                      f'{TB}Para cada variable se establecen clases dividiendo su rango\n'
+                      f'{TB}absoluto entre el num de clases. El numero de clases, la movilidad\n'
+                      f'{TB}inter-clases y el peso relativo son iguales para todas las variables:')
             if LCL_nClasesDasoVars is None:
                 self.LOCLnClasesDasoVars = GLO.GLBLnClasesDasoVarsPorDefecto
                 if self.LOCLverbose > 1:
@@ -831,7 +846,7 @@ that usually take the default values (from configuration file or clidtwins_confi
                 self.LOCLtrasferDasoVars = LCL_trasferDasoVars
                 if self.LOCLverbose > 1:
                     print(f'{TB}{TV}Movilidad inter-clases: {self.LOCLnClasesDasoVars} % (argumeto LCL_nClasesDasoVars).')
-            self.LOCLponderaDasoVars = 1
+            self.LOCLponderaDasoVars = 10
             if self.LOCLverbose > 1:
                     print(f'{TB}{TV}Todas las variables se poderan igual.')
 
@@ -1335,7 +1350,7 @@ and two more layers for forest type (land cover) and stand type.
             self.nMaxTipoMasa,
         ) = clidraster.crearRasterTiff(
             # self.LOCLrutaAscRaizBase,
-            self_inFilesListAllTypes=self.inFilesListAllTypes,
+            # self_inFilesListAllTypes=self.inFilesListAllTypes,
             self_inFilesDictAllTypes=self.inFilesDictAllTypes,
             self_LOCLoutPathNameRuta=self.LOCLoutPathNameRuta,
             self_LOCLoutFileNameWExt=self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars,
@@ -1362,7 +1377,6 @@ and two more layers for forest type (land cover) and stand type.
             PAR_ambitoTiffNuevo=self.GLBLambitoTiffNuevo,
             PAR_verbose=self.LOCLverbose,
         )
-
 
     # ==========================================================================
     def analyzeMultiDasoLayerRasterFile(
@@ -1440,7 +1454,7 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         if self.nBandasRasterOutput != self.nBandasPrevistasOutput:
             print('clidtwins-> ATENCION: la capa creada con las dasoVars en la zona de referencia (patron) no niene el numero previsto de bandas')
-            print(f'{TB}-> Numero previsto: {self.nBandasPrevistasOutput}; numero de bandas en la capa creada {self.nBandasRasterOutput}')
+            print(f'{TB}-> Numero de bandas en la capa creada {self.nBandasRasterOutput}; numero previsto: {self.nBandasPrevistasOutput}')
             sys.exit(0)
 
         mostrarExportarRangos(
@@ -1805,11 +1819,11 @@ and two more layers for forest type (land cover) and stand type.
 
             # arrayBandaFlip[nBanda - 1] = np.flipud(arrayBandaXinputMonoPixelAll[nBanda - 1])
             # arrayBandaFlip[nBanda - 1] = arrayBandaXinputMonoPixelAll[nBanda - 1].copy()
-            # print('\nnBanda', nBanda)
-            # print('--->>> selecBandaXinputMonoPixelAll (2):', selecBandaXinputMonoPixelAll, dir(selecBandaXinputMonoPixelAll))
-            # print('--->>> shape:', arrayBandaXinputMonoPixelAll[nBanda - 1].shape)
-            # print('-->>', arrayBandaXinputMonoPixelAll[nBanda - 1][0:5, 2200:2210])
-            # print('-->>', arrayBandaXinputMonoPixelAll[nBanda - 1][195:199, 2200:2210])
+            print('\nnBanda', nBanda)
+            print('--->>> selecBandaXinputMonoPixelAll (2):', selecBandaXinputMonoPixelAll, dir(selecBandaXinputMonoPixelAll))
+            print('--->>> shape:', arrayBandaXinputMonoPixelAll[nBanda - 1].shape)
+            print('-->>', arrayBandaXinputMonoPixelAll[nBanda - 1][0:5, 2200:2210])
+            print('-->>', arrayBandaXinputMonoPixelAll[nBanda - 1][195:199, 2200:2210])
         # ======================================================================
 
         # ======================================================================
@@ -2103,9 +2117,9 @@ and two more layers for forest type (land cover) and stand type.
                     self_LOCLradioClusterPix=self.LOCLradioClusterPix,
                     self_noDataDasoVarAll=self.noDataDasoVarAll,
                     self_outputNpDatatypeAll=self.outputNpDatatypeAll,
-                    self_LOCLverbose=self.LOCLverbose,
                     TRNSmostrarClusterMatch=TRNSmostrarClusterMatch,
                     contadorAvisosCluster=contadorAvisosCluster,
+                    self_LOCLverbose=self.LOCLverbose,
                 )
                 if not clusterRelleno[0]:
                     continue
@@ -2116,6 +2130,20 @@ and two more layers for forest type (land cover) and stand type.
                 listaCeldasConDasoVarsSubCluster = clusterRelleno[5]
                 arrayBandaXMaskCluster = clusterRelleno[6]
                 arrayBandaXMaskSubCluster = clusterRelleno[7]
+
+                print('-->>-->>', nRowRaster, nColRaster, '-->>', arrayBandaXinputMonoPixelAll[0])
+                print()
+                print('-->>-->>1 clusterCompleto:', clusterCompleto)
+                print('-->>-->>2 localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars)
+                print('-->>-->>3 localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars)
+                for myNumBanda, myArrayBanda in enumerate(localSubClusterArrayMultiBandaDasoVars):
+                    print('->->->', myNumBanda, myArrayBanda)
+                print('-->>-->>4', listaCeldasConDasoVarsCluster)
+                print('-->>-->>5', listaCeldasConDasoVarsSubCluster)
+                print('-->>-->>6', arrayBandaXMaskCluster)
+                print('-->>-->>7', arrayBandaXMaskSubCluster)
+
+                quit()
 
                 # if not nCeldasConDasoVarsOk and self.LOCLverbose > 1:
                 #     # Por aqui no pasa porque ya he interceptado este problema mas arriba
@@ -2131,7 +2159,7 @@ and two more layers for forest type (land cover) and stand type.
                     # Factor entre 0 y 1 que modifica el numero de clases que estan fuera de rango
                     # El valor 1 suma todos los "fuera de rango"; el factor 0.5 los contabiliza mitad
                     multiplicadorDeFueraDeRangoParaLaVariable = ponderacionDeLaVariable
-                    if TRNSmostrarClusterMatch:
+                    if TRNSmostrarClusterMatch and self.LOCLverbose > 1:
                         if nBanda == self.nBandasRasterOutput - 1:
                             print(f'{TB}-> Banda {nBanda} -> (cluster) Chequeando tipo de bosque.')
                         elif nInputVar >= 0 and nInputVar < self.nInputVars:
@@ -2200,6 +2228,7 @@ and two more layers for forest type (land cover) and stand type.
                         self_LOCLradioClusterPix=self.LOCLradioClusterPix,
                         self_outputNpDatatypeAll=self.outputNpDatatypeAll,
                         TRNSmostrarClusterMatch=TRNSmostrarClusterMatch,
+                        self_LOCLverbose=self.LOCLverbose,
                     )
 
                     if len(np.nonzero(histNumberCluster[0])[0]) == 0:
@@ -2237,13 +2266,14 @@ and two more layers for forest type (land cover) and stand type.
                         nRowRaster=nRowRaster,
                         nColRaster=nColRaster,
                         TRNSmostrarClusterMatch=TRNSmostrarClusterMatch,
+                        self_LOCLverbose=self.LOCLverbose,
                         )
 
                 # ==================================================================
                 if clusterCompleto:
                     matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsPatron, listaCeldasConDasoVarsCluster)
                     distanciaEuclideaMedia = np.average(matrizDeDistancias)
-                    if TRNSmostrarClusterMatch:
+                    if TRNSmostrarClusterMatch and self.LOCLverbose > 1:
                         print('Numero de puntos Cluster con dasoVars ok:', len(ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)))
                         print(f'matrizDeDistancias.shape: {matrizDeDistancias.shape} Distancia media: {distanciaEuclideaMedia}')
                         # print('clidtwins-> Matriz de distancias:')
@@ -2251,7 +2281,7 @@ and two more layers for forest type (land cover) and stand type.
                 else:
                     matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsPatron, listaCeldasConDasoVarsSubCluster)
                     distanciaEuclideaMedia = np.average(matrizDeDistancias)
-                    if TRNSmostrarClusterMatch:
+                    if TRNSmostrarClusterMatch and self.LOCLverbose > 1:
                         print('Numero de puntos subCluster con dasoVars ok:', len(ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked)))
                         print(f'matrizDeDistancias.shape: {matrizDeDistancias.shape} Distancia media: {distanciaEuclideaMedia}')
                         # print('clidtwins-> Matriz de distancias:')
@@ -2259,7 +2289,7 @@ and two more layers for forest type (land cover) and stand type.
                 # ==================================================================
                 # ññ
                 tipoMasaOk = tipoBosqueOk >= 5 and nVariablesNoOk <= 1
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self.LOCLverbose > 1:
                     print(
                         f'nRowColRaster: {nRowRaster} {nColRaster}; '
                         f'coordXY: {coordX} {coordY} '
@@ -2338,9 +2368,9 @@ def rellenarLocalCluster(
         self_LOCLradioClusterPix=3,
         self_noDataDasoVarAll=-9999,
         self_outputNpDatatypeAll=None,
-        self_LOCLverbose=False,
         TRNSmostrarClusterMatch=False,
         contadorAvisosCluster=0,
+        self_LOCLverbose=False,
     ):
     self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll)
     if self_outputNpDatatypeAll is None:
@@ -2352,9 +2382,6 @@ def rellenarLocalCluster(
     listaCeldasConDasoVarsSubCluster = None
     arrayBandaXMaskCluster = None
     arrayBandaXMaskSubCluster = None
-    localClusterArrayMultiBandaDasoVars = None
-    localSubClusterArrayMultiBandaDasoVars = None
-
 
     # ======================================================================
     # Array con los valores de las dasoVars en el cluster local,
@@ -2369,6 +2396,7 @@ def rellenarLocalCluster(
         ladoCluster
     )
     # localClusterArrayMultiBandaDasoVars.fill(0)
+    localSubClusterArrayMultiBandaDasoVars = None
 
     # print('-->>nRowRaster:', nRowRaster, 'nColRaster:', nColRaster) 
     nRowClusterIni = nRowRaster - self_LOCLradioClusterPix
@@ -2423,6 +2451,7 @@ def rellenarLocalCluster(
             ]
             # Sustituyo el self_noDataDasoVarAll (-9999) por self_GLBLnoDataTipoDMasa (255)
             # localClusterArrayMultiBandaDasoVars[nBanda-1][localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = self_GLBLnoDataTipoDMasa
+            # Si no hay informacion de TipoBosque (MFE):
             if (localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll).all():
                 localClusterOk = False
                 return (
@@ -2479,6 +2508,9 @@ def rellenarLocalCluster(
             nRowClustFin - nRowClustIni,
             nColClustFin - nColClustIni
         )
+
+        # Tomo prestado este array que no uso por no ser clusterCompleto
+        # Para calcular el subCluster
         localClusterArrayMultiBandaDasoVars.fill(self_noDataDasoVarAll)
         # Recorro todas las bandas para verificar en cada celda si hay valores validos en todas las bandas
         # Calculo arrayBandaXMaskSubCluster y con ella enmascaro los noData al calcular el histograma de cada banda
@@ -2524,6 +2556,9 @@ def rellenarLocalCluster(
                 # continue
             arrayBandaXMaskSubCluster[localSubClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
 
+        # Anulo el array de cluster completo prestado temporalmente para el subCLuster
+        localClusterArrayMultiBandaDasoVars.fill(self_noDataDasoVarAll)
+
         if (arrayBandaXMaskSubCluster == 1).all():
             if self_LOCLverbose > 1:
                 if contadorAvisosCluster < 20:
@@ -2559,7 +2594,7 @@ def rellenarLocalCluster(
         listaCeldasConDasoVarsSubCluster = np.zeros(nCeldasConDasoVarsOk * self_nBandasRasterOutput, dtype=self_outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, self_nBandasRasterOutput)
     # ==============================================================
 
-    if TRNSmostrarClusterMatch:
+    if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
         print(f'\n-> nRowColRaster: {nRowRaster} {nColRaster}; coordXY: {coordX} {coordY}')
         print(f'{TB}{TV}-> clusterCompleto: {clusterCompleto}')
         print(f'{TB}{TV}-> Numero de celdas con dasoVars ok en todas las bandas: {nCeldasConDasoVarsOk}')
@@ -2600,6 +2635,7 @@ def calculaHistogramas(
         self_LOCLradioClusterPix=3,
         self_outputNpDatatypeAll=None,
         TRNSmostrarClusterMatch=False,
+        self_LOCLverbose=False,
     ):
     if self_outputNpDatatypeAll is None:
         self_outputNpDatatypeAll = localClusterArrayMultiBandaDasoVars.dtype
@@ -2640,7 +2676,7 @@ def calculaHistogramas(
             (self_myRange[nBanda][1] - self_myRange[nBanda][0])
             / self_myNBins[nBanda]
         )
-        if TRNSmostrarClusterMatch:
+        if TRNSmostrarClusterMatch and self_LOCLverbose > 2:
             print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
             print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVarsMasked', localClusterArrayMultiBandaDasoVarsMasked[nBanda-1])
             print(f'{TB}{TV}->->histNumberCluster', histNumberCluster)
@@ -2699,7 +2735,7 @@ def calculaHistogramas(
             # histProbabCluster = np.array([])
             # histProb01cluster = np.array([])
             sys.exit(0)
-        if TRNSmostrarClusterMatch:
+        if TRNSmostrarClusterMatch and self_LOCLverbose > 2:
             print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
             print('-------->self_outputNpDatatypeAll:', self_outputNpDatatypeAll)
             print(f'{TB}{TV}->->localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars[nBanda-1])
@@ -2737,12 +2773,13 @@ def calculaClusterDasoVars(
         nRowRaster=0,
         nColRaster=0,
         TRNSmostrarClusterMatch=False,
+        self_LOCLverbose=False,
     ):
     nInputVar = nBanda - 1
     self_nBandasRasterOutput = self_nInputVars + 2
 
     if nBanda == self_nBandasRasterOutput - 1:
-        if TRNSmostrarClusterMatch:
+        if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
             # El primer elemento de histNumberCluster[0] son las frecuencias del histograma
             # El segundo elemento de histNumberCluster[0] son los limites de las clases del histograma
             print(
@@ -2759,7 +2796,7 @@ def calculaClusterDasoVars(
         arrayPosicionTipoBosqueCluster1 = np.where(histNumberCluster[0] == histogramaTemp[-1])
         arrayPosicionTipoBosqueCluster2 = np.where(histNumberCluster[0] == histogramaTemp[-2])
 
-        if TRNSmostrarClusterMatch:
+        if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
             print(f'{TB}{TV}-->>> Valor original de la celda: '
                   f'{dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster]}; ' 
                   f'TipoBosqueClusterMasFrecuente: '
@@ -2800,7 +2837,7 @@ def calculaClusterDasoVars(
         dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster] = codeTipoBosqueClusterMasFrecuente1
         # ==================================================
 
-        if TRNSmostrarClusterMatch:
+        if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
             if codeTipoBosqueClusterMasFrecuente1 != 0:
                 # print(f'{TB}-> nRowColRaster: {nRowRaster} {nColRaster} -> (cluster) Chequeando tipo de bosque: codeTipoBosqueClusterMasFrecuente1: {dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster]} = {codeTipoBosqueClusterMasFrecuente1}')
                 print(f'{TB}{TV}-> Tipos de bosque mas frecuentes (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %); 2-> {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2} %)')
@@ -2812,7 +2849,7 @@ def calculaClusterDasoVars(
         if self_pctjTipoBosquePatronMasFrecuente1 >= 70 and pctjTipoBosqueClusterMasFrecuente1 >= 70:
             if (codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente1):
                 tipoBosqueOk = 10
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
             else:
                 binomioEspecies = f'{codeTipoBosqueClusterMasFrecuente1}_{self_codeTipoBosquePatronMasFrecuente1}'
@@ -2820,9 +2857,9 @@ def calculaClusterDasoVars(
                     tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies]
                 else:
                     tipoBosqueOk = 0
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion NO ok: {tipoBosqueOk}')
-            if TRNSmostrarClusterMatch:
+            if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                 print(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
                 print(f'{TB}{TV}-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
         else:
@@ -2831,14 +2868,14 @@ def calculaClusterDasoVars(
                 and codeTipoBosqueClusterMasFrecuente2 == self_codeTipoBosquePatronMasFrecuente2
             ):
                 tipoBosqueOk = 10
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo SI ok:')
             elif (
                 codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente2
                 and codeTipoBosqueClusterMasFrecuente2 == self_codeTipoBosquePatronMasFrecuente1
             ):
                 tipoBosqueOk = 7
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
             else:
                 binomioEspecies = f'{codeTipoBosqueClusterMasFrecuente1}_{self_codeTipoBosquePatronMasFrecuente1}'
@@ -2846,10 +2883,10 @@ def calculaClusterDasoVars(
                     tipoBosqueOk = GLO.GLBLdictProximidadInterEspecies[binomioEspecies] - 1
                 else:
                     tipoBosqueOk = 0
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(f'{TB}-> Tipos de bosque principal (menos del 70 de ocupacion) y segundo NO ok: {tipoBosqueOk}')
 
-            if TRNSmostrarClusterMatch:
+            if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                 print(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
                 print(f'{TB}{TV}-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
                 print(f'{TB}{TV}-> Tipo mas frecuente (patron): 2-> {self_codeTipoBosquePatronMasFrecuente2} ({self_pctjTipoBosquePatronMasFrecuente2} %)')
@@ -2876,7 +2913,7 @@ def calculaClusterDasoVars(
                     / (self_dictHistProb01[claveMax][nRango] - self_dictHistProb01[claveMin][nRango])
                 )
                 nTramosFueraDeRango += esteTramoFueraDeRango
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(
                         f'{TB}{TV}-> {claveDef}-> nRango {nRango} ({miRango}): '
                         f'{histProb01cluster[nRango]} debajo del rango '
@@ -2893,7 +2930,7 @@ def calculaClusterDasoVars(
                     / (self_dictHistProb01[claveMax][nRango] - self_dictHistProb01[claveMin][nRango])
                 )
                 nTramosFueraDeRango += esteTramoFueraDeRango
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(
                         f'{TB}{TV}-> {claveDef}-> nRango {nRango} ({miRango}): '
                         f'{histProb01cluster[nRango]} encima del rango '
@@ -2902,10 +2939,10 @@ def calculaClusterDasoVars(
                         f'Valor de referencia: {self_dictHistProb01[claveDef][nRango]} '
                         f'-> fuera: {esteTramoFueraDeRango}')
         if todosLosRangosOk:
-            if TRNSmostrarClusterMatch:
+            if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                 print(f'{TB}{TV}-> Todos los tramos ok.')
         else:
-            if TRNSmostrarClusterMatch:
+            if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                 print(
                     '{}{}-> Cluster-> Numero de tramos fuera de rango: {} (ponderado: {:0.2f})'.format(
                         TB, TV,
@@ -2915,7 +2952,7 @@ def calculaClusterDasoVars(
                 )
             if nTramosFueraDeRango * multiplicadorDeFueraDeRangoParaLaVariable >= 1:
                 nVariablesNoOk += 1 * ponderacionDeLaVariable 
-                if TRNSmostrarClusterMatch:
+                if TRNSmostrarClusterMatch and self_LOCLverbose > 1:
                     print(
                         '{}{}{}-> Esta variable desviaciones respecto a zona de referencia (patron) con {:0.2f} puntos'.format(
                             TB, TV, TV,
