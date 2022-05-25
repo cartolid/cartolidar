@@ -927,6 +927,7 @@ that usually take the default values (from configuration file or clidtwins_confi
                 else:
                     self.LOCLlistaDasoVarsPonderado.append(10)
 
+        print('--------------------------->self.LOCLlistLstDasoVars', self.LOCLlistLstDasoVars)
         if (
             not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('MFE')
             and not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('LAND')
@@ -2104,18 +2105,18 @@ and two more layers for forest type (land cover) and stand type.
                 #     nRowRaster % (int(arrayBandaTipoMasa.shape[0] / 5)) == 0
                 #     and nColRaster % (int(arrayBandaTipoMasa.shape[1] / 5)) == 0
                 # ):
-                if nRowRaster == 0 and nColRaster == 0:
-                    TRNSmostrarClusterMatch = True
-                else:
-                    if (
-                        coordX == 0 or coordX == 35 or coordX == 59
-                    ) and (
-                        coordY == 0 or coordY == 85 or coordY == 95
-                    ):
-                        TRNSmostrarClusterMatch = True
-                    else:
-                        TRNSmostrarClusterMatch = False
-                # TRNSmostrarClusterMatch = False
+                # if nRowRaster == 0 and nColRaster == 0:
+                #     TRNSmostrarClusterMatch = True
+                # else:
+                #     if (
+                #         coordX == 0 or coordX == 35 or coordX == 59
+                #     ) and (
+                #         coordY == 0 or coordY == 85 or coordY == 95
+                #     ):
+                #         TRNSmostrarClusterMatch = True
+                #     else:
+                #         TRNSmostrarClusterMatch = False
+                TRNSmostrarClusterMatch = False
 
                 (clusterRelleno, contadorAvisosCluster) = rellenarLocalCluster(
                     arrayBandaXinputMonoPixelAll,

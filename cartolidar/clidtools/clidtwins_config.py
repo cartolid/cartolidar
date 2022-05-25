@@ -356,14 +356,16 @@ def leerConfigDictPorDefecto():
         'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
         'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
     
-        'GLBLpatronLayerNamePorDefecto': [r'robleAlto1', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
-        'GLBLtesteoLayerNamePorDefecto': [r'robleAlto2', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+        # 'GLBLpatronLayerNamePorDefecto': [r'robleAlto1', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+        # 'GLBLtesteoLayerNamePorDefecto': [r'robleAlto2', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+        'GLBLpatronLayerNamePorDefecto': [r'', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+        'GLBLtesteoLayerNamePorDefecto': [r'', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
     
         'GLBLrasterPixelSizePorDefecto': [10, 'General', 'uint8', 'Lado del pixel dasometrico en metros (pte ver diferencia con GLBLmetrosCelda)'],
         'GLBLradioClusterPixPorDefecto': [3, 'dasoLidar', 'uint8', 'Numero de anillos de pixeles que tiene el cluster, ademas del central'],
     
-        # 'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
-        'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/24_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
+        # 'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/24_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
+        'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
         'GLBLcartoMFEcampoSpPorDefecto': ['SP1', 'dasoLidar', 'str', 'Nombre del campo con el codigo numerico de la especie principal o tipo de bosque en la capa MFE'],
     
         'GLBLnPatronDasoVarsPorDefecto': [0, 'dasoLidar', 'int', 'Si es distinto de cero, numero de dasoVars con las que se caracteriza el patron (n primeras dasoVars)'],

@@ -116,7 +116,11 @@ def leerArgumentosEnLineaDeComandos(
         #                     type=int,
         #                     help='Numero aleatorio para identificar el proceso que se esta ejecutando (se asigna automaticamente; no usar este argumento)',)
 
-        args = parser.parse_args()
+        # args = parser.parse_args()
+        args, unknown = parser.parse_known_args()
+        # Puedo ignorar argumentos desconocidos porque no los hay posicionales
+        if __verbose__ > 2 and not unknown is None and unknown != []:
+            print(f'\ncartolidar.__main__-> Argumentos ignorados: {unknown}')
         return args
     except KeyboardInterrupt:
         return None

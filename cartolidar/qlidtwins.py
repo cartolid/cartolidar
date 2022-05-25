@@ -303,6 +303,12 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                             action="store_false",
                             help='Activates extra arguments in command line. Default: %(default)s',
                             default = TRNS_LEER_EXTRA_ARGS,)
+        optionsHelp = 'Opciones del menu principal cuando se ejecuta con python -m cartolidar'
+        parser.add_argument('-o',  # '--option',
+                            dest='menuOption',
+                            type=int,
+                            help=f'{optionsHelp}. Default: %(default)s',
+                            default = '0',)
 
         parser.add_argument('-a',  # '--action',
                             dest='mainAction',
@@ -472,6 +478,8 @@ def leerArgumentosEnLineaDeComandos(argv=None):
 
         # Process arguments
         args = parser.parse_args()
+        # args, unknown = parser.parse_known_args()
+        # print(f'\nqlidtwins-> Argumentos ignorados: {unknown}')
 
     except KeyboardInterrupt:
         # handle keyboard interrupt
