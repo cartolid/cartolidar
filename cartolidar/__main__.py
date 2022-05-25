@@ -38,7 +38,10 @@ if __verbose__ > 2:
 
 
 # ==============================================================================
-def leerArgumentosEnLineaDeComandos(argv=None):
+def leerArgumentosEnLineaDeComandos(
+        argv=None,
+        opcionesPrincipales=[],
+    ):
     '''Command line options.'''
 
     if argv is None:

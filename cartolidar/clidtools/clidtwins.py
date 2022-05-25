@@ -703,6 +703,7 @@ that usually take the default values (from configuration file or clidtwins_confi
                 print('clidtwins-> ATENCION: por aqui no debiera pasar')
                 continue
             # Si no se han localizado los N ficheros del bloque, se elimina todos los ficheros de ese bloque
+            # Ver manejo dict para python > 3.6 en https://realpython.com/iterate-through-dictionary-python/
             for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
                 codigoBloque = nameFile[:8]
                 if len(self.inFilesDictAllTypes[codigoBloque]) < self.nInputVars:
@@ -1526,8 +1527,14 @@ and two more layers for forest type (land cover) and stand type.
             )
         except:
             print(f'\nclidtwins-> No se ha podido recortar el raster generado con {testeoVectrNameConPath}, cutlineLayer: {self.LOCLtesteoLayerName}, {type(self.LOCLtesteoLayerName)}')
-            print(f'{TB}Revisar si se ha generado adecuadamente el raster {mergedUniCellAllDasoVarsFileNameConPath}')
-            print(f'{TB}Revisar si la capa vectorial de recorte es correcta, no esta bloqueada y (tiene un poligono) {testeoVectrNameConPath}')
+            print(f'\nRevisar si se ha generado adecuadamente el raster {mergedUniCellAllDasoVarsFileNameConPath}')
+            print(f'\nRevisar si la capa vectorial de testeo es correcta, no esta bloqueada y tiene un poligono.')
+            if '.shp' in testeoVectrNameConPath and self.LOCLtesteoLayerName != '':
+                print(f'\nRevisar si el layer indicado ({self.LOCLtesteoLayerName}) es el correcto para la capa {testeoVectrNameConPath} (para shp poner layer = "").')
+            elif '.gpkg' in testeoVectrNameConPath and self.LOCLtesteoLayerName == '':
+                print(f'\nRevisar si se ha indicado en la configuracion el layer para el fichero {testeoVectrNameConPath} (layer indicado: <{self.LOCLtesteoLayerName}>')
+            else:
+                print(f'\nRevisar si la capa vectorial de recorte incluye el layer {self.LOCLtesteoLayerName}, no esta bloqueada y (tiene un poligono) {testeoVectrNameConPath}')
             sys.exit(0)
 
         rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
@@ -2130,20 +2137,6 @@ and two more layers for forest type (land cover) and stand type.
                 listaCeldasConDasoVarsSubCluster = clusterRelleno[5]
                 arrayBandaXMaskCluster = clusterRelleno[6]
                 arrayBandaXMaskSubCluster = clusterRelleno[7]
-
-                print('-->>-->>', nRowRaster, nColRaster, '-->>', arrayBandaXinputMonoPixelAll[0])
-                print()
-                print('-->>-->>1 clusterCompleto:', clusterCompleto)
-                print('-->>-->>2 localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars)
-                print('-->>-->>3 localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars)
-                for myNumBanda, myArrayBanda in enumerate(localSubClusterArrayMultiBandaDasoVars):
-                    print('->->->', myNumBanda, myArrayBanda)
-                print('-->>-->>4', listaCeldasConDasoVarsCluster)
-                print('-->>-->>5', listaCeldasConDasoVarsSubCluster)
-                print('-->>-->>6', arrayBandaXMaskCluster)
-                print('-->>-->>7', arrayBandaXMaskSubCluster)
-
-                quit()
 
                 # if not nCeldasConDasoVarsOk and self.LOCLverbose > 1:
                 #     # Por aqui no pasa porque ya he interceptado este problema mas arriba

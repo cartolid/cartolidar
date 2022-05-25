@@ -1664,33 +1664,57 @@ def normalize(c):
     return unicodedata.normalize("NFD", c)[0]
 
 
+# ==============================================================================
+def getConfigFileName(idProceso):
+    MAIN_BASE_DIR = os.path.abspath('.')
+    try:
+        MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+    except:
+        MAIN_FILE_DIR = MAIN_BASE_DIR
+
+    if not 'site-packages' in MAIN_FILE_DIR:
+        MAIN_CFG_DIR = MAIN_FILE_DIR
+    else:
+        if not 'site-packages' in MAIN_BASE_DIR:
+            MAIN_CFG_DIR = MAIN_BASE_DIR
+        else:
+            MAIN_THIS_DIR = os.getcwd()
+            if not 'site-packages' in MAIN_THIS_DIR:
+                MAIN_CFG_DIR = MAIN_THIS_DIR
+            else:
+                MAIN_HOME_DIR = str(pathlib.Path.home())
+                MAIN_CFG_DIR = MAIN_HOME_DIR
+
+    if len(sys.argv) == 0 or sys.argv[0] == '' or sys.argv[0] == '-m':
+        # print('Se esta ejecutando fuera de un modulo, en el interprete interactivo')
+        configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'cartolidar.cfg')
+    elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+        configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'cartolidar.cfg')
+    # elif sys.argv[0] == '':
+    #     configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'qlidtwins.cfg')
+    elif sys.argv[0].endswith('qlidtwins.py'):
+        configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'qlidtwins.cfg')
+    else:
+        if idProceso:
+            try:
+                configFileNameCfg = os.path.join(MAIN_CFG_DIR, sys.argv[0].replace('.py', '{:006}.cfg'.format(idProceso)))
+            except:
+                print('\nclidconfig-> Revisar asignacion de idProceso:')
+                print('idProceso:   <{}>'.format(idProceso))
+                print('sys.argv[0]: <{}>'.format(sys.argv[0]))
+        else:
+            configFileNameCfg = os.path.join(MAIN_CFG_DIR, sys.argv[0].replace('.py', '.cfg'))
+    if __verbose__ > 1:
+        print(f'\nclidtwins_config-> Fichero de configuracion: {configFileNameCfg}. Disponible: {os.path.exists(configFileNameCfg)}.')
+    return configFileNameCfg
+
+
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 def guardarVariablesGlobales(
         LOCALconfigDict,
         idProceso=sys.argv[-1],
         inspect_stack=inspect.stack(),
     ):
-    if CONFIGverbose and LCLverbose:
-        print('\tclidconfig-> Guardo los paramConfig en fichero cfg (inicial) con guardarVariablesGlobales.')
-        print('\tclidconfig-> Reviso la pila de llamadas por si llamara a esta funcion de nuevo')
-        _, _ = showCallingModules(inspect_stack=inspect_stack, verbose=CONFIGverbose)
-
-    # directorioActual = quitarContrabarrasAgregarBarraFinal(os.getcwd())
-    try:
-        if len(sys.argv) == 0 or sys.argv[0] == '' or sys.argv[0] == '-m':
-            # print('Se esta ejecutando fuera de un modulo, en el interprete interactivo')
-            configFileName = 'cartolidar.cfg'
-        else:
-            # print('Se esta ejecutando desde un modulo')
-            if idProceso:
-                configFileName = sys.argv[0].replace('.py', '{:006}.cfg'.format(idProceso))
-            else:
-                configFileName = sys.argv[0].replace('.py', '.cfg')
-    except:
-        print('\nclidconfig-> Revisar asignacion de idProceso:')
-        print('idProceso:   <{}>'.format(idProceso))
-        print('sys.argv[0]: <{}>'.format(sys.argv[0]))
-
     # runnigFileName = sys.argv[0].replace('.py', '.running')
     # if not os.path.exists(runnigFileName):
     #     open(runnigFileName, mode='w+')
@@ -1698,6 +1722,12 @@ def guardarVariablesGlobales(
     # else:
     #     time.sleep(5)
 
+    if CONFIGverbose and LCLverbose:
+        print('\tclidconfig-> Guardo los paramConfig en fichero cfg (inicial) con guardarVariablesGlobales.')
+        print('\tclidconfig-> Reviso la pila de llamadas por si llamara a esta funcion de nuevo')
+        _, _ = showCallingModules(inspect_stack=inspect_stack, verbose=CONFIGverbose)
+
+    configFileName = getConfigFileName(idProceso)
     if os.path.exists(configFileName):
         try:
             os.remove(configFileName)
@@ -1794,20 +1824,8 @@ def leerCambiarVariablesGlobales(
     # Lectura del config (cfg) generado especificamente para esta ejecucion.
     # print('idProceso:', type(idProceso), idProceso)
     # print('sys.argv:', sys.argv)
-    try:
-        if len(sys.argv) == 0 or sys.argv[0] == '' or sys.argv[0] == '-m':
-            # print('Se esta ejecutando fuera de un modulo, en el interprete interactivo')
-            configFileName = 'cartolidar.cfg'
-        else:
-            # print('Se esta ejecutando desde un modulo')
-            if idProceso:
-                configFileName = sys.argv[0].replace('.py', '{:006}.cfg'.format(idProceso))
-            else:
-                configFileName = sys.argv[0].replace('.py', '.cfg')
-    except:
-        print('clidconfig-> Revisar linea de comandos. idProceso:', idProceso)
-        print('sys.argv[0]:', sys.argv[0])
-        sys.exit()
+
+    configFileName = getConfigFileName(idProceso)
 
     if CONFIGverbose or verbose:
         print('\tclidconfig-> Leo los paramConfig del cfg (lo actualizo si tengo nuevosParametroConfiguracion) con leerCambiarVariablesGlobales<>')
@@ -1820,57 +1838,57 @@ def leerCambiarVariablesGlobales(
 
     numObjetivosExtraMax = 0
     LOCALconfigDict = {}
-    if os.path.exists(configFileName):
-        try:
-            config.read(configFileName)
-            if verbose and GLO.GLBLmostrarVariablesDeConfiguracion == 'GrupoMAIN':
-                print('clidconfig-> Configuracion ({}):'.format(configFileName))
-            for grupoParametroConfiguracion in config.sections():
-                for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
-                    strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
-                    listaParametroConfiguracion = strParametroConfiguracion.split('|+|')
-                    valorParametroConfiguracion = valorConfig(listaParametroConfiguracion[0], tipoVariable=listaParametroConfiguracion[1])
-                    if len(listaParametroConfiguracion) > 1:
-                        tipoParametroConfiguracion = listaParametroConfiguracion[1]
-                    else:
-                        tipoParametroConfiguracion = 'str'
-                    if len(listaParametroConfiguracion) > 2:
-                        descripcionParametroConfiguracion = listaParametroConfiguracion[2]
-                    else:
-                        descripcionParametroConfiguracion = ''
-                    if nombreParametroDeConfiguracion[:1] == '_':
-                        grupoParametroConfiguracion_new = '_%s' % grupoParametroConfiguracion
-                    else:
-                        grupoParametroConfiguracion_new = grupoParametroConfiguracion
-                    LOCALconfigDict[nombreParametroDeConfiguracion] = [
-                        valorParametroConfiguracion,
-                        grupoParametroConfiguracion_new,
-                        descripcionParametroConfiguracion,
-                        tipoParametroConfiguracion,
-                    ]
-                    numObjetivosExtra = max(len(listaParametroConfiguracion) - 3, 0)
-                    numObjetivosExtraMax = max(numObjetivosExtra, numObjetivosExtraMax)
-                    if numObjetivosExtraMax:
-                        valObjetivosExtra = []
-                        for nObjetivoExtra in range(numObjetivosExtraMax):
-                            if 3 + nObjetivoExtra < len(listaParametroConfiguracion):
-                                valObjetivosExtra.append(valorConfig(listaParametroConfiguracion[3 + nObjetivoExtra], tipoVariable=listaParametroConfiguracion[1]))
-                            else:
-                                valObjetivosExtra.append(valorConfig(listaParametroConfiguracion[0], tipoVariable=listaParametroConfiguracion[1]))
-                        LOCALconfigDict[nombreParametroDeConfiguracion].extend(valObjetivosExtra)
-
-                    if GLO.GLBLmostrarVariablesDeConfiguracion and grupoParametroConfiguracion == 'GrupoMAIN':
-                        if verbose:
-                            print('\t\tclidconfig-> >>>5 numObjetivosExtra:', numObjetivosExtra, 'Max', numObjetivosExtraMax, '>>>', nombreParametroDeConfiguracion, LOCALconfigDict[nombreParametroDeConfiguracion])
-            config_ok = True
-        except:
-            print('clidconfig-> Error al leer la configuracion del fichero:', configFileName)
-            config_ok = False
-    else:
+    if not os.path.exists(configFileName):
         print('clidconfig-> Fichero de configuracion no encontrado:', configFileName)
         print("\t-> Revisar la linea ~2523 de clidconfig.py, para que se cree el .cfg si callingModuleInicial == 'cartolidar' or ...")
         sys.exit(0)
         #return False
+
+    try:
+        config.read(configFileName)
+        if verbose and GLO.GLBLmostrarVariablesDeConfiguracion == 'GrupoMAIN':
+            print('clidconfig-> Configuracion ({}):'.format(configFileName))
+        for grupoParametroConfiguracion in config.sections():
+            for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
+                strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
+                listaParametroConfiguracion = strParametroConfiguracion.split('|+|')
+                valorParametroConfiguracion = valorConfig(listaParametroConfiguracion[0], tipoVariable=listaParametroConfiguracion[1])
+                if len(listaParametroConfiguracion) > 1:
+                    tipoParametroConfiguracion = listaParametroConfiguracion[1]
+                else:
+                    tipoParametroConfiguracion = 'str'
+                if len(listaParametroConfiguracion) > 2:
+                    descripcionParametroConfiguracion = listaParametroConfiguracion[2]
+                else:
+                    descripcionParametroConfiguracion = ''
+                if nombreParametroDeConfiguracion[:1] == '_':
+                    grupoParametroConfiguracion_new = '_%s' % grupoParametroConfiguracion
+                else:
+                    grupoParametroConfiguracion_new = grupoParametroConfiguracion
+                LOCALconfigDict[nombreParametroDeConfiguracion] = [
+                    valorParametroConfiguracion,
+                    grupoParametroConfiguracion_new,
+                    descripcionParametroConfiguracion,
+                    tipoParametroConfiguracion,
+                ]
+                numObjetivosExtra = max(len(listaParametroConfiguracion) - 3, 0)
+                numObjetivosExtraMax = max(numObjetivosExtra, numObjetivosExtraMax)
+                if numObjetivosExtraMax:
+                    valObjetivosExtra = []
+                    for nObjetivoExtra in range(numObjetivosExtraMax):
+                        if 3 + nObjetivoExtra < len(listaParametroConfiguracion):
+                            valObjetivosExtra.append(valorConfig(listaParametroConfiguracion[3 + nObjetivoExtra], tipoVariable=listaParametroConfiguracion[1]))
+                        else:
+                            valObjetivosExtra.append(valorConfig(listaParametroConfiguracion[0], tipoVariable=listaParametroConfiguracion[1]))
+                    LOCALconfigDict[nombreParametroDeConfiguracion].extend(valObjetivosExtra)
+
+                if GLO.GLBLmostrarVariablesDeConfiguracion and grupoParametroConfiguracion == 'GrupoMAIN':
+                    if verbose:
+                        print('\t\tclidconfig-> >>>5 numObjetivosExtra:', numObjetivosExtra, 'Max', numObjetivosExtraMax, '>>>', nombreParametroDeConfiguracion, LOCALconfigDict[nombreParametroDeConfiguracion])
+        config_ok = True
+    except:
+        print('clidconfig-> Error al leer la configuracion del fichero:', configFileName)
+        config_ok = False
 
     if not config_ok:
         print('clidconfig-> Error en fichero con parametros de configuracion')

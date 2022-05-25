@@ -198,7 +198,7 @@ else:
             # print('clidaux-> Post sys.path: {}'.format(sys.path))
             from clidax import clidconfig # No necesita ningun otro modulo de cartolid
             # print('clidaux-> clidconfig import ok')
-            from clidml import clidmachine # Necesita: clidconfig
+            # from clidml import clidmachine # Necesita: clidconfig
             # print('clidaux-> clidmachine import ok')
             from clidio import clidhead # Necesita clidconfig, clidnaux, (clidndat si uso infoLasPoints<>)
             # print('clidaux-> clidhead import ok')
@@ -206,7 +206,8 @@ else:
             # print('clidaux-> clidlax import ok')
             # Modulos que se cargan con clidaux (directa o indirectamente): clidconfig, clidlax, clidnaux, clidhead, clidpoint (clidndat si uso infoLasPoints<>)
             # clidlax y clidnaux (si verbse) importan clidaux
-            print('clidaux-> clidconfig, clidmachine, clidhead & clidlax importados ok directamente desde clidaux')
+            # print('clidaux-> clidconfig, clidmachine, clidhead & clidlax importados ok directamente desde clidaux')
+            print('clidaux-> clidconfig, clidhead & clidlax importados ok directamente desde clidaux')
             print('\t-> clidnaux, clidpoint & clidndat importados ok desde modulos importados por clidaux')
 #         except:
 #             print('clidaux-> Error al importar modulos de otro subpackage. Se intenta con rutas referidas al directorio desde el que se ejecuta la app')
@@ -249,17 +250,19 @@ else:
     else:
         MAINidProceso = sys.argv[-1]
         nuevosParametroConfiguracion = {}
-        if callingModuleInicial != 'clidaux' and callingModuleInicial != 'clidtools':
-            if CONFIGverbose:
-                print('clidaux-> Importando clidconfig desde clidaux, a su vez importado desde {}'.format(callingModulePrevio))
+        if callingModuleInicial != 'clidaux' and callingModuleInicial != 'clidtools' and callingModuleInicial != '__main__':
+            if CONFIGverbose or True:
+                print(f'clidaux-> Importando clidconfig desde clidaux, a su vez importado desde {callingModulePrevio} (modulo inicial: {callingModuleInicial})')
             try:
                 import clidconfig
             except:
                 from clidax import clidconfig
-            if CONFIGverbose:
-                print('clidaux-> Importando clidmachine desde clidaux, a su vez importado desde {}'.format(callingModulePrevio))
-            from clidml import clidmachine
             # print('clidaux-> Ok clidmachine importado desde clidaux')
+        elif callingModuleInicial == '__main__':
+            try:
+                from cartolidar.clidax import clidconfig
+            except:
+                from clidax import clidconfig
         else:
             try:
                 from clidax import clidconfig

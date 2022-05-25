@@ -881,6 +881,7 @@ def crearRasterTiff(
                 PAR_cartoMFEfileName,
             )
         )
+        print(f'\t-> Fichero de coniguracion: {GLO.configFileNameCfg}')
         sys.exit(0)
     #===========================================================================
 
@@ -1812,7 +1813,8 @@ def crearRasterTiff(
                                 PAR_cartoMFEfileName,
                             )
                         )
-                        print(nFilaRaster, nColumnaRaster, 'dictArrayBandaX[MFE]:', dictArrayBandaX[nBandasOutput - 1])
+                        print(f'\t-> Fichero de coniguracion: {GLO.configFileNameCfg}')
+                        # print(nFilaRaster, nColumnaRaster, 'dictArrayBandaX[MFE]:', dictArrayBandaX[nBandasOutput - 1])
                         sys.exit(0)
 
                     arrayMinVariables[nBandasOutput - 2] = (dictArrayBandaX[nBandasOutput - 1][dictArrayBandaX[nBandasOutput - 1] != PAR_noDataMergeTiff]).max()

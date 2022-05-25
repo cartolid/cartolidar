@@ -25,6 +25,7 @@ generate other products aimed to forestry and natural environment management.
 This project is in alpha version and includes only the "clidtwins" tool.
 
 "clidtwins" searchs for similar areas to a reference one in terms of dasoLidar Variables (DLVs)
+
 DLV: Lidar variables that describe or characterize forest or land cover structure.
 
 > CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar
@@ -56,19 +57,19 @@ Install
 ```
 pip install cartolidar
 ```
-or
+or (in case you are working through a proxy server):
 ```
 pip install cartolidar --proxy https://user:password@proxyserver:port
 ```
 
 2. Download development version from [github - cartolidar](https://github.com/cartolid/cartolidar)
 
-You can download the zip version, uncompress it somewhere, i.e.:
+From github you can download the zip version, uncompress it somewhere, i.e.:
 ```
 C:\users\yourUser\Downloads\cartolidar-main\
 ```
 That folder contains a setup.py file (and the other components of the project)
-and you can install cartolidar from there for your python environment:
+and you can install cartolidar from that directory for your python environment:
 ```
 cd C:\users\yourUser\Downloads\cartolidar-main\
 pip install .
@@ -90,11 +91,12 @@ a) Run cartolidar package:
 ```
 python -m cartolidar [options]
 ```
-Se inicia el menu principal con las herramientas disponibles en cartolidar:
+It starts the main menu with the avaliable tools
 
-Inicialmente solo está disponible la herramienta qlidtwins
+>Se inicia el menu principal con las herramientas disponibles en cartolidar:
+>
+>Inicialmente solo está disponible la herramienta qlidtwins
 
->It starts the main menu with the avaliable tools
 
 <pre>
     options:
@@ -235,6 +237,7 @@ to be continued...
 <!-- This content will not appear in the rendered Markdown -->
 
 
-[Ayuda Markdown](https://guides.github.com/features/mastering-markdown/)
+[Ayuda Markdown de github](https://guides.github.com/features/mastering-markdown/)
+[Ayuda Markdown de markdownguide](https://www.markdownguide.org/getting-started)
 
 [![Actions Status](https://github.com/cartolidar/cartolidar/workflows/Tests/badge.svg)](https://github.com/cartolidar/cartolidar/actions?query=workflow%3ATests)

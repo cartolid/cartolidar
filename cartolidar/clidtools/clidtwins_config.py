@@ -21,6 +21,7 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 
 import os
 import sys
+import pathlib
 from configparser import RawConfigParser
 import unicodedata
 try:
@@ -68,24 +69,6 @@ else:
     sys.argv.append('--idProceso')
     sys.argv.append(MAIN_idProceso)
 # ==============================================================================
-
-
-# ==============================================================================
-def getConfigFileName():
-    if sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
-        configFileNameCfg = 'cartolidar.cfg'
-    elif sys.argv[0] == '':
-        configFileNameCfg = 'qlidtwins.cfg'
-    elif sys.argv[0].endswith('qlidtwins.py'):
-        configFileNameCfg = 'qlidtwins.cfg'
-    else:
-        if MAIN_idProceso:
-            configFileNameCfg = sys.argv[0].replace('.py', '{:006}.cfg'.format(MAIN_idProceso))
-        else:
-            configFileNameCfg = sys.argv[0].replace('.py', '.cfg')
-    if __verbose__ > 2:
-        print(f'clidtwins_config-> Fichero de configuracion: {configFileNameCfg}. Disponible: {os.path.exists(configFileNameCfg)}.')
-    return configFileNameCfg
 
 
 # ==============================================================================
@@ -639,7 +622,7 @@ def checkGLO(GLO):
 
 # ==============================================================================
 def readGLO():
-    configFileNameCfg = getConfigFileName()
+    configFileNameCfg = clidconfig.getConfigFileName(MAIN_idProceso)
     configDictPorDefecto = leerConfigDictPorDefecto()
     # Se guardan los parametros de configuracion en un diccionario:
     GRAL_configDict = leerConfig(configDictPorDefecto, configFileNameCfg)

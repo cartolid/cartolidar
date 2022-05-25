@@ -34,13 +34,22 @@ if '-vvv' in sys.argv:
 elif '-vv' in sys.argv:
     __verbose__ = 2
 elif '-v' in sys.argv or '--verbose' in sys.argv:
-    __verbose__ = 1
+    __verbose__ = 2
 else:
     # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 2
 if __verbose__ > 2:
     print(f'qlidtwins-> __name__:     <{__name__}>')
     print(f'qlidtwins-> __package__ : <{__package__ }>')
+# ==============================================================================
+if '-e' in sys.argv and len(sys.argv) > sys.argv.index('-e') + 1:
+    # TRNS_LEER_EXTRA_ARGS = sys.argv[sys.argv.index('-e') + 1]
+    TRNS_LEER_EXTRA_ARGS = True
+elif '--extraArguments' in sys.argv and len(sys.argv) > sys.argv.index('--extraArguments') + 1:
+    # TRNS_LEER_EXTRA_ARGS = sys.argv[sys.argv.index('--extraArguments') + 1]
+    TRNS_LEER_EXTRA_ARGS = True
+else:
+    TRNS_LEER_EXTRA_ARGS = False
 # ==============================================================================
 
 # ==============================================================================
@@ -78,12 +87,20 @@ except Exception as e:
     program_name = 'qlidtwins'
     indent = len(program_name) * " "
     sys.stderr.write(f'{program_name}-> {repr(e)}\n')
-    sys.stderr.write(f'{indent}   for help use {program_name} -h')
+    sys.stderr.write(f'{indent}   For help use:\n')
+    sys.stderr.write(f'{indent}     help with only the arguments only: python {program_name}.py -h\n')
+    sys.stderr.write(f'{indent}     help with main & extra arguments:  python {program_name}.py -e 1 -h')
     sys.exit(0)
 # ==============================================================================
 
 # ==============================================================================
-from clidax.clidaux import Bar
+try:
+    from cartolidar.clidax.clidaux import Bar
+except:
+    if __verbose__ > 2:
+        print(f'qlidtwins-> Se importa clidaux desde clidax del directorio local {os.getcwd()}/clidtools')
+        print('\tNo hay vesion de cartolidar instalada en site-packages.')
+    from clidax.clidaux import Bar
 
 bar = Bar('Procesando', max=100)
 for i in range(100):
@@ -98,8 +115,7 @@ bar.finish()
 # ==============================================================================
 TESTRUN = 0
 PROFILE = 0
-TRNS_preguntarPorArgumentosEnLineaDeComandos = __verbose__ > 2
-TRNS_LEER_EXTRA_ARGS = False
+TRNS_preguntarPorArgumentosEnLineaDeComandos = __verbose__ > 1
 # ==============================================================================
 
 
@@ -157,27 +173,42 @@ def checkRun():
         print(f'sys.argv:       <{sys.argv}>')
         print(f'sys.argv[0]:    <{sys.argv[0]}>')
     # ==========================================================================
-    if 'qlidtwins' in __name__:
-        # El modulo se esta cargando mediante import desde otro modulo o desde el interprete interactivo
+
+    print('\nqlidtwins-> Info transitoria a quitar de aqui:')
+    print(f'\tqlidtwins-> __name__:     <{__name__}>')
+    print(f'\tqlidtwins-> __package__ : <{__package__ }>')
+    print(f'\tqlidtwins-> sys.argv:     <{sys.argv}>')
+
+    if sys.argv[0] == '':
         if __verbose__ > 1:
             print('\nAVISO: clidqins.py es un modulo escrito para ejecutarse desde linea de comandos:')
             print('\t  python -m cartolidar')
             print('o bien:')
             print('\t  python qlidtwins.py')
-            print('Sin embargo, se esta importando desde codigo python y no se pueden incluir')
-            print('argumentos en linea de comandos. Se usa fichero de configuracion (si existe)')
-            print('o configuracion por defecto (en caso contrario).')
+            print('\nSin embargo, se esta importando desde el interprete interactivo de python y')
+            print('no se pueden incluir argumentos en linea de comandos.')
+            print(f'Se usa fichero de configuracion: {GLO.configFileNameCfg}')
+            print('(si existe) o configuracion por defecto (en caso contrario).')
             if __verbose__ > 1:
-                selec = input('\nLanzar el modulo como si se ejecutara desde linea de comandos (S/n): ')
+                selec = input('\r\nLanzar el modulo como si se ejecutara desde linea de comandos (S/n): ')
             else:
                 selec = 's'
         else:
             selec = 's'
     elif len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos:
-        print('\nAVISO: no se han introducido argumentos en linea de comandos')
+        # if sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+        #     # Tb cumple 'qlidtwins' in __name__
+        #     # __name__:    <cartolidar.qlidtwins>
+        #     # __package__: <cartolidar>
+        #     if __verbose__ > 1:
+        #         print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
+        #         print('\t  python -m cartolidar')        print('\nAVISO: no se han introducido argumentos en linea de comandos')
         print('\t-> Para obtener ayuda sobre estos argumentos escribir:')
         print('\t\tpython {} -h'.format(os.path.basename(sys.argv[0])))
         selec = input('\nContinuar con la configuracion por defecto? (S/n): ')
+    else:
+        selec = 's'
+
     if (
         'qlidtwins' in __name__
         or len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos
@@ -257,21 +288,28 @@ def leerArgumentosEnLineaDeComandos(argv=None):
             )
 
         # Opciones:
+        parser.add_argument('-V', '--version',
+                            action='version',
+                            version=program_version_message,)
         parser.add_argument('-v', '--verbose',
                             dest='verbose',
                             action='count', # Cuenta el numero de veces que aparece la v (-v, -vv, -vvv, etc.)
                             # action="store_true",
                             help='set verbosity level [default: %(default)s]',
                             default = GLO.GLBLverbose,)
-        parser.add_argument('-V', '--version',
-                            action='version',
-                            version=program_version_message)
+        parser.add_argument('-e', '--extraArguments',
+                            dest='extraArguments',
+                            # action='count', # Cuenta el numero de veces que aparece la e (-e, -ee, etc.)
+                            action="store_false",
+                            help='Activates extra arguments in command line. Default: %(default)s',
+                            default = TRNS_LEER_EXTRA_ARGS,)
 
         parser.add_argument('-a',  # '--action',
-                            dest='accionPrincipal',
+                            dest='mainAction',
                             type=int,
                             help='Accion a ejecutar: \n1. Verificar analogia con un determinado patron dasoLidar; \n2. Generar raster con presencia de un determinado patron dasoLidar. Default: %(default)s',
                             default = GLO.GLBLaccionPrincipalPorDefecto,)
+
         parser.add_argument('-i',  # '--inputpath',
                             dest='rutaAscRaizBase',
                             help='Ruta (path) en la que estan los ficheros de entrada con las variables dasolidar. Default: %(default)s',
@@ -304,6 +342,12 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                             default = GLO.GLBLtesteoLayerNamePorDefecto,)
 
         # ======================================================================
+        listaExtraArgs = (
+            'menuInteractivo', 'marcoCoordMiniX', 'marcoCoordMaxiX', 'marcoCoordMiniY',
+            'marcoCoordMaxiY', 'marcoPatronTest', 'nPatronDasoVars', 'rasterPixelSize',
+            'radioClusterPix', 'nivelSubdirExpl', 'outRasterDriver', 'outputSubdirNew',
+            'cartoMFErecorte', 'varsTxtFileName', 'ambitoTiffNuevo', 'noDataTiffProvi',
+            'noDataTiffFiles', 'noDataTipoDMasa', 'umbralMatriDist')
         if TRNS_LEER_EXTRA_ARGS:
             parser.add_argument('-0',  # '--menuInteractivo',
                                 dest='menuInteractivo',
@@ -311,11 +355,32 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                                 help='La aplicacion pregunta en tiempo de ejecucion para elegir o confirmar opciones. Default: %(default)s',
                                 default = GLO.GLBLmenuInteractivoPorDefecto,)
 
+            parser.add_argument('-1',  # '--marcoCoordMiniX',
+                                dest='marcoCoordMiniX',
+                                type=float,
+                                help='Limite inferior X para delimitar la zona de analisis. Default: %(default)s',
+                                default = GLO.GLBLmarcoCoordMiniXPorDefecto,)
+            parser.add_argument('-2',  # '--marcoCoordMaxiX',
+                                dest='marcoCoordMaxiX',
+                                type=float,
+                                help='Limite superior X para delimitar la zona de analisis. Default: %(default)s',
+                                default = GLO.GLBLmarcoCoordMaxiXPorDefecto,)
+            parser.add_argument('-3',  # '--marcoCoordMiniY',
+                                dest='marcoCoordMiniY',
+                                type=float,
+                                help='Limite inferior Y para delimitar la zona de analisis. Default: %(default)s',
+                                default = GLO.GLBLmarcoCoordMiniYPorDefecto,)
+            parser.add_argument('-4',  # '--marcoCoordMaxiY',
+                                dest='marcoCoordMaxiY',
+                                type=float,
+                                help='Limite superior Y para delimitar la zona de analisis. Default: %(default)s',
+                                default = GLO.GLBLmarcoCoordMaxiYPorDefecto,)
             parser.add_argument('-Z',  # '--marcoPatronTest',
                                 dest='marcoPatronTest',
                                 type=int,
                                 help='Zona de analisis definida por la envolvente de los poligonos de referencia (patron) y de chequeo (testeo). Default: %(default)s',
                                 default = GLO.GLBLmarcoPatronTestPorDefecto,)
+
             parser.add_argument('-X',  # '--pixelsize',
                                 dest='rasterPixelSize',
                                 type=int,
@@ -379,7 +444,7 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                                 help='Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars. Default: %(default)s',
                                 default = GLO.GLBLumbralMatriDistPorDefecto,)
 
-        parser.add_argument('-I', '--idProceso',
+        parser.add_argument('--idProceso',
                             dest='idProceso',
                             type=int,
                             help='Numero aleatorio para identificar el proceso que se esta ejecutando (se asigna automaticamente; no usar este argumento)',)
@@ -410,24 +475,41 @@ def leerArgumentosEnLineaDeComandos(argv=None):
 
     except KeyboardInterrupt:
         # handle keyboard interrupt
-        print('qlidtwins-> Revisar error en argumentos en linea de comandos.')
+        print('qlidtwins-> Revisar error en argumentos en linea de comandos (1).')
+        program_name = 'qlidtwins'
+        indent = len(program_name) * " "
+        sys.stderr.write(f'{indent}   For help use:\n')
+        sys.stderr.write(f'{indent}     help with only the main arguments:  python {program_name}.py -h\n')
+        sys.stderr.write(f'{indent}     help with main and extra arguments: python {program_name}.py -e 1 -h')
         sys.exit(0)
 
     except Exception as e:
-        print('qlidtwins-> Revisar error en argumentos en linea de comandos.')
+        print('qlidtwins-> Revisar error en argumentos en linea de comandos (2).')
         if TESTRUN:
             raise(e)
+        program_name = 'qlidtwins'
         indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + repr(e) + "\n")
-        sys.stderr.write(indent + "  for help use --help")
+        sys.stderr.write(f'{program_name}-> {repr(e)}\n')
+        sys.stderr.write(f'{indent}   For help use:\n')
+        sys.stderr.write(f'{indent}     help with only the main arguments:  python {program_name}.py -h\n')
+        sys.stderr.write(f'{indent}     help with main and extra arguments: python {program_name}.py -e 1 -h')
         sys.exit(0)
 
 
     # ==========================================================================
-    # Si no TRNS_LEER_EXTRA_ARGS, ArgumentParser no asigna el valor por defecto
-    # a estos argumentos extras en linea de comandos. Se asignan manualmente.
+    # Si no TRNS_LEER_EXTRA_ARGS, ArgumentParser no asigna
+    # el valor por defecto a estos argumentos extras en linea de comandos.
+    # Se asignan los valores del archivo cfg o por defecto.
     if not 'menuInteractivo' in dir(args):
         args.menuInteractivo = GLO.GLBLmenuInteractivoPorDefecto
+    if not 'marcoCoordMiniX' in dir(args):
+        args.marcoCoordMiniX = GLO.GLBLmarcoCoordMiniXPorDefecto
+    if not 'marcoCoordMaxiX' in dir(args):
+        args.marcoCoordMaxiX = GLO.GLBLmarcoCoordMaxiXPorDefecto
+    if not 'marcoCoordMiniY' in dir(args):
+        args.marcoCoordMiniY = GLO.GLBLmarcoCoordMiniYPorDefecto
+    if not 'marcoCoordMaxiY' in dir(args):
+        args.marcoCoordMaxiY = GLO.GLBLmarcoCoordMaxiYPorDefecto
     if not 'marcoPatronTest' in dir(args):
         args.marcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto
     if not 'nPatronDasoVars' in dir(args):
@@ -457,16 +539,22 @@ def leerArgumentosEnLineaDeComandos(argv=None):
     if not 'umbralMatriDist' in dir(args):
         args.umbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto
 
+    for myExtraArg in listaExtraArgs:
+        if not myExtraArg in dir(args):
+            print('qlidtwins-> Revisar codigo para que lea todos los argumentos extras por defecto.')
+            sys.exit(0)
     return args
 
 
 # ==============================================================================
 def saveArgs(args):
-    argsFileName = sys.argv[0].replace('.py', '.args')
-    try:
+    # argsFileName = sys.argv[0].replace('.py', '.args')
+    argsFileName = (GLO.configFileNameCfg).replace('.cfg', '.args')
+    # try:
+    if True:
         with open(argsFileName, mode='w+') as argsFileControl:
-            if 'accionPrincipal' in dir(args):
-                argsFileControl.write(f'-a={args.accionPrincipal}\n')
+            if 'mainAction' in dir(args):
+                argsFileControl.write(f'-a={args.mainAction}\n')
             if 'rutaAscRaizBase' in dir(args):
                 argsFileControl.write(f'-i={args.rutaAscRaizBase}\n')
             if 'rutaCompletaMFE' in dir(args):
@@ -486,8 +574,18 @@ def saveArgs(args):
 
             if 'menuInteractivo' in dir(args):
                 argsFileControl.write(f'-0={args.menuInteractivo}\n')
+
+            if 'marcoCoordMiniX' in dir(args):
+                argsFileControl.write(f'-Z={args.marcoCoordMiniX}\n')
+            if 'marcoCoordMaxiX' in dir(args):
+                argsFileControl.write(f'-Z={args.marcoCoordMaxiX}\n')
+            if 'marcoCoordMiniY' in dir(args):
+                argsFileControl.write(f'-Z={args.marcoCoordMiniY}\n')
+            if 'marcoCoordMaxiY' in dir(args):
+                argsFileControl.write(f'-Z={args.marcoCoordMaxiY}\n')
             if 'marcoPatronTest' in dir(args):
                 argsFileControl.write(f'-Z={args.marcoPatronTest}\n')
+
             if 'rasterPixelSize' in dir(args):
                 argsFileControl.write(f'-X={args.rasterPixelSize}\n')
             if 'radioClusterPix' in dir(args):
@@ -517,9 +615,9 @@ def saveArgs(args):
 
             for miDasoVar in args.listTxtDasoVars:
                 argsFileControl.write(f'{miDasoVar}\n')
-    except:
-        if __verbose__ > 1:
-            print(f'qlidtwins-> No se ha podido crear el fichero de argumentos para linea de comandos: {argsFileName}')
+    # except:
+    #     if __verbose__ > 1:
+    #         print(f'\nqlidtwins-> No se ha podido crear el fichero de argumentos para linea de comandos: {argsFileName}')
 
 
 # ==============================================================================
@@ -535,7 +633,7 @@ def creaConfigDict(
 
     cfgDict = {}
     # Parametros de configuracion principales
-    cfgDict['accionPrincipal'] = args.accionPrincipal
+    cfgDict['mainAction'] = args.mainAction
     if args.rutaAscRaizBase == '':
         cfgDict['rutaAscRaizBase'] = os.path.dirname(os.path.abspath(__file__))
     else:
@@ -602,33 +700,50 @@ def creaConfigDict(
 
     # ==========================================================================
     # Parametros de configuracion extra
-    cfgDict['menuInteractivo'] = args.menuInteractivo
-    cfgDict['marcoPatronTest'] = args.marcoPatronTest
-    cfgDict['nPatronDasoVars'] = args.nPatronDasoVars
-    cfgDict['rasterPixelSize'] = args.rasterPixelSize
-    cfgDict['radioClusterPix'] = args.radioClusterPix
-    cfgDict['nivelSubdirExpl'] = args.nivelSubdirExpl
-    cfgDict['outRasterDriver'] = args.outRasterDriver
-    cfgDict['outputSubdirNew'] = args.outputSubdirNew
-    cfgDict['cartoMFErecorte'] = args.cartoMFErecorte
-    cfgDict['varsTxtFileName'] = args.varsTxtFileName
-    cfgDict['ambitoTiffNuevo'] = args.ambitoTiffNuevo
-    cfgDict['noDataTiffProvi'] = args.noDataTiffProvi
-    cfgDict['noDataTiffFiles'] = args.noDataTiffFiles
-    cfgDict['noDataTipoDMasa'] = args.noDataTipoDMasa
-    cfgDict['umbralMatriDist'] = args.umbralMatriDist
+    try:
+        cfgDict['menuInteractivo'] = args.menuInteractivo
+        cfgDict['marcoCoordMiniX'] = args.marcoCoordMiniX
+        cfgDict['marcoCoordMaxiX'] = args.marcoCoordMaxiX
+        cfgDict['marcoCoordMiniY'] = args.marcoCoordMiniY
+        cfgDict['marcoCoordMaxiY'] = args.marcoCoordMaxiY
+        cfgDict['marcoPatronTest'] = args.marcoPatronTest
+        cfgDict['nPatronDasoVars'] = args.nPatronDasoVars
+        cfgDict['rasterPixelSize'] = args.rasterPixelSize
+        cfgDict['radioClusterPix'] = args.radioClusterPix
+        cfgDict['nivelSubdirExpl'] = args.nivelSubdirExpl
+        cfgDict['outRasterDriver'] = args.outRasterDriver
+        cfgDict['outputSubdirNew'] = args.outputSubdirNew
+        cfgDict['cartoMFErecorte'] = args.cartoMFErecorte
+        cfgDict['varsTxtFileName'] = args.varsTxtFileName
+        cfgDict['ambitoTiffNuevo'] = args.ambitoTiffNuevo
+        cfgDict['noDataTiffProvi'] = args.noDataTiffProvi
+        cfgDict['noDataTiffFiles'] = args.noDataTiffFiles
+        cfgDict['noDataTipoDMasa'] = args.noDataTipoDMasa
+        cfgDict['umbralMatriDist'] = args.umbralMatriDist
+    except Exception as e:
+        print(f'qlidtwins-> args: {list(myArgs for myArgs in dir(args) if not myArgs.startswith("__"))}')
+        program_name = 'qlidtwins'
+        indent = len(program_name) * " "
+        sys.stderr.write(f'{program_name}-> {repr(e)}\n')
+        if os.path.exists(GLO.configFileNameCfg):
+            if 'object has no attribute' in repr(e):
+                argumentoNoEncontrado = repr(e)[repr(e).index('object has no attribute') + len('object has no attribute') + 2: -3]
+                sys.stderr.write(f'{indent}   Revisar si {GLO.configFileNameCfg} incluye el argumento {argumentoNoEncontrado}\n')
+                sys.stderr.write(f'{indent}     {GLO.configFileNameCfg} debe incluir todos los parametros preceptivos (main & extra).\n')
+            else:
+                sys.stderr.write(f'{indent}   Revisar si el fichero de configuracion {GLO.configFileNameCfg} incluye todos los parametros preceptivos (main & extra).\n')
+        else:
+            sys.stderr.write(f'{indent}   Error desconocido al leer los parametros de configuracion en linea de argumentos y por defecto.\n')
+        sys.stderr.write(f'{indent}   For help use:\n')
+        sys.stderr.write(f'{indent}     help with only the main arguments:  python {program_name}.py -h\n')
+        sys.stderr.write(f'{indent}     help with main and extra arguments: python {program_name}.py -e 1 -h')
+        sys.exit(0)
     # ==========================================================================
 
-    # ==========================================================================
-    # ======== Provisionalmente pongo aqui un rango de coordenadas UTM =========
-    # === Pte rematar que se puedan definir con el parametro ambitoTiffNuevo, ==
-    # ============ en linea de comandos o a partir de los shapes ===============
-    # ==========================================================================
-    cfgDict['marcoCoordMiniX'] = 318000
-    cfgDict['marcoCoordMaxiX'] = 322000
-    cfgDict['marcoCoordMiniY'] = 4734000
-    cfgDict['marcoCoordMaxiY'] = 4740000
-    # ==========================================================================
+    # cfgDict['marcoCoordMiniX'] = 318000
+    # cfgDict['marcoCoordMaxiX'] = 322000
+    # cfgDict['marcoCoordMiniY'] = 4734000
+    # cfgDict['marcoCoordMaxiY'] = 4740000
 
     return cfgDict
 
@@ -652,7 +767,7 @@ def mostrarConfiguracion(cfgDict):
         '1. Verificar analogia con un determinado patron dasoLidar.',
         '2. Generar raster con presencia de un determinado patron dasoLidar.'
     ]
-    print('\t--> Accion: {}'.format(accionesPrincipales[cfgDict['accionPrincipal'] - 1]))
+    print('\t--> Accion: {}'.format(accionesPrincipales[cfgDict['mainAction'] - 1]))
     if 'listLstDasoVars' in cfgDict.keys():
         print('\t--> Listado de dasoVars [codigo fichero, nombre, limite inf, limite sup, num clases, movilidad_interclases (0-100), ponderacion (0-10)]:')
         for numDasoVar, listDasoVar in enumerate(cfgDict['listLstDasoVars']):
@@ -662,6 +777,7 @@ def mostrarConfiguracion(cfgDict):
         for numDasoVar, FileTypeId in enumerate(cfgDict['listaTxtDasoVarsFileTypes']):
             print('\t\tVariable {}: {}'.format(numDasoVar, FileTypeId))
     print('\t--> Rango de coordenadas UTM:')
+
     if cfgDict['marcoPatronTest']:
         print('\t\tSe adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
         print('\t\tVer valores mas adelante.')
@@ -700,8 +816,9 @@ def mostrarConfiguracion(cfgDict):
     if __verbose__ > 1:
         print('\n{:_^80}'.format(''))
         print('__verbose__: {}'.format(__verbose__))
-        print('->> qlidtwins-> args:', args)
-        # print('\t->> dir(args):', dir(args))
+        if __verbose__ > 2:
+            print('->> qlidtwins-> args:', args)
+            # print('\t->> dir(args):', dir(args))
         print('->> Lista de dasoVars en formato para linea de comandos:')
         print('\t{}'.format(args.listTxtDasoVars))
         print('{:=^80}'.format(''))
@@ -716,6 +833,11 @@ def mostrarConfiguracion(cfgDict):
         print('\n{:_^80}'.format(''))
         print(f'Parametros de configuracion adicionales{infoConfiguracionUsada}:')
         print('\t--> menuInteractivo: {}'.format(cfgDict['menuInteractivo']))
+
+        print('\t--> marcoCoordMiniX: {}'.format(cfgDict['marcoCoordMiniX']))
+        print('\t--> marcoCoordMaxiX: {}'.format(cfgDict['marcoCoordMaxiX']))
+        print('\t--> marcoCoordMiniY: {}'.format(cfgDict['marcoCoordMiniY']))
+        print('\t--> marcoCoordMaxiY: {}'.format(cfgDict['marcoCoordMaxiY']))
         print('\t--> marcoPatronTest: {}'.format(cfgDict['marcoPatronTest']))
         print('\t--> nPatronDasoVars: {}'.format(cfgDict['nPatronDasoVars']))
         print('\t--> rasterPixelSize: {}'.format(cfgDict['rasterPixelSize']))
@@ -828,10 +950,10 @@ def clidtwinsUseCase(cfgDict):
     if __verbose__:
         print('{:=^80}'.format(''))
 
-    if cfgDict['accionPrincipal'] == 0 or cfgDict['menuInteractivo']:
+    if cfgDict['mainAction'] == 0 or cfgDict['menuInteractivo']:
         # Sin uso por el momento, probablemente quite esta opcion
         pass
-    elif cfgDict['accionPrincipal'] == 1:
+    elif cfgDict['mainAction'] == 1:
         if __verbose__:
             print('\n{:_^80}'.format(''))
             print('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
@@ -839,7 +961,7 @@ def clidtwinsUseCase(cfgDict):
             LCL_testeoVectrName=cfgDict['testeoVectrName'],
             LCL_testeoLayerName=cfgDict['testeoLayerName'],
             )
-    elif cfgDict['accionPrincipal'] == 2:
+    elif cfgDict['mainAction'] == 2:
         if __verbose__:
             print('\n{:_^80}'.format(''))
             print('qlidtwins-> Ejecutando generarRasterCluster...')
@@ -847,7 +969,7 @@ def clidtwinsUseCase(cfgDict):
             LCL_radioClusterPix=cfgDict['radioClusterPix'],
         )
 
-    if __verbose__ and cfgDict['accionPrincipal']:
+    if __verbose__ and cfgDict['mainAction']:
         print('{:=^80}'.format(''))
 
     print('\nqlidtwins-> Fin.')
@@ -866,6 +988,3 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
         mostrarConfiguracion(cfgDict)
 
     clidtwinsUseCase(cfgDict)
-
-
-
