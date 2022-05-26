@@ -110,6 +110,11 @@ def leerArgumentosEnLineaDeComandos(
                             # help=f'{opcionesPrincipales[0]}; \n{opcionesPrincipales[1]}; \n{opcionesPrincipales[2]}. Default: %(default)s',
                             help=f'{optionsHelp}. Default: %(default)s',
                             default = '0',)
+        parser.add_argument('-H',
+                            dest='toolHelp',
+                            type=str,
+                            help='Nombre de la herramienta para la que se quiere obtener ayuda (qlidtwins, clidmerge, etc.). Default: %(default)s',
+                            default = 'None',)
 
         # parser.add_argument('-I', '--idProceso',
         #                     dest='idProceso',
@@ -117,20 +122,20 @@ def leerArgumentosEnLineaDeComandos(
         #                     help='Numero aleatorio para identificar el proceso que se esta ejecutando (se asigna automaticamente; no usar este argumento)',)
 
         # args = parser.parse_args()
+        # Se ignoran argumentos desconocidos sin problemas porque no los hay posicionales
         args, unknown = parser.parse_known_args()
-        # Puedo ignorar argumentos desconocidos porque no los hay posicionales
         if __verbose__ > 2 and not unknown is None and unknown != []:
             print(f'\ncartolidar.__main__-> Argumentos ignorados: {unknown}')
-        return args
+        return args, unknown
     except KeyboardInterrupt:
-        return None
+        return None, None
     except TypeError:
-        return None
+        return None, None
     except Exception as e:
         indent = len(program_name) * " "
         sys.stderr.write(program_name + ": " + repr(e) + "\n")
         sys.stderr.write(indent + "   for help use -h\n")
-        return None
+        return None, None
 
 
 # ==============================================================================
@@ -147,11 +152,39 @@ if __name__ == '__main__':
         '2. qlidmerge: integrar ficheros asc de 2x2 km en una capa tif unica (componer mosaico: merge)',
     ]
 
-    args = leerArgumentosEnLineaDeComandos()
+    args, unknown = leerArgumentosEnLineaDeComandos(
+        opcionesPrincipales=opcionesPrincipales,
+        )
     if args is None:
         print('\ncartolidar-> ATENCION: revisar error en argumentos en linea')
         print('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
         sys.exit(0)
+
+
+    if not args.toolHelp == 'None':
+        # for num_arg in range(len(sys.argv) - 1):
+        #     del sys.argv[num_arg + 1]
+        print(f'sys.argv pre:  {sys.argv}')
+        for sys_arg in sys.argv[1:]:
+            sys.argv.remove(sys_arg)
+        print(f'sys.argv post: {sys.argv}')
+        sys.argv.append('-h')
+        if '-e' in unknown:
+            # print(f'\ncartolidar.__main__-> Recuperando el argumento ignorado: -e')
+            sys.argv.append('-e')
+        print(f'sys.argv fin:  {sys.argv}')
+        if args.toolHelp == 'qlidtwins':
+            from cartolidar import qlidtwins
+            sys.exit(0)
+        elif args.toolHelp == 'qlidmerge':
+            from cartolidar import qlidmerge
+            sys.exit(0)
+        else:
+            print(f'Revisar los argumentos. El argumento -H debe ir con nombre del modulo sobre el que se pide ayuda.')
+            print(f'\t-> sys.argv: {sys.argv}')
+            sys.exit(0)
+
+
 
     opcionPorDefecto = 1
     if args.menuOption <= 0:

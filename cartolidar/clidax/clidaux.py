@@ -157,6 +157,7 @@ if CONFIGverbose:
 if (
     callingModuleInicial == 'generax'
     or os.getcwd().endswith('gens')
+    or (callingModuleInicial==  '__main__' and 'cartolidar' in sys.argv[0])  # sys.argv[0].endswith('__main__.py')
     or callingModuleInicial == 'qlidtwins' or callingModuleInicial == 'clidtwins'
     or callingModuleInicial == 'qlidmerge' or callingModuleInicial == 'clidmerge'
     or callingModuleInicial == 'cartolidar'
@@ -269,7 +270,6 @@ else:
             except:
                 import clidconfig
     # ==============================================================================
-
 
     if __name__ == '__main__' or (callingModuleInicial != 'clidaux' and callingModuleInicial != 'clidtools'):
         if CONFIGverbose:

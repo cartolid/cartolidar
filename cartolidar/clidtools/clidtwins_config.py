@@ -22,6 +22,7 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 import os
 import sys
 import pathlib
+import traceback
 from configparser import RawConfigParser
 import unicodedata
 try:
@@ -40,7 +41,7 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
-    __verbose__ = 0
+    __verbose__ = 2
 if __verbose__ > 2:
     print(f'clidtwins_config-> __name__:     <{__name__}>')
     print(f'clidtwins_config-> __package__ : <{__package__ }>')
@@ -86,14 +87,60 @@ def infoUsuario():
 
 
 # ==============================================================================
+def mensajeError(program_name):
+    # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    # ==================================================================
+    fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+    lineError = exc_tb.tb_lineno
+    typeError = exc_type.__name__
+    try:
+        lineasTraceback = list((traceback.format_exc()).split('\n'))
+        codigoConError = lineasTraceback[2]
+    except:
+        codigoConError = ''
+    try:
+        descError = exc_obj.strerror
+    except:
+        descError = exc_obj
+    sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
+    sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
+    sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
+    sys.stderr.write(f'\tError en:    {fileNameError}\n')
+    sys.stderr.write(f'\tFuncion:     {funcError}\n')
+    sys.stderr.write(f'\tLinea:       {lineError}\n')
+    sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
+    sys.stderr.write(f'\tTipo:        {typeError}\n')
+    sys.stderr.write(f'\tError en:    {codigoConError}\n')
+    sys.stderr.write(f'Gracias!\n')
+    # ==================================================================
+    sys.stderr.write(f'\nFor help use:\n')
+    sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
+    sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e 1 -h\n')
+    # ==================================================================
+
+    # sys.stderr.write('\nInfo normalizada del traceback:\n')
+    # sys.stderr.write(traceback.format_exc())
+    # lineasTraceback = (traceback.format_exc()).split('\n')
+    # for nLinea, txtLinea in enumerate(lineasTraceback):
+    #     print(nLinea, txtLinea)
+
+    # lineaError = (traceback.format_exc()).split("\n")[2]
+    # tb = traceback.extract_tb(exc_tb)[-1]
+    # lineError = tb[1]
+    # funcError = tb[2]
+
+
+# ==============================================================================
 def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=False, LOCL_verboseAll=False):
-    if LOCL_verbose:
+    if LOCL_verbose > 1:
         print('\n{:_^80}'.format(''))
         print('clidtwins_config-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
     # ==========================================================================
     if not os.path.exists(LOCL_configFileNameCfg):
-        if LOCL_verbose:
-            print('\t  clidtwins_config-> Fichero no encontrado: se crea con valores por defecto')
+        if LOCL_verbose > 1:
+            print('\t-> Fichero no disponible; se crea con valores por defecto.')
         # En ausencia de fichero de configuracion, uso valores por defecto y los guardo en un nuevo fichero cfg
         config = RawConfigParser()
         config.optionxform = str  # Avoid change to lowercase
@@ -145,14 +192,52 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
             if LOCL_verboseAll:
                 print('\t\t\t-> {}: {} (tipo {})-> {}'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion, tipoParametroConfiguracion, descripcionParametroConfiguracion))
     
-        # try:
-        if True:
+        try:
             with open(LOCL_configFileNameCfg, mode='w+') as configfile:
                 config.write(configfile)
-        # except:
-        #     print('\nclidtwins_config-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion:', LOCL_configFileNameCfg)
-        #     print('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
+        except PermissionError as excpt:
+            program_name = 'clidtwins_config.py'
+            # print(f'\n{program_name}-> Error PermissionError: {excpt}')
     
+            # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            try:
+                print()
+                numeroError = exc_obj.errno
+            except:
+                numeroError = -1
+            if numeroError == 13 or exc_obj.strerror == 'Permission denied':
+                sys.stderr.write(f'Revisar el acceso de escritura en la ruta:\n')
+                sys.stderr.write(f'\t\t{os.path.dirname(LOCL_configFileNameCfg)}\n')  # = {os.path.dirname(exc_obj.filename)}
+                sys.stderr.write(f'\t-> Esta es la rua en la que se intenta guardar el archivo de configuracion:\n')
+                sys.stderr.write(f'\t\t{LOCL_configFileNameCfg}\n')  # {exc_obj.filename}
+                sys.stderr.write(f'\t-> Si no tiene acceso de escritura en esta ruta ejecute\n')
+                sys.stderr.write(f'\t   la aplicacion desde una ruta que no tenga esta restriccion.\n')
+
+            mensajeError(program_name)
+            sys.exit(0)
+
+        except UnicodeError as excpt:
+            program_name = 'clidtwins_config.py'
+            # print(f'\n{program_name}-> Error UnicodeError: {excpt}')
+            print(f'\nclidtwins_config-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion: {LOCL_configFileNameCfg}')
+            print('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
+            mensajeError(program_name)
+            sys.exit(0)
+
+        except ValueError as excpt:
+            program_name = 'clidtwins_config.py'
+            # print(f'\n{program_name}-> Error ValueError: {excpt}')
+            mensajeError(program_name)
+            sys.exit(0)
+
+        except Exception as excpt:
+            program_name = 'clidtwins_config.py'
+            # print(f'\n{program_name}-> Error Exception: {excpt}')
+            # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+            mensajeError(program_name)
+            sys.exit(0)
+
     # Asigno los parametros de configuracion a varaible globales:
     config = RawConfigParser()
     config.optionxform = str  # Avoid change to lowercase
@@ -167,8 +252,10 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
     try:
         LOCL_configDict = {}
         config.read(LOCL_configFileNameCfg)
-        if LOCL_verbose:
-            print('\t-> clidtwins_config-> Parametros de configuracion (guardados en {}):'.format(LOCL_configFileNameCfg))
+        if LOCL_verboseAll:
+            print('\t-> Parametros de configuracion (guardados en {}):'.format(LOCL_configFileNameCfg))
+        elif LOCL_verbose:
+            print('\t-> Ver parametros de configuracion en {}'.format(LOCL_configFileNameCfg))
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
@@ -624,10 +711,10 @@ def checkGLO(GLO):
 
 # ==============================================================================
 def readGLO():
-    configFileNameCfg = clidconfig.getConfigFileName(MAIN_idProceso)
+    configFileNameCfg = clidconfig.getConfigFileName(MAIN_idProceso, LOCL_verbose=__verbose__)
     configDictPorDefecto = leerConfigDictPorDefecto()
     # Se guardan los parametros de configuracion en un diccionario:
-    GRAL_configDict = leerConfig(configDictPorDefecto, configFileNameCfg)
+    GRAL_configDict = leerConfig(configDictPorDefecto, configFileNameCfg, LOCL_verbose=__verbose__)
     # Se crea un objeto de la clase VariablesGlobales para almacenar los
     # parametros de configuracion guardados en GRAL_configDict como atributos
     GLO = clidconfig.VariablesGlobales(GRAL_configDict)

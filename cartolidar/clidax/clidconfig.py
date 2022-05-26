@@ -1665,47 +1665,84 @@ def normalize(c):
 
 
 # ==============================================================================
-def getConfigFileName(idProceso):
+def getConfigFileName(idProceso, LOCL_verbose=0):
+    rutaAlternativa = False
     MAIN_BASE_DIR = os.path.abspath('.')
-    try:
-        MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-    except:
-        MAIN_FILE_DIR = MAIN_BASE_DIR
-
-    if not 'site-packages' in MAIN_FILE_DIR:
-        MAIN_CFG_DIR = MAIN_FILE_DIR
+    if not 'site-packages' in MAIN_BASE_DIR:
+        MAIN_CFG_DIR = MAIN_BASE_DIR
     else:
-        if not 'site-packages' in MAIN_BASE_DIR:
-            MAIN_CFG_DIR = MAIN_BASE_DIR
+        rutaAlternativa = True
+        MAIN_THIS_DIR = os.getcwd()
+        if not 'site-packages' in MAIN_THIS_DIR:
+            MAIN_CFG_DIR = MAIN_THIS_DIR
         else:
-            MAIN_THIS_DIR = os.getcwd()
-            if not 'site-packages' in MAIN_THIS_DIR:
-                MAIN_CFG_DIR = MAIN_THIS_DIR
+            try:
+                MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+                MAIN_FILE_DIR_ok = True
+            except:
+                MAIN_FILE_DIR = ''
+                MAIN_FILE_DIR_ok = False
+            if not 'site-packages' in MAIN_FILE_DIR and MAIN_FILE_DIR_ok:
+                MAIN_CFG_DIR = MAIN_FILE_DIR
             else:
                 MAIN_HOME_DIR = str(pathlib.Path.home())
-                MAIN_CFG_DIR = MAIN_HOME_DIR
+                MAIN_CFG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
 
-    if len(sys.argv) == 0 or sys.argv[0] == '' or sys.argv[0] == '-m':
-        # print('Se esta ejecutando fuera de un modulo, en el interprete interactivo')
-        configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'cartolidar.cfg')
+    if len(sys.argv) == 0:
+        print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
+        sys.exit(0)
     elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
-        configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'cartolidar.cfg')
-    # elif sys.argv[0] == '':
-    #     configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'qlidtwins.cfg')
+        # print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
+        # print('\t  python -m cartolidar')
+        configFileNameSinPath = 'cartolidar.cfg'
     elif sys.argv[0].endswith('qlidtwins.py'):
-        configFileNameCfg = os.path.join(MAIN_CFG_DIR, 'qlidtwins.cfg')
+        # print('\nqlidtwins.py se ha lanzado desde linea de comandos:')
+        # print('\t  python qlidtwins.py')
+        configFileNameSinPath = 'qlidtwins.cfg'
+    elif sys.argv[0] == '':
+        # print('\nqlidtwins se esta importando desde el interprete interactivo:')
+        configFileNameSinPath = 'cartolidar.cfg'
     else:
+        # print(f'\nqlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
         if idProceso:
             try:
-                configFileNameCfg = os.path.join(MAIN_CFG_DIR, sys.argv[0].replace('.py', '{:006}.cfg'.format(idProceso)))
+                configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '{:006}.cfg'.format(idProceso))
             except:
                 print('\nclidconfig-> Revisar asignacion de idProceso:')
                 print('idProceso:   <{}>'.format(idProceso))
                 print('sys.argv[0]: <{}>'.format(sys.argv[0]))
         else:
-            configFileNameCfg = os.path.join(MAIN_CFG_DIR, sys.argv[0].replace('.py', '.cfg'))
-    if __verbose__ > 1:
-        print(f'\nclidtwins_config-> Fichero de configuracion: {configFileNameCfg}. Disponible: {os.path.exists(configFileNameCfg)}.')
+            configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '.cfg')
+
+    configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
+
+    if not os.path.exists(configFileNameCfg):
+        try:
+            controlConfigFile = open(configFileNameCfg, mode='w+')
+            controlConfigFile.close()
+            os.remove(configFileNameCfg)
+        except:
+            print(f'\nclidconfig-> AVISO:')
+            print(f'\tError al guardar el fichero de configuracion:  {configFileNameCfg}')
+            print(f'\tProbablemente no se pueda escribir en la ruta: {MAIN_CFG_DIR}')
+            print(f'\tSe intenta una ruta alternativa:')
+            rutaAlternativa = True
+            try:
+                MAIN_HOME_DIR = str(pathlib.Path.home())
+                MAIN_CFG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
+                configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
+                controlConfigFile = open(configFileNameCfg, mode='w+')
+                controlConfigFile.close()
+                os.remove(configFileNameCfg)
+            except:
+                print(f'\tTampoco se puede escribir en la ruta {MAIN_CFG_DIR}')
+                MAIN_HOME_DIR = str(pathlib.Path.home())
+                configFileNameCfg = os.path.join(MAIN_HOME_DIR, os.path.basename(sys.argv[0]).replace('.py', '.cfg'))
+
+    if rutaAlternativa:
+        print(f'\tNuevo nombre de fichero de configuracion:      {configFileNameCfg}.')
+        # print(f'\t-> Fichero existente previo: {os.path.exists(configFileNameCfg)}.')
+
     return configFileNameCfg
 
 
@@ -1824,8 +1861,7 @@ def leerCambiarVariablesGlobales(
     # Lectura del config (cfg) generado especificamente para esta ejecucion.
     # print('idProceso:', type(idProceso), idProceso)
     # print('sys.argv:', sys.argv)
-
-    configFileName = getConfigFileName(idProceso)
+    configFileName = getConfigFileName(idProceso, LOCL_verbose=2)
 
     if CONFIGverbose or verbose:
         print('\tclidconfig-> Leo los paramConfig del cfg (lo actualizo si tengo nuevosParametroConfiguracion) con leerCambiarVariablesGlobales<>')
@@ -1839,7 +1875,7 @@ def leerCambiarVariablesGlobales(
     numObjetivosExtraMax = 0
     LOCALconfigDict = {}
     if not os.path.exists(configFileName):
-        print('clidconfig-> Fichero de configuracion no encontrado:', configFileName)
+        print('\nclidconfig-> Fichero de configuracion no encontrado:', configFileName)
         print("\t-> Revisar la linea ~2523 de clidconfig.py, para que se cree el .cfg si callingModuleInicial == 'cartolidar' or ...")
         sys.exit(0)
         #return False
@@ -1885,13 +1921,55 @@ def leerCambiarVariablesGlobales(
                 if GLO.GLBLmostrarVariablesDeConfiguracion and grupoParametroConfiguracion == 'GrupoMAIN':
                     if verbose:
                         print('\t\tclidconfig-> >>>5 numObjetivosExtra:', numObjetivosExtra, 'Max', numObjetivosExtraMax, '>>>', nombreParametroDeConfiguracion, LOCALconfigDict[nombreParametroDeConfiguracion])
-        config_ok = True
-    except:
-        print('clidconfig-> Error al leer la configuracion del fichero:', configFileName)
-        config_ok = False
+        # config_ok = True
+    except Exception as excpt:
+        program_name = 'clidconfig.py'
+        print(f'\n{program_name}-> Error Exception en clidtwins_config-> {excpt}\n')
+        # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        if verbose > 1:
+            print()
+            # print(f'exc_obj ({type(exc_obj)}): <<{str(exc_obj)}>>')
+            # print(dir(exc_obj)) # 'args', 'characters_written', 'errno', 'filename', 'filename2', 'strerror', 'winerror', 'with_traceback'
+            try:
+                numeroError = exc_obj.errno
+            except:
+                numeroError = -1
+            print(f'numError:  {numeroError}')      # 13
+            print(f'filename:  {exc_obj.filename}')
+            print(f'filename2: {exc_obj.filename2}')
+            try:
+                print(f'strerror:  {exc_obj.strerror}')
+            except:
+                print(f'strerror_: {exc_obj}')
+            # print(f'with_traceback: {exc_obj.with_traceback}')  # <built-in method
+            print()
+            print(f'filename {exc_tb.tb_frame.f_code.co_filename}')
+            print(f'lineno   {exc_tb.tb_lineno}')
+            print(f'function {exc_tb.tb_frame.f_code.co_name}')
+            print(f'type     {exc_type.__name__}')
+            # print(f'message  {exc_obj.message}')  # or see traceback._some_str()
+            print()
 
-    if not config_ok:
-        print('clidconfig-> Error en fichero con parametros de configuracion')
+        fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+        lineError = exc_tb.tb_lineno
+        typeError = exc_type.__name__
+        try:
+            descError = exc_obj.strerror
+        except:
+            descError = exc_obj
+        sys.stderr.write(f'\nContribuya a este programa remitiendo este error al desarrollador (cartolidar@gmail.com):\n')
+        sys.stderr.write(f'\tError en     {fileNameError}\n')
+        sys.stderr.write(f'\tFuncion:     {funcError}\n')
+        sys.stderr.write(f'\tLinea:       {lineError}\n')
+        sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
+        sys.stderr.write(f'\tTipo:        {typeError}\n')
+
+        sys.exit(0)
+
+        print('clidconfig-> Error al leer la configuracion del fichero:', configFileName)
+        # config_ok = False
 
 
     if CONFIGverbose or verbose:

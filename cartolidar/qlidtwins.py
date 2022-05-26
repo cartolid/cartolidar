@@ -19,6 +19,9 @@ import sys
 import os
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+import traceback
+# import errno
+# print {i:os.strerror(i) for i in sorted(errno.errorcode)}
 # import random
 
 __version__ = '0.0a2'
@@ -42,14 +45,15 @@ if __verbose__ > 2:
     print(f'qlidtwins-> __name__:     <{__name__}>')
     print(f'qlidtwins-> __package__ : <{__package__ }>')
 # ==============================================================================
-if '-e' in sys.argv and len(sys.argv) > sys.argv.index('-e') + 1:
+# if '-e' in sys.argv and len(sys.argv) > sys.argv.index('-e') + 1:
+if '-e' in sys.argv or '--extraArguments' in sys.argv:
     # TRNS_LEER_EXTRA_ARGS = sys.argv[sys.argv.index('-e') + 1]
-    TRNS_LEER_EXTRA_ARGS = True
-elif '--extraArguments' in sys.argv and len(sys.argv) > sys.argv.index('--extraArguments') + 1:
-    # TRNS_LEER_EXTRA_ARGS = sys.argv[sys.argv.index('--extraArguments') + 1]
+    if __verbose__ > 1:
+        print('\nqlidtwins-> Se leen argumentos extra')
     TRNS_LEER_EXTRA_ARGS = True
 else:
     TRNS_LEER_EXTRA_ARGS = False
+TRNS_soloAdmitirOpcionesPermitidas = False
 # ==============================================================================
 
 # ==============================================================================
@@ -68,12 +72,14 @@ else:
 
 # ==============================================================================
 try:
+    from cartolidar.clidtools import clidtwins_config
     from cartolidar.clidtools.clidtwins_config import GLO
     from cartolidar.clidtools.clidtwins import DasoLidarSource
 except ModuleNotFoundError:
     if __verbose__ > 2:
         print(f'qlidtwins-> Se importa clidtwins desde qlidtwins del directorio local {os.getcwd()}/clidtools')
         print('\tNo hay vesion de cartolidar instalada en site-packages.')
+    from clidtools import clidtwins_config
     from clidtools.clidtwins_config import GLO
     from clidtools.clidtwins import DasoLidarSource
 # except ModuleNotFoundError:
@@ -83,14 +89,56 @@ except ModuleNotFoundError:
 #     sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
 #     sys.stderr.write(f'              $ python qlidtwins -h\n')
 #     sys.exit(0)
-except Exception as e:
-    program_name = 'qlidtwins'
-    indent = len(program_name) * " "
-    sys.stderr.write(f'{program_name}-> {repr(e)}\n')
-    sys.stderr.write(f'{indent}   For help use:\n')
-    sys.stderr.write(f'{indent}     help with only the arguments only: python {program_name}.py -h\n')
-    sys.stderr.write(f'{indent}     help with main & extra arguments:  python {program_name}.py -e 1 -h')
+
+except SystemError as excpt:
+    program_name = 'qlidtwins.py'
+    print(f'\n{program_name}-> Error SystemError: {excpt}')
     sys.exit(0)
+except OSError as excpt:
+    program_name = 'qlidtwins.py'
+    print(f'\n{program_name}-> Error OSError: {excpt}')
+    sys.exit(0)
+except PermissionError as excpt:
+    program_name = 'qlidtwins.py'
+    print(f'\n{program_name}-> Error PermissionError: {excpt}')
+    sys.exit(0)
+except Exception as excpt:
+    program_name = 'qlidtwins.py'
+    # print(f'\n{program_name}-> Error Exception: {excpt}')
+
+    # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    # ==================================================================
+    fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+    lineError = exc_tb.tb_lineno
+    typeError = exc_type.__name__
+    try:
+        lineasTraceback = list((traceback.format_exc()).split('\n'))
+        codigoConError = lineasTraceback[2]
+    except:
+        codigoConError = ''
+    try:
+        descError = exc_obj.strerror
+    except:
+        descError = exc_obj
+    sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
+    sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
+    sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
+    sys.stderr.write(f'\tError en:    {fileNameError}\n')
+    sys.stderr.write(f'\tFuncion:     {funcError}\n')
+    sys.stderr.write(f'\tLinea:       {lineError}\n')
+    sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
+    sys.stderr.write(f'\tTipo:        {typeError}\n')
+    sys.stderr.write(f'\tError en:    {codigoConError}\n')
+    sys.stderr.write(f'Gracias!\n')
+    # ==================================================================
+    sys.stderr.write(f'\nFor help use:\n')
+    sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
+    sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e -h\n')
+    # ==================================================================
+    sys.exit(0)
+
 # ==============================================================================
 
 # ==============================================================================
@@ -303,12 +351,13 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                             action="store_false",
                             help='Activates extra arguments in command line. Default: %(default)s',
                             default = TRNS_LEER_EXTRA_ARGS,)
-        optionsHelp = 'Opciones del menu principal cuando se ejecuta con python -m cartolidar'
-        parser.add_argument('-o',  # '--option',
-                            dest='menuOption',
-                            type=int,
-                            help=f'{optionsHelp}. Default: %(default)s',
-                            default = '0',)
+        if TRNS_soloAdmitirOpcionesPermitidas:
+            optionsHelp = 'Opciones del menu principal cuando se ejecuta con python -m cartolidar'
+            parser.add_argument('-o',  # '--option',
+                                dest='menuOption',
+                                type=int,
+                                help=f'{optionsHelp}. Default: %(default)s',
+                                default = '0',)
 
         parser.add_argument('-a',  # '--action',
                             dest='mainAction',
@@ -477,32 +526,65 @@ def leerArgumentosEnLineaDeComandos(argv=None):
         #                     nargs='+') # Admite entre 0 y n valores
 
         # Process arguments
-        args = parser.parse_args()
-        # args, unknown = parser.parse_known_args()
-        # print(f'\nqlidtwins-> Argumentos ignorados: {unknown}')
+        if TRNS_soloAdmitirOpcionesPermitidas:
+            args = parser.parse_args()
+        else:
+            args, unknown = parser.parse_known_args()
+            if __verbose__ > 1:
+                print(f'\nqlidtwins-> argumentos leidos: {type(args)} {args}')
+                print(f'\nqlidtwins-> argumentos ignorados: {type(unknown)} {unknown}')
+                print(f'qlidtwins-> Revisando argumentos ignorados:')
+            for argumentoIgnorado in unknown:
+                if __verbose__ > 1 and argumentoIgnorado in sys.argv:
+                    print(f'\t-> argumentoIgnorado: {argumentoIgnorado}')
+                if argumentoIgnorado in sys.argv and len(sys.argv) > sys.argv.index(argumentoIgnorado) + 1:
+                    valorDelArgumentoIgnorado = sys.argv[sys.argv.index(argumentoIgnorado) + 1]
+                    if valorDelArgumentoIgnorado[0] != '-':
+                        if __verbose__ > 1:
+                            print(f'\t\t-> Eliminando valorDelArgumentoIgnorado: {valorDelArgumentoIgnorado}')
+                        if __verbose__ > 2:
+                            print(f'\t\t\t-> sys.argv pre:  {sys.argv}')
+                        del sys.argv[sys.argv.index(argumentoIgnorado) + 1]
+                        if __verbose__ > 2:
+                            print(f'\t\t\t-> sys.argv post: {sys.argv}')
+                        if args.listTxtDasoVars == [valorDelArgumentoIgnorado]:
+                            if __verbose__ > 2:
+                                print(f'\t\t-> Este valor se habia asignado a listTxtDasoVars: {args.listTxtDasoVars}')
+                                print(f'\t\t\t-> Se elimina ese valor y asigna el valor por defecto')
+                            try:
+                                del args.listTxtDasoVars
+                                # print('borrado ok2')
+                            except:
+                                del args['listTxtDasoVars']
+                                if __verbose__ > 1:
+                                    print(f'\nqlidtwins-> No se ha podido borrar el argumento {argumentoIgnorado}. Revisar codigo.')
+                            args.listTxtDasoVars = GLO.GLBLlistTxtDasoVarsPorDefecto
+                            if __verbose__ > 2:
+                                print(f'\t\t-> Valor asignado a listTxtDasoVars: {args.listTxtDasoVars}')
+                        elif valorDelArgumentoIgnorado in args.listTxtDasoVars:
+                            (args.listTxtDasoVars).remove(valorDelArgumentoIgnorado)
+                if argumentoIgnorado in sys.argv:
+                    if __verbose__ > 1:
+                        print(f'\t\t-> Eliminando argumentoIgnorado: {argumentoIgnorado}')
+                    if __verbose__ > 2:
+                        print(f'\t\t\t-> sys.argv pre:  {sys.argv}')
+                    del sys.argv[sys.argv.index(argumentoIgnorado)]
+                    if __verbose__ > 2:
+                        print(f'\t\t\t-> sys.argv post: {sys.argv}')
+            if __verbose__ > 2:
+                print(f'\t\t-> args post: {args}')
 
     except KeyboardInterrupt:
-        # handle keyboard interrupt
-        print('qlidtwins-> Revisar error en argumentos en linea de comandos (1).')
-        program_name = 'qlidtwins'
-        indent = len(program_name) * " "
-        sys.stderr.write(f'{indent}   For help use:\n')
-        sys.stderr.write(f'{indent}     help with only the main arguments:  python {program_name}.py -h\n')
-        sys.stderr.write(f'{indent}     help with main and extra arguments: python {program_name}.py -e 1 -h')
+        program_name = 'qlidtwins.py'
+        clidtwins_config.mensajeError(program_name)
         sys.exit(0)
 
-    except Exception as e:
-        print('qlidtwins-> Revisar error en argumentos en linea de comandos (2).')
+    except Exception as excpt:
         if TESTRUN:
-            raise(e)
-        program_name = 'qlidtwins'
-        indent = len(program_name) * " "
-        sys.stderr.write(f'{program_name}-> {repr(e)}\n')
-        sys.stderr.write(f'{indent}   For help use:\n')
-        sys.stderr.write(f'{indent}     help with only the main arguments:  python {program_name}.py -h\n')
-        sys.stderr.write(f'{indent}     help with main and extra arguments: python {program_name}.py -e 1 -h')
+            raise(excpt)
+        program_name = 'qlidtwins.py'
+        clidtwins_config.mensajeError(program_name)
         sys.exit(0)
-
 
     # ==========================================================================
     # Si no TRNS_LEER_EXTRA_ARGS, ArgumentParser no asigna
@@ -584,13 +666,13 @@ def saveArgs(args):
                 argsFileControl.write(f'-0={args.menuInteractivo}\n')
 
             if 'marcoCoordMiniX' in dir(args):
-                argsFileControl.write(f'-Z={args.marcoCoordMiniX}\n')
+                argsFileControl.write(f'-1={args.marcoCoordMiniX}\n')
             if 'marcoCoordMaxiX' in dir(args):
-                argsFileControl.write(f'-Z={args.marcoCoordMaxiX}\n')
+                argsFileControl.write(f'-2={args.marcoCoordMaxiX}\n')
             if 'marcoCoordMiniY' in dir(args):
-                argsFileControl.write(f'-Z={args.marcoCoordMiniY}\n')
+                argsFileControl.write(f'-3={args.marcoCoordMiniY}\n')
             if 'marcoCoordMaxiY' in dir(args):
-                argsFileControl.write(f'-Z={args.marcoCoordMaxiY}\n')
+                argsFileControl.write(f'-4={args.marcoCoordMaxiY}\n')
             if 'marcoPatronTest' in dir(args):
                 argsFileControl.write(f'-Z={args.marcoPatronTest}\n')
 
@@ -730,7 +812,7 @@ def creaConfigDict(
         cfgDict['umbralMatriDist'] = args.umbralMatriDist
     except Exception as e:
         print(f'qlidtwins-> args: {list(myArgs for myArgs in dir(args) if not myArgs.startswith("__"))}')
-        program_name = 'qlidtwins'
+        program_name = 'qlidtwins.py'
         indent = len(program_name) * " "
         sys.stderr.write(f'{program_name}-> {repr(e)}\n')
         if os.path.exists(GLO.configFileNameCfg):
@@ -991,6 +1073,7 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
 
     args = leerArgumentosEnLineaDeComandos()
     saveArgs(args)
+    print('qlidtwins-> Hasta aqui')
     cfgDict = creaConfigDict(args, tipoEjecucion=tipoEjecucion)
     if __verbose__ or True:
         mostrarConfiguracion(cfgDict)
