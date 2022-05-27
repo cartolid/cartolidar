@@ -118,19 +118,31 @@ This alpha version includes only qlidtwins tools, wich make use of clidtwins pac
       python -m cartolidar -H qlidtwins
 </pre>
 
-[options_2] are tool-specific opcions. For qlidtwins, you can show these options with:
-```
-python qlidwins -h
-```
-qlidwins has to be available
 
-b) It is also possible to run a tool (a module) without displayin the main menu (if the module is accesible). E.g.:
+b) It is also possible to run a tool without displaying the main menu (if the module is accesible). E.g.:
 ```
 python qlidtwins.py [options]
 ```
-&nbsp;&nbsp;&nbsp;&nbsp;You can check options with:
+or
+```
+python {path-to-cartolidar}/qlidtwins.py [options]
+```
+example:
+```
+python D:\cartolidar\cartolidar/qlidwins.py [options]
+```
+
+Use -h to show help for a cartolidar tool. Example for qlidtwins (qlidtwins.py has to be accesible):
 ```
 python qlidtwins.py -h
+```
+or
+```
+python path-to-cartolidar-/qlidtwins.py -h
+```
+example:
+```
+python D:\_clid\cartolidar\cartolidar/qlidwins.py -h
 ```
 A module is accesible if is called from its folder, is called with path_to_module or its folder is in the PATH environmental variable.
 
