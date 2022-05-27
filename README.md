@@ -86,32 +86,43 @@ See other package requirements in requirements.txt.
 Use
 ---
 
-### From the command line (cmd or bash)
+### Command line (cmd or bash)
 a) Run cartolidar package:
 ```
 python -m cartolidar [options]
 ```
-It starts the main menu with the avaliable tools
+It starts the main menu with the avaliable tools.
 
->Se inicia el menu principal con las herramientas disponibles en cartolidar:
+This alpha version includes only qlidtwins tools, wich make use of clidtwins package.
+
+>Se inicia el menu principal con las herramientas disponibles en cartolidar.
 >
->Inicialmente solo está disponible la herramienta qlidtwins
+>Inicialmente solo está disponible la herramienta qlidtwins que utliza el paquete clidtwins.
 
-
+[options_1] are cartolidar general opcions:
 <pre>
-    options:
-        -h, --help          show this help message and exit</p>
-        -h, --help          show this help message and exit
-        -v, --verbose       set verbosity level [default: False]
-        -V, --version       show program's version number and exit
-        -a ACCIONPRINCIPAL  0. Show main menu; 1. qlidtwins: buscar o verificar
-                            zonas analogas a una de referencia (con un determinado
-                            patron dasoLidar); 2. qlidmerge: integrar ficheros asc
-                            de 2x2 km en una capa tif unica (componer mosaico:
-                            merge). Default: 0
-    other options are tool-specific (see below).
+        -h, --help     show this help message and exit
+        -V, --version  show program's version number and exit
+        -v, --verbose  set verbosity level [default: False]
+        -H toolHelp    show help for a cartolidar tool.
+                       toolHelp: qlidtwins / clidmerge / etc.
+                       By defaut, help is shown without extended args.
+        -e             Changes -H behaviour to extended arguments.
+        -o menuOption  0. Show main menu; 1. qlidtwins: buscar o verificar
+                       zonas analogas a una de referencia (con un determinado
+                       patron dasoLidar); 2. qlidmerge: integrar ficheros asc
+                       de 2x2 km en una capa tif unica (componer mosaico:
+                       merge). Default: 0
+
+    You can show tool-specific help with -H flag. Example:
+      python -m cartolidar -H qlidtwins
 </pre>
 
+[options_2] are tool-specific opcions. For qlidtwins, you can show these options with:
+```
+python qlidwins -h
+```
+qlidwins has to be available
 
 b) It is also possible to run a tool (a module) without displayin the main menu (if the module is accesible). E.g.:
 ```
@@ -124,7 +135,7 @@ python qlidtwins.py -h
 A module is accesible if is called from its folder, is called with path_to_module or its folder is in the PATH environmental variable.
 
 
-### From python code
+### Python code
 You can import packages, modules, classes of functions from a script.py or
 within the python interactive interpreter. Examples:
 ```

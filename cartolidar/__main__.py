@@ -13,10 +13,11 @@ import sys
 import os
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+import traceback
 
-__version__ = '0.0a2'
+__version__ = '0.0a3'
 __date__ = '2016-2022'
-__updated__ = '2022-05-18'
+__updated__ = '2022-06-01'
 __all__ = []
 
 # ==============================================================================
@@ -35,6 +36,48 @@ if __verbose__ > 2:
     print(f'cartolidar.__main__-> sys.argv:     <{sys.argv}>')
     print()
 # ==============================================================================
+
+
+# ==============================================================================
+def mensajeError(program_name):
+    # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    # ==================================================================
+    # tb = traceback.extract_tb(exc_tb)[-1]
+    # lineError = tb[1]
+    # funcError = tb[2]
+    try:
+        lineasTraceback = list((traceback.format_exc()).split('\n'))
+        codigoConError = lineasTraceback[2]
+    except:
+        codigoConError = ''
+    # ==================================================================
+    fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    lineError = exc_tb.tb_lineno
+    funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+    typeError = exc_type.__name__
+    try:
+        descError = exc_obj.strerror
+    except:
+        descError = exc_obj
+    sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
+    sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
+    sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
+    sys.stderr.write(f'\tError en:    {fileNameError}\n')
+    sys.stderr.write(f'\tFuncion:     {funcError}\n')
+    sys.stderr.write(f'\tLinea:       {lineError}\n')
+    sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
+    sys.stderr.write(f'\tTipo:        {typeError}\n')
+    sys.stderr.write(f'\tError en:    {codigoConError}\n')
+    sys.stderr.write(f'Gracias!\n')
+    # ==================================================================
+    sys.stderr.write(f'\nFor help use:\n')
+    sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
+    sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e 1 -h\n')
+    # ==================================================================
+    # sys.stderr.write('\nFormato estandar del traceback:\n')
+    # sys.stderr.write(traceback.format_exc())
+    return (lineError, descError, typeError)
 
 
 # ==============================================================================
@@ -116,11 +159,6 @@ def leerArgumentosEnLineaDeComandos(
                             help='Nombre de la herramienta para la que se quiere obtener ayuda (qlidtwins, clidmerge, etc.). Default: %(default)s',
                             default = 'None',)
 
-        # parser.add_argument('-I', '--idProceso',
-        #                     dest='idProceso',
-        #                     type=int,
-        #                     help='Numero aleatorio para identificar el proceso que se esta ejecutando (se asigna automaticamente; no usar este argumento)',)
-
         # args = parser.parse_args()
         # Se ignoran argumentos desconocidos sin problemas porque no los hay posicionales
         args, unknown = parser.parse_known_args()
@@ -128,13 +166,16 @@ def leerArgumentosEnLineaDeComandos(
             print(f'\ncartolidar.__main__-> Argumentos ignorados: {unknown}')
         return args, unknown
     except KeyboardInterrupt:
+        program_name = 'cartolidar_main'
+        mensajeError(program_name)
         return None, None
     except TypeError:
+        program_name = 'cartolidar_main'
+        mensajeError(program_name)
         return None, None
-    except Exception as e:
-        indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + repr(e) + "\n")
-        sys.stderr.write(indent + "   for help use -h\n")
+    except Exception as excpt:
+        program_name = 'cartolidar_main'
+        mensajeError(program_name)
         return None, None
 
 

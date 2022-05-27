@@ -91,15 +91,19 @@ def mensajeError(program_name):
     # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
     exc_type, exc_obj, exc_tb = sys.exc_info()
     # ==================================================================
-    fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-    funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
-    lineError = exc_tb.tb_lineno
-    typeError = exc_type.__name__
+    # tb = traceback.extract_tb(exc_tb)[-1]
+    # lineError = tb[1]
+    # funcError = tb[2]
     try:
         lineasTraceback = list((traceback.format_exc()).split('\n'))
         codigoConError = lineasTraceback[2]
     except:
         codigoConError = ''
+    # ==================================================================
+    fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    lineError = exc_tb.tb_lineno
+    funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+    typeError = exc_type.__name__
     try:
         descError = exc_obj.strerror
     except:
@@ -119,17 +123,9 @@ def mensajeError(program_name):
     sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
     sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e 1 -h\n')
     # ==================================================================
-
-    # sys.stderr.write('\nInfo normalizada del traceback:\n')
+    # sys.stderr.write('\nFormato estandar del traceback:\n')
     # sys.stderr.write(traceback.format_exc())
-    # lineasTraceback = (traceback.format_exc()).split('\n')
-    # for nLinea, txtLinea in enumerate(lineasTraceback):
-    #     print(nLinea, txtLinea)
-
-    # lineaError = (traceback.format_exc()).split("\n")[2]
-    # tb = traceback.extract_tb(exc_tb)[-1]
-    # lineError = tb[1]
-    # funcError = tb[2]
+    return (lineError, descError, typeError)
 
 
 # ==============================================================================
@@ -198,31 +194,22 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
         except PermissionError as excpt:
             program_name = 'clidtwins_config.py'
             # print(f'\n{program_name}-> Error PermissionError: {excpt}')
-    
-            # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            try:
-                print()
-                numeroError = exc_obj.errno
-            except:
-                numeroError = -1
-            if numeroError == 13 or exc_obj.strerror == 'Permission denied':
+            (lineError, descError, typeError) = mensajeError(program_name)
+            if lineError == 13 or descError.strerror == 'Permission denied' or typeError == 'PermissionError':
                 sys.stderr.write(f'Revisar el acceso de escritura en la ruta:\n')
                 sys.stderr.write(f'\t\t{os.path.dirname(LOCL_configFileNameCfg)}\n')  # = {os.path.dirname(exc_obj.filename)}
                 sys.stderr.write(f'\t-> Esta es la rua en la que se intenta guardar el archivo de configuracion:\n')
                 sys.stderr.write(f'\t\t{LOCL_configFileNameCfg}\n')  # {exc_obj.filename}
                 sys.stderr.write(f'\t-> Si no tiene acceso de escritura en esta ruta ejecute\n')
                 sys.stderr.write(f'\t   la aplicacion desde una ruta que no tenga esta restriccion.\n')
-
-            mensajeError(program_name)
             sys.exit(0)
 
         except UnicodeError as excpt:
             program_name = 'clidtwins_config.py'
             # print(f'\n{program_name}-> Error UnicodeError: {excpt}')
+            mensajeError(program_name)
             print(f'\nclidtwins_config-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion: {LOCL_configFileNameCfg}')
             print('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
-            mensajeError(program_name)
             sys.exit(0)
 
         except ValueError as excpt:
@@ -234,7 +221,6 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
         except Exception as excpt:
             program_name = 'clidtwins_config.py'
             # print(f'\n{program_name}-> Error Exception: {excpt}')
-            # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
             mensajeError(program_name)
             sys.exit(0)
 
@@ -253,9 +239,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
         LOCL_configDict = {}
         config.read(LOCL_configFileNameCfg)
         if LOCL_verboseAll:
-            print('\t-> Parametros de configuracion (guardados en {}):'.format(LOCL_configFileNameCfg))
-        elif LOCL_verbose:
-            print('\t-> Ver parametros de configuracion en {}'.format(LOCL_configFileNameCfg))
+            print('\t-> Parametros de configuracion:')
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
@@ -325,7 +309,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
     # print('\t\tclidtwins_config-> LOCL_configDict:', LOCL_configDict)
 
     if LOCL_verbose:
-        print('{:=^80}\n'.format(''))
+        print('{:=^80}'.format(''))
     return LOCL_configDict
 
 

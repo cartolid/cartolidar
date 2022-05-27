@@ -12,13 +12,13 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 @copyright:  2022 @clid
 @license:    GNU General Public License v3 (GPLv3)
 @contact:    cartolidar@gmail.com
-@deffield    updated: 2022-05-19
+@deffield    updated: 2022-06-01
 '''
 
 import sys
 
-__version__ = '0.0a2'
-__updated__ = '2022-05-18'
+__version__ = '0.0a3'
+__updated__ = '2022-06-01'
 # No se importa nada con: from qlidtwins import *
 __all__ = []
 

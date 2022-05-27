@@ -1716,32 +1716,43 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
 
     configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
 
-    if not os.path.exists(configFileNameCfg):
-        try:
-            controlConfigFile = open(configFileNameCfg, mode='w+')
+    try:
+        if not os.path.exists(configFileNameCfg):
+            controlConfigFile = open(configFileNameCfg, mode='w')
             controlConfigFile.close()
             os.remove(configFileNameCfg)
-        except:
-            print(f'\nclidconfig-> AVISO:')
-            print(f'\tError al guardar el fichero de configuracion:  {configFileNameCfg}')
-            print(f'\tProbablemente no se pueda escribir en la ruta: {MAIN_CFG_DIR}')
-            print(f'\tSe intenta una ruta alternativa:')
-            rutaAlternativa = True
-            try:
-                MAIN_HOME_DIR = str(pathlib.Path.home())
-                MAIN_CFG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
-                configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
-                controlConfigFile = open(configFileNameCfg, mode='w+')
+        else:
+            controlConfigFile = open(configFileNameCfg, mode='r+')
+            controlConfigFile.close()
+    except:
+        print('\n{:_^80}'.format(''))
+        print(f'\nclidconfig-> AVISO:')
+        print(f'\tNo se puede guardar el fichero de configuracion:  {configFileNameCfg}')
+        print(f'\tEs posible que no tenga permisos de escritura en: {MAIN_CFG_DIR}')
+        print(f'\tO que exista el fichero {configFileNameCfg} y este bloqueado.')
+        print(f'\tSe intenta una ruta alternativa.')
+        print('{:=^80}'.format(''))
+        rutaAlternativa = True
+        try:
+            MAIN_HOME_DIR = str(pathlib.Path.home())
+            MAIN_CFG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
+            configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
+            if not os.path.exists(configFileNameCfg):
+                controlConfigFile = open(configFileNameCfg, mode='w')
                 controlConfigFile.close()
                 os.remove(configFileNameCfg)
-            except:
-                print(f'\tTampoco se puede escribir en la ruta {MAIN_CFG_DIR}')
-                MAIN_HOME_DIR = str(pathlib.Path.home())
-                configFileNameCfg = os.path.join(MAIN_HOME_DIR, os.path.basename(sys.argv[0]).replace('.py', '.cfg'))
+            else:
+                controlConfigFile = open(configFileNameCfg, mode='r+')
+                controlConfigFile.close()
+        except:
+            print(f'\tTampoco se puede escribir en la ruta {MAIN_CFG_DIR}')
+            MAIN_HOME_DIR = str(pathlib.Path.home())
+            configFileNameCfg = os.path.join(MAIN_HOME_DIR, os.path.basename(sys.argv[0]).replace('.py', '.cfg'))
 
-    if rutaAlternativa:
-        print(f'\tNuevo nombre de fichero de configuracion:      {configFileNameCfg}.')
-        # print(f'\t-> Fichero existente previo: {os.path.exists(configFileNameCfg)}.')
+    if rutaAlternativa and False:
+        print(f'\t\tNueva ruta para fichero de configuracion: {configFileNameCfg}.')
+        if os.path.exists(configFileNameCfg):
+            print(f'\t-> Este fichero de configuracion ya existe previamente.')
 
     return configFileNameCfg
 

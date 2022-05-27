@@ -7,14 +7,14 @@ Tools for Lidar processing focused on Spanish PNOA datasets
 @copyright:  2022 @clid
 @license:    GNU General Public License v3 (GPLv3)
 @contact:    cartolidar@gmail.com
-@deffield    updated: 2022-05-19
+@deffield    updated: 2022-06-01
 '''
 
 import sys
 
-__version__ = '0.0a2'
+__version__ = '0.0a3'
 __date__ = '2016-2022'
-__updated__ = '2022-05-18'
+__updated__ = '2022-06-01'
 
 # ==============================================================================
 # Verbose provisional para la version alpha

@@ -646,13 +646,16 @@ that usually take the default values (from configuration file or clidtwins_confi
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
             if len(listaFileTuplesDasoVarX) == 0:
                 print(
-                    '{}-> DLV {:<2} (nickName: {}; fileType: {:<35}) -> ATENCION: no hay ficheros para este fileType (DLV).'.format(
+                    '{}-> DLV {:<2} (nickName: {}); fileType: {:<35}'.format(
                         TB,
                         numDasoVarX,
                         self.LOCLlistLstDasoVars[numDasoVarX][1],
                         self.LOCLlistLstDasoVars[numDasoVarX][0],
                     )
                 )
+                print(f'\nATENCION: no hay ficheros para el fileType {self.LOCLlistLstDasoVars[numDasoVarX][0]} (DLV: {self.LOCLlistLstDasoVars[numDasoVarX][1]}).')
+                print(f'Revisar los codigos de ficheros: los ficheros asc deben incluir esos codigos en el nombre.')
+                sys.exit(0)
             else:
                 if self.LOCLverbose > 2:
                     print(
@@ -686,6 +689,11 @@ that usually take the default values (from configuration file or clidtwins_confi
             else:
                 hayAlgunBloqueCompleto = True
 
+        if not hayAlgunBloqueCompleto:
+            print(f'\nclidtwins-> ATENCION: No hay ningun bloque con todos los tipos de fichero (DLVs).')
+            print(f'{TB}Se interrumpe la ejecucion.')
+            sys.exit(0)
+
         if self.LOCLverbose > 2:
             print(f'\nclidtwins-> Numero de ficheros por bloque (con todas las DLVs):')
             for codigoBloque in self.inFilesNumPorBloque.keys():
@@ -706,7 +714,7 @@ that usually take the default values (from configuration file or clidtwins_confi
             # Ver manejo dict para python > 3.6 en https://realpython.com/iterate-through-dictionary-python/
             for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
                 codigoBloque = nameFile[:8]
-                if len(self.inFilesDictAllTypes[codigoBloque]) < self.nInputVars:
+                if codigoBloque in self.inFilesDictAllTypes[codigoBloque] and len(self.inFilesDictAllTypes[codigoBloque]) < self.nInputVars:
                     del listaFileTuplesDasoVarX[numFile]
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
             self.inFilesListAllTypes[numDasoVarX] = sorted(listaFileTuplesDasoVarX, key=itemgetter(1))
@@ -927,7 +935,7 @@ that usually take the default values (from configuration file or clidtwins_confi
                 else:
                     self.LOCLlistaDasoVarsPonderado.append(10)
 
-        print('--------------------------->self.LOCLlistLstDasoVars', self.LOCLlistLstDasoVars)
+        # print('--------------------------->self.LOCLlistLstDasoVars', self.LOCLlistLstDasoVars)
         if (
             not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('MFE')
             and not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('LAND')
@@ -1014,9 +1022,11 @@ that usually take the default values (from configuration file or clidtwins_confi
                 else:
                     pesoPonderado = '{:>2} (/10)'.format(thisListLstDasoVar[6])
                 print(
-                    '{}-> variable {}-> codigoFichero: {:<35}'.format(TB, nVar, thisListLstDasoVar[0]),
+                    '{}Variable {}-> codigoFichero: {:<35}'.format(TB, nVar, thisListLstDasoVar[0]),
                     '({}) ->'.format(thisListLstDasoVar[1]),
-                    'rango: {} - {:>3};'.format(thisListLstDasoVar[2], thisListLstDasoVar[3]),
+                )
+                print(
+                    '{}{}Rango: {:>2} - {:>3};'.format(TB, TV, thisListLstDasoVar[2], thisListLstDasoVar[3]),
                     'clases: {:>3};'.format(thisListLstDasoVar[4]),
                     'movilidad: {:>3} %'.format(thisListLstDasoVar[5]),
                     'peso: {}'.format(pesoPonderado)
@@ -1138,18 +1148,23 @@ that usually take the default values (from configuration file or clidtwins_confi
                 print('clidtwins-> AVISO: no se ha ejecurtado el metodo .setRangeUTM para delimitar la zona de estudio.\n'
                       f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
                       f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
+                print('{:=^80}'.format(''))
             elif not self.marcoCoordDisponible and not self.GLBLmarcoPatronTest:
                 print('clidtwins-> AVISO: no se dispone de coordenadas para delimitar la zona de estudio.\n'
                       f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
                       f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
+                print('{:=^80}'.format(''))
             elif self.marcoCoordDisponible and self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
                 print('clidtwins-> AVISO: se delimita la zona de estudio que abarca tanto las coordenadas indicadas expresamente\n'
                       f'{TB}como la envolvente de los ficheros de referencia y chequeo para las variables dasoLidar (patron y testeo).')
+                print('{:=^80}'.format(''))
             elif self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
                 print('clidtwins-> Se delimita la zona de estudio con la envolvente de los ficheros\n'
                       f'{TB}de referencia y chequeo para las variables dasoLidar (patron y testeo).')
+                print('{:=^80}'.format(''))
             else:
                 print('clidtwins-> Se delimita la zona de estudio con las coordenadas indicadas expresamente.')
+                print('{:=^80}'.format(''))
         # ======================================================================
 
     # ==========================================================================
