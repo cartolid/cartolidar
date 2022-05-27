@@ -37,6 +37,7 @@ INSTALL_REQUIRES = [
     'scipy >= 1.4.1',
     'psutil >= 5.7.0',
 	'dbfread >= 2.0.7',
+	'pytest >= 7.1.2',
 	# 'TensorFlow >= 2.3.0',
 	# 'keras >= 2.4.3',
 	# 'pandas>= 1.0.5',

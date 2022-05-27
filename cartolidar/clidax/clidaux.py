@@ -163,6 +163,7 @@ if (
     or callingModuleInicial == 'cartolidar'
     or callingModuleInicial == 'runpy'
     or callingModuleInicial == '__init__'
+    or callingModuleInicial.startswith('test_')
     # or callingModuleInicial != 'clidtools'
 ):
 

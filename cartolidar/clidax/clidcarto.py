@@ -64,6 +64,16 @@ if __verbose__ > 2:
     print(f'clidcarto-> __package__ : <{__package__ }>')
 # ==============================================================================
 
+# ==============================================================================
+if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
+    MAIN_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+else:
+    # MAIN_idProceso = random.randint(1, 999998)
+    MAIN_idProceso = 0
+    sys.argv.append('--idProceso')
+    sys.argv.append(MAIN_idProceso)
+# ==============================================================================
+
 # Anulo esta importacion porque por el momento no las uso
 # from cartolidar.clidax import clidaux
 # La importacion de clidconfig (GLO) y clidnaux la pospongo a mas adelante
@@ -146,6 +156,7 @@ if (
     callingModuleInicial != 'runpy'
     and callingModuleInicial != '__init__'
     and callingModuleInicial != '__main__'
+    and not callingModuleInicial.startswith('test_')
     and callingModuleInicial != 'clidtwins' and callingModuleInicial != 'qlidtwins'
     and callingModuleInicial != 'clidmerge' and callingModuleInicial != 'qlidmerge'
 ):
@@ -162,6 +173,7 @@ if (
     callingModuleInicial == 'runpy'
     or callingModuleInicial == '__init__'
     or callingModuleInicial == '__main__'
+    or callingModuleInicial.startswith('test_')
     or callingModuleInicial == 'clidtwins' or callingModuleInicial == 'qlidtwins'
     or callingModuleInicial == 'clidmerge' or callingModuleInicial == 'qlidmerge'
     or callingModuleInicial == 'clidgis'
@@ -181,7 +193,9 @@ if (
     GLO.GLBLnoData8bits = 255
     GLO.GLBLrasterPixelSize = 10
 else:
-    configVarsDict = clidconfig.leerCambiarVariablesGlobales()
+    configVarsDict = clidconfig.leerCambiarVariablesGlobales(
+        idProceso=MAIN_idProceso
+    )
     GLO = clidconfig.VariablesGlobales(configVarsDict)
 
 if GLO.GLBLverbose:

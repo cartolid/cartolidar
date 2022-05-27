@@ -679,6 +679,7 @@ class VariablesGlobales(object):
             and callingModuleInicial != 'runpy'
             and callingModuleInicial != '__init__'
             and callingModuleInicial != '__main__'
+            and not callingModuleInicial.startswith('test_')
             and callingModuleInicial != 'clidtwins' and callingModuleInicial != 'qlidtwins'
             and callingModuleInicial != 'clidmerge' and callingModuleInicial != 'qlidmerge'
         ):
@@ -703,6 +704,7 @@ class VariablesGlobales(object):
             and callingModuleInicial != 'runpy'
             and callingModuleInicial != '__init__'
             and callingModuleInicial != '__main__'
+            and not callingModuleInicial.startswith('test_')
             and callingModuleInicial != 'clidtwins' and callingModuleInicial != 'qlidtwins'
             and callingModuleInicial != 'clidmerge' and callingModuleInicial != 'qlidmerge'
         ):
@@ -1705,12 +1707,15 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
     else:
         # print(f'\nqlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
         if idProceso:
+            if not type(idProceso) == int:
+                ñ
             try:
                 configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '{:006}.cfg'.format(idProceso))
             except:
                 print('\nclidconfig-> Revisar asignacion de idProceso:')
                 print('idProceso:   <{}>'.format(idProceso))
                 print('sys.argv[0]: <{}>'.format(sys.argv[0]))
+                sys.exit(0)
         else:
             configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '.cfg')
 

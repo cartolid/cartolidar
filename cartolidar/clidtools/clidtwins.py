@@ -714,7 +714,7 @@ that usually take the default values (from configuration file or clidtwins_confi
             # Ver manejo dict para python > 3.6 en https://realpython.com/iterate-through-dictionary-python/
             for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
                 codigoBloque = nameFile[:8]
-                if codigoBloque in self.inFilesDictAllTypes[codigoBloque] and len(self.inFilesDictAllTypes[codigoBloque]) < self.nInputVars:
+                if codigoBloque in self.inFilesDictAllTypes.keys() and len(self.inFilesDictAllTypes[codigoBloque]) < self.nInputVars:
                     del listaFileTuplesDasoVarX[numFile]
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
             self.inFilesListAllTypes[numDasoVarX] = sorted(listaFileTuplesDasoVarX, key=itemgetter(1))
@@ -915,6 +915,13 @@ that usually take the default values (from configuration file or clidtwins_confi
         if self.LOCLverbose:
             print('{:=^80}'.format(''))
 
+        if not type(self.LOCLlistLstDasoVars) == list:
+            print(f'\nclidtwins-> ATENCION: revisar el parametro LCL_listLstDasoVars para que permita generar una lista de DLVs (cada una, a su vez, con su lista de propiedades).')
+            print(f'\t-> Si se ha usado LCL_listaTxtDasoVarsFileTypes en lugar de LCL_listLstDasoVars, aquel debe ser una lista simple de fileTypes separada por comas')
+            print(f'\t-> Valor obtenido a partir de LCL_listLstDasoVars: {type(self.LOCLlistLstDasoVars)} -> {self.LOCLlistLstDasoVars}')
+            print(f'\t-> Valor obtenido de LCL_listaTxtDasoVarsFileTypes: {type(LCL_listaTxtDasoVarsFileTypes)} -> {LCL_listaTxtDasoVarsFileTypes}')
+            sys.exit(0)
+
         if not hasattr(self, 'LOCLlistaDasoVarsFileTypes'):
             self.LOCLlistaDasoVarsFileTypes = []
             self.LOCLlistaDasoVarsNickNames = []
@@ -924,6 +931,12 @@ that usually take the default values (from configuration file or clidtwins_confi
             self.LOCLlistaDasoVarsMovilidad = []
             self.LOCLlistaDasoVarsPonderado = []
             for thisListLstDasoVar in self.LOCLlistLstDasoVars:
+                if not type(thisListLstDasoVar) == list:
+                    print(f'\nclidtwins-> ATENCION: revisar el parametro LCL_listLstDasoVars para que permita generar una lista de DLVs (cada una, a su vez, con su lista de propiedades).')
+                    print(f'\t-> Si se ha usado LCL_listaTxtDasoVarsFileTypes en lugar de LCL_listLstDasoVars, aquel debe ser una lista simple de fileTypes separada por comas')
+                    print(f'\t-> Valor obtenido a partir de LCL_listLstDasoVars: {type(self.LOCLlistLstDasoVars)} -> {self.LOCLlistLstDasoVars}')
+                    print(f'\t-> Valor obtenido de LCL_listaTxtDasoVarsFileTypes: {type(LCL_listaTxtDasoVarsFileTypes)} -> {LCL_listaTxtDasoVarsFileTypes}')
+                    sys.exit(0)
                 self.LOCLlistaDasoVarsFileTypes.append(thisListLstDasoVar[0])
                 self.LOCLlistaDasoVarsNickNames.append(thisListLstDasoVar[1])
                 self.LOCLlistaDasoVarsRangoLinf.append(thisListLstDasoVar[2])

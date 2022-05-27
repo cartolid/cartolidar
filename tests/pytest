@@ -1,0 +1,45 @@
+[General]
+GLBLverbose = 2|+|bool|+|Mostrar info de ejecucion en consola
+GLBLrasterPixelSizePorDefecto = 10|+|uint8|+|Lado del pixel dasometrico en metros (pte ver diferencia con GLBLmetrosCelda)
+GLBLmenuInteractivoPorDefecto = 0|+|bool|+|Preguntar en tiempo de ejecucion para confirmar opciones
+GLBLnivelSubdirExplPorDefecto = 3|+|bool|+|Explorar subdirectorios de rutaAscRaizBase
+
+[dasoLidar]
+GLBLaccionPrincipalPorDefecto = 2|+|bool|+|
+GLBLrutaAscRaizBasePorDefecto = O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre|+|str|+|Ruta de los ASC para el dasolidar cluster en JCyL
+GLBLpatronVectrNamePorDefecto = O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp|+|str|+|Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar
+GLBLtesteoVectrNamePorDefecto = O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp|+|str|+|Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.
+GLBLpatronLayerNamePorDefecto = |+|str|+|Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).
+GLBLtesteoLayerNamePorDefecto = |+|str|+|Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).
+GLBLradioClusterPixPorDefecto = 3|+|uint8|+|Numero de anillos de pixeles que tiene el cluster, ademas del central
+GLBLrutaCompletaMFEPorDefecto = O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp|+|str|+|Nombre (con ruta y extension) del fichero con la capa MFE
+GLBLcartoMFEcampoSpPorDefecto = SP1|+|str|+|Nombre del campo con el codigo numerico de la especie principal o tipo de bosque en la capa MFE
+GLBLnPatronDasoVarsPorDefecto = 0|+|int|+|Si es distinto de cero, numero de dasoVars con las que se caracteriza el patron (n primeras dasoVars)
+GLBLnClasesDasoVarsPorDefecto = 5|+|int|+|Numero de clases por defecto para todas las variables si no se especifica para cada variable.
+GLBLtrasferDasoVarsPorDefecto = 25|+|int|+|Porcentaje de movilidad admisible interclases si no se especifica para cada variable.
+GLBLlistaDasoVarsFileTypes = CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE25,TMasa|+|list_str|+|Lista de tipos de fichero para el dasoLidar
+GLBLlistaDasoVarsNickNames = Alt95,FCC5m,FCC3m,FCmat,FCsub,MFE25,TMasa|+|list_str|+|Lista de variables para el dasoLidar
+GLBLlistaDasoVarsRangoLinf = 0,0,0,0,0,0,0|+|list_int|+|Lista de variables para el dasoLidar
+GLBLlistaDasoVarsRangoLsup = 36,100,100,100,100,255,255|+|list_int|+|Lista de variables para el dasoLidar
+GLBLlistaDasoVarsNumClases = 18,5,5,5,5,255,255|+|list_int|+|Lista de variables para el dasoLidar
+GLBLlistaDasoVarsMovilidad = 40,25,30,35,35,0,0|+|list_int|+|Lista de factores de movilidad admitidas entre clases del histograma de la variable dasoVar (0-100)
+GLBLlistaDasoVarsPonderado = 10,8,5,4,3,0,0|+|list_int|+|Peso de cada variable para poderar las discrepancias respecto al modelo o patron (0-10).
+GLBLmarcoPatronTestPorDefecto = 1|+|bool|+|Zona de analisis definida por la envolvente de los poligonos de referencia (patron) y de chequeo (testeo)
+GLBLoutRasterDriverPorDefecto = GTiff|+|str|+|Formato de fichero raster de salida para el dasolidar
+GLBLoutputSubdirNewPorDefecto = dasoLayers|+|str|+|Subdirectorio de GLBLrutaAscRaizBasePorDefecto donde se guardan los resultados
+GLBLcartoMFErecortePorDefecto = mfe50rec|+|str|+|Nombre del fichero en el que se guarda la version recortada raster del MFE
+GLBLvarsTxtFileNamePorDefecto = rangosDeDeferencia.txt|+|str|+|Nombre de fichero en el que se guardan los rangos calculados para todas las variables
+GLBLnoDataTiffProviPorDefecto = -8888|+|int|+|NoData temporal para los ficheros raster de salida para el dasolidar
+GLBLnoDataTiffFilesPorDefecto = -9999|+|int|+|NoData definitivo para los ficheros raster de salida para el dasolidar
+GLBLnoDataTipoDMasaPorDefecto = 255|+|int|+|NoData definitivo para el raster de salida con el tipo de masa para el dasolidar
+GLBLumbralMatriDistPorDefecto = 20|+|int|+|Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars
+GLBLmarcoCoordMiniXPorDefecto = 0|+|int|+|Limite inferior X para delimitar la zona de analisis
+GLBLmarcoCoordMaxiXPorDefecto = 0|+|int|+|Limite superior X para delimitar la zona de analisis
+GLBLmarcoCoordMiniYPorDefecto = 0|+|int|+|Limite inferior Y para delimitar la zona de analisis
+GLBLmarcoCoordMaxiYPorDefecto = 0|+|int|+|Limite superior Y para delimitar la zona de analisis
+
+[general]
+GLBLambitoTiffNuevoPorDefecto = loteAsc|+|str|+|Principalmente para merge: ambito geografico del nuevo raster creado (uno predeterminado o el correspondiente a los ASC)
+
+[Custom]
+

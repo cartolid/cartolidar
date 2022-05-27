@@ -131,19 +131,14 @@ example:
 ```
 python D:\cartolidar\cartolidar/qlidwins.py [options]
 ```
+A module is accesible if is called from its folder, is called with path_to_module or its folder is in the PATH environmental variable.
+
 
 Use -h to show help for a cartolidar tool. Example for qlidtwins (qlidtwins.py has to be accesible):
 ```
 python qlidtwins.py -h
 ```
-or
-```
-python path-to-cartolidar-/qlidtwins.py -h
-```
-example:
-```
-python D:\_clid\cartolidar\cartolidar/qlidwins.py -h
-```
+
 A module is accesible if is called from its folder, is called with path_to_module or its folder is in the PATH environmental variable.
 
 
