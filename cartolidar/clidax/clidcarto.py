@@ -37,14 +37,15 @@ try:
 except:
     gdalOk = False
     print('clidcarto-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo')
-if not gdalOk:
-    try:
-        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-        gdalOk = True
-    except:
-        gdalOk = False
-        print('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
-        sys.exit(0)
+    sys.exit(0)
+# if not gdalOk:
+#     try:
+#         from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
+#         gdalOk = True
+#     except:
+#         gdalOk = False
+#         print('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
+#         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
@@ -1648,7 +1649,7 @@ class CartoRefVector(object):
             if GLO.GLBLformatoTilesAscRasterRef:
                 for nRow in range(numTilesRows):
                     for nCol in range(numTilesCols):
-                        # self.trainPathAsc = (self.trainPathPng.replace('/png', '/asc')).replace('\png', '/asc')
+                        # self.trainPathAsc = (self.trainPathPng.replace('/png', '/asc')).replace('\\png', '/asc')
                         pngFileName = os.path.join(self.trainPathAsc, '%s_%s_%i_%i.png' % (self.fileCoordYear, 'Train', nRow, nCol))
                         if not os.path.exists(pngFileName):
                             tilesEncontrados = False
@@ -4129,8 +4130,8 @@ def crearTilesTargetReDepurados(
     trainPathPngTargetTriClass = os.path.join(GLO.MAINrutaOutput, train_dir, subDirPngTargetLasClass_2_345_6)
     trainPathPngTargetBinClass = os.path.join(GLO.MAINrutaOutput, train_dir, subDirPngTargetLasClass02Binary)
     if GLO.GLBLformatoTilesAscInput:
-        trainPathAscTargetTriClass = (trainPathPngTargetTriClass.replace('/png', '/asc')).replace('\png', '/asc')
-        trainPathAscTargetBinClass = (trainPathPngTargetBinClass.replace('/png', '/asc')).replace('\png', '/asc')
+        trainPathAscTargetTriClass = (trainPathPngTargetTriClass.replace('/png', '/asc')).replace('\\png', '/asc')
+        trainPathAscTargetBinClass = (trainPathPngTargetBinClass.replace('/png', '/asc')).replace('\\png', '/asc')
     nombreCapaTargetTriClass = 'LasClass_2_345_6'
     nombreCapaTargetBinClass = 'LasClass02Binary'
 
@@ -4220,7 +4221,7 @@ def crearTilesTargetReDepurados(
             trainPathPngTargetTriClass,
             trainPathPngTargetBinClass,
         ]:
-            trainPathAsc = (trainPathPng.replace('/png', '/asc')).replace('\png', '/asc')
+            trainPathAsc = (trainPathPng.replace('/png', '/asc')).replace('\\png', '/asc')
             if not os.path.isdir(trainPathAsc):
                 os.makedirs(trainPathAsc)
                 print('\tclidcarto-> Creando directorio target o train asc', trainPathAsc)
@@ -4750,20 +4751,20 @@ def crearTilesInputTarget(
 
                 if GLO.GLBLformatoTilesAscInput:
                     if (
-                        not os.path.exists((pngFileNameTargetOriClass.replace('/png', '/asc')).replace('\png', '/asc'))
-                        or (not os.path.exists((pngFileName1.replace('/png', '/asc')).replace('\png', '/asc')) and '0' in SELEC_IMG)
-                        or (not os.path.exists((pngFileName2.replace('/png', '/asc')).replace('\png', '/asc')) and '1' in SELEC_IMG)
-                        or (not os.path.exists((pngFileName3.replace('/png', '/asc')).replace('\png', '/asc')) and '2' in SELEC_IMG)
-                        or (not os.path.exists((pngFileName4.replace('/png', '/asc')).replace('\png', '/asc')) and '3' in SELEC_IMG)
-                        or (not os.path.exists((pngFileName5.replace('/png', '/asc')).replace('\png', '/asc')) and '4' in SELEC_IMG)
-                        or (not os.path.exists((pngFileName6.replace('/png', '/asc')).replace('\png', '/asc')) and '5' in SELEC_IMG)
+                        not os.path.exists((pngFileNameTargetOriClass.replace('/png', '/asc')).replace('\\png', '/asc'))
+                        or (not os.path.exists((pngFileName1.replace('/png', '/asc')).replace('\\png', '/asc')) and '0' in SELEC_IMG)
+                        or (not os.path.exists((pngFileName2.replace('/png', '/asc')).replace('\\png', '/asc')) and '1' in SELEC_IMG)
+                        or (not os.path.exists((pngFileName3.replace('/png', '/asc')).replace('\\png', '/asc')) and '2' in SELEC_IMG)
+                        or (not os.path.exists((pngFileName4.replace('/png', '/asc')).replace('\\png', '/asc')) and '3' in SELEC_IMG)
+                        or (not os.path.exists((pngFileName5.replace('/png', '/asc')).replace('\\png', '/asc')) and '4' in SELEC_IMG)
+                        or (not os.path.exists((pngFileName6.replace('/png', '/asc')).replace('\\png', '/asc')) and '5' in SELEC_IMG)
                     ):
                         tilesEncontrados = False
                         break
-                    if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345 and not os.path.exists((pngFileNameTargetTriClass.replace('/png', '/asc')).replace('\png', '/asc')):
+                    if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345 and not os.path.exists((pngFileNameTargetTriClass.replace('/png', '/asc')).replace('\\png', '/asc')):
                         tilesEncontrados = False
                         break
-                    if GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase and not os.path.exists((pngFileNameTargetBinClass.replace('/png', '/asc')).replace('\png', '/asc')):
+                    if GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase and not os.path.exists((pngFileNameTargetBinClass.replace('/png', '/asc')).replace('\\png', '/asc')):
                         tilesEncontrados = False
                         break
 
@@ -4896,9 +4897,9 @@ def crearTilesInputTarget(
             trainPathPngTargetBinClass = os.path.join(GLO.MAINrutaOutput, train_dir, subDirPngTargetLasClass02Binary)
 
             if GLO.GLBLformatoTilesAscInput:
-                trainPathAscTargetOriClass = (trainPathPngTargetOriClass.replace('/png', '/asc')).replace('\png', '/asc')
-                trainPathAscTargetTriClass = (trainPathPngTargetTriClass.replace('/png', '/asc')).replace('\png', '/asc')
-                trainPathAscTargetBinClass = (trainPathPngTargetBinClass.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAscTargetOriClass = (trainPathPngTargetOriClass.replace('/png', '/asc')).replace('\\png', '/asc')
+                trainPathAscTargetTriClass = (trainPathPngTargetTriClass.replace('/png', '/asc')).replace('\\png', '/asc')
+                trainPathAscTargetBinClass = (trainPathPngTargetBinClass.replace('/png', '/asc')).replace('\\png', '/asc')
             nombreCapaTargetOriClass = 'lasClassOriginal'
             nombreCapaTargetTriClass = 'LasClass_2_345_6'
             nombreCapaTargetBinClass = 'LasClass02Binary'
@@ -4991,7 +4992,7 @@ def crearTilesInputTarget(
             trainSubDir1 = 'pngInputVar_int_ndvi_ndwi'
             trainPathPng1 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_int_ndvi_ndwi/')
             if GLO.GLBLformatoTilesAscInput:
-                trainPathAsc1 = (trainPathPng1.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAsc1 = (trainPathPng1.replace('/png', '/asc')).replace('\\png', '/asc')
             nombreCapas1 = ['intSRetMed', 'ndviMed', 'ndwiMed']
             arrayCapas1 = np.concatenate(
                 (
@@ -5012,7 +5013,7 @@ def crearTilesInputTarget(
             trainSubDir2 = 'pngInputVar_nirRedGreen_maxiSubCel'
             trainPathPng2 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_nirRedGreen_maxiSubCel/')
             if GLO.GLBLformatoTilesAscInput:
-                trainPathAsc2 = (trainPathPng2.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAsc2 = (trainPathPng2.replace('/png', '/asc')).replace('\\png', '/asc')
             nombreCapas2 = ['NirPtoMax', 'RedPtoMax', 'GreenPtoMax']
             if GLO.GLBLusarMiniSubCelPselEnVezDeTlp:
                 if GLO.GLBLusarFormatoDtypeMaxiMiniSubCel:
@@ -5051,7 +5052,7 @@ def crearTilesInputTarget(
             trainSubDir3 ='pngInputVar_nirRedGreen_miniSubCel'
             trainPathPng3 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_nirRedGreen_miniSubCel/')
             if GLO.GLBLformatoTilesAscInput:
-                trainPathAsc3 = (trainPathPng3.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAsc3 = (trainPathPng3.replace('/png', '/asc')).replace('\\png', '/asc')
             nombreCapas3 = ['NirPtoMin', 'RedPtoMin', 'GreenPtoMin']
             if GLO.GLBLusarFormatoDtypeMaxiMiniSubCel:
                 if GLO.GLBLusarMiniSubCelPselEnVezDeTlp:
@@ -5085,7 +5086,7 @@ def crearTilesInputTarget(
             trainSubDir4 = 'pngInputVar_planoNubePuntual_miniSubCel'
             trainPathPng4 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_planoNubePuntual_miniSubCel/')
             if GLO.GLBLformatoTilesAscInput:
-                trainPathAsc4 = (trainPathPng4.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAsc4 = (trainPathPng4.replace('/png', '/asc')).replace('\\png', '/asc')
             nombreCapas4 = ['mseByteMicroPlanoNubePuntual', 'pteXx50MicroPlanoNubePuntual', 'pteYx50MicroPlanoNubePuntual']
             # Elijo dtype=np.int16 para que admita los valores de pte~X10 (-127 a 127) y de mseX50 (0 a 255)
             # No hay problema de eficiencia porque al normalizar lo paso todo a 0-255 (uint8).
@@ -5161,7 +5162,7 @@ def crearTilesInputTarget(
             trainSubDir5 = 'pngInputVar_cotasRelativas_miniSubCel'
             trainPathPng5 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_cotasRelativas_miniSubCel/')
             if GLO.GLBLformatoTilesAscInput:
-                trainPathAsc5 = (trainPathPng5.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAsc5 = (trainPathPng5.replace('/png', '/asc')).replace('\\png', '/asc')
             nombreCapas5 = ['cotaAbsolutaDmMinSubCel', 'cotaRelDmMaxNubePuntual', 'cotaRelDmPlanoNubePuntual']
             # Elijo dtype=np.int16 (-327678 a +32767) porque asi admite el uint8 de cotaRelDmMaxNubePuntual
             # y el int8 cotaRelDmPlanoNubePuntual (cabe la posibilidad de que el planoNubePuntual este por debajo del pto).
@@ -5211,7 +5212,7 @@ def crearTilesInputTarget(
             trainSubDir6 = 'pngInputVar_MdgEcmrPtes'
             trainPathPng6 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_MdgEcmrPtes/')
             if GLO.GLBLformatoTilesAscInput:
-                trainPathAsc6 = (trainPathPng6.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAsc6 = (trainPathPng6.replace('/png', '/asc')).replace('\\png', '/asc')
             nombreCapas6 = ['pteXglobal', 'pteYglobal', 'ecmrGlobal']
             arrayCapas6 = np.concatenate(
                 (
@@ -5229,7 +5230,7 @@ def crearTilesInputTarget(
                 # preVuelta2
                 trainPathPng7 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_miniSubCel_autovalores/')
                 if GLO.GLBLformatoTilesAscInput:
-                    trainPathAsc7 = (trainPathPng7.replace('/png', '/asc')).replace('\png', '/asc')
+                    trainPathAsc7 = (trainPathPng7.replace('/png', '/asc')).replace('\\png', '/asc')
                 nombreCapas7 = ['anisotropy', 'planarity', 'sphericity']
                 if GLO.GLBLusarMiniSubCelPselEnVezDeTlp:
                     if GLO.GLBLusarFormatoDtypeMaxiMiniSubCel:
@@ -5309,7 +5310,7 @@ def crearTilesInputTarget(
                 # postVuelta2
                 trainPathPng1 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_int_ndvi_ndwi/')
                 if GLO.GLBLformatoTilesAscInput:
-                    trainPathAsc1 = (trainPathPng1.replace('/png', '/asc')).replace('\png', '/asc')
+                    trainPathAsc1 = (trainPathPng1.replace('/png', '/asc')).replace('\\png', '/asc')
                 nombreCapas1 = ['intSRetMed', 'ndviMed', 'ndwiMed']
                 arrayCapas1 = np.concatenate(
                     (
@@ -5324,7 +5325,7 @@ def crearTilesInputTarget(
                 # postVuelta2
                 trainPathPng2 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_nirRedGreen_maxiSubCel/')
                 if GLO.GLBLformatoTilesAscInput:
-                    trainPathAsc2 = (trainPathPng2.replace('/png', '/asc')).replace('\png', '/asc')
+                    trainPathAsc2 = (trainPathPng2.replace('/png', '/asc')).replace('\\png', '/asc')
                 nombreCapas2 = ['NirPtoMax', 'RedPtoMax', 'GreenPtoMax']
                 if GLO.GLBLusarMiniSubCelPselEnVezDeTlp:
                     if GLO.GLBLusarFormatoDtypeMaxiMiniSubCel:
@@ -5361,7 +5362,7 @@ def crearTilesInputTarget(
                 # postVuelta2
                 trainPathPng3 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_hTejado_hMaxSmdf_Mdf/')
                 if GLO.GLBLformatoTilesAscInput:
-                    trainPathAsc3 = (trainPathPng3.replace('/png', '/asc')).replace('\png', '/asc')
+                    trainPathAsc3 = (trainPathPng3.replace('/png', '/asc')).replace('\\png', '/asc')
                 # nombreCapas3 = ['AltP95SobreMdf',
                 nombreCapas3 = [
                     'AltPlanoTejado',
@@ -5387,7 +5388,7 @@ def crearTilesInputTarget(
                 # postVuelta2
                 trainPathPng4 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_latMacroMesosMicro/')
                 if GLO.GLBLformatoTilesAscInput:
-                    trainPathAsc4 = (trainPathPng4.replace('/png', '/asc')).replace('\png', '/asc')
+                    trainPathAsc4 = (trainPathPng4.replace('/png', '/asc')).replace('\\png', '/asc')
                 nombreCapas4 = ['LateralidadMinMinMacro', 'LateralidadMinMinMesos', 'LateralidadMinMinMicro']
                 arrayCapas4 = np.concatenate(
                     (
@@ -5402,7 +5403,7 @@ def crearTilesInputTarget(
                 # postVuelta2
                 trainPathPng5 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_rugMacroMesosMicro/')
                 if GLO.GLBLformatoTilesAscInput:
-                    trainPathAsc5 = (trainPathPng5.replace('/png', '/asc')).replace('\png', '/asc')
+                    trainPathAsc5 = (trainPathPng5.replace('/png', '/asc')).replace('\\png', '/asc')
                 nombreCapas5 = ['RugosidadMinMaxMacro', 'RugosidadMinMaxMesos', 'RugosidadMinMaxMicro']
                 arrayCapas5 = np.concatenate(
                     (
@@ -5417,7 +5418,7 @@ def crearTilesInputTarget(
                 # postVuelta2
                 trainPathPng6 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_MdgEcmrPtes/')  # ok
                 if GLO.GLBLformatoTilesAscInput:
-                    trainPathAsc6 = (trainPathPng6.replace('/png', '/asc')).replace('\png', '/asc')
+                    trainPathAsc6 = (trainPathPng6.replace('/png', '/asc')).replace('\\png', '/asc')
                 nombreCapas6 = ['pteXglobal', 'pteYglobal', 'ecmrGlobal']
                 arrayCapas6 = np.concatenate(
                     (
@@ -5531,7 +5532,7 @@ def crearTilesInputTarget(
                 trainPathPng5,
                 trainPathPng6,
             ]:
-                trainPathAsc = (trainPathPng.replace('/png', '/asc')).replace('\png', '/asc')
+                trainPathAsc = (trainPathPng.replace('/png', '/asc')).replace('\\png', '/asc')
                 if not os.path.isdir(trainPathAsc):
                     os.makedirs(trainPathAsc)
                     print('\tclidcarto-> Creacion indiscriminada de directorios target o train asc', trainPathAsc)

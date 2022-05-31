@@ -8,9 +8,17 @@ Test DasoLidarSource and its methods
 @license:    GNU General Public License v3 (GPLv3)
 @contact:    cartolidar@gmail.com
 '''
+import os
 import unittest
+
 import pytest
 # from pytest import raises
+from pytest import MonkeyPatch
+
+# https://pypi.org/project/python-dotenv/
+# https://dev.to/jakewitcher/using-env-files-for-environment-variables-in-python-applications-55a1
+# from dotenv import load_dotenv
+# load_dotenv()
 
 from cartolidar.clidtools.clidtwins import DasoLidarSource
 
@@ -29,9 +37,18 @@ from cartolidar.clidtools.clidtwins import DasoLidarSource
 # https://www.youtube.com/watch?v=ULxMQ57engo
 # https://github.com/ArjanCodes/2022-test-existing-code
 
+# Para instalar monkeypatch intento:
+#    conda install monkeypatch
+# Pero no lo encuentra. Lo que si funciona es:
+#    pip install monkeypatch
+# Aunque en la instalacion da errores del tipo:
+#       File "C:\Users\benmarjo\AppData\Local\Temp\pip-install-iez_dy98\monkeypatch_e1e1f94f893f4f96a80c7ec4418b0981\setup.py", line 99
+#         except ImportError, e:
+
 # Descartado:
 #    https://failedtofunction.com/test-coverage-with-pytest/
 #        pip install coverage
+
 
 def test_files_in_path():
     myDasolidar = DasoLidarSource()
@@ -41,13 +58,13 @@ def test_files_in_path():
     assert len(myDasolidar.inFilesListAllTypes) != 0, 'Debería haber algún fichero que cumpla requisitos en la ruta indicada.'
     print('\ntest_files_in_path ok')
 
-def test_no_files_in_path():
-    with pytest.raises(ValueError):
-        myDasolidar = DasoLidarSource()
-        miRuta = 'D'
-        myDasolidar.searchSourceFiles(LCL_rutaAscRaizBase=miRuta)
-        assert len(myDasolidar.inFilesListAllTypes) != 0, 'Debería haber algún fichero que cumpla requisitos en la ruta indicada.'
-    print('\ntest_files_in_path ok')
+# def test_no_files_in_path():
+#     with pytest.raises(ValueError):
+#         myDasolidar = DasoLidarSource()
+#         miRuta = 'D'
+#         myDasolidar.searchSourceFiles(LCL_rutaAscRaizBase=miRuta)
+#         assert len(myDasolidar.inFilesListAllTypes) != 0, 'Debería haber algún fichero que cumpla requisitos en la ruta indicada.'
+#     print('\ntest_files_in_path ok')
 
 
 # class Test(unittest.TestCase):
@@ -67,7 +84,7 @@ def test_no_files_in_path():
 #     print('\nTodos los tests ok')
 
 
-'''
+r'''
 (clid) D:\_clid\cartolidar>conda install pytest
 Collecting package metadata (current_repodata.json): done
 Solving environment: /

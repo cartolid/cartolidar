@@ -29,17 +29,27 @@ from scipy.spatial import distance_matrix
 # from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
 from configparser import RawConfigParser
+
 try:
     import psutil
     psutilOk = True
 except:
     psutilOk = False
+
 try:
     import gdal, ogr, gdalconst
     # import osr, gdalnumeric
     gdalOk = True
 except:
     gdalOk = False
+
+# try:
+#     from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
+#     gdalOk = True
+# except:
+#     gdalOk = False
+#     print('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
+#     sys.exit(0)
 
 # ==============================================================================
 # Verbose provisional para la version alpha
@@ -1035,8 +1045,12 @@ that usually take the default values (from configuration file or clidtwins_confi
                 else:
                     pesoPonderado = '{:>2} (/10)'.format(thisListLstDasoVar[6])
                 print(
-                    '{}Variable {}-> codigoFichero: {:<35}'.format(TB, nVar, thisListLstDasoVar[0]),
-                    '({}) ->'.format(thisListLstDasoVar[1]),
+                    '{}Variable {} ({})-> codigoFichero: {:<35}'.format(
+                        TB, 
+                        nVar,
+                        thisListLstDasoVar[1],
+                        thisListLstDasoVar[0],
+                    )
                 )
                 print(
                     '{}{}Rango: {:>2} - {:>3};'.format(TB, TV, thisListLstDasoVar[2], thisListLstDasoVar[3]),
@@ -1615,8 +1629,19 @@ and two more layers for forest type (land cover) and stand type.
             # print(f'Numero de puntos Testeo con dasoVars ok (banda {nBanda}):', len(ma.compressed(arrayBandaXClipMasked)))
             listaCeldasConDasoVarsTesteo[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
 
-            histNumberTesteo = np.histogram(arrayBandaXClip, bins=self.myNBins[nBanda], range=self.myRange[nBanda])
-            histProbabTesteo = np.histogram(arrayBandaXClip, bins=self.myNBins[nBanda], range=self.myRange[nBanda], density=True)
+            if (
+                arrayBandaXClip.shape[0] > 0
+                and arrayBandaXClip.sum() != 0
+                and self.myNBins[nBanda] > 0
+                and self.myRange[nBanda][1] - self.myRange[nBanda][0] > 0
+            ):
+                histNumberTesteo = np.histogram(arrayBandaXClip, bins=self.myNBins[nBanda], range=self.myRange[nBanda])
+                histProbabTesteo = np.histogram(arrayBandaXClip, bins=self.myNBins[nBanda], range=self.myRange[nBanda], density=True)
+            else:
+                print(f'clidtwins-> (a) Revisar myNBins {self.myNBins[nBanda]} y myRange {self.myRange[nBanda]} para banda {nBanda} con sumaValores: {arrayBandaXClip.sum()}')
+                print(f'{TB}Se crean histogramas con {self.myNBins} clases nulas')
+                histNumberTesteo = [np.zeros(self.myNBins[nBanda]), None]
+                histProbabTesteo = [np.zeros(self.myNBins[nBanda]), None]
             # print(f'\nhistProbabTesteo[0]: {type(histProbabTesteo[0])}')
             histProb01Testeo = np.array(histProbabTesteo[0]) * ((self.myRange[nBanda][1] - self.myRange[nBanda][0]) / self.myNBins[nBanda])
 
@@ -2106,7 +2131,7 @@ and two more layers for forest type (land cover) and stand type.
         nColCenter = localClusterArrayRound.shape[1] / 2
         for nRowCell in range(localClusterArrayRound.shape[0]):
             for nColCell in range(localClusterArrayRound.shape[1]):
-                if np.sqrt(((nRowCell - nRowCenter) ** 2) + ((nColCell - nColCenter) ** 2)) > ladoCluster / 2:
+                if np.sqrt((((nRowCell + 0.5) - nRowCenter) ** 2) + (((nColCell + 0.5) - nColCenter) ** 2)) > ladoCluster / 2:
                     localClusterArrayRound[nRowCell, nColCell] = 0
         # ======================================================================
 
@@ -2175,6 +2200,7 @@ and two more layers for forest type (land cover) and stand type.
                 # ==============================================================
                 nVariablesNoOk = 0
                 tipoBosqueOk = 0
+                # print(f'clidtwins-> {nRowRaster} // {nColRaster} Recorriendo bandas+++')
                 for nBanda in range(1, self.nBandasRasterOutput + 1):
                     nInputVar = nBanda - 1
                     ponderacionDeLaVariable = self.LOCLlistLstDasoVars[nInputVar][6] / 10.0
@@ -2228,6 +2254,7 @@ and two more layers for forest type (land cover) and stand type.
                     #         # if not clusterCompleto:
                     #         #     break
 
+                    # print(f'{TB}Calculando histograma+++')
                     (
                         histNumberCluster,
                         histProb01cluster,
@@ -2250,6 +2277,7 @@ and two more layers for forest type (land cover) and stand type.
                         self_LOCLradioClusterPix=self.LOCLradioClusterPix,
                         self_outputNpDatatypeAll=self.outputNpDatatypeAll,
                         TRNSmostrarClusterMatch=TRNSmostrarClusterMatch,
+                        self_noDataDasoVarAll=self.noDataDasoVarAll,
                         self_LOCLverbose=self.LOCLverbose,
                     )
 
@@ -2487,7 +2515,13 @@ def rellenarLocalCluster(
 
         if (arrayBandaXMaskCluster == 1).all():
             if self_LOCLverbose > 1:
-                print(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                if contadorAvisosCluster == 0:
+                    print()
+                if contadorAvisosCluster < 10:
+                    print(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                elif contadorAvisosCluster == 10:
+                    print(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
             localClusterOk = False
             return (
                 (
@@ -2497,8 +2531,15 @@ def rellenarLocalCluster(
             )
             # continue
         elif (arrayBandaXMaskCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
-            if self_LOCLverbose > 2:
-                print(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
+            if self_LOCLverbose > 1:
+                if contadorAvisosCluster == 0:
+                    print()
+                if contadorAvisosCluster < 10:
+                    print(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
+                elif contadorAvisosCluster == 10:
+                    print(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
+
             localClusterOk = False
             return (
                 (
@@ -2583,9 +2624,11 @@ def rellenarLocalCluster(
 
         if (arrayBandaXMaskSubCluster == 1).all():
             if self_LOCLverbose > 1:
-                if contadorAvisosCluster < 20:
+                if contadorAvisosCluster == 0:
+                    print()
+                if contadorAvisosCluster < 10:
                     print(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
-                elif contadorAvisosCluster == 20:
+                elif contadorAvisosCluster == 10:
                     print(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
@@ -2597,10 +2640,12 @@ def rellenarLocalCluster(
             )
             # continue
         elif (arrayBandaXMaskSubCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
-            if self_LOCLverbose > 2:
-                if contadorAvisosCluster < 20:
+            if self_LOCLverbose > 1:
+                if contadorAvisosCluster == 0:
+                    print()
+                if contadorAvisosCluster < 10:
                     print(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
-                elif contadorAvisosCluster == 20:
+                elif contadorAvisosCluster == 10:
                     print(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
@@ -2657,6 +2702,7 @@ def calculaHistogramas(
         self_LOCLradioClusterPix=3,
         self_outputNpDatatypeAll=None,
         TRNSmostrarClusterMatch=False,
+        self_noDataDasoVarAll=None,
         self_LOCLverbose=False,
     ):
     if self_outputNpDatatypeAll is None:
@@ -2680,28 +2726,63 @@ def calculaHistogramas(
         listaCeldasConDasoVarsCluster[:, nInputVar] = ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)
     
         # Utilizo el mismo localClusterArrayRound para todos los clusters porque tienen las mismas dimensiones
-        histNumberCluster = np.histogram(
-            localClusterArrayMultiBandaDasoVars[nBanda-1],
-            bins=self_myNBins[nBanda],
-            range=self_myRange[nBanda],
-            weights=localClusterArrayRound
-        )
-        histProbabCluster = np.histogram(
-            localClusterArrayMultiBandaDasoVars[nBanda-1],
-            bins=self_myNBins[nBanda],
-            range=self_myRange[nBanda],
-            weights=localClusterArrayRound,
-            density=True
-        )
+
+        # if localClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
+        #     print(f'\nclidtwins-> +++ {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
+        #           f'(b) Revisar myNBins {self_myNBins[nBanda]} '
+        #           f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
+        #           f'con sumaValores: {localClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
+        #     print('localClusterArrayRound:', localClusterArrayRound)
+        #     print(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
+        #     print(localClusterArrayMultiBandaDasoVars[nBanda-1])
+        #     print('Masked:', localClusterArrayMultiBandaDasoVarsMasked)
+        #     print('Valores ok:', np.count_nonzero(localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll))
+        # if (
+        #     localClusterArrayMultiBandaDasoVars[nBanda-1].shape[0] > 0
+        #     and localClusterArrayMultiBandaDasoVars[nBanda-1].sum() != 0
+        #     and self_myNBins[nBanda] > 0
+        #     and self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0
+        # ):
+        celdasConValorSiData = localClusterArrayMultiBandaDasoVars[nBanda-1][(localClusterArrayRound != 0) & (localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)]
+        if np.count_nonzero(celdasConValorSiData) > 0:
+            # if np.count_nonzero(celdasConValorSiData) == 0:
+            #     print(f'\nclidtwins-> ------------> ATENCION: celda sin datos.')
+            # else:
+            #     print(f'\nclidtwins-> ------------> Celdas con datos:', np.count_nonzero(celdasConValorSiData), celdasConValorSiData)
+            histNumberCluster = np.histogram(
+                localClusterArrayMultiBandaDasoVars[nBanda-1],
+                bins=self_myNBins[nBanda],
+                range=self_myRange[nBanda],
+                weights=localClusterArrayRound
+            )
+            histProbabCluster = np.histogram(
+                localClusterArrayMultiBandaDasoVars[nBanda-1],
+                bins=self_myNBins[nBanda],
+                range=self_myRange[nBanda],
+                weights=localClusterArrayRound,
+                density=True
+            )
+        else:
+            # print(f'clidtwins-> {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
+            #       f'(b) Revisar myNBins {self_myNBins[nBanda]} '
+            #       f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
+            #       f'con sumaValores: {localClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
+            # print(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
+            histNumberCluster = [np.zeros(self_myNBins[nBanda]), None]
+            histProbabCluster = [np.zeros(self_myNBins[nBanda]), None]
+
+        # if localClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
+        #     print(f'{TB}{TV}PostCompleto+++ {histNumberCluster}')
+
         # print(f'\nhistProbabCluster[0]: {type(histProbabCluster[0])}')
         histProb01cluster = np.array(histProbabCluster[0]) * (
             (self_myRange[nBanda][1] - self_myRange[nBanda][0])
             / self_myNBins[nBanda]
         )
-        if TRNSmostrarClusterMatch and self_LOCLverbose > 2:
-            print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
-            print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVarsMasked', localClusterArrayMultiBandaDasoVarsMasked[nBanda-1])
-            print(f'{TB}{TV}->->histNumberCluster', histNumberCluster)
+        # if TRNSmostrarClusterMatch and self_LOCLverbose > 2:
+        #     print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
+        #     print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVarsMasked', localClusterArrayMultiBandaDasoVarsMasked[nBanda-1])
+        #     print(f'{TB}{TV}->->histNumberCluster', histNumberCluster)
     else:
         # print('---->>>>', localSubClusterArrayMultiBandaDasoVars.shape)
         # print('---->>>>', arrayBandaXMaskSubCluster.shape, nRowClustFin - nRowClustIni, nColClustFin - nColClustIni)
@@ -2730,22 +2811,48 @@ def calculaHistogramas(
                 if np.sqrt(((nRowCell - nRowCenter) ** 2) + ((nColCell - nColCenter) ** 2)) > ladoCluster / 2:
                     arrayRoundSubCluster[nRowCell, nColCell] = 0
     
+        # if localSubClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
+        #     print(f'clidtwins-> +++ {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
+        #           f'(c) Revisar myNBins {self_myNBins[nBanda]} '
+        #           f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
+        #           f'con sumaValores: {localSubClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
+        #     print(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
+        #     print(localSubClusterArrayMultiBandaDasoVars[nBanda-1])
+        #     print('Masked:', localSubClusterArrayMultiBandaDasoVarsMasked)
+        #     print('Valores ok:', np.count_nonzero(localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll))
         try:
             # print('localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars.shape)
-            # print('localClusterArrayRound', localClusterArrayRound.shape)
-            histNumberCluster = np.histogram(
-                localSubClusterArrayMultiBandaDasoVars[nBanda-1],
-                bins=self_myNBins[nBanda],
-                range=self_myRange[nBanda],
-                weights=arrayRoundSubCluster
-            )
-            histProbabCluster = np.histogram(
-                localSubClusterArrayMultiBandaDasoVars[nBanda-1],
-                bins=self_myNBins[nBanda],
-                range=self_myRange[nBanda],
-                weights=arrayRoundSubCluster,
-                density=True
-            )
+            # print('arrayRoundSubCluster', arrayRoundSubCluster.shape)
+            # if (
+            #     localSubClusterArrayMultiBandaDasoVars[nBanda-1].shape[0] > 0
+            #     and localSubClusterArrayMultiBandaDasoVars[nBanda-1].sum() != 0
+            #     and self_myNBins[nBanda] > 0
+            #     and self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0
+            # ):
+            celdasConValorSiData = localSubClusterArrayMultiBandaDasoVars[nBanda-1][(arrayRoundSubCluster != 0) & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)]
+            if np.count_nonzero(celdasConValorSiData) > 0:
+                histNumberCluster = np.histogram(
+                    localSubClusterArrayMultiBandaDasoVars[nBanda-1],
+                    bins=self_myNBins[nBanda],
+                    range=self_myRange[nBanda],
+                    weights=arrayRoundSubCluster
+                )
+                histProbabCluster = np.histogram(
+                    localSubClusterArrayMultiBandaDasoVars[nBanda-1],
+                    bins=self_myNBins[nBanda],
+                    range=self_myRange[nBanda],
+                    weights=arrayRoundSubCluster,
+                    density=True
+                )
+            else:
+                # print(f'clidtwins-> {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
+                #       f'(c) Revisar myNBins {self_myNBins[nBanda]} '
+                #       f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
+                #       f'con sumaValores: {localSubClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
+                # print(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
+                histNumberCluster = [np.zeros(self_myNBins[nBanda]), None]
+                histProbabCluster = [np.zeros(self_myNBins[nBanda]), None]
+
             # print(f'\nhistProbabCluster[0]: {type(histProbabCluster[0])}')
             histProb01cluster = np.array(histProbabCluster[0]) * (
                 (self_myRange[nBanda][1] - self_myRange[nBanda][0])
@@ -2757,12 +2864,15 @@ def calculaHistogramas(
             # histProbabCluster = np.array([])
             # histProb01cluster = np.array([])
             sys.exit(0)
-        if TRNSmostrarClusterMatch and self_LOCLverbose > 2:
-            print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
-            print('-------->self_outputNpDatatypeAll:', self_outputNpDatatypeAll)
-            print(f'{TB}{TV}->->localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars[nBanda-1])
-            print(f'{TB}{TV}->->arrayRoundSubCluster', arrayRoundSubCluster)
-            print(f'{TB}{TV}->->histNumberCluster', histNumberCluster)
+        # if localSubClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
+        #     print(f'{TB}{TV}PostInCompleto+++ {histNumberCluster}')
+
+        # if TRNSmostrarClusterMatch and self_LOCLverbose > 2:
+        #     print(f'{TB}{TV}->->localClusterArrayMultiBandaDasoVars', localClusterArrayMultiBandaDasoVars[nBanda-1])
+        #     print('-------->self_outputNpDatatypeAll:', self_outputNpDatatypeAll)
+        #     print(f'{TB}{TV}->->localSubClusterArrayMultiBandaDasoVars', localSubClusterArrayMultiBandaDasoVars[nBanda-1])
+        #     print(f'{TB}{TV}->->arrayRoundSubCluster', arrayRoundSubCluster)
+        #     print(f'{TB}{TV}->->histNumberCluster', histNumberCluster)
 
     return (
         histNumberCluster,
@@ -3196,7 +3306,7 @@ def recortarRasterTiffPatronDasoLidar(
     # arrayBanda1 = outputBand1.ReadAsArray().astype(outputNpDatatypeAll)
     if self_LOCLverbose:
         print(f'\nclidtwins-> Recortando el raster con poligono de referencia (patron):\n'
-              f'{TB}File:  {patronVectrNameConPath}')
+              f'{TB}{patronVectrNameConPath}')
     # Ver: https://gdal.org/python/osgeo.gdal-module.html
     try:
         if self_LOCLpatronLayerName == '' or self_LOCLpatronLayerName is None:
@@ -3226,6 +3336,9 @@ def recortarRasterTiffPatronDasoLidar(
         print(f'{TB}Revisar si la capa vectorial de recorte es correcta, no esta bloqueada (y tiene un poligono) {patronVectrNameConPath}')
         sys.exit(0)
 
+
+    if self_LOCLverbose:
+        print(f'\nclidtwins-> Abriendo raster recortado: {outputRasterNameClip}')
     rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
     nBandasRasterOutput = rasterDatasetClip.RasterCount
 
@@ -3237,10 +3350,13 @@ def recortarRasterTiffPatronDasoLidar(
         outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
         arrayBandaXClip = outputBandXClip.ReadAsArray().astype(outputNpDatatypeAll)
         arrayBandaXMaskClip[arrayBandaXClip == noDataDasoVarAll] = 1
+        # if self_LOCLverbose:
+        #     print(f'{TB}Leyendo banda {nBanda} de {nBandasRasterOutput}')
 
     nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskClip == 0)
     listaCeldasConDasoVarsPatron = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
-    print(f'{TB}Numero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk}')
+    if self_LOCLverbose:
+        print(f'{TB}Numero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk}')
 
     # if nBandasRasterOutput != nBandasPrevistasOutput:
     #     print(f'\nAVISO: el numero de bandas del raster generado ({nBandasRasterOutput}) no es igual al previsto ({nBandasPrevistasOutput}), es decir num. de variables + 2 (num variables: {nInputVars})')
@@ -3271,6 +3387,9 @@ def recortarRasterTiffPatronDasoLidar(
             myNBins[nBanda] = self_LOCLlistLstDasoVars[nInputVar][4]
             # factorMovilidad[nBanda] = 0.25
 
+    if self_LOCLverbose:
+        print(f'\nclidtwins-> Analizando bandas del raster recortado:')
+
     for nBanda in range(1, nBandasRasterOutput + 1):
         # Si para esa variable estan todos los bloques:
         nInputVar = nBanda - 1
@@ -3294,11 +3413,32 @@ def recortarRasterTiffPatronDasoLidar(
             mask=arrayBandaXMaskClip,
             dtype=outputNpDatatypeAll
             )
-        print(f'{TB}Numero de puntos patron con dasoVars ok:', len(ma.compressed(arrayBandaXClipMasked)))
+        if self_LOCLverbose:
+            print(f'{TB}Banda {nBanda}: numero de puntos patron con dasoVars ok:', len(ma.compressed(arrayBandaXClipMasked)))
         listaCeldasConDasoVarsPatron[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
 
-        histNumberPatron = np.histogram(arrayBandaXClip, bins=myNBins[nBanda], range=myRange[nBanda])
-        histProbabPatron = np.histogram(arrayBandaXClip, bins=myNBins[nBanda], range=myRange[nBanda], density=True)
+        # histNumberPatron = [np.zeros(myNBins[nBanda]), None]
+        # histProbabPatron = [np.zeros(myNBins[nBanda]), None]
+        # histProb01Patron = np.array([0])
+        # codeTipoBosquePatronMasFrecuente1 = 0
+        # codeTipoBosquePatronMasFrecuente2 = 0
+        # pctjTipoBosquePatronMasFrecuente1 = 0
+        # pctjTipoBosquePatronMasFrecuente2 = 0
+
+        if (
+            arrayBandaXClip.shape[0] > 0
+            and arrayBandaXClip.sum() != 0
+            and myNBins[nBanda] > 0
+            and myRange[nBanda][1] - myRange[nBanda][0] > 0
+        ):
+            histNumberPatron = np.histogram(arrayBandaXClip, bins=myNBins[nBanda], range=myRange[nBanda])
+            histProbabPatron = np.histogram(arrayBandaXClip, bins=myNBins[nBanda], range=myRange[nBanda], density=True)
+        else:
+            print(f'clidtwins-> (d) Revisar myNBins {myNBins[nBanda]} y myRange {myRange[nBanda]} para banda {nBanda} con sumaValores: {arrayBandaXClip.sum()}')
+            print(f'{TB}Se crean histogramas con {myNBins} clases nulas')
+            histNumberPatron = [np.zeros(myNBins[nBanda]), None]
+            histProbabPatron = [np.zeros(myNBins[nBanda]), None]
+    
         # print(f'\nhistProbabPatron[0]: {type(histProbabPatron[0])}')
         histProb01Patron = np.array(histProbabPatron[0]) * ((myRange[nBanda][1] - myRange[nBanda][0]) / myNBins[nBanda])
 
@@ -3419,7 +3559,7 @@ def recortarRasterTiffPatronDasoLidar(
                 ultimoNoZero = np.max(np.nonzero(LOCLdictHistProb01[claveDef]))
             except:
                 ultimoNoZero = 0
-            if self_LOCLverbose > 1:
+            if self_LOCLverbose > 1 or True:
                 print(f'{TB}-> Creando rangos admisibles para: {claveDef}')
                 print(f'{TB}{TV}Valores de referencia (patron):')
                 print(f'{TB}{TV}-> LOCLdictHistProb01[{claveDef}]:', LOCLdictHistProb01[claveDef][:ultimoNoZero + 2])
@@ -3658,7 +3798,7 @@ def mostrarExportarRangos(
     outputRangosFileTxtControl = open(outputRangosFileTxtConPath, mode='w+')
     outputRangosFileTxtControl.write('Valores y rangos admisibles para el histograma de frecuencias de las variables analizadas.\n')
 
-    print('\nMostrando rangos para cada variable en self_LOCLdictHistProb01[claveDef]')
+    print('\nMostrando rangos para cada variable en self_LOCLdictHistProb01[claveDef]:')
     for claveDef in self_LOCLdictHistProb01.keys():
         try:
             ultimoNoZero = np.max(np.nonzero(self_LOCLdictHistProb01[claveDef]))

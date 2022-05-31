@@ -17,9 +17,11 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 
 import sys
 import os
+import argparse
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 import traceback
+# import warnings
 # import errno
 # print {i:os.strerror(i) for i in sorted(errno.errorcode)}
 # import random
@@ -59,6 +61,10 @@ TRNS_soloAdmitirOpcionesPermitidas = False
 TB = ' ' * 12
 TV = ' ' * 3
 # ==============================================================================
+
+# https://docs.python.org/3/library/warnings.html#warning-filter
+# https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+# warnings.warn()
 
 # ==============================================================================
 # El idProceso sirve para dar nombres unicos a los ficheros de configracion y
@@ -188,7 +194,7 @@ class CLIError(Exception):
     '''Generic exception to raise and log different fatal errors.'''
     def __init__(self, msg):
         super(CLIError).__init__(type(self))
-        self.msg = "E: %s" % msg
+        self.msg = f'qlidtwins-> ATENCION - error: {msg}' 
     def __str__(self):
         return self.msg
     def __unicode__(self):
@@ -197,7 +203,7 @@ class CLIError(Exception):
 
 # ==============================================================================
 def checkRun():
-    '''Chequeo de la forma de ejecucion provisional para la version alpha'''
+    '''Chequeo de la forma de ejecucion. Provisional para la version alpha'''
     # ==========================================================================
     tipoEjecucion = 0
     print('\n{:_^80}'.format(''))
@@ -279,6 +285,7 @@ def checkRun():
 
     return tipoEjecucion
 
+
 # ==============================================================================
 def testRun():
     if TESTRUN:
@@ -298,16 +305,32 @@ def testRun():
 
 
 # ==============================================================================
-def leerArgumentosEnLineaDeComandos(argv=None):
+def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
     '''Command line options.
     These arguments take precedence over configuration file
     and over default parameters.
     '''
+    # https://peps.python.org/pep-3107/#syntax
+    # https://stackoverflow.com/questions/38727520/how-do-i-add-default-parameters-to-functions-when-using-type-hinting
 
     if argv is None:
         argv = sys.argv
     else:
         sys.argv.extend(argv)
+
+    listaMainArgs = (
+        'extraArguments', 'mainAction',
+        'rutaAscRaizBase', 'rutaCompletaMFE', 'cartoMFEcampoSp',
+        'patronVectrName', 'patronLayerName',
+        'testeoVectrName', 'testeoLayerName',
+    )
+    listaExtraArgs = (
+        'menuInteractivo', 'marcoCoordMiniX', 'marcoCoordMaxiX', 'marcoCoordMiniY',
+        'marcoCoordMaxiY', 'marcoPatronTest', 'nPatronDasoVars', 'rasterPixelSize',
+        'radioClusterPix', 'nivelSubdirExpl', 'outRasterDriver', 'outputSubdirNew',
+        'cartoMFErecorte', 'varsTxtFileName', 'ambitoTiffNuevo', 'noDataTiffProvi',
+        'noDataTiffFiles', 'noDataTipoDMasa', 'umbralMatriDist')
+
 
     program_name = os.path.basename(sys.argv[0])
     program_version = 'v{}'.format(__version__)
@@ -401,12 +424,6 @@ def leerArgumentosEnLineaDeComandos(argv=None):
                             default = GLO.GLBLtesteoLayerNamePorDefecto,)
 
         # ======================================================================
-        listaExtraArgs = (
-            'menuInteractivo', 'marcoCoordMiniX', 'marcoCoordMaxiX', 'marcoCoordMiniY',
-            'marcoCoordMaxiY', 'marcoPatronTest', 'nPatronDasoVars', 'rasterPixelSize',
-            'radioClusterPix', 'nivelSubdirExpl', 'outRasterDriver', 'outputSubdirNew',
-            'cartoMFErecorte', 'varsTxtFileName', 'ambitoTiffNuevo', 'noDataTiffProvi',
-            'noDataTiffFiles', 'noDataTipoDMasa', 'umbralMatriDist')
         if TRNS_LEER_EXTRA_ARGS:
             parser.add_argument('-0',  # '--menuInteractivo',
                                 dest='menuInteractivo',
@@ -640,20 +657,33 @@ def leerArgumentosEnLineaDeComandos(argv=None):
     if not 'umbralMatriDist' in dir(args):
         args.umbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto
 
+    for myMainArg in listaMainArgs:
+        if not myMainArg in dir(args):
+            print('qlidtwins-> Revisar codigo para que lea todos los argumentos principales por defecto.')
+            sys.exit(0)
+
     for myExtraArg in listaExtraArgs:
         if not myExtraArg in dir(args):
             print('qlidtwins-> Revisar codigo para que lea todos los argumentos extras por defecto.')
             sys.exit(0)
+
     return args
 
 
 # ==============================================================================
-def saveArgs(args):
-    # argsFileName = sys.argv[0].replace('.py', '.args')
-    argsFileName = (GLO.configFileNameCfg).replace('.cfg', '.args')
-    # try:
-    if True:
+def saveArgs(args: argparse.Namespace) -> str:
+    if GLO.configFileNameCfg.endswith('.cfg'):
+        argsFileName = (GLO.configFileNameCfg).replace('.cfg', '.args')
+    elif sys.argv[0].endswith('.py'):
+        argsFileName = sys.argv[0].replace('.py', '.args')
+    elif sys.argv[0].endswith('pytest'):
+        argsFileName = 'argsForTest.cfg'
+    else:
+        argsFileName = 'unknownLaunch.cfg'
+    try:
         with open(argsFileName, mode='w+') as argsFileControl:
+            argsFileControl.write(f'# sys.argv[0]={sys.argv[0]}\n')
+            argsFileControl.write(f'# argsFileName={argsFileName}\n')
             if 'mainAction' in dir(args):
                 argsFileControl.write(f'-a={args.mainAction}\n')
             if 'rutaAscRaizBase' in dir(args):
@@ -716,9 +746,11 @@ def saveArgs(args):
 
             for miDasoVar in args.listTxtDasoVars:
                 argsFileControl.write(f'{miDasoVar}\n')
-    # except:
-    #     if __verbose__ > 1:
-    #         print(f'\nqlidtwins-> No se ha podido crear el fichero de argumentos para linea de comandos: {argsFileName}')
+    except:
+        if __verbose__ > 1:
+            print(f'\nqlidtwins-> No se ha podido crear el fichero de argumentos para linea de comandos: {argsFileName}')
+
+    return argsFileName
 
 
 # ==============================================================================
@@ -1079,8 +1111,20 @@ def clidtwinsUseCase(cfgDict):
     print('\nqlidtwins-> Fin.')
 
 
+if (
+    'tests/test_' in sys.argv[0]
+    or 'tests\\test_' in sys.argv[0]
+    or r'tests\test_' in sys.argv[0]
+    or '/pytest' in sys.argv[0]
+    or r'\pytest' in sys.argv[0]
+):
+    testTwins = True
+else:
+    testTwins = False
+print(f'\nqlidtwins-> testTwins: {testTwins}')
+
 # ==============================================================================
-if __name__ == '__main__' or 'qlidtwins' in __name__:
+if (__name__ == '__main__' or 'qlidtwins' in __name__) and not testTwins:
 
     tipoEjecucion = checkRun()
     testRun()
@@ -1091,4 +1135,5 @@ if __name__ == '__main__' or 'qlidtwins' in __name__:
     if __verbose__ or True:
         mostrarConfiguracion(cfgDict)
 
+    print('qlidtwins-> sys.argv:', sys.argv)
     clidtwinsUseCase(cfgDict)

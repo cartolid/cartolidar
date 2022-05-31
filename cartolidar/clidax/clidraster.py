@@ -51,14 +51,15 @@ try:
 except:
     gdalOk = False
     print('clidcarto-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo')
-if not gdalOk:
-    try:
-        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-        gdalOk = True
-    except:
-        gdalOk = False
-        print('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
-        sys.exit(0)
+    sys.exit(0)
+# if not gdalOk:
+#     try:
+#         from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
+#         gdalOk = True
+#     except:
+#         gdalOk = False
+#         print('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
+#         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()

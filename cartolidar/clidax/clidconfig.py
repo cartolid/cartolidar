@@ -1708,16 +1708,29 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
         # print(f'\nqlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
         if idProceso:
             if not type(idProceso) == int:
-                ñ
+                print('\nclidconfig-> Revisar asignacion de idProceso (a):')
+                print('idProceso:   <{}>'.format(idProceso))
+                print('sys.argv[0]: <{}>'.format(sys.argv[0]))
+                sys.exit(0)
             try:
-                configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '{:006}.cfg'.format(idProceso))
+                if sys.argv[0].endswith('.py'):
+                    configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '{:006}.cfg'.format(idProceso))
+                elif sys.argv[0].endswith('pytest'):
+                    configFileNameSinPath = 'cfgForTest.cfg'
+                else:
+                    configFileNameSinPath = 'unknownLaunch.cfg'
             except:
-                print('\nclidconfig-> Revisar asignacion de idProceso:')
+                print('\nclidconfig-> Revisar asignacion de idProceso (b):')
                 print('idProceso:   <{}>'.format(idProceso))
                 print('sys.argv[0]: <{}>'.format(sys.argv[0]))
                 sys.exit(0)
         else:
-            configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '.cfg')
+            if sys.argv[0].endswith('.py'):
+                configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '.cfg')
+            elif sys.argv[0].endswith('pytest'):
+                configFileNameSinPath = 'cfgForTest.cfg'
+            else:
+                configFileNameSinPath = 'unknownLaunch.cfg'
 
     configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
 

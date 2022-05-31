@@ -43,19 +43,18 @@ try:
     import gdal, ogr, osr
     gdalOk = True
 except:
-    # from osgeo import ogr, osr, gdal
     print('clidaux-> Error importando gdal directamente, se intenta from osgeo')
     gdalOk = False
 
-if not gdalOk:
-    try:
-        from osgeo import gdal
-        import ogr
-        gdalOk = True
-    except:
-        gdalOk = False
-        print('clidaux-> Error importando gdal from osgeo')
-        print('clidaux-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo')
+# if not gdalOk:
+#     try:
+#         from osgeo import gdal
+#         import ogr
+#         gdalOk = True
+#     except:
+#         gdalOk = False
+#         print('clidaux-> Error importando gdal from osgeo')
+#         print('clidaux-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo')
 
 
 # ==============================================================================
