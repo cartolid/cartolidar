@@ -59,7 +59,7 @@ def test_testRun(monkeypatch: MonkeyPatch) -> None:
 def test_leerArgumentos(monkeypatch: MonkeyPatch) -> None:
     listaInputs = [True,]
     monkeypatch.setattr('builtins.input', lambda _: listaInputs.pop(0))
-    args = qlidtwins.leerArgumentosEnLineaDeComandos()
+    args = qlidtwins.leerConfiguracion()
     assert type(args) == argparse.Namespace, 'La funcion debe devolver un objeto de la clase <class "argparse.Namespace">.'
     assert len(args.__dict__) > 0, 'Deberia haber algun argumento en linea de comandos.'
     for myMainArg in listaMainArgs:
@@ -72,17 +72,47 @@ def test_leerArgumentos(monkeypatch: MonkeyPatch) -> None:
 def test_saveAgrs(monkeypatch: MonkeyPatch) -> None:
     listaInputs = [True,]
     monkeypatch.setattr('builtins.input', lambda _: listaInputs.pop(0))
-    args = qlidtwins.leerArgumentosEnLineaDeComandos()
-    argsFileName = qlidtwins.saveArgs(args)
+    argsConfig = qlidtwins.leerConfiguracion()
+    argsFileName = qlidtwins.saveArgs(argsConfig)
     assert os.path.exists(argsFileName), 'No se ha podido crear un fichero con los argmentos en linea de comandos. Revisar derechos de escritura.'
     print('\ntest_saveAgrs ok')
 
+
+def test_UseCase_1(monkeypatch: MonkeyPatch) -> None:
+    listaInputs = [True,]
+    monkeypatch.setattr('builtins.input', lambda _: listaInputs.pop(0))
+    argsConfig = qlidtwins.leerConfiguracion()
+    cfgDict = qlidtwins.creaConfigDict(argsConfig)
+    # cfgDict['mainAction'] = 1
+    (
+        tipoBosqueOk,
+        nVariablesNoOk,
+        distanciaEuclideaMedia,
+        pctjPorcentajeDeProximidad,
+        matrizDeDistancias,
+    ) = qlidtwins.clidtwinsUseCase(cfgDict, accionPral=1)
+    assert tipoBosqueOk == 10, 'El match de ejemplo debe dar correspondencia plena en tipo de bosque (tipoBosqueOk=10)'
+    assert nVariablesNoOk == 0
+    assert int(distanciaEuclideaMedia) == 19
+    assert int(pctjPorcentajeDeProximidad) == 65
+    assert matrizDeDistancias.shape == (302, 837)
+    print('\ntest_UseCase_1 ok')
+
+
+# def test_UseCase_2(monkeypatch: MonkeyPatch) -> None:
+#     listaInputs = [True,]
+#     monkeypatch.setattr('builtins.input', lambda _: listaInputs.pop(0))
+#     argsConfig = qlidtwins.leerConfiguracion()
+#     cfgDict = qlidtwins.creaConfigDict(argsConfig)
+#     cfgDict['mainAction'] = 2
+#     qlidtwins.clidtwinsUseCase(cfgDict)
+#     print('\ntest_UseCase_2 ok')
 
 # # ==============================================================================
 # class Test(unittest.TestCase):
 #
 #     def testLeerArgumentos(self) -> None:
-#         args = qlidtwins.leerArgumentosEnLineaDeComandos()
+#         args = qlidtwins.leerConfiguracion()
 #         # print('test_input-> args:', type(args), dir(args))  # <class 'argparse.Namespace'>
 #         # print(dir(args))  # ['__class__', '__contains__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__','__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_get_args', '_get_kwargs', etc.]
 #         self.assertEqual(type(args), argparse.Namespace, 'La funcion debe devolver un objeto de la clase <class "argparse.Namespace">.')

@@ -52,8 +52,7 @@ from cartolidar.clidtools.clidtwins import DasoLidarSource
 
 def test_files_in_path():
     myDasolidar = DasoLidarSource()
-    # miRuta = 'D:/'
-    miRuta = r'O:\Sigmena\usuarios\COMUNES\Bengoa\Lidar\cartoLidar\Sg_PinoSilvestre'
+    miRuta = os.path.abspath('../data')
     myDasolidar.searchSourceFiles(LCL_rutaAscRaizBase=miRuta)
     assert len(myDasolidar.inFilesListAllTypes) != 0, 'Debería haber algún fichero que cumpla requisitos en la ruta indicada.'
     print('\ntest_files_in_path ok')

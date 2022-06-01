@@ -570,23 +570,14 @@ def checkGLO(GLO):
         or len(GLO.GLBLlistaDasoVarsPonderado) < len(GLO.GLBLlistaDasoVarsFileTypes)
         
     ):
-        print(
-            '\nclidtwins_config-> ATENCION: revisar lista de variables en el fichero de parametros de configuracion:',
-            len(GLO.GLBLlistaDasoVarsFileTypes),
-            len(GLO.GLBLlistaDasoVarsNickNames),
-            len(GLO.GLBLlistaDasoVarsRangoLinf),
-            len(GLO.GLBLlistaDasoVarsRangoLsup),
-            len(GLO.GLBLlistaDasoVarsNumClases),
-            len(GLO.GLBLlistaDasoVarsMovilidad),
-            len(GLO.GLBLlistaDasoVarsPonderado),
-        )
-        print('\t', type(GLO.GLBLlistaDasoVarsFileTypes), len(GLO.GLBLlistaDasoVarsFileTypes), GLO.GLBLlistaDasoVarsFileTypes)
-        print('\t', type(GLO.GLBLlistaDasoVarsNickNames), len(GLO.GLBLlistaDasoVarsNickNames), GLO.GLBLlistaDasoVarsNickNames)
-        print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLinf), GLO.GLBLlistaDasoVarsRangoLinf)
-        print('\t', type(GLO.GLBLlistaDasoVarsRangoLinf), len(GLO.GLBLlistaDasoVarsRangoLsup), GLO.GLBLlistaDasoVarsRangoLinf)
-        print('\t', type(GLO.GLBLlistaDasoVarsNumClases), len(GLO.GLBLlistaDasoVarsNumClases), GLO.GLBLlistaDasoVarsNumClases)
-        print('\t', type(GLO.GLBLlistaDasoVarsMovilidad), len(GLO.GLBLlistaDasoVarsMovilidad), GLO.GLBLlistaDasoVarsMovilidad)
-        print('\t', type(GLO.GLBLlistaDasoVarsPonderado), len(GLO.GLBLlistaDasoVarsPonderado), GLO.GLBLlistaDasoVarsPonderado)
+        print('\nclidtwins_config-> ATENCION: revisar coherencia en numero de propiedades de la lista de variables en el fichero de parametros de configuracion:')
+        print('\t-> FileTypes', type(GLO.GLBLlistaDasoVarsFileTypes), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsFileTypes), '->', GLO.GLBLlistaDasoVarsFileTypes)
+        print('\t-> NickNames', type(GLO.GLBLlistaDasoVarsNickNames), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsNickNames), '->', GLO.GLBLlistaDasoVarsNickNames)
+        print('\t-> RangoLinf', type(GLO.GLBLlistaDasoVarsRangoLinf), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsRangoLinf), '->', GLO.GLBLlistaDasoVarsRangoLinf)
+        print('\t-> RangoLinf', type(GLO.GLBLlistaDasoVarsRangoLinf), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsRangoLsup), '->', GLO.GLBLlistaDasoVarsRangoLinf)
+        print('\t-> NumClases', type(GLO.GLBLlistaDasoVarsNumClases), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsNumClases), '->', GLO.GLBLlistaDasoVarsNumClases)
+        print('\t-> Movilidad', type(GLO.GLBLlistaDasoVarsMovilidad), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsMovilidad), '->', GLO.GLBLlistaDasoVarsMovilidad)
+        print('\t-> Ponderado', type(GLO.GLBLlistaDasoVarsPonderado), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsPonderado), '->', GLO.GLBLlistaDasoVarsPonderado)
         print(f'Corregir o eliminar el fichero almacenado ({GLO.configFileNameCfg}).')
         sys.exit(0)
 

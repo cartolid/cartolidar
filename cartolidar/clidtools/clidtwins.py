@@ -283,21 +283,21 @@ that usually take the default values (from configuration file or clidtwins_confi
 
         if self.GLBLmarcoPatronTest:
             if LCL_rutaAscRaizBase is None:
-                self.LOCLrutaAscRaizBase = GLO.GLBLrutaAscRaizBasePorDefecto
+                self.LOCLrutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
             else:
-                self.LOCLrutaAscRaizBase = LCL_rutaAscRaizBase
+                self.LOCLrutaAscRaizBase = os.path.abspath(LCL_rutaAscRaizBase)
             if LCL_patronVectrName is None:
-                self.LOCLpatronVectrName = GLO.GLBLpatronVectrNamePorDefecto
+                self.LOCLpatronVectrName = os.path.abspath(GLO.GLBLpatronVectrNamePorDefecto)
             else:
-                self.LOCLpatronVectrName = LCL_patronVectrName
+                self.LOCLpatronVectrName = os.path.abspath(LCL_patronVectrName)
             if LCL_patronLayerName is None:
                 self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
             else:
                 self.LOCLpatronLayerName = LCL_patronLayerName
             if LCL_testeoVectrName is None:
-                self.LOCLtesteoVectrName = GLO.GLBLtesteoVectrNamePorDefecto
+                self.LOCLtesteoVectrName = os.path.abspath(GLO.GLBLtesteoVectrNamePorDefecto)
             else:
-                self.LOCLtesteoVectrName = LCL_testeoVectrName
+                self.LOCLtesteoVectrName = os.path.abspath(LCL_testeoVectrName)
             if LCL_testeoLayerName is None:
                 self.LOCLtesteoLayerName = GLO.GLBLtesteoLayerNamePorDefecto
             else:
@@ -343,9 +343,9 @@ that usually take the default values (from configuration file or clidtwins_confi
 
             if self.LOCLverbose:
                 if envolventeTesteo is None:
-                    print('clidtwins-> Se adopta la envolvente del shapes de referenia (patron) -no se dispone de shape de chequeo (testeo)-:')
+                    print('clidtwins-> Se adopta la envolvente del shapes de referencia (patron) -no se dispone de shape de chequeo (testeo)-:')
                 else:
-                    print('clidtwins-> Se adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo):')
+                    print('clidtwins-> Se adopta la envolvente de los shapes de referencia (patron) y chequeo (testeo):')
                 print(
                     '{}-> X: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
                         TB,
@@ -456,7 +456,7 @@ that usually take the default values (from configuration file or clidtwins_confi
                 print(f'{TB}-> Sin restricciones de coordendas porque se ha desabilitado temporalmente esta opcion.')
             else:
                 if self.GLBLmarcoPatronTest:
-                    print(f'{TB}-> Que solapen con la envolvente de los shapes de referenia (patron) y chequeo (testeo):')
+                    print(f'{TB}-> Que solapen con la envolvente de los shapes de referencia (patron) y chequeo (testeo):')
                 else:
                     print(f'{TB}-> Dentro de las coordenadas establecidas en linea de comandos o configuracion por defecto:')
                 print(
@@ -1087,12 +1087,12 @@ that usually take the default values (from configuration file or clidtwins_confi
             print(f'clidtwins-> AVISO: no se ha indicado ruta para los ficheros asc con las variables dasoLidar de entrada.')
             if self.LOCLverbose:
                 print(f'{TB}Ruta: {LCL_rutaAscRaizBase}')
-            if os.path.isdir(GLO.GLBLrutaAscRaizBasePorDefecto):
+            if os.path.isdir(os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)):
                 if os.path.exists(GLO.configFileNameCfg):
                     print(f'{TB}-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
                 else:
                     print(f'{TB}-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
-                LCL_rutaAscRaizBase = GLO.GLBLrutaAscRaizBasePorDefecto
+                LCL_rutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
             else:
                 # Directorio que depende del entorno:
                 MAIN_HOME_DIR = str(pathlib.Path.home())
@@ -1235,9 +1235,9 @@ and two more layers for forest type (land cover) and stand type.
                 return
 
         if LCL_rutaCompletaMFE is None:
-            self.LOCLrutaCompletaMFE = GLO.GLBLrutaCompletaMFEPorDefecto
+            self.LOCLrutaCompletaMFE = os.path.abspath(GLO.GLBLrutaCompletaMFEPorDefecto)
         else:
-            self.LOCLrutaCompletaMFE = LCL_rutaCompletaMFE
+            self.LOCLrutaCompletaMFE = os.path.abspath(LCL_rutaCompletaMFE)
         if LCL_cartoMFEcampoSp is None:
             self.LOCLcartoMFEcampoSp = GLO.GLBLcartoMFEcampoSpPorDefecto
         else:
@@ -1797,6 +1797,13 @@ and two more layers for forest type (land cover) and stand type.
         print(f'{TB}-> Factor de proximidad:     {pctjPorcentajeDeProximidad}')
         print('{:=^80}'.format(''))
 
+        return (
+            tipoBosqueOk,
+            nVariablesNoOk,
+            distanciaEuclideaMedia,
+            pctjPorcentajeDeProximidad,
+            matrizDeDistancias,
+        )
 
     # ==========================================================================
     def generarRasterCluster(

@@ -295,7 +295,7 @@ def testRun():
         import cProfile
         import pstats
         profile_filename = 'qlidtwins_profile.txt'
-        cProfile.run('leerArgumentosEnLineaDeComandos()', profile_filename)
+        cProfile.run('leerConfiguracion()', profile_filename)
         statsfile = open("profile_stats.txt", "wb")
         p = pstats.Stats(profile_filename, stream=statsfile)
         stats = p.strip_dirs().sort_stats('cumulative')
@@ -305,7 +305,7 @@ def testRun():
 
 
 # ==============================================================================
-def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
+def leerConfiguracion(argv: list = None) -> argparse.Namespace:
     '''Command line options.
     These arguments take precedence over configuration file
     and over default parameters.
@@ -548,14 +548,14 @@ def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
 
         # Process arguments
         if TRNS_soloAdmitirOpcionesPermitidas:
-            args = parser.parse_args()
+            argsConfig = parser.parse_args()
         else:
-            args, unknown = parser.parse_known_args()
+            argsConfig, unknown = parser.parse_known_args()
             if __verbose__ > 1:
                 print('\n{:_^80}'.format(''))
                 print('qlidtwins-> Info transitoria de la version alpha:')
-                print(f'Argumentos leidos en linea de comandos y/o fichero de configuracion ({type(args)}):')
-                print(f'{args}')
+                print(f'Argumentos leidos en linea de comandos y/o fichero de configuracion ({type(argsConfig)}):')
+                print(f'{argsConfig}')
                 if not unknown is None and unknown != []:
                     print(f'\nArgumentos ignorados: {type(unknown)} {unknown}')
                     print(f'\nRevisando argumentos ignorados:')
@@ -573,22 +573,22 @@ def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
                             del sys.argv[sys.argv.index(argumentoIgnorado) + 1]
                             if __verbose__ > 2:
                                 print(f'{TB}{TV}{TV}-> sys.argv post: {sys.argv}')
-                            if args.listTxtDasoVars == [valorDelArgumentoIgnorado]:
+                            if argsConfig.listTxtDasoVars == [valorDelArgumentoIgnorado]:
                                 if __verbose__ > 2:
-                                    print(f'{TB}{TV}-> Este valor se habia asignado a listTxtDasoVars: {args.listTxtDasoVars}')
+                                    print(f'{TB}{TV}-> Este valor se habia asignado a listTxtDasoVars: {argsConfig.listTxtDasoVars}')
                                     print(f'{TB}{TV}{TV}-> Se elimina ese valor y asigna el valor por defecto')
                                 try:
-                                    del args.listTxtDasoVars
+                                    del argsConfig.listTxtDasoVars
                                     # print('borrado ok2')
                                 except:
-                                    del args['listTxtDasoVars']
+                                    del argsConfig['listTxtDasoVars']
                                     if __verbose__ > 1:
                                         print(f'\nqlidtwins-> No se ha podido borrar el argumento {argumentoIgnorado}. Revisar codigo.')
-                                args.listTxtDasoVars = GLO.GLBLlistTxtDasoVarsPorDefecto
+                                argsConfig.listTxtDasoVars = GLO.GLBLlistTxtDasoVarsPorDefecto
                                 if __verbose__ > 2:
-                                    print(f'{TB}{TV}-> Valor asignado a listTxtDasoVars: {args.listTxtDasoVars}')
-                            elif valorDelArgumentoIgnorado in args.listTxtDasoVars:
-                                (args.listTxtDasoVars).remove(valorDelArgumentoIgnorado)
+                                    print(f'{TB}{TV}-> Valor asignado a listTxtDasoVars: {argsConfig.listTxtDasoVars}')
+                            elif valorDelArgumentoIgnorado in argsConfig.listTxtDasoVars:
+                                (argsConfig.listTxtDasoVars).remove(valorDelArgumentoIgnorado)
                     if argumentoIgnorado in sys.argv:
                         if __verbose__ > 1:
                             print(f'{TB}{TV}-> Eliminando argumentoIgnorado: {argumentoIgnorado}')
@@ -598,7 +598,7 @@ def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
                         if __verbose__ > 2:
                             print(f'{TB}{TV}{TV}-> sys.argv post: {sys.argv}')
             if __verbose__ > 2:
-                print(f'{TB}{TV}-> args post: {args}')
+                print(f'{TB}{TV}-> argsConfig post: {argsConfig}')
             if __verbose__ > 1:
                 print('{:=^80}'.format(''))
 
@@ -618,56 +618,56 @@ def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
     # Si no TRNS_LEER_EXTRA_ARGS, ArgumentParser no asigna
     # el valor por defecto a estos argumentos extras en linea de comandos.
     # Se asignan los valores del archivo cfg o por defecto.
-    if not 'menuInteractivo' in dir(args):
-        args.menuInteractivo = GLO.GLBLmenuInteractivoPorDefecto
-    if not 'marcoCoordMiniX' in dir(args):
-        args.marcoCoordMiniX = GLO.GLBLmarcoCoordMiniXPorDefecto
-    if not 'marcoCoordMaxiX' in dir(args):
-        args.marcoCoordMaxiX = GLO.GLBLmarcoCoordMaxiXPorDefecto
-    if not 'marcoCoordMiniY' in dir(args):
-        args.marcoCoordMiniY = GLO.GLBLmarcoCoordMiniYPorDefecto
-    if not 'marcoCoordMaxiY' in dir(args):
-        args.marcoCoordMaxiY = GLO.GLBLmarcoCoordMaxiYPorDefecto
-    if not 'marcoPatronTest' in dir(args):
-        args.marcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto
-    if not 'nPatronDasoVars' in dir(args):
-        args.nPatronDasoVars = GLO.GLBLnPatronDasoVarsPorDefecto
-    if not 'rasterPixelSize' in dir(args):
-        args.rasterPixelSize = GLO.GLBLrasterPixelSizePorDefecto
-    if not 'radioClusterPix' in dir(args):
-        args.radioClusterPix = GLO.GLBLradioClusterPixPorDefecto
-    if not 'nivelSubdirExpl' in dir(args):
-        args.nivelSubdirExpl = GLO.GLBLnivelSubdirExplPorDefecto
-    if not 'outRasterDriver' in dir(args):
-        args.outRasterDriver = GLO.GLBLoutRasterDriverPorDefecto
-    if not 'outputSubdirNew' in dir(args):
-        args.outputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto
-    if not 'cartoMFErecorte' in dir(args):
-        args.cartoMFErecorte = GLO.GLBLcartoMFErecortePorDefecto
-    if not 'varsTxtFileName' in dir(args):
-        args.varsTxtFileName = GLO.GLBLvarsTxtFileNamePorDefecto
-    if not 'ambitoTiffNuevo' in dir(args):
-        args.ambitoTiffNuevo = GLO.GLBLambitoTiffNuevoPorDefecto
-    if not 'noDataTiffProvi' in dir(args):
-        args.noDataTiffProvi = GLO.GLBLnoDataTiffProviPorDefecto
-    if not 'noDataTiffFiles' in dir(args):
-        args.noDataTiffFiles = GLO.GLBLnoDataTiffFilesPorDefecto
-    if not 'noDataTipoDMasa' in dir(args):
-        args.noDataTipoDMasa = GLO.GLBLnoDataTipoDMasaPorDefecto
-    if not 'umbralMatriDist' in dir(args):
-        args.umbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto
+    if not 'menuInteractivo' in dir(argsConfig):
+        argsConfig.menuInteractivo = GLO.GLBLmenuInteractivoPorDefecto
+    if not 'marcoCoordMiniX' in dir(argsConfig):
+        argsConfig.marcoCoordMiniX = GLO.GLBLmarcoCoordMiniXPorDefecto
+    if not 'marcoCoordMaxiX' in dir(argsConfig):
+        argsConfig.marcoCoordMaxiX = GLO.GLBLmarcoCoordMaxiXPorDefecto
+    if not 'marcoCoordMiniY' in dir(argsConfig):
+        argsConfig.marcoCoordMiniY = GLO.GLBLmarcoCoordMiniYPorDefecto
+    if not 'marcoCoordMaxiY' in dir(argsConfig):
+        argsConfig.marcoCoordMaxiY = GLO.GLBLmarcoCoordMaxiYPorDefecto
+    if not 'marcoPatronTest' in dir(argsConfig):
+        argsConfig.marcoPatronTest = GLO.GLBLmarcoPatronTestPorDefecto
+    if not 'nPatronDasoVars' in dir(argsConfig):
+        argsConfig.nPatronDasoVars = GLO.GLBLnPatronDasoVarsPorDefecto
+    if not 'rasterPixelSize' in dir(argsConfig):
+        argsConfig.rasterPixelSize = GLO.GLBLrasterPixelSizePorDefecto
+    if not 'radioClusterPix' in dir(argsConfig):
+        argsConfig.radioClusterPix = GLO.GLBLradioClusterPixPorDefecto
+    if not 'nivelSubdirExpl' in dir(argsConfig):
+        argsConfig.nivelSubdirExpl = GLO.GLBLnivelSubdirExplPorDefecto
+    if not 'outRasterDriver' in dir(argsConfig):
+        argsConfig.outRasterDriver = GLO.GLBLoutRasterDriverPorDefecto
+    if not 'outputSubdirNew' in dir(argsConfig):
+        argsConfig.outputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto
+    if not 'cartoMFErecorte' in dir(argsConfig):
+        argsConfig.cartoMFErecorte = GLO.GLBLcartoMFErecortePorDefecto
+    if not 'varsTxtFileName' in dir(argsConfig):
+        argsConfig.varsTxtFileName = GLO.GLBLvarsTxtFileNamePorDefecto
+    if not 'ambitoTiffNuevo' in dir(argsConfig):
+        argsConfig.ambitoTiffNuevo = GLO.GLBLambitoTiffNuevoPorDefecto
+    if not 'noDataTiffProvi' in dir(argsConfig):
+        argsConfig.noDataTiffProvi = GLO.GLBLnoDataTiffProviPorDefecto
+    if not 'noDataTiffFiles' in dir(argsConfig):
+        argsConfig.noDataTiffFiles = GLO.GLBLnoDataTiffFilesPorDefecto
+    if not 'noDataTipoDMasa' in dir(argsConfig):
+        argsConfig.noDataTipoDMasa = GLO.GLBLnoDataTipoDMasaPorDefecto
+    if not 'umbralMatriDist' in dir(argsConfig):
+        argsConfig.umbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto
 
     for myMainArg in listaMainArgs:
-        if not myMainArg in dir(args):
+        if not myMainArg in dir(argsConfig):
             print('qlidtwins-> Revisar codigo para que lea todos los argumentos principales por defecto.')
             sys.exit(0)
 
     for myExtraArg in listaExtraArgs:
-        if not myExtraArg in dir(args):
+        if not myExtraArg in dir(argsConfig):
             print('qlidtwins-> Revisar codigo para que lea todos los argumentos extras por defecto.')
             sys.exit(0)
 
-    return args
+    return argsConfig
 
 
 # ==============================================================================
@@ -770,17 +770,17 @@ def creaConfigDict(
     if args.rutaAscRaizBase == '':
         cfgDict['rutaAscRaizBase'] = os.path.dirname(os.path.abspath(__file__))
     else:
-        cfgDict['rutaAscRaizBase'] = args.rutaAscRaizBase
+        cfgDict['rutaAscRaizBase'] = os.path.abspath(args.rutaAscRaizBase)
 
-    cfgDict['rutaCompletaMFE'] = args.rutaCompletaMFE
+    cfgDict['rutaCompletaMFE'] = os.path.abspath(args.rutaCompletaMFE)
     cfgDict['cartoMFEcampoSp'] = args.cartoMFEcampoSp
 
-    cfgDict['patronVectrName'] = args.patronVectrName
+    cfgDict['patronVectrName'] = os.path.abspath(args.patronVectrName)
     if args.patronLayerName == 'None':
         cfgDict['patronLayerName'] = None
     else:
         cfgDict['patronLayerName'] = args.patronLayerName
-    cfgDict['testeoVectrName'] = args.testeoVectrName
+    cfgDict['testeoVectrName'] = os.path.abspath(args.testeoVectrName)
     if args.testeoLayerName == 'None':
         cfgDict['testeoLayerName'] = None
     else:
@@ -954,10 +954,10 @@ def mostrarConfiguracion(cfgDict):
         print('\n{:_^80}'.format(''))
         print('__verbose__: {}'.format(__verbose__))
         if __verbose__ > 2:
-            print('->> qlidtwins-> args:', args)
+            print('->> qlidtwins-> args:', argsConfig)
             # print(f'{TB}->> dir(args):', dir(args))
         print('->> Lista de dasoVars en formato para linea de comandos:')
-        print(f'{TB}{args.listTxtDasoVars}')
+        print(f'{TB}{argsConfig.listTxtDasoVars}')
         print('{:=^80}'.format(''))
 
         if TRNS_LEER_EXTRA_ARGS:
@@ -992,7 +992,14 @@ def mostrarConfiguracion(cfgDict):
 
 
 # ==============================================================================
-def clidtwinsUseCase(cfgDict):
+def clidtwinsUseCase(
+        cfgDict,
+        accionPral=0,
+    ):
+    if accionPral == 0:
+        accionPral = cfgDict['mainAction']
+    else:
+        cfgDict['mainAction'] = accionPral
     if __verbose__:
         print('\n{:_^80}'.format(''))
         if __verbose__ > 1:
@@ -1093,10 +1100,26 @@ def clidtwinsUseCase(cfgDict):
         if __verbose__:
             print('\n{:_^80}'.format(''))
             print('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
-        myDasolidar.chequearCompatibilidadConTesteoVector(
+        (
+            tipoBosqueOk,
+            nVariablesNoOk,
+            distanciaEuclideaMedia,
+            pctjPorcentajeDeProximidad,
+            matrizDeDistancias,
+        ) = myDasolidar.chequearCompatibilidadConTesteoVector(
             LCL_testeoVectrName=cfgDict['testeoVectrName'],
             LCL_testeoLayerName=cfgDict['testeoLayerName'],
             )
+        if __verbose__:
+            print('{:=^80}'.format(''))
+            print('\nqlidtwins-> Fin.')
+        return (
+            tipoBosqueOk,
+            nVariablesNoOk,
+            distanciaEuclideaMedia,
+            pctjPorcentajeDeProximidad,
+            matrizDeDistancias,
+        )
     elif cfgDict['mainAction'] == 2:
         if __verbose__:
             print('\n{:_^80}'.format(''))
@@ -1104,12 +1127,10 @@ def clidtwinsUseCase(cfgDict):
         myDasolidar.generarRasterCluster(
             LCL_radioClusterPix=cfgDict['radioClusterPix'],
         )
-
-    if __verbose__ and cfgDict['mainAction']:
-        print('{:=^80}'.format(''))
-
-    print('\nqlidtwins-> Fin.')
-
+        if __verbose__:
+            print('{:=^80}'.format(''))
+            print('\nqlidtwins-> Fin.')
+        return None
 
 if (
     'tests/test_' in sys.argv[0]
@@ -1129,11 +1150,12 @@ if (__name__ == '__main__' or 'qlidtwins' in __name__) and not testTwins:
     tipoEjecucion = checkRun()
     testRun()
 
-    args = leerArgumentosEnLineaDeComandos()
-    saveArgs(args)
-    cfgDict = creaConfigDict(args, tipoEjecucion=tipoEjecucion)
-    if __verbose__ or True:
+    argsConfig = leerConfiguracion()
+    saveArgs(argsConfig)
+    cfgDict = creaConfigDict(argsConfig, tipoEjecucion=tipoEjecucion)
+    if __verbose__:
         mostrarConfiguracion(cfgDict)
 
-    print('qlidtwins-> sys.argv:', sys.argv)
+    if __verbose__:
+        print('qlidtwins-> sys.argv:', sys.argv)
     clidtwinsUseCase(cfgDict)
