@@ -81,72 +81,73 @@ else:
 # ==============================================================================
 
 # ==============================================================================
-try:
+# try:
+if True:
     from cartolidar.clidtools import clidtwins_config
     from cartolidar.clidtools.clidtwins_config import GLO
     from cartolidar.clidtools.clidtwins import DasoLidarSource
-except ModuleNotFoundError:
-    if __verbose__ > 2:
-        print(f'qlidtwins-> Se importa clidtwins desde qlidtwins del directorio local {os.getcwd()}/clidtools')
-        print(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
-    from clidtools import clidtwins_config
-    from clidtools.clidtwins_config import GLO
-    from clidtools.clidtwins import DasoLidarSource
 # except ModuleNotFoundError:
-#     sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
-#     sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
-#     sys.stderr.write(f'              $ python -m cartolidar\n')
-#     sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
-#     sys.stderr.write(f'              $ python qlidtwins -h\n')
+#     if __verbose__ > 2:
+#         print(f'qlidtwins-> Se importa clidtwins desde qlidtwins del directorio local {os.getcwd()}/clidtools')
+#         print(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
+#     from clidtools import clidtwins_config
+#     from clidtools.clidtwins_config import GLO
+#     from clidtools.clidtwins import DasoLidarSource
+# # except ModuleNotFoundError:
+# #     sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
+# #     sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
+# #     sys.stderr.write(f'              $ python -m cartolidar\n')
+# #     sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
+# #     sys.stderr.write(f'              $ python qlidtwins -h\n')
+# #     sys.exit(0)
+# except SystemError as excpt:
+#     program_name = 'qlidtwins.py'
+#     print(f'\n{program_name}-> Error SystemError: {excpt}')
 #     sys.exit(0)
-except SystemError as excpt:
-    program_name = 'qlidtwins.py'
-    print(f'\n{program_name}-> Error SystemError: {excpt}')
-    sys.exit(0)
-except OSError as excpt:
-    program_name = 'qlidtwins.py'
-    print(f'\n{program_name}-> Error OSError: {excpt}')
-    sys.exit(0)
-except PermissionError as excpt:
-    program_name = 'qlidtwins.py'
-    print(f'\n{program_name}-> Error PermissionError: {excpt}')
-    sys.exit(0)
-except Exception as excpt:
-    program_name = 'qlidtwins.py'
-    # print(f'\n{program_name}-> Error Exception: {excpt}')
-
-    # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-    exc_type, exc_obj, exc_tb = sys.exc_info()
-    # ==================================================================
-    fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-    funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
-    lineError = exc_tb.tb_lineno
-    typeError = exc_type.__name__
-    try:
-        lineasTraceback = list((traceback.format_exc()).split('\n'))
-        codigoConError = lineasTraceback[2]
-    except:
-        codigoConError = ''
-    try:
-        descError = exc_obj.strerror
-    except:
-        descError = exc_obj
-    sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
-    sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
-    sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
-    sys.stderr.write(f'\tError en:    {fileNameError}\n')
-    sys.stderr.write(f'\tFuncion:     {funcError}\n')
-    sys.stderr.write(f'\tLinea:       {lineError}\n')
-    sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
-    sys.stderr.write(f'\tTipo:        {typeError}\n')
-    sys.stderr.write(f'\tError en:    {codigoConError}\n')
-    sys.stderr.write(f'Gracias!\n')
-    # ==================================================================
-    sys.stderr.write(f'\nFor help use:\n')
-    sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
-    sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e -h\n')
-    # ==================================================================
-    sys.exit(0)
+# except OSError as excpt:
+#     program_name = 'qlidtwins.py'
+#     print(f'\n{program_name}-> Error OSError: {excpt}')
+#     sys.exit(0)
+# except PermissionError as excpt:
+#     program_name = 'qlidtwins.py'
+#     print(f'\n{program_name}-> Error PermissionError: {excpt}')
+#     sys.exit(0)
+# except Exception as excpt:
+#     program_name = 'qlidtwins.py'
+#     # print(f'\n{program_name}-> Error Exception: {excpt}')
+#
+#     # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+#     exc_type, exc_obj, exc_tb = sys.exc_info()
+#     # ==================================================================
+#     fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+#     funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+#     lineError = exc_tb.tb_lineno
+#     typeError = exc_type.__name__
+#     try:
+#         lineasTraceback = list((traceback.format_exc()).split('\n'))
+#         codigoConError = lineasTraceback[2]
+#     except:
+#         codigoConError = ''
+#     try:
+#         descError = exc_obj.strerror
+#     except:
+#         descError = exc_obj
+#     sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
+#     sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
+#     sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
+#     sys.stderr.write(f'\tError en:    {fileNameError}\n')
+#     sys.stderr.write(f'\tFuncion:     {funcError}\n')
+#     sys.stderr.write(f'\tLinea:       {lineError}\n')
+#     sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
+#     sys.stderr.write(f'\tTipo:        {typeError}\n')
+#     sys.stderr.write(f'\tError en:    {codigoConError}\n')
+#     sys.stderr.write(f'Gracias!\n')
+#     # ==================================================================
+#     sys.stderr.write(f'\nFor help use:\n')
+#     sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
+#     sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e -h\n')
+#     # ==================================================================
+#     sys.exit(0)
 
 # ==============================================================================
 
@@ -1006,6 +1007,8 @@ def clidtwinsUseCase(
             print('qlidtwins-> Creando objeto de la clase DasoLidarSource...')
 
     myDasolidar = DasoLidarSource(LCL_verbose=__verbose__)
+    # Resultados a testear:
+    # -> pendiente
 
     if __verbose__:
         print('{:=^80}'.format(''))
@@ -1019,12 +1022,13 @@ def clidtwinsUseCase(
         LCL_marcoCoordMiniY=cfgDict['marcoCoordMiniY'],
         LCL_marcoCoordMaxiY=cfgDict['marcoCoordMaxiY'],
     )
+    # Resultados a testear:
+    # -> pendiente
 
     if __verbose__:
         print('{:=^80}'.format(''))
         print('\n{:_^80}'.format(''))
         print('qlidtwins-> Ejecutando searchSourceFiles...')
-
     if (
         'listLstDasoVars' in cfgDict.keys()
         and type(cfgDict['listLstDasoVars'][0]) == list
@@ -1066,6 +1070,14 @@ def clidtwinsUseCase(
     else:
         print(f'\nqlidtwins-> Revisar los argumentos pasados en linea de comandos. sys.argv: <{sys.argv}>')
         sys.exit(0)
+    # Resultados a testear:
+    # -> Lista de ficheros encontrados:
+    print('qlidtwins-> tests-> Verifica searchSourceFiles')
+    # myDasolidar.inFilesListAllTypes
+    print('len(myDasolidar.inFilesListAllTypes):', len(myDasolidar.inFilesListAllTypes))
+    for numDasoVarX, listaFileTuplesDasoVarX in enumerate(myDasolidar.inFilesListAllTypes):
+        for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
+            print('inFilesListAllTypes', numDasoVarX, numFile, pathFile, nameFile)
 
     if __verbose__:
         print('{:=^80}'.format(''))
@@ -1074,12 +1086,15 @@ def clidtwinsUseCase(
     myDasolidar.createMultiDasoLayerRasterFile(
         LCL_rutaCompletaMFE=cfgDict['rutaCompletaMFE'],
         LCL_cartoMFEcampoSp=cfgDict['cartoMFEcampoSp'],
-
         LCL_rasterPixelSize=cfgDict['rasterPixelSize'],
         # LCL_outRasterDriver=cfgDict['outRasterDriver'],
         # LCL_cartoMFErecorte=cfgDict['cartoMFErecorte'],
         # LCL_varsTxtFileName=cfgDict['varsTxtFileName'],
     )
+    # Resultados a testear:
+    # -> que se ha creado el raster:
+    #    myDasolidar.LOCLoutPathNameRuta
+    #    myDasolidar.LOCLoutFileNameWExt_mergedUniCellAllDasoVars
 
     if __verbose__:
         print('{:=^80}'.format(''))
@@ -1089,6 +1104,38 @@ def clidtwinsUseCase(
         LCL_patronVectrName=cfgDict['patronVectrName'],
         LCL_patronLayerName=cfgDict['patronLayerName'],
     )
+    # Resultados a testear:
+    # -> Tipos de bosque mas frecuentes en zona patron:
+    #    myDasolidar.pctjTipoBosquePatronMasFrecuente1,
+    #    myDasolidar.codeTipoBosquePatronMasFrecuente1,
+    #    myDasolidar.pctjTipoBosquePatronMasFrecuente2,
+    #    myDasolidar.codeTipoBosquePatronMasFrecuente2,
+    # -> Que los rangos son correctos:
+    #    myDasolidar.dictHistProb01
+    # -> Que se ha creado el txt con los rangos:
+    #    myDasolidar.LOCLoutPathNameRuta
+    #    myDasolidar.outputRangosFileTxtSinPath
+    #    myDasolidar.outputRangosFileNpzSinPath,
+    print('qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
+    print('qlidtwins-> tests-> Verifica los tipos de bosque mas frecuentes en zona patron:')
+    print(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
+    print(myDasolidar.codeTipoBosquePatronMasFrecuente1)
+    print(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
+    print(myDasolidar.codeTipoBosquePatronMasFrecuente2)
+    print('qlidtwins-> tests-> Verifica que los rangos son correctos:')
+    print('0_Alt95_ref:', myDasolidar.dictHistProb01['0_Alt95_ref'])
+    print('0_Alt95_min:', myDasolidar.dictHistProb01['0_Alt95_min'])
+    print('0_Alt95_max:', myDasolidar.dictHistProb01['0_Alt95_max'])
+    print('1_Fcc3m_ref:', myDasolidar.dictHistProb01['1_Fcc3m_ref'])
+    print('1_Fcc3m_min:', myDasolidar.dictHistProb01['1_Fcc3m_min'])
+    print('1_Fcc3m_max:', myDasolidar.dictHistProb01['1_Fcc3m_max'])
+    print('2_CobMt_ref:', myDasolidar.dictHistProb01['2_CobMt_ref'])
+    print('2_CobMt_min:', myDasolidar.dictHistProb01['2_CobMt_min'])
+    print('2_CobMt_max:', myDasolidar.dictHistProb01['2_CobMt_max'])
+    print('qlidtwins-> tests-> Verifica que se ha creado el txt con los rangos:')
+    print(myDasolidar.LOCLoutPathNameRuta)
+    print(myDasolidar.outputRangosFileTxtSinPath)
+    print(myDasolidar.outputRangosFileNpzSinPath)
 
     if __verbose__:
         print('{:=^80}'.format(''))
@@ -1096,30 +1143,28 @@ def clidtwinsUseCase(
     if cfgDict['mainAction'] == 0 or cfgDict['menuInteractivo']:
         # Sin uso por el momento, probablemente quite esta opcion
         pass
+        # return myDasolidar
     elif cfgDict['mainAction'] == 1:
         if __verbose__:
             print('\n{:_^80}'.format(''))
             print('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
-        (
-            tipoBosqueOk,
-            nVariablesNoOk,
-            distanciaEuclideaMedia,
-            pctjPorcentajeDeProximidad,
-            matrizDeDistancias,
-        ) = myDasolidar.chequearCompatibilidadConTesteoVector(
+        myDasolidar.chequearCompatibilidadConTesteoVector(
             LCL_testeoVectrName=cfgDict['testeoVectrName'],
             LCL_testeoLayerName=cfgDict['testeoLayerName'],
             )
-        if __verbose__:
-            print('{:=^80}'.format(''))
-            print('\nqlidtwins-> Fin.')
-        return (
-            tipoBosqueOk,
-            nVariablesNoOk,
-            distanciaEuclideaMedia,
-            pctjPorcentajeDeProximidad,
-            matrizDeDistancias,
-        )
+        # Resultados a testear:
+        #     myDasolidar.tipoBosqueOk,
+        #     myDasolidar.nVariablesNoOk,
+        #     myDasolidar.distanciaEuclideaMedia,
+        #     myDasolidar.pctjPorcentajeDeProximidad,
+        #     myDasolidar.matrizDeDistancias,
+        print('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
+        print(myDasolidar.tipoBosqueOk)
+        print(myDasolidar.nVariablesNoOk)
+        print(myDasolidar.distanciaEuclideaMedia)
+        print(myDasolidar.pctjPorcentajeDeProximidad)
+        print(myDasolidar.matrizDeDistancias)
+
     elif cfgDict['mainAction'] == 2:
         if __verbose__:
             print('\n{:_^80}'.format(''))
@@ -1127,10 +1172,37 @@ def clidtwinsUseCase(
         myDasolidar.generarRasterCluster(
             LCL_radioClusterPix=cfgDict['radioClusterPix'],
         )
-        if __verbose__:
-            print('{:=^80}'.format(''))
-            print('\nqlidtwins-> Fin.')
+        # Resultados a testear:
+        #     myDasolidar.pctjTipoBosquePatronMasFrecuente1,
+        #     myDasolidar.codeTipoBosquePatronMasFrecuente1,
+        #     myDasolidar.pctjTipoBosquePatronMasFrecuente2,
+        #     myDasolidar.codeTipoBosquePatronMasFrecuente2,
+        #
+        #     myDasolidar.LOCLoutPathNameRuta,
+        #     myDasolidar.outputRangosFileNpzSinPath,
+        #     myDasolidar.dictHistProb01,
+        print('qlidtwins-> tests-> generarRasterCluster')
+        print(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
+        print(myDasolidar.codeTipoBosquePatronMasFrecuente1)
+        print(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
+        print(myDasolidar.codeTipoBosquePatronMasFrecuente2)
+        #
+        print(myDasolidar.LOCLoutPathNameRuta)
+        print(myDasolidar.outputRangosFileNpzSinPath)
+        print(myDasolidar.dictHistProb01)
+
+    else:
         return None
+
+    if __verbose__:
+        print('{:=^80}'.format(''))
+        print('\nqlidtwins-> Fin.')
+    return myDasolidar
+
+
+# ==============================================================================
+def foo():
+    pass
 
 if (
     'tests/test_' in sys.argv[0]

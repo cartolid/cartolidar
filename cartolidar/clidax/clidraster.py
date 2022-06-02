@@ -200,7 +200,13 @@ def crearRasterTiff(
             LCL_driverExtension = 'H5'
         else:
             LCL_driverExtension = 'xxx'
-        self_LOCLoutFileNameWExt = '{}_{}_Global.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
+        self_LOCLoutFileNameWExtLote = '{}_{}_GlobalLote.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
+        self_LOCLoutFileNameWExtCyL = '{}_{}_GlobalCyL.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
+        self_LOCLoutFileNameWExtIndi = '{}_{}_GlobalIndi.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
+    else:
+        self_LOCLoutFileNameWExtLote = self_LOCLoutFileNameWExt.replace('.', '.Lote')
+        self_LOCLoutFileNameWExtCyL = self_LOCLoutFileNameWExt.replace('.', '.CyL')
+        self_LOCLoutFileNameWExtIndi = self_LOCLoutFileNameWExt.replace('.', '.Indi')
 
     # ==========================================================================
     if self_LOCLlistaDasoVarsFileTypes is None:
@@ -752,15 +758,15 @@ def crearRasterTiff(
         # nTipoOutput == 6 or nTipoOutput == 7:
         # Integrar los ficheros asc en un tif creado previamente
         # or Integrar los ficheros asc en un tif igual a uno de referencia (mismas dimensiones y resolucion)
-        if rasterQueSeUsaComoDeferencia and os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt)):
+        if rasterQueSeUsaComoDeferencia and os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL)):
             # Si he establecido rasterQueSeUsaComoDeferencia or rasterEnElQueSeEscribe
             #  prevalecen las propiedades del raster de referencia o destino sobre los de los asc
             if rasterQueSeUsaComoDeferencia:
                 # Abro la capa raster de referencia y extraigo informacion general
                 inputRaster = gdal.Open(rasterQueSeUsaComoDeferencia)
-            elif os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt)):
+            elif os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL)):
                 # Abro la capa raster de destino y extraigo informacion general
-                inputRaster = gdal.Open(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt))
+                inputRaster = gdal.Open(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL))
             # bandCount = inputRaster.RasterCount
             rasterXSize = inputRaster.RasterXSize
             rasterYSize = inputRaster.RasterYSize
@@ -856,12 +862,24 @@ def crearRasterTiff(
     #===========================================================================
 
     #===========================================================================
-    if (
+    if not cartoRefMfe.usarVectorRef:
+        print('\nclidraster-> ATENCION: no se ha podido leer el MFE.')
+        print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
+        sys.exit(0)
+    elif (
         nMinX_tif > cartoRefMfe.inputVectorXmax
         or nMaxX_tif < cartoRefMfe.inputVectorXmin
         or nMinY_tif > cartoRefMfe.inputVectorYmax
         or nMaxY_tif < cartoRefMfe.inputVectorYmin
     ):
+        if (
+            cartoRefMfe.inputVectorYmin > 0
+            and cartoRefMfe.inputVectorYmin < 90
+        ):
+            print('\nclidraster-> ATENCION: usar una capa MFE con cordenadas proyectadas (no geograficas)')
+            print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
+            sys.exit(0)
+        
         print('\nclidraster-> ATENCION: no hay cobertura de MFE en la zona analizada (a):')
         print(
             '\t-> Rango de coordenadas UTM de la zona analizada: X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
@@ -882,7 +900,7 @@ def crearRasterTiff(
                 PAR_cartoMFEfileName,
             )
         )
-        print(f'\t-> Fichero de coniguracion: {GLO.configFileNameCfg}')
+        print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
         sys.exit(0)
     #===========================================================================
 
@@ -898,12 +916,12 @@ def crearRasterTiff(
             # Integrar los ficheros asc en un tif creado previamente
             if rasterEnElQueSeEscribe and os.path.exists(os.path.join(self_LOCLoutPathNameRuta, rasterEnElQueSeEscribe)):
                 # Abro la capa raster de destino y asigno su rasterband 1
-                outputDataset = gdal.Open(os.path.join(self_LOCLoutPathNameRuta, rasterEnElQueSeEscribe), gdal.GA_Update)
-                outputBand1 = outputDataset.GetRasterBand(1)
+                outputDatasetCyL = gdal.Open(os.path.join(self_LOCLoutPathNameRuta, rasterEnElQueSeEscribe), gdal.GA_Update)
+                outputBandCyL1 = outputDatasetCyL.GetRasterBand(1)
                 if LCL_convertirAlt:
-                    outputBand1.SetNoDataValue(PAR_noDataMergeTiff)
+                    outputBandCyL1.SetNoDataValue(PAR_noDataMergeTiff)
                 else:
-                    outputBand1.SetNoDataValue(noDataValueDasoVarAsc)
+                    outputBandCyL1.SetNoDataValue(noDataValueDasoVarAsc)
                 print('\n{:_^80}'.format(''))
                 print('clidraster-> Raster CyL en el que se va a grabar la informacion de los grid de entrada:', rasterEnElQueSeEscribe)
             else:
@@ -911,10 +929,10 @@ def crearRasterTiff(
                 print('\t-> Revisar codigo')
         else:
             print('\n{:_^80}'.format(''))
-            print(f'clidraster-> Creando fichero raster: {self_LOCLoutFileNameWExt}')
-            outputDataset, outputBand1 = CrearOutputRaster(
+            print(f'clidraster-> Creando fichero raster: {self_LOCLoutFileNameWExtLote}')
+            outputDatasetLote, outputBandLote1 = CrearOutputRaster(
                 self_LOCLoutPathNameRuta,
-                self_LOCLoutFileNameWExt,
+                self_LOCLoutFileNameWExtLote,
                 nMinX_tif,
                 nMaxY_tif,
                 nCeldasX_Destino,
@@ -935,14 +953,17 @@ def crearRasterTiff(
             )
 
             # print('{:_^80}'.format(''))
-            # print('clidraster-> Raster en el que se va a grabar la informacion de los grid de entrada:', self_LOCLoutFileNameWExt)
+            # print('clidraster-> Raster en el que se va a grabar la informacion de los grid de entrada:', self_LOCLoutFileNameWExtLote)
 
         # ======================================================================
         if PAR_generarDasoLayers:
             # for nInputVar in range(PAR_nInputVars):
             print(f'clidraster-> Leyendo las {nBandasOutput} bandas del tif creado')
             for outputNBand in range(1, nBandasOutput + 1):
-                dictOutputBandX[outputNBand] = outputDataset.GetRasterBand(outputNBand)
+                if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
+                    dictOutputBandX[outputNBand] = outputDatasetCyL.GetRasterBand(outputNBand)
+                else:
+                    dictOutputBandX[outputNBand] = outputDatasetLote.GetRasterBand(outputNBand)
                 dictArrayBandaX[outputNBand] = dictOutputBandX[outputNBand].ReadAsArray().astype(PAR_outputNpDatatype)
                 # print(f'\t\t-> Banda: {outputNBand} -> shape: {dictArrayBandaX[outputNBand].shape}')
             # print(f'\tclaves de dictArrayBandaX: {dictArrayBandaX.keys()}')
@@ -978,12 +999,12 @@ def crearRasterTiff(
             cargarRasterEnMemoria = True
             # Creo un ndarray con el contenido de la banda 1 del raster dataset creado
             print('\t-> SI se carga toda la banda en memoria.')
-            arrayBanda1 = outputBand1.ReadAsArray().astype(PAR_outputNpDatatype)
+            arrayBanda1 = outputBandLote1.ReadAsArray().astype(PAR_outputNpDatatype)
             print(f'\t-> Tipo de dato de la Banda con el tipo de masa:  {type(arrayBanda1)}, dtype: {arrayBanda1.dtype}')
             print(f'\t-> Dimensiones de la banda 1 del ndArray creado:  {arrayBanda1.shape}')
         else:
             cargarRasterEnMemoria = False
-            print('\t-> Dimensiones de la banda destino: Y->', outputBand1.YSize, 'X->', outputBand1.XSize)
+            print('\t-> Dimensiones de la banda destino: Y->', outputBandLote1.YSize, 'X->', outputBandLote1.XSize)
             print('\t-> NO se carga toda la banda en memoria porque no cabe')
         # ======================================================================
 
@@ -1270,10 +1291,10 @@ def crearRasterTiff(
                 print('\tnCeldasX_Destino, nCeldasY_Destino', nCeldasX_Destino, nCeldasY_Destino)
                 # PAR_outputGdalDatatype = gdal.GDT_Float32  # Alternativas: gdal.GDT_Int32, gdal.GDT_Float32, gdal.GDT_Byte
                 print('\n{:_^80}'.format(''))
-                print(f'clidraster-> crearTiff-> Creando raster: {self_LOCLoutFileNameWExt}')
-                outputDataset, outputBand1 = CrearOutputRaster(
+                print(f'clidraster-> crearTiff-> Creando raster: {self_LOCLoutFileNameWExtIndi}')
+                outputDatasetIndi, outputBandIndi1 = CrearOutputRaster(
                     self_LOCLoutPathNameRuta,
-                    self_LOCLoutFileNameWExt,
+                    self_LOCLoutFileNameWExtIndi,
                     nMinX_tif,
                     nMaxY_tif,
                     nCeldasX_Destino,
@@ -1292,14 +1313,14 @@ def crearRasterTiff(
                 )
 
                 # Creo un ndarray con el contenido de la banda 1 del raster dataset creado
-                arrayBanda1 = outputBand1.ReadAsArray().astype(PAR_outputNpDatatype)
+                arrayBanda1 = outputBandIndi1.ReadAsArray().astype(PAR_outputNpDatatype)
                 print('Creo un ndArray que contiene toda la banda 1: ', type(arrayBanda1), arrayBanda1.dtype)
                 print('Dimensiones del ndArray creado con la banda 1:', arrayBanda1.shape)
                 nOffsetX = 0
                 nOffsetY = 0
             else:
-                # El offset lo uso para asignar solo un trozo de outputBand1 al arrayBanda1 si no hay sitio suficiente en memoria
-                # O para escribir los valores en la ubicacion adecuada de outputBand1 cuando se carga toda la manda en memoria
+                # El offset lo uso para asignar solo un trozo de outputBand____1 al arrayBanda1 si no hay sitio suficiente en memoria
+                # O para escribir los valores en la ubicacion adecuada de outputBand____1 cuando se carga toda la manda en memoria
                 nOffsetX = int((nMinX_NombreAsc - nMinX_tif) / nPixelX_Origen)  # Numero de celdas del asc
                 nOffsetY = int((nMaxY_NombreAsc - nMaxY_tif) / nPixelY_Origen)  # nPixelY_Origen es negativo
                 if PAR_verbose > 1:
@@ -1324,7 +1345,10 @@ def crearRasterTiff(
                             print('\t\t\t-> nMinX nMaxY del asc origen (H30):    {:9.2f}, {:10.2f}'.format(nMinX_HeaderAsc, nMaxY_HeaderAsc))
                             print('\t\t\t-> Dimensiones del asc origen (H30):    {} x {} celdas de pixel {} m. = {} x {} m.'.format(nCeldasX_Origen, nCeldasY_Origen, nPixelX_Origen, rangoX_H30, rangoY_H30))
                         print('\t\t\t-> nMinX nMaxY del tif (destino):       {:9.2f}, {:10.2f}'.format(nMinX_tif, nMaxY_tif))
-                        print('\t\t\t-> Dimensiones X & Y del tif destino:   {} x {} celdas de {} m.'.format(outputBand1.XSize, outputBand1.YSize, metrosPixelX_Destino))
+                        if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
+                            print('\t\t\t-> Dimensiones X & Y del tif destino:   {} x {} celdas de {} m.'.format(outputBandCyL1.XSize, outputBandCyL1.YSize, metrosPixelX_Destino))
+                        else:
+                            print('\t\t\t-> Dimensiones X & Y del tif destino:   {} x {} celdas de {} m.'.format(outputBandLote1.XSize, outputBandLote1.YSize, metrosPixelX_Destino))
                         print('\t\t\t-> offset X e Y:                        {} {}'.format(nOffsetX, nOffsetY))
     
                 if nMinX_NombreAsc < nMinX_tif or nMaxX_NombreAsc > nMaxX_tif or nMinY_NombreAsc < nMinY_tif or nMaxY_NombreAsc > nMaxY_tif:
@@ -1348,10 +1372,15 @@ def crearRasterTiff(
                 if not cargarRasterEnMemoria:
                     # print('ncolsRef, nrowsRef:', type(ncolsRef), type(nrowsRef), ncolsRef, nrowsRef)
                     # print(nMinX_NombreAsc, nMinX_tif, nMaxY_tif, nMaxY_NombreAsc)
-                    # print('outputBand1:', type(outputBand1), outputBand1.XSize, outputBand1.YSize)
-                    arrayBanda1 = outputBand1.ReadAsArray(xoff=nOffsetX, yoff=nOffsetY, win_xsize=int(nCeldasX_Origen), win_ysize=int(nCeldasY_Origen)).astype(
-                        PAR_outputNpDatatype
-                    )
+                    # print('outputBand1:', type(outputBandLote1), outputBandLote1.XSize, outputBandLote1.YSize)
+                    if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
+                        arrayBanda1 = outputBandCyL1.ReadAsArray(xoff=nOffsetX, yoff=nOffsetY, win_xsize=int(nCeldasX_Origen), win_ysize=int(nCeldasY_Origen)).astype(
+                            PAR_outputNpDatatype
+                        )
+                    else:
+                        arrayBanda1 = outputBandLote1.ReadAsArray(xoff=nOffsetX, yoff=nOffsetY, win_xsize=int(nCeldasX_Origen), win_ysize=int(nCeldasY_Origen)).astype(
+                            PAR_outputNpDatatype
+                        )
 
             # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             # ==================================================================
@@ -1650,9 +1679,9 @@ def crearRasterTiff(
             # ==================================================================
 
             # ==================================================================
-            # Si no cargo todo el outputBand1 en memoria, escribo el contenido
-            # del arrayBanda1 especifico del fichero que proceso en el outputBand1
-            # Si he cargado todo outputBand1 en memoria, esto lo hago todo a la vez al final
+            # Si no cargo todo el outputBand____1 en memoria, escribo el contenido
+            # del arrayBanda1 especifico del fichero que proceso en el outputBand____1
+            # Si he cargado todo outputBand____1 en memoria, esto lo hago todo a la vez al final
             if not cargarRasterEnMemoria:
                 if PAR_generarDasoLayers:
                     for outputNBand in range(1, nBandasOutput + 1):
@@ -1671,15 +1700,26 @@ def crearRasterTiff(
                 else:
                     if PAR_verbose > 1:
                         print('\nAsigno valores de %s al raster (not cargarRasterEnMemoria)...' % (inputAscName1),)
-                    # nFilas = outputBand1.shape[0]
-                    # nColumnas = outputBand1.shape[1]
-                    # for nFila in range(outputBand1.shape[0]):
-                    for nFila in range(arrayBanda1.shape[0]):
-                        # EN este caso el bucle solo ocurre una vez
-                        nxarray = outputBand1[nFila, :]
-                        nxarray.shape = (1, -1)
-                        outputBand1.WriteArray(nxarray, nOffsetX, nOffsetY + nFila)
-                    outputBand1.FlushCache()
+                    if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
+                        # nFilas = outputBandCyL1.shape[0]
+                        # nColumnas = outputBandCyL1.shape[1]
+                        # for nFila in range(outputBandCyL1.shape[0]):
+                        for nFila in range(arrayBanda1.shape[0]):
+                            # EN este caso el bucle solo ocurre una vez
+                            nxarray = outputBandCyL1[nFila, :]
+                            nxarray.shape = (1, -1)
+                            outputBandCyL1.WriteArray(nxarray, nOffsetX, nOffsetY + nFila)
+                        outputBandCyL1.FlushCache()
+                    else:
+                        # nFilas = outputBandLote1.shape[0]
+                        # nColumnas = outputBandLote1.shape[1]
+                        # for nFila in range(outputBandLote1.shape[0]):
+                        for nFila in range(arrayBanda1.shape[0]):
+                            # EN este caso el bucle solo ocurre una vez
+                            nxarray = outputBandLote1[nFila, :]
+                            nxarray.shape = (1, -1)
+                            outputBandLote1.WriteArray(nxarray, nOffsetX, nOffsetY + nFila)
+                        outputBandLote1.FlushCache()
                 if PAR_verbose > 1:
                     print('ok WriteArray')
 
@@ -1814,7 +1854,7 @@ def crearRasterTiff(
                                 PAR_cartoMFEfileName,
                             )
                         )
-                        print(f'\t-> Fichero de coniguracion: {GLO.configFileNameCfg}')
+                        print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
                         # print(nFilaRaster, nColumnaRaster, 'dictArrayBandaX[MFE]:', dictArrayBandaX[nBandasOutput - 1])
                         sys.exit(0)
 
@@ -1843,15 +1883,21 @@ def crearRasterTiff(
                     #  nxarray = np.ones(arrayBanda1.shape[0]) * 255
                     # nxarray=nxarray[::-1]
                     nxarray.shape = (1, -1)
-                    outputBand1.WriteArray(nxarray, 0, loteDeFilas * j)
-                outputBand1.FlushCache()
+                    if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
+                        outputBandCyL1.WriteArray(nxarray, 0, loteDeFilas * j)
+                    else:
+                        outputBandLote1.WriteArray(nxarray, 0, loteDeFilas * j)
+                if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
+                    outputBandCyL1.FlushCache()
+                else:
+                    outputBandLote1.FlushCache()
                 if PAR_verbose > 1:
                     print('ok banda escrita.')
             if PAR_verbose > 1:
                 print('{:=^80}'.format(''))
 
         # print('\nInfo sobre el raster destino (generadoo actualizado):')
-        # infoSrcband(outputBand1)
+        # infoSrcband(outputBandLote1)
         print('\n{:_^80}'.format(''))
         PAR_nInputVarsOk = 0
         for nInputVar in range(PAR_nInputVars):
@@ -1860,7 +1906,7 @@ def crearRasterTiff(
         print('clidraster-> Resumen de bloques y variables leidos para crear el raster con crearTiff<>:')
         print(f'\t-> Tipos de fichero localizados: {PAR_nInputVarsOk} de {PAR_nInputVars}')
         print(f'\t-> Se han leido {contadorFicherosIntegrando} bloques de {len(dictAscFileObjet)} tipos de fichero.')
-        print(f'\t-> Raster creado: {self_LOCLoutPathNameRuta}/{self_LOCLoutFileNameWExt}')
+        print(f'\t-> Raster creado: {self_LOCLoutPathNameRuta}/{self_LOCLoutFileNameWExtLote}')
         print('{:=^80}'.format(''))
 
         # if PAR_generarDasoLayers and nBandasOutput >= 2:
@@ -1880,8 +1926,12 @@ def crearRasterTiff(
         #                 if arrayBanda2[nFilaRaster, nColumnaRaster] == PAR_noDataTiffProvi:
         #                     pass
 
-        outputDataset = None
-        del outputDataset
+        outputDatasetLote = None
+        del outputDatasetLote
+        outputDatasetCyL = None
+        del outputDatasetCyL
+        outputDatasetIndi = None
+        del outputDatasetIndi
 
         if not PAR_generarDasoLayers:
             print('\nok AUX_subLoteTiff: {}'.format(miSubLoteTiff))
@@ -1946,14 +1996,15 @@ def leerMFE(
     subDirCapaInputVector = ''
 
     if PAR_verbose > 1:
-        print('\t-> MFE-> xSupIzda:', xSupIzda)
+        print('Buscando capa MFE para generar un raster con:')
+        print('\t-> xSupIzda:      ', xSupIzda)
         print('\t-> myLasHead.xmin:', myLasHead.xmin)
         print('\t-> sHead.xSupIzda:', myLasHead.xSupIzda)
-        print('\t-> MFE-> ySupIzda:', ySupIzda)
+        print('\t-> ySupIzda:      ', ySupIzda)
         print('\t-> myLasHead.ymax:', myLasHead.ymax)
         print('\t-> sHead.ySupIzda:', myLasHead.ySupIzda)
-        print('\t-> MFE-> nCeldasX:', nCeldasX)
-        print('\t-> MFE-> nCeldasY:', nCeldasY)
+        print('\t-> nCeldasX:      ', nCeldasX)
+        print('\t-> nCeldasY:      ', nCeldasY)
 
     cartoRefUsoSingular = clidcarto.CartoRefVector(
         myLasHead,
@@ -1973,19 +2024,22 @@ def leerMFE(
     # ==============================================================
     if cartoRefUsoSingular.usarVectorRef:
         # ==========================================================
-        cartoRefUsoSingular.recortarVector(forzarRecorteCuadrado=False)
-        # ==========================================================
-        rasterCreadoOk = cartoRefUsoSingular.rasterizarVectorRecortado()
-        if rasterCreadoOk:
-            rasterLeidoOk = cartoRefUsoSingular.leerElRasterYaRecortado()
-            cartoRefUsoSingular.usarVectorRef = 1 * rasterLeidoOk
-            if rasterLeidoOk:
-                if PAR_verbose:
-                    print(
-                        'clidraster-> CartoRef de usos singulares: capa tif recortada ahora leida ok: {}'.format(
-                            rasterLeidoOk
+        vectorRecortadoOk = cartoRefUsoSingular.recortarVector(forzarRecorteCuadrado=False)
+        if vectorRecortadoOk:
+            # ==========================================================
+            rasterCreadoOk = cartoRefUsoSingular.rasterizarVectorRecortado()
+            if rasterCreadoOk:
+                rasterLeidoOk = cartoRefUsoSingular.leerElRasterYaRecortado()
+                cartoRefUsoSingular.usarVectorRef = 1 * rasterLeidoOk
+                if rasterLeidoOk:
+                    if PAR_verbose:
+                        print(
+                            'clidraster-> CartoRef de usos singulares: capa tif recortada ahora leida ok: {}'.format(
+                                rasterLeidoOk
+                            )
                         )
-                    )
+                else:
+                    cartoRefUsoSingular.usarVectorRef = 0
             else:
                 cartoRefUsoSingular.usarVectorRef = 0
         else:
@@ -2007,10 +2061,14 @@ def leerMFE(
         cartoRefUsoSingular.asignarUsoSingularArrayCeldas()
     else:
         print(
-            '\nclidraster-> Revisar la causa por la que no es posible usar la capa singularUse {}.[shp/gpkg] >> Pulsar una tecla'.format(
+            '\nclidraster-> Revisar la causa por la que no es posible usar la capa singularUse {}.[shp/gpkg]'.format(
                 PAR_cartoMFEfileNSinExt
             )
         )
+        cartoRefUsoSingular.inputVectorXmax = 0
+        cartoRefUsoSingular.inputVectorXmin = 0
+        cartoRefUsoSingular.inputVectorYmax = 0
+        cartoRefUsoSingular.inputVectorYmin = 0
         cartoRefUsoSingular.miRasterRefMinXY = np.array([0, 0], dtype=np.float32)
         cartoRefUsoSingular.miRasterRefOrigen = np.array([0, 0], dtype=np.float32)
         cartoRefUsoSingular.miRasterRefPixel = np.array([0, 0], dtype=np.float32)
@@ -2035,7 +2093,10 @@ def leerMFE(
                 (tiempo1 - tiempo0)
             )
         )
-        print('clidraster-> Capa shape leida ok')
+        if cartoRefUsoSingular.usarVectorRef:
+            print('clidraster-> Capa MFE leida ok')
+        else:
+            print('clidraster-> AVISO: tipo de bosque no disponible (ver causa mas arriba)')
         print('{:=^80}'.format(''))
 
     return cartoRefUsoSingular

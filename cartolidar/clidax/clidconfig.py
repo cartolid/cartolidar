@@ -1481,6 +1481,7 @@ def valorConfig(valorPrincipalTxt, valorAlternativoTxt='', usarAlternativo=False
         except:
             print('clidconfig-> Error en parametro', nombreParametro, 'tiene formato distinto al previsto.')
     else:
+        # Incluye el tipoVariable == 'desconocido'
         try:
             valorPrincipalFloat = float(valorPrincipalTxt)
             esNumero = True

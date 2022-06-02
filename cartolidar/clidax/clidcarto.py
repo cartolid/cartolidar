@@ -550,18 +550,18 @@ class CartoRefVector(object):
             driverExt = 'shp'
         elif self.inputVectorDriverName == 'GPKG':
             driverExt = 'gpkg'
-        nombreConPathCapaInputVector = os.path.join(
+        self.nombreConPathCapaInputVector = os.path.join(
             self.rutaCartoCompleta,
             self.subDirCapaInputVector,
             '{}.{}'.format(self.nombreCapaInputVector, driverExt)
         )
         if not gdalOk:
-            print('\tclidcarto-> Gdal no disponible; no se puede leer %s' % (nombreConPathCapaInputVector))
+            print('\tclidcarto-> Gdal no disponible; no se puede leer %s' % (self.nombreConPathCapaInputVector))
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
-        if not os.path.exists(nombreConPathCapaInputVector):
-            print('\tclidcarto-> no esta disponible el fichero %s' % (nombreConPathCapaInputVector))
+        if not os.path.exists(self.nombreConPathCapaInputVector):
+            print('\tclidcarto-> AVISO no esta disponible el fichero %s' % (self.nombreConPathCapaInputVector))
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
@@ -573,12 +573,12 @@ class CartoRefVector(object):
 #         print( 'clidcarto-> inputVectorRefOgrDriver->', inputVectorRefOgrDriver)
  
         try:
-            self.inputVectorRefDataSource = inputVectorRefOgrDriver.Open(nombreConPathCapaInputVector, 0)  # 0 means read-only. 1 means writeable.
+            self.inputVectorRefDataSource = inputVectorRefOgrDriver.Open(self.nombreConPathCapaInputVector, 0)  # 0 means read-only. 1 means writeable.
         except:
-            print('\tclidcarto-> No se puede abrir {}-> revisar si esta corrupto, faltan ficheros o esta bloqueado'.format(nombreConPathCapaInputVector))
+            print('\tclidcarto-> No se puede abrir {}-> revisar si esta corrupto, faltan ficheros o esta bloqueado'.format(self.nombreConPathCapaInputVector))
             quit()
         if self.inputVectorRefDataSource is None:
-            print('\tclidcarto-> No se puede abrir {}: possible corrupto'.format(nombreConPathCapaInputVector))
+            print('\tclidcarto-> No se puede abrir {}: possible corrupto'.format(self.nombreConPathCapaInputVector))
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
@@ -593,7 +593,7 @@ class CartoRefVector(object):
             self.inputVectorYmax,
         ) = self.inputVectorRefLayer.GetExtent()
         if GLO.GLBLverbose or self.LCLverbose:
-            print('clidcarto-> usarVectorRef: {}; Numero de registros en {}: {}'.format(self.usarVectorRef, os.path.basename(nombreConPathCapaInputVector), self.inputVectorRefFeatureCount))
+            print('clidcarto-> usarVectorRef: {}; Numero de registros en {}: {}'.format(self.usarVectorRef, os.path.basename(self.nombreConPathCapaInputVector), self.inputVectorRefFeatureCount))
         # wkt = "POLYGON ((494000 4606000, 496000 4606000, 496000 4604000, 494000 4604000, 494000 4606000))"
         # wkt = 'POLYGON ((%i %i, %i %i, %i %i, %i %i, %i %i))' % (self.myLasHead.xmin, self.myLasHead.ymin,
         #                                                         self.myLasHead.xmin, self.myLasHead.ymax,
@@ -631,7 +631,7 @@ class CartoRefVector(object):
         if not gdalOk:
             print('clidcarto-> Gdal no disponible; no se puede generar %s: ' % (outputVectorDriverName))
             self.usarVectorRef = 0
-            return
+            return False
         self.inputVectorRefSRS = self.inputVectorRefLayer.GetSpatialRef()
         self.inputVectorRefWkt = self.inputVectorRefSRS.ExportToWkt()
         # self.inputVectorRefSRS = osr.SpatialReference(wkt = inputVectorRefWkt) #Reciproco de inputVectorRefSRS.ExportToWkt()
@@ -742,8 +742,19 @@ class CartoRefVector(object):
         self.inputVectorRefLayerRec.CreateField(landUseCoverField)
         #         self.inputVectorRefLayerRec.CreateField(FID_UsosSiField)
         # Create the feature and set values
-        featureDefn = self.inputVectorRefLayerRec.GetLayerDefn()
-        featureNew = ogr.Feature(featureDefn)
+
+        featureDefnAll = self.inputVectorRefLayer.GetLayerDefn()
+        listaCampos = []
+        for nCampo in range(featureDefnAll.GetFieldCount()):
+            listaCampos.append(featureDefnAll.GetFieldDefn(nCampo).GetName())
+        print('clidcarto-> listaCampos:', listaCampos)
+        if not self.nombreCampoLandUseCover in listaCampos:
+            print(f'\nclidcarto-> ATENCION: la capa {self.nombreConPathCapaInputVector} no incluye el campo {self.nombreCampoLandUseCover}')
+            self.usarVectorRef = 0
+            return False
+
+        featureDefnRec = self.inputVectorRefLayerRec.GetLayerDefn()
+        featureNew = ogr.Feature(featureDefnRec)
         # print( '\tclidcarto-> Mostrando features copiadas')
         nFeature = 0
         for feature in self.inputVectorRefLayer:
@@ -837,6 +848,7 @@ class CartoRefVector(object):
 
         self.inputVectorRefLayer.SetSpatialFilter(None)
         self.inputVectorRefLayerRec.SetSpatialFilter(None)
+        return True
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -3042,7 +3054,7 @@ def leerVentanaRaster(
     rasterSolapa = True
     rasterIncluyeLas = 1
     if not os.path.exists(rasterConRuta):
-        print('clidcarto-> no esta disponible el fichero %s' % (rasterConRuta))
+        print('clidcarto-> AVISO: no esta disponible el fichero %s' % (rasterConRuta))
         rasterExiste = False
     if rasterExiste:
         try:

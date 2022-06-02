@@ -148,16 +148,25 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                     print('\t\tclidtwins_config-> grupoParametros nuevo:', grupoParametroConfiguracion)
                 config.add_section(grupoParametroConfiguracion)
         # Puedo agregar otras secciones:
-        config.add_section('Custom')
+        # config.add_section('custom')
     
         if LOCL_verboseAll:
             print('\t\tclidtwins_config-> Lista de parametros de configuracion por defecto:')
         for nombreParametroDeConfiguracion in LOCL_configDictPorDefecto.keys():
             listaParametroConfiguracion = LOCL_configDictPorDefecto[nombreParametroDeConfiguracion]
             valorParametroConfiguracion = listaParametroConfiguracion[0]
-            grupoParametroConfiguracion = listaParametroConfiguracion[1]
-            tipoParametroConfiguracion = listaParametroConfiguracion[2]
-            descripcionParametroConfiguracion = listaParametroConfiguracion[3]
+            if len(listaParametroConfiguracion) > 1:
+                grupoParametroConfiguracion = listaParametroConfiguracion[1]
+            else:
+                grupoParametroConfiguracion = 'dasolidar'
+            if len(listaParametroConfiguracion) > 2:
+                tipoParametroConfiguracion = listaParametroConfiguracion[2]
+            else:
+                tipoParametroConfiguracion = 'desconocido'
+            if len(listaParametroConfiguracion) > 3:
+                descripcionParametroConfiguracion = listaParametroConfiguracion[3]
+            else:
+                descripcionParametroConfiguracion = ''
     
             # config.set(grupoParametroConfiguracion, nombreParametroDeConfiguracion, [str(valorParametroConfiguracion), tipoParametroConfiguracion])
             if not descripcionParametroConfiguracion is None:
@@ -174,10 +183,10 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                 if (descripcionParametroConfiguracion.encode('utf-8')).decode('cp1252') != descripcionParametroConfiguracion:
                     descripcionParametroConfiguracion = ''
     
-            listaConcatenada = '{}|+|{}|+|{}'.format(
+            listaConcatenada = '{}|+|{}'.format(
                 str(valorParametroConfiguracion),
                 str(tipoParametroConfiguracion),
-                str(descripcionParametroConfiguracion)
+                # str(descripcionParametroConfiguracion)
             )
     
             config.set(
@@ -248,7 +257,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                 if len(listaParametroConfiguracion) > 1:
                     tipoParametroConfiguracion = listaParametroConfiguracion[1]
                 else:
-                    tipoParametroConfiguracion = 'str'
+                    tipoParametroConfiguracion = 'desconocido'
                 valorParametroConfiguracion = clidconfig.valorConfig(
                     valorPrincipal,
                     valorAlternativoTxt='',
@@ -405,100 +414,172 @@ def leerConfigDictPorDefecto():
     Estructura:
         GRAL_configDict[nombreParametroDeConfiguracion] = [valorParametro, grupoParametros, tipoVariable, descripcionParametro]
     '''
+    localData = 'PuenteDuero'
     configDictPorDefecto = {
-        'GLBLverbose': [2, 'General', 'bool', 'Mostrar info de ejecucion en consola'],
-        # 'MAINprocedimiento': ['', 'General', 'str', ''],
-        # 'GLBLsoloRoquedosParaEntrenamiento': ['', 'General', 'str', ''],
+        'GLBLverbose': [2,
+                        'general', 'bool',
+                        'Mostrar info de ejecucion en consola'],
+        'GLBLmenuInteractivoPorDefecto': [0,
+                                          'general', 'bool',
+                                          'Preguntar en tiempo de ejecucion para confirmar opciones'],
+        'GLBLnivelSubdirExplPorDefecto': [1,
+                                          'general', 'bool',
+                                          'Explorar subdirectorios de rutaAscRaizBase'],
+        'GLBLrasterPixelSizePorDefecto': [10,
+                                          'general', 'uint8',
+                                          'Lado del pixel dasometrico en metros (pte ver diferencia con GLBLmetrosCelda)'],
+        'GLBLambitoTiffNuevoPorDefecto': ['loteAsc',
+                                          'general', 'str',
+                                          'Principalmente para merge: ambito geografico del nuevo raster creado (uno predeterminado o el correspondiente a los ASC)'],
+
     
-        'GLBLaccionPrincipalPorDefecto': ['2', 'dasoLidar', 'bool', '1. Verificar analog�a con un determinado patron dasoLidar; 2. Generar raster con presencia de un determinado patron dasoLidar.'],
+        'GLBLaccionPrincipalPorDefecto': ['1', 'dasoLidar', 'bool', '1. Verificar analog�a con un determinado patron dasoLidar; 2. Generar raster con presencia de un determinado patron dasoLidar.'],
     
         # Ruta de los lasFiles para Leon:
-        'GLBLrutaAscRaizBasePorDefecto': ['K:/calendula/NW', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
-        'GLBLrutaAscRaizBasePorDefecto': ['', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
-        'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre', 'dasoLidar', 'str', 'Ruta de los ASC para el dasolidar cluster en JCyL'],
+        # 'GLBLrutaAscRaizBasePorDefecto': ['K:/calendula/NW',
+        # 'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre',
+        # 'GLBLrutaAscRaizBasePorDefecto': ['',
+        'GLBLrutaAscRaizBasePorDefecto': [f'../data/asc/{localData}',
+                                          'dasoLidar', 'str',
+                                          'Ruta de los ASC para el dasolidar cluster en JCyL'],
     
-        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/zonaEnsayoTolosana.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
-        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/perimetrosDeReferencia.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
-        'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
-        'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
+        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/zonaEnsayoTolosana.shp',
+        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/perimetrosDeReferencia.gpkg',
+        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg',
+        # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp',
+        'GLBLpatronVectrNamePorDefecto': [f'../data/ref/cartoLidar{localData}.gpkg',
+                                          'dasoLidar', 'str',
+                                          'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
     
-        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/MUP_rodales_zonaEstudio.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
-        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/testeo_roble.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
-        'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) de contraste (testeo) para verificar su analogia con el patron dasoLidar'],
-        'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp', 'dasoLidar', 'str', 'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
-    
-        # 'GLBLpatronLayerNamePorDefecto': [r'robleAlto1', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
-        # 'GLBLtesteoLayerNamePorDefecto': [r'robleAlto2', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
-        'GLBLpatronLayerNamePorDefecto': [r'', 'dasoLidar', 'str', 'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
-        'GLBLtesteoLayerNamePorDefecto': [r'', 'dasoLidar', 'str', 'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
-    
-        'GLBLrasterPixelSizePorDefecto': [10, 'General', 'uint8', 'Lado del pixel dasometrico en metros (pte ver diferencia con GLBLmetrosCelda)'],
-        'GLBLradioClusterPixPorDefecto': [3, 'dasoLidar', 'uint8', 'Numero de anillos de pixeles que tiene el cluster, ademas del central'],
-    
-        # 'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/24_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
-        'GLBLrutaCompletaMFEPorDefecto': ['O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp', 'dasoLidar', 'str', 'Nombre (con ruta y extension) del fichero con la capa MFE'],
-        'GLBLcartoMFEcampoSpPorDefecto': ['SP1', 'dasoLidar', 'str', 'Nombre del campo con el codigo numerico de la especie principal o tipo de bosque en la capa MFE'],
-    
-        'GLBLnPatronDasoVarsPorDefecto': [0, 'dasoLidar', 'int', 'Si es distinto de cero, numero de dasoVars con las que se caracteriza el patron (n primeras dasoVars)'],
-    
-        'GLBLnClasesDasoVarsPorDefecto': [5, 'dasoLidar', 'int', 'Numero de clases por defecto para todas las variables si no se especifica para cada variable.'],
-        'GLBLtrasferDasoVarsPorDefecto': [25, 'dasoLidar', 'int', 'Porcentaje de movilidad admisible interclases si no se especifica para cada variable.'],
+        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/MUP_rodales_zonaEstudio.shp',
+        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/testeo_roble.shp',
+        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg',
+        # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp',
+        'GLBLtesteoVectrNamePorDefecto': [f'../data/ref/cartoLidar{localData}.gpkg',
+                                          'dasoLidar', 'str',
+                                          'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
 
-            'GLBLlistaDasoVarsFileTypes': [
-            'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE25,TMasa',
-            # 'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,MFE,TipoMasa',
-            'dasoLidar', 'list_str', 'Lista de tipos de fichero para el dasoLidar'
+        # 'GLBLpatronLayerNamePorDefecto': [r'robleAlto1',
+        # 'GLBLpatronLayerNamePorDefecto': [r'',
+        'GLBLpatronLayerNamePorDefecto': [r'vectorPatron',
+                                          'dasoLidar', 'str',
+                                          'Nombre del layer de referencia (patron) para caracterizacion dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+
+        # 'GLBLtesteoLayerNamePorDefecto': [r'robleAlto2',
+        # 'GLBLtesteoLayerNamePorDefecto': [r'',
+        'GLBLtesteoLayerNamePorDefecto': [r'vectorTesteo',
+                                          'dasoLidar', 'str',
+                                          'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+    
+        'GLBLradioClusterPixPorDefecto': [3,
+                                          'dasoLidar', 'uint8',
+                                          'Numero de anillos de pixeles que tiene el cluster, ademas del central'],
+    
+        # 'GLBLrutaCompletaMFEPorDefecto': [r'O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp',
+        'GLBLrutaCompletaMFEPorDefecto': [f'../data/mfe/{localData}/MFE_{localData}.shp',
+                                          'dasoLidar', 'str',
+                                          'Nombre (con ruta y extension) del fichero con la capa MFE'],
+
+        'GLBLcartoMFEcampoSpPorDefecto': ['SP1',
+                                          'dasoLidar', 'str',
+                                          'Nombre del campo con el codigo numerico de la especie principal o tipo de bosque en la capa MFE'],
+    
+        'GLBLnPatronDasoVarsPorDefecto': [0,
+                                          'dasoLidar', 'int',
+                                          'Si es distinto de cero, numero de dasoVars con las que se caracteriza el patron (n primeras dasoVars)'],
+    
+        'GLBLnClasesDasoVarsPorDefecto': [5,
+                                          'dasoLidar', 'int',
+                                          'Numero de clases por defecto para todas las variables si no se especifica para cada variable.'],
+
+        'GLBLtrasferDasoVarsPorDefecto': [25,
+                                          'dasoLidar', 'int',
+                                          'Porcentaje de movilidad admisible interclases si no se especifica para cada variable.'],
+
+        'GLBLlistaDasoVarsFileTypes': [
+            # 'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE25,TMasa',
+            'alt95,fcc3m,cob05_200cm,MFE25,TMasa',
+            'dasoLidar', 'list_str',
+            'Lista de tipos de fichero para el dasoLidar'
         ],
         'GLBLlistaDasoVarsNickNames': [
-            'Alt95,FCC5m,FCC3m,FCmat,FCsub,MFE25,TMasa',
-            # 'Alt95,FCC5m,FCC3m,FCmat,MFE25,TMasa',
-            'dasoLidar', 'list_str', 'Lista de variables para el dasoLidar'
+            # 'Alt95,FCC5m,FCC3m,FCmat,FCsub,MFE25,TMasa',
+            'Alt95,Fcc3m,CobMt,MFE25,TMasa',
+            'dasoLidar', 'list_str',
+            'Lista de variables para el dasoLidar'
         ],
         'GLBLlistaDasoVarsRangoLinf': [
-            '0,0,0,0,0,0,0',
-            # '0,0,0,0,0,0',
-            'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
+            # '0,0,0,0,0,0,0',
+            '0,0,0,0,0',
+            'dasoLidar', 'list_int',
+            'Lista de variables para el dasoLidar'
         ],
         'GLBLlistaDasoVarsRangoLsup': [
-            '36,100,100,100,100,255,255',
-            # '36,100,100,100,255,255',
-            'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
+            # '36,100,100,100,100,255,255',
+            '36,100,100,255,255',
+            'dasoLidar', 'list_int',
+            'Lista de variables para el dasoLidar'
         ],
         'GLBLlistaDasoVarsNumClases': [
-            '18,5,5,5,5,255,255',
-            # '18,5,5,5,255,255',
-            'dasoLidar', 'list_int', 'Lista de variables para el dasoLidar'
+            # '18,5,5,5,5,255,255',
+            '18,5,5,255,255',
+            'dasoLidar', 'list_int',
+            'Lista de variables para el dasoLidar'
         ],
         'GLBLlistaDasoVarsMovilidad': [
-            '40,25,30,35,35,0,0',
-            # '25,20,20,25,0,0',
-            'dasoLidar', 'list_int', 'Lista de factores de movilidad admitidas entre clases del histograma de la variable dasoVar (0-100)'
+            # '40,25,30,35,35,0,0',
+            '40,25,35,0,0',
+            'dasoLidar', 'list_int',
+            'Lista de factores de movilidad admitidas entre clases del histograma de la variable dasoVar (0-100)'
         ],
         'GLBLlistaDasoVarsPonderado': [
-            '10,8,5,4,3,0,0',
-            'dasoLidar', 'list_int', 'Peso de cada variable para poderar las discrepancias respecto al modelo o patron (0-10).'
+            # '10,8,5,4,3,0,0',
+            '10,8,5,0,0',
+            'dasoLidar', 'list_int',
+            'Peso de cada variable para poderar las discrepancias respecto al modelo o patron (0-10).'
         ],
     
-        'GLBLmenuInteractivoPorDefecto': [0, 'General', 'bool', 'Preguntar en tiempo de ejecucion para confirmar opciones'],
-        'GLBLmarcoPatronTestPorDefecto': [1, 'dasoLidar', 'bool', 'Zona de analisis definida por la envolvente de los poligonos de referencia (patron) y de chequeo (testeo)'],
-        'GLBLnivelSubdirExplPorDefecto': [3, 'General', 'bool', 'Explorar subdirectorios de rutaAscRaizBase'],
-        'GLBLoutRasterDriverPorDefecto': ['GTiff', 'dasoLidar', 'str', 'Formato de fichero raster de salida para el dasolidar'],
-        'GLBLoutputSubdirNewPorDefecto': ['dasoLayers', 'dasoLidar', 'str', 'Subdirectorio de GLBLrutaAscRaizBasePorDefecto donde se guardan los resultados'],
-        'GLBLcartoMFErecortePorDefecto': ['mfe50rec', 'dasoLidar', 'str', 'Nombre del fichero en el que se guarda la version recortada raster del MFE'],
-        'GLBLvarsTxtFileNamePorDefecto': ['rangosDeDeferencia.txt', 'dasoLidar', 'str', 'Nombre de fichero en el que se guardan los rangos calculados para todas las variables'],
-        ''
-        'GLBLambitoTiffNuevoPorDefecto': ['loteAsc', 'general', 'str', 'Principalmente para merge: ambito geografico del nuevo raster creado (uno predeterminado o el correspondiente a los ASC)'],
+        'GLBLmarcoPatronTestPorDefecto': [1,
+                                          'dasoLidar', 'bool',
+                                          'Zona de analisis definida por la envolvente de los poligonos de referencia (patron) y de chequeo (testeo)'],
+        'GLBLoutRasterDriverPorDefecto': ['GTiff',
+                                          'dasoLidar', 'str',
+                                          'Formato de fichero raster de salida para el dasolidar'],
+        'GLBLoutputSubdirNewPorDefecto': ['dasoLayers',
+                                          'dasoLidar', 'str',
+                                          'Subdirectorio de GLBLrutaAscRaizBasePorDefecto donde se guardan los resultados'],
+        'GLBLcartoMFErecortePorDefecto': ['mfe50rec',
+                                          'dasoLidar', 'str',
+                                          'Nombre del fichero en el que se guarda la version recortada raster del MFE'],
+        'GLBLvarsTxtFileNamePorDefecto': ['rangosDeDeferencia.txt',
+                                          'dasoLidar', 'str',
+                                          'Nombre de fichero en el que se guardan los rangos calculados para todas las variables'],
     
-        'GLBLnoDataTiffProviPorDefecto': [-8888, 'dasoLidar', 'int', 'NoData temporal para los ficheros raster de salida para el dasolidar'],
-        'GLBLnoDataTiffFilesPorDefecto': [-9999, 'dasoLidar', 'int', 'NoData definitivo para los ficheros raster de salida para el dasolidar'],
-        'GLBLnoDataTipoDMasaPorDefecto': [255, 'dasoLidar', 'int', 'NoData definitivo para el raster de salida con el tipo de masa para el dasolidar'],
-        'GLBLumbralMatriDistPorDefecto': [20, 'dasoLidar', 'int', 'Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars'],
+        'GLBLnoDataTiffProviPorDefecto': [-8888,
+                                          'dasoLidar', 'int',
+                                          'NoData temporal para los ficheros raster de salida para el dasolidar'],
+        'GLBLnoDataTiffFilesPorDefecto': [-9999,
+                                          'dasoLidar', 'int',
+                                          'NoData definitivo para los ficheros raster de salida para el dasolidar'],
+        'GLBLnoDataTipoDMasaPorDefecto': [255,
+                                          'dasoLidar', 'int',
+                                          'NoData definitivo para el raster de salida con el tipo de masa para el dasolidar'],
+        'GLBLumbralMatriDistPorDefecto': [20,
+                                          'dasoLidar', 'int',
+                                          'Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars'],
 
-        'GLBLmarcoCoordMiniXPorDefecto': [0, 'dasoLidar', 'int', 'Limite inferior X para delimitar la zona de analisis'],
-        'GLBLmarcoCoordMaxiXPorDefecto': [0, 'dasoLidar', 'int', 'Limite superior X para delimitar la zona de analisis'],
-        'GLBLmarcoCoordMiniYPorDefecto': [0, 'dasoLidar', 'int', 'Limite inferior Y para delimitar la zona de analisis'],
-        'GLBLmarcoCoordMaxiYPorDefecto': [0, 'dasoLidar', 'int', 'Limite superior Y para delimitar la zona de analisis'],
-
+        'GLBLmarcoCoordMiniXPorDefecto': [0,
+                                          'dasoLidar', 'int',
+                                          'Limite inferior X para delimitar la zona de analisis'],
+        'GLBLmarcoCoordMaxiXPorDefecto': [0,
+                                          'dasoLidar', 'int',
+                                          'Limite superior X para delimitar la zona de analisis'],
+        'GLBLmarcoCoordMiniYPorDefecto': [0,
+                                          'dasoLidar', 'int',
+                                          'Limite inferior Y para delimitar la zona de analisis'],
+        'GLBLmarcoCoordMaxiYPorDefecto': [0,
+                                          'dasoLidar', 'int',
+                                          'Limite superior Y para delimitar la zona de analisis'],
     }
     return configDictPorDefecto
 

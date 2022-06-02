@@ -485,7 +485,7 @@ that usually take the default values (from configuration file or clidtwins_confi
             miDasoVarNickName = self.LOCLlistaDasoVarsNickNames[nInputVar]
             if self.LOCLverbose:
                 print('-> Tipo {}: > Variable: {} - Identificador del tipo de fichero: {}'.format(nInputVar, miDasoVarNickName, miTipoDeFicheroDasoLayer))
-            if miDasoVarNickName == 'MFE25' or miDasoVarNickName == 'TMasa':
+            if miDasoVarNickName.startswith('MFE') or miDasoVarNickName == 'TMasa':
                 if self.LOCLverbose > 1:
                     print(f'{TB}{TV}-> No requiere explorar directorios')
                 continue
@@ -506,11 +506,11 @@ that usually take the default values (from configuration file or clidtwins_confi
 
                 subDirExplorado = dirpathOk.replace(self.LOCLrutaAscRaizBase, '')
                 if dirpathOk == self.LOCLrutaAscRaizBase:
-                    nivelDeSubdir = 0
+                    nivelDeSubdir = 1
                 elif not '/' in subDirExplorado and not '\\' in subDirExplorado:
-                    nivelDeSubdir = 0
+                    nivelDeSubdir = 1
                 else:
-                    nivelDeSubdir = subDirExplorado.count('/') + subDirExplorado.count('\\')
+                    nivelDeSubdir = subDirExplorado.count('/') + subDirExplorado.count('\\') + 1
                 if self.LOCLnivelSubdirExpl and nivelDeSubdir > self.LOCLnivelSubdirExpl:
                     if self.LOCLverbose > 2:
                         print(f'{TB}{TV}Se ha alcanzado el nivel de directorios maximo ({self.LOCLnivelSubdirExpl})\n')
@@ -634,7 +634,7 @@ that usually take the default values (from configuration file or clidtwins_confi
         # Hay una lista de tuplas (path, file) por cada fileType (DLV)
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
             if (
-                self.LOCLlistLstDasoVars[numDasoVarX][1] == 'MFE25'
+                (self.LOCLlistLstDasoVars[numDasoVarX][1]).startswith('MFE')
                 or self.LOCLlistLstDasoVars[numDasoVarX][1] == 'TMasa'
             ):
                 print('clidtwins-> ATENCION: por aqui no debiera pasar')
@@ -715,7 +715,7 @@ that usually take the default values (from configuration file or clidtwins_confi
 
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
             if (
-                self.LOCLlistLstDasoVars[numDasoVarX][1] == 'MFE25'
+                (self.LOCLlistLstDasoVars[numDasoVarX][1]).startswith('MFE')
                 or self.LOCLlistLstDasoVars[numDasoVarX][1] == 'TMasa'
             ):
                 print('clidtwins-> ATENCION: por aqui no debiera pasar')
@@ -725,7 +725,7 @@ that usually take the default values (from configuration file or clidtwins_confi
             for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
                 codigoBloque = nameFile[:8]
                 if codigoBloque in self.inFilesDictAllTypes.keys() and len(self.inFilesDictAllTypes[codigoBloque]) < self.nInputVars:
-                    del listaFileTuplesDasoVarX[numFile]
+                    del self.inFilesListAllTypes[numDasoVarX][numFile]
         for numDasoVarX, listaFileTuplesDasoVarX in enumerate(self.inFilesListAllTypes):
             self.inFilesListAllTypes[numDasoVarX] = sorted(listaFileTuplesDasoVarX, key=itemgetter(1))
 
@@ -1038,7 +1038,7 @@ that usually take the default values (from configuration file or clidtwins_confi
             # else:
             #     self.LOCLlistaDasoVarsPonderado.append(10)
             if self.LOCLverbose:
-                if thisListLstDasoVar[0] == 'MFE25':
+                if (thisListLstDasoVar[0]).startswith('MFE'):
                     pesoPonderado = 'Excluyente'
                 elif thisListLstDasoVar[6] == 0:
                     pesoPonderado = '--'
@@ -1457,6 +1457,7 @@ and two more layers for forest type (land cover) and stand type.
 
         #===========================================================================
         (
+            self.outputRangosFileTxtSinPath,
             self.outputRangosFileNpzSinPath,
             self.nBandasRasterOutput,
             self.rasterDatasetAll,
@@ -1468,7 +1469,7 @@ and two more layers for forest type (land cover) and stand type.
             self.codeTipoBosquePatronMasFrecuente1,
             self.pctjTipoBosquePatronMasFrecuente2,
             self.codeTipoBosquePatronMasFrecuente2,
-            self.histProb01Patron,
+            self.histProb01PatronBosque,
         ) = recortarRasterTiffPatronDasoLidar(
             self.LOCLrutaAscRaizBase,
             self.LOCLoutPathNameRuta,
@@ -1587,12 +1588,15 @@ and two more layers for forest type (land cover) and stand type.
 
         outputBand1Clip = rasterDatasetClip.GetRasterBand(1)
         arrayBanda1Clip = outputBand1Clip.ReadAsArray().astype(self.outputNpDatatypeAll)
-        # Mascara con ceros en celdas con alguna variable noData
+        # Se recorren todas las variables para generar una Mascara
+        # con unos en celdas con alguna variable noData
         arrayBandaXMaskTesteo = np.full_like(arrayBanda1Clip, 0, dtype=np.uint8)
+        arrayBandaXPesoTesteo = np.full_like(arrayBanda1Clip, 1, dtype=np.uint8)
         for nBanda in range(1, nBandasRasterOutput + 1):
             outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
             arrayBandaXClip = outputBandXClip.ReadAsArray().astype(self.outputNpDatatypeAll)
             arrayBandaXMaskTesteo[arrayBandaXClip == self.noDataDasoVarAll] = 1
+            arrayBandaXPesoTesteo[arrayBandaXClip == self.noDataDasoVarAll] = 0
 
         nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskTesteo == 0)
         listaCeldasConDasoVarsTesteo = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=self.outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
@@ -1623,20 +1627,31 @@ and two more layers for forest type (land cover) and stand type.
             # https://numpy.org/doc/stable/reference/routines.ma.html#conversion-operations
             arrayBandaXClipMasked = ma.masked_array(
                 arrayBandaXClip,
-                mask=arrayBandaXMaskTesteo,
+                mask=arrayBandaXMaskTesteo, # misma mascara para todas las bandas (enmascara cuando alguna dasoVar es noData)
                 dtype=self.outputNpDatatypeAll
                 )
             # print(f'Numero de puntos Testeo con dasoVars ok (banda {nBanda}):', len(ma.compressed(arrayBandaXClipMasked)))
-            listaCeldasConDasoVarsTesteo[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
 
+            listaCeldasConDasoVarsTesteo[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
+            celdasConValorSiData = arrayBandaXClip[(arrayBandaXPesoTesteo != 0) & (arrayBandaXClip != self.noDataDasoVarAll)]
             if (
-                arrayBandaXClip.shape[0] > 0
-                and arrayBandaXClip.sum() != 0
+                np.count_nonzero(celdasConValorSiData) > 0
                 and self.myNBins[nBanda] > 0
                 and self.myRange[nBanda][1] - self.myRange[nBanda][0] > 0
             ):
-                histNumberTesteo = np.histogram(arrayBandaXClip, bins=self.myNBins[nBanda], range=self.myRange[nBanda])
-                histProbabTesteo = np.histogram(arrayBandaXClip, bins=self.myNBins[nBanda], range=self.myRange[nBanda], density=True)
+                histNumberTesteo = np.histogram(
+                    arrayBandaXClip,
+                    bins=self.myNBins[nBanda],
+                    range=self.myRange[nBanda],
+                    weights=arrayBandaXPesoTesteo,
+                )
+                histProbabTesteo = np.histogram(
+                    arrayBandaXClip,
+                    bins=self.myNBins[nBanda],
+                    range=self.myRange[nBanda],
+                    weights=arrayBandaXPesoTesteo,
+                    density=True,
+                )
             else:
                 print(f'clidtwins-> (a) Revisar myNBins {self.myNBins[nBanda]} y myRange {self.myRange[nBanda]} para banda {nBanda} con sumaValores: {arrayBandaXClip.sum()}')
                 print(f'{TB}Se crean histogramas con {self.myNBins} clases nulas')
@@ -1676,9 +1691,10 @@ and two more layers for forest type (land cover) and stand type.
                 for contadorTB1, numPosicionTipoBosqueTesteo1 in enumerate(arrayPosicionTipoBosqueTesteo1[0]):
                     # print(f'{TB}-> {numPosicionTipoBosqueTesteo1}')
                     print(f'{TB}-> {contadorTB1} Tipo de bosque primero (testeo): {numPosicionTipoBosqueTesteo1}; frecuencia: {int(round(100 * histProb01Testeo[numPosicionTipoBosqueTesteo1], 0))} %')
-                if self.histProb01Patron[arrayPosicionTipoBosqueTesteo2[0][0]] != 0:
+#ñññ
+                if self.histProb01PatronBosque[arrayPosicionTipoBosqueTesteo2[0][0]] != 0:
                     for contadorTB2, numPosicionTipoBosqueTesteo2 in enumerate(arrayPosicionTipoBosqueTesteo2[0]):
-                        # print(f'{TB}-> {numPosicionTipoBosqueTesteo2}')
+                        print(f'{TB}-> numPosicionTipoBosqueTesteo2: {numPosicionTipoBosqueTesteo2}')
                         if histProb01Testeo[numPosicionTipoBosqueTesteo2] != 0:
                             print(f'{TB}-> {contadorTB2} Tipo de bosque segundo (testeo): {numPosicionTipoBosqueTesteo2}; frecuencia: {int(round(100 * histProb01Testeo[numPosicionTipoBosqueTesteo2], 0))} %')
                 else:
@@ -1797,13 +1813,19 @@ and two more layers for forest type (land cover) and stand type.
         print(f'{TB}-> Factor de proximidad:     {pctjPorcentajeDeProximidad}')
         print('{:=^80}'.format(''))
 
-        return (
-            tipoBosqueOk,
-            nVariablesNoOk,
-            distanciaEuclideaMedia,
-            pctjPorcentajeDeProximidad,
-            matrizDeDistancias,
-        )
+        self.tipoBosqueOk = tipoBosqueOk
+        self.nVariablesNoOk = nVariablesNoOk
+        self.distanciaEuclideaMedia = distanciaEuclideaMedia
+        self.pctjPorcentajeDeProximidad = pctjPorcentajeDeProximidad
+        self.matrizDeDistancias = matrizDeDistancias
+
+        # return (
+        #     tipoBosqueOk,
+        #     nVariablesNoOk,
+        #     distanciaEuclideaMedia,
+        #     pctjPorcentajeDeProximidad,
+        #     matrizDeDistancias,
+        # )
 
     # ==========================================================================
     def generarRasterCluster(
@@ -2344,7 +2366,6 @@ and two more layers for forest type (land cover) and stand type.
                         # print('clidtwins-> Matriz de distancias:')
                         # print(matrizDeDistancias[:5,:5])
                 # ==================================================================
-                # ññ
                 tipoMasaOk = tipoBosqueOk >= 5 and nVariablesNoOk <= 1
                 if TRNSmostrarClusterMatch and self.LOCLverbose > 1:
                     print(
@@ -2400,6 +2421,14 @@ and two more layers for forest type (land cover) and stand type.
                 dictSelecMultiBandaClusterDasoVars[outputNBand]
             )
             dictSelecMultiBandaClusterDasoVars[outputNBand] = dictSelecMultiBandaClusterDasoVarsNBand
+
+        return (
+            self.LOCLoutPathNameRuta,
+            self.outputClusterAllDasoVarsFileNameSinPath,
+            self.outputClusterTiposDeMasaFileNameSinPath,
+            self.outputClusterDistanciaEuFileNameSinPath,
+            self.outputClusterFactorProxiFileNameSinPath,
+        )
 
 
 # ==============================================================================
@@ -2751,7 +2780,11 @@ def calculaHistogramas(
         #     and self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0
         # ):
         celdasConValorSiData = localClusterArrayMultiBandaDasoVars[nBanda-1][(localClusterArrayRound != 0) & (localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)]
-        if np.count_nonzero(celdasConValorSiData) > 0:
+        if (
+            np.count_nonzero(celdasConValorSiData) > 0
+            and self_myNBins[nBanda] > 0
+            and self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0
+        ):
             # if np.count_nonzero(celdasConValorSiData) == 0:
             #     print(f'\nclidtwins-> ------------> ATENCION: celda sin datos.')
             # else:
@@ -3306,6 +3339,7 @@ def recortarRasterTiffPatronDasoLidar(
     # print('--->>> rasterDatasetAll (1):', rasterDatasetAll)
     #===========================================================================
 
+    LOCLoutputRangosFileTxtSinPath = self_LOCLvarsTxtFileName
     LOCLoutputRangosFileNpzSinPath = self_LOCLvarsTxtFileName.replace('.txt', '.npz')
     LOCLdictHistProb01 = {}
 
@@ -3426,7 +3460,7 @@ def recortarRasterTiffPatronDasoLidar(
 
         # histNumberPatron = [np.zeros(myNBins[nBanda]), None]
         # histProbabPatron = [np.zeros(myNBins[nBanda]), None]
-        # histProb01Patron = np.array([0])
+        # histProb01PatronBandaX = np.array([0])
         # codeTipoBosquePatronMasFrecuente1 = 0
         # codeTipoBosquePatronMasFrecuente2 = 0
         # pctjTipoBosquePatronMasFrecuente1 = 0
@@ -3447,7 +3481,7 @@ def recortarRasterTiffPatronDasoLidar(
             histProbabPatron = [np.zeros(myNBins[nBanda]), None]
     
         # print(f'\nhistProbabPatron[0]: {type(histProbabPatron[0])}')
-        histProb01Patron = np.array(histProbabPatron[0]) * ((myRange[nBanda][1] - myRange[nBanda][0]) / myNBins[nBanda])
+        histProb01PatronBandaX = np.array(histProbabPatron[0]) * ((myRange[nBanda][1] - myRange[nBanda][0]) / myNBins[nBanda])
 
         if nBanda == nBandasRasterOutput:
             if self_LOCLverbose:
@@ -3463,15 +3497,15 @@ def recortarRasterTiffPatronDasoLidar(
             arrayPosicionTipoDeMasaPatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoDeMasaPatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
             if self_LOCLverbose:
-                print(f'{TB}-> Tipo de masa principal (patron): {codeTipoDeMasaPatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01Patron[codeTipoDeMasaPatronMasFrecuente1], 0))} %')
+                print(f'{TB}-> Tipo de masa principal (patron): {codeTipoDeMasaPatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente1], 0))} %')
                 # print(f'{TB}-> {arrayPosicionTipoDeMasaPatron1}')
                 for contadorTB1, numPosicionTipoDeMasaPatron1 in enumerate(arrayPosicionTipoDeMasaPatron1[0]):
                     # print(f'{TB}-> {numPosicionTipoDeMasaPatron1}')
-                    print(f'{TB}-> {contadorTB1} Tipo de masa primero (patron): {numPosicionTipoDeMasaPatron1}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoDeMasaPatron1], 0))} %')
-                if histProb01Patron[arrayPosicionTipoDeMasaPatron2[0][0]] != 0:
+                    print(f'{TB}-> {contadorTB1} Tipo de masa primero (patron): {numPosicionTipoDeMasaPatron1}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoDeMasaPatron1], 0))} %')
+                if histProb01PatronBandaX[arrayPosicionTipoDeMasaPatron2[0][0]] != 0:
                     for contadorTB2, numPosicionTipoDeMasaPatron2 in enumerate(arrayPosicionTipoDeMasaPatron2[0]):
                         # print(f'{TB}-> {numPosicionTipoDeMasaPatron2}')
-                        print(f'{TB}-> {contadorTB2} Tipo de masa segundo (patron): {numPosicionTipoDeMasaPatron2}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoDeMasaPatron2], 0))} %')
+                        print(f'{TB}-> {contadorTB2} Tipo de masa segundo (patron): {numPosicionTipoDeMasaPatron2}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoDeMasaPatron2], 0))} %')
 
             if codeTipoDeMasaPatronMasFrecuente1 != arrayPosicionTipoDeMasaPatron1[0][0]:
                 print(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoDeMasaPatronMasFrecuente1} != {arrayPosicionTipoDeMasaPatron1[0][0]}')
@@ -3480,8 +3514,8 @@ def recortarRasterTiffPatronDasoLidar(
             else:
                 codeTipoDeMasaPatronMasFrecuente2 = arrayPosicionTipoDeMasaPatron1[0][1]
 
-            pctjTipoDeMasaPatronMasFrecuente1 = int(round(100 * histProb01Patron[codeTipoDeMasaPatronMasFrecuente1], 0))
-            pctjTipoDeMasaPatronMasFrecuente2 = int(round(100 * histProb01Patron[codeTipoDeMasaPatronMasFrecuente2], 0))
+            pctjTipoDeMasaPatronMasFrecuente1 = int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente1], 0))
+            pctjTipoDeMasaPatronMasFrecuente2 = int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente2], 0))
 
             if self_LOCLverbose:
                 print(f'{TB}-> Tipos de masa mas frecuentes (patron): 1-> {codeTipoDeMasaPatronMasFrecuente1} ({pctjTipoDeMasaPatronMasFrecuente1} %); 2-> {codeTipoDeMasaPatronMasFrecuente2} ({pctjTipoDeMasaPatronMasFrecuente2} %)')
@@ -3494,6 +3528,7 @@ def recortarRasterTiffPatronDasoLidar(
             if self_LOCLverbose:
                 print(f'\nHistograma para tipos de bosque (banda {nBanda})')
             # tipoBosquePrimerNumero = np.min(np.nonzero(histNumberPatron[0]))
+            histProb01PatronBosque = histProb01PatronBandaX
             try:
                 tipoBosqueUltimoNumero = np.max(np.nonzero(histNumberPatron[0]))
             except:
@@ -3504,15 +3539,15 @@ def recortarRasterTiffPatronDasoLidar(
             arrayPosicionTipoBosquePatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoBosquePatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
             if self_LOCLverbose:
-                print(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01Patron[codeTipoBosquePatronMasFrecuente1], 0))} %')
+                print(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))} %')
                 # print(f'{TB}-> {arrayPosicionTipoBosquePatron1}')
                 for contadorTB1, numPosicionTipoBosquePatron1 in enumerate(arrayPosicionTipoBosquePatron1[0]):
                     # print(f'{TB}-> {numPosicionTipoBosquePatron1}')
-                    print(f'{TB}-> {contadorTB1} Tipo de bosque primero (patron): {numPosicionTipoBosquePatron1}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoBosquePatron1], 0))} %')
-                if histProb01Patron[arrayPosicionTipoBosquePatron2[0][0]] != 0:
+                    print(f'{TB}-> {contadorTB1} Tipo de bosque primero (patron): {numPosicionTipoBosquePatron1}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoBosquePatron1], 0))} %')
+                if histProb01PatronBandaX[arrayPosicionTipoBosquePatron2[0][0]] != 0:
                     for contadorTB2, numPosicionTipoBosquePatron2 in enumerate(arrayPosicionTipoBosquePatron2[0]):
                         # print(f'{TB}-> {numPosicionTipoBosquePatron2}')
-                        print(f'{TB}-> {contadorTB2} Tipo de bosque segundo (patron): {numPosicionTipoBosquePatron2}; frecuencia: {int(round(100 * histProb01Patron[numPosicionTipoBosquePatron2], 0))} %')
+                        print(f'{TB}-> {contadorTB2} Tipo de bosque segundo (patron): {numPosicionTipoBosquePatron2}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoBosquePatron2], 0))} %')
             else:
                 if self_LOCLverbose:
                     print(f'{TB}-> Solo hay tipo de bosque princial')
@@ -3523,8 +3558,8 @@ def recortarRasterTiffPatronDasoLidar(
             else:
                 codeTipoBosquePatronMasFrecuente2 = arrayPosicionTipoBosquePatron1[0][1]
 
-            pctjTipoBosquePatronMasFrecuente1 = int(round(100 * histProb01Patron[codeTipoBosquePatronMasFrecuente1], 0))
-            pctjTipoBosquePatronMasFrecuente2 = int(round(100 * histProb01Patron[codeTipoBosquePatronMasFrecuente2], 0))
+            pctjTipoBosquePatronMasFrecuente1 = int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))
+            pctjTipoBosquePatronMasFrecuente2 = int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente2], 0))
 
             if self_LOCLverbose:
                 print(f'{TB}-> Tipos de bosque mas frecuentes (patron): 1-> {codeTipoBosquePatronMasFrecuente1} ({pctjTipoBosquePatronMasFrecuente1} %); 2-> {codeTipoBosquePatronMasFrecuente2} ({pctjTipoBosquePatronMasFrecuente2} %)')
@@ -3549,13 +3584,13 @@ def recortarRasterTiffPatronDasoLidar(
             # for numRango in range(len(histNumberPatron[0])):
             #     if histNumberPatron[0][numRango] != 0:
             #         print(f'{TB}{TV}-> Rango num: {numRango} -> nPixeles: {histNumberPatron[0][numRango]}')
-        # print(f'{TB}-> Suma frecuencias: {round(histProb01Patron.sum(), 2)}')
+        # print(f'{TB}-> Suma frecuencias: {round(histProb01PatronBandaX.sum(), 2)}')
 
         if nInputVar >= 0 and nInputVar < nInputVars:
             claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_ref'
             claveMin = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_min'
             claveMax = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_max'
-            LOCLdictHistProb01[claveDef] = histProb01Patron
+            LOCLdictHistProb01[claveDef] = histProb01PatronBandaX
             LOCLdictHistProb01[claveMin] = np.zeros(myNBins[nBanda], dtype=np.float32)
             LOCLdictHistProb01[claveMax] = np.zeros(myNBins[nBanda], dtype=np.float32)
             # if 0 in LOCLdictHistProb01[claveDef]:
@@ -3572,7 +3607,7 @@ def recortarRasterTiffPatronDasoLidar(
                 print(f'{TB}{TV}-> LOCLdictHistProb01[{claveDef}]:', LOCLdictHistProb01[claveDef][:ultimoNoZero + 2])
             # print('LOCLdictHistProb01[claveMin]:', LOCLdictHistProb01[claveMin])
             # print('LOCLdictHistProb01[claveMax]:', LOCLdictHistProb01[claveMax])
-            for nRango in range(len(histProb01Patron)):
+            for nRango in range(len(histProb01PatronBandaX)):
                 # print(f'claveDef: {claveDef}; nRango: {type(nRango)} {nRango}')
                 # print('->', LOCLdictHistProb01[claveDef])
                 # print('->', LOCLdictHistProb01[claveDef][nRango])
@@ -3608,7 +3643,7 @@ def recortarRasterTiffPatronDasoLidar(
                                 LOCLdictHistProb01[claveDef][nRango + 1],
                             )
                         )
-                elif nRango == len(histProb01Patron) - 1:
+                elif nRango == len(histProb01PatronBandaX) - 1:
                     if LOCLdictHistProb01[claveDef][nRango] > 0 or LOCLdictHistProb01[claveDef][nRango - 1] > 0:
                         incrementoMinimo = 0.05
                     else:
@@ -3713,7 +3748,7 @@ def recortarRasterTiffPatronDasoLidar(
                     if nRango == 0:
                         if LOCLdictHistProb01[claveDef][nRango + 1] != 0:
                             ampliarLimites = True
-                    elif nRango == len(histProb01Patron) - 1:
+                    elif nRango == len(histProb01PatronBandaX) - 1:
                         if LOCLdictHistProb01[claveDef][nRango - 1] != 0:
                             ampliarLimites = True
                     else:
@@ -3746,7 +3781,7 @@ def recortarRasterTiffPatronDasoLidar(
                 print(f'{TB}{TV}{TV}-> LOCLdictHistProb01[claveMax]:', LOCLdictHistProb01[claveMax][:ultimoNoZero + 9])
 
         # if nInputVar >= 0:
-        #     print(f'{TB}-> valores de referencia: {histProb01Patron}')
+        #     print(f'{TB}-> valores de referencia: {histProb01PatronBandaX}')
         #     print(f'{TB}{TV}-> Rango min admisible:   {LOCLdictHistProb01[claveMin]}')
         #     print(f'{TB}{TV}-> Rango max admisible:   {LOCLdictHistProb01[claveMax]}')
 
@@ -3769,6 +3804,7 @@ def recortarRasterTiffPatronDasoLidar(
     # recortarRasterConShape( patronVectrNameConPath, mergedUniCellAllDasoVarsFileNameConPath )
     #===========================================================================
     return (
+        LOCLoutputRangosFileTxtSinPath,
         LOCLoutputRangosFileNpzSinPath,
         nBandasRasterOutput,
         rasterDatasetAll,
@@ -3780,7 +3816,7 @@ def recortarRasterTiffPatronDasoLidar(
         codeTipoBosquePatronMasFrecuente1,
         pctjTipoBosquePatronMasFrecuente2,
         codeTipoBosquePatronMasFrecuente2,
-        histProb01Patron,
+        histProb01PatronBosque,
     )
 
 
