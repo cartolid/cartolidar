@@ -80,7 +80,9 @@ if __verbose__ > 2:
 # ==============================================================================
 
 # ==============================================================================
-try:
+# Recuperar la captura de errores de importacion en la version beta
+# try:
+if True:
     # from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidcarto
     # Se importan los parametros de configuracion por defecto por si
@@ -88,12 +90,12 @@ try:
     from cartolidar.clidtools.clidtwins_config import GLO
     # import cartolidar.clidtools.clidtwins_config as CNFG
     # from cartolidar.clidtools import clidtwins_config as CNFG
-except:
-    if __verbose__ > 2:
-        print(f'qlidtwins-> Se importan clidcarto desde clidraster del directorio local {os.getcwd()}/clidtools')
-        print('\tNo hay vesion de cartolidar instalada en site-packages.')
-    from clidax import clidcarto
-    from clidtools.clidtwins_config import GLO
+# except:
+#     if __verbose__ > 2:
+#         print(f'qlidtwins-> Se importan clidcarto desde clidraster del directorio local {os.getcwd()}/clidtools')
+#         print('\tNo hay vesion de cartolidar instalada en site-packages.')
+#     from clidax import clidcarto
+#     from clidtools.clidtwins_config import GLO
 # ==============================================================================
 
 GLO_GLBLsubLoteTiff = ''

@@ -145,21 +145,31 @@ callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=ins
 if CONFIGverbose:
     print('clidcarto-> Pila de llamadas revisada-> callingModulePrevio:', callingModulePrevio, 'callingModuleInicial:', callingModuleInicial)
 
-try:
+# ==============================================================================
+# Recuperar la captura de errores de importacion en la version beta
+# try:
+if True:
     from cartolidar.clidax import clidconfig
-except:
-    if __verbose__ > 2:
-        print(f'qlidtwins-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools')
-        print('\tNo hay vesion de cartolidar instalada en site-packages.')
-    from clidax import clidconfig
+# except:
+#     if __verbose__ > 2:
+#         print(f'qlidtwins-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools')
+#         print('\tNo hay vesion de cartolidar instalada en site-packages.')
+#     from clidax import clidconfig
 
+# if (
+#     callingModuleInicial != 'runpy'
+#     and callingModuleInicial != '__init__'
+#     and callingModuleInicial != '__main__'
+#     and not callingModuleInicial.startswith('test_')
+#     and not callingModuleInicial.startswith('pruebas')
+#     and callingModuleInicial != 'clidtwins' and callingModuleInicial != 'qlidtwins'
+#     and callingModuleInicial != 'clidmerge' and callingModuleInicial != 'qlidmerge'
+# ):
 if (
-    callingModuleInicial != 'runpy'
-    and callingModuleInicial != '__init__'
-    and callingModuleInicial != '__main__'
-    and not callingModuleInicial.startswith('test_')
-    and callingModuleInicial != 'clidtwins' and callingModuleInicial != 'qlidtwins'
-    and callingModuleInicial != 'clidmerge' and callingModuleInicial != 'qlidmerge'
+    callingModuleInicial == 'cartolidar'
+    or callingModuleInicial == 'clidaux'
+    or callingModuleInicial == 'clidclas'
+    # or callingModuleInicial == 'clidtry':
 ):
     try:
         from cartolidar.clidnb import clidnaux
@@ -170,16 +180,22 @@ if (
         print('\t   cuando se llama desde este modulo inicial.')
 
 # ==============================================================================
+# if (
+#     callingModuleInicial == 'runpy'
+#     or callingModuleInicial == '__init__'
+#     or callingModuleInicial == '__main__'
+#     or callingModuleInicial.startswith('test_')
+#     or callingModuleInicial.startswith('pruebas')
+#     or callingModuleInicial == 'clidtwins' or callingModuleInicial == 'qlidtwins'
+#     or callingModuleInicial == 'clidmerge' or callingModuleInicial == 'qlidmerge'
+#     or callingModuleInicial == 'clidgis'
+# ):
 if (
-    callingModuleInicial == 'runpy'
-    or callingModuleInicial == '__init__'
-    or callingModuleInicial == '__main__'
-    or callingModuleInicial.startswith('test_')
-    or callingModuleInicial == 'clidtwins' or callingModuleInicial == 'qlidtwins'
-    or callingModuleInicial == 'clidmerge' or callingModuleInicial == 'qlidmerge'
-    or callingModuleInicial == 'clidgis'
+    callingModuleInicial != 'cartolidar'
+    and callingModuleInicial != 'clidaux'
+    and callingModuleInicial != 'clidclas'
+    # and callingModuleInicial != 'clidtry':
 ):
-
     # print('clidcarto-> Modulo importado desde', os.getcwd(), 'No se cargan las variables globales de cartolid.xls')
     class Object(object):
         pass

@@ -122,7 +122,7 @@ def leerArgumentosEnLineaDeComandos(
   or conditions of any kind, either express or implied.
 '''.format(program_shortdesc, str(__date__))
 
-    # print('qlidtwins-> sys.argv:', sys.argv)
+    # print('qlidtwins.__main__-> sys.argv:', sys.argv)
 
     # ==========================================================================
     # https://docs.python.org/es/3/howto/argparse.html

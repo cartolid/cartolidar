@@ -20,7 +20,7 @@ import os
 import argparse
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
-import traceback
+# import traceback
 # import warnings
 # import errno
 # print {i:os.strerror(i) for i in sorted(errno.errorcode)}
@@ -39,7 +39,7 @@ if '-vvv' in sys.argv:
 elif '-vv' in sys.argv:
     __verbose__ = 2
 elif '-v' in sys.argv or '--verbose' in sys.argv:
-    __verbose__ = 2
+    __verbose__ = 1
 else:
     # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 2
@@ -50,7 +50,7 @@ if __verbose__ > 2:
 # if '-e' in sys.argv and len(sys.argv) > sys.argv.index('-e') + 1:
 if '-e' in sys.argv or '--extraArguments' in sys.argv:
     # TRNS_LEER_EXTRA_ARGS = sys.argv[sys.argv.index('-e') + 1]
-    if __verbose__ > 1:
+    if __verbose__ > 1 or True:
         print('\nqlidtwins-> Se leen argumentos extra')
     TRNS_LEER_EXTRA_ARGS = True
 else:
@@ -81,6 +81,7 @@ else:
 # ==============================================================================
 
 # ==============================================================================
+# Recuperar la captura de errores de importacion en la version beta
 # try:
 if True:
     from cartolidar.clidtools import clidtwins_config
@@ -159,8 +160,6 @@ if __verbose__ > 1:
     print(f'{TB}qlidtwins-> __package__ : <{__package__ }>')
     print(f'{TB}qlidtwins-> sys.argv:     <{sys.argv}>')
     print(f'\nqlidtwins-> __verbose__: {__verbose__}')
-    if __verbose__ > 2:
-        print(f'\nqlidtwins-> sys.argv: {sys.argv}')
     print('{:=^80}'.format(''))
 # ==============================================================================
 if False:
@@ -236,7 +235,7 @@ def checkRun():
         else:
             tipoEjecucion = 4
             if __verbose__ > 1 or True:
-                print(f'qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
+                print(f'checkRun-> qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
     except:
         print('\nqlidtwins-> Revisar MAIN_idProceso:')
         print(f'MAIN_idProceso: <{MAIN_idProceso}> type: {type(MAIN_idProceso)}')
@@ -270,7 +269,7 @@ def checkRun():
 
     if (
         'qlidtwins' in __name__
-        or len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos
+        or (len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos)
     ):
         try:
             if selec.upper() == 'N':
@@ -331,7 +330,6 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
         'radioClusterPix', 'nivelSubdirExpl', 'outRasterDriver', 'outputSubdirNew',
         'cartoMFErecorte', 'varsTxtFileName', 'ambitoTiffNuevo', 'noDataTiffProvi',
         'noDataTiffFiles', 'noDataTipoDMasa', 'umbralMatriDist')
-
 
     program_name = os.path.basename(sys.argv[0])
     program_version = 'v{}'.format(__version__)
@@ -481,43 +479,49 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
                                 default = GLO.GLBLnivelSubdirExplPorDefecto,)
             parser.add_argument('-D',  # '--outrasterdriver',
                                 dest='outRasterDriver',
-                                type=int,
+                                type=str,
                                 help='Nombre gdal del driver para el formato de fichero raster de salida para el dasolidar. Default: %(default)s',
                                 default = GLO.GLBLoutRasterDriverPorDefecto,)
             parser.add_argument('-S',  # '--outsubdir',
                                 dest='outputSubdirNew',
-                                type=int,
+                                type=str,
                                 help='Subdirectorio de GLBLrutaAscRaizBasePorDefecto donde se guardan los resultados. Default: %(default)s',
                                 default = GLO.GLBLoutputSubdirNewPorDefecto,)
             parser.add_argument('-M',  # '--clipMFEfilename',
                                 dest='cartoMFErecorte',
-                                type=int,
+                                type=str,
                                 help='Nombre del fichero en el que se guarda la version recortada raster del MFE. Default: %(default)s',
                                 default = GLO.GLBLcartoMFErecortePorDefecto,)
             parser.add_argument('-R',  # '--rangovarsfilename',
                                 dest='varsTxtFileName',
+                                type=str,
                                 help='Nombre de fichero en el que se guardan los intervalos calculados para todas las variables. Default: %(default)s',
                                 default = GLO.GLBLvarsTxtFileNamePorDefecto,)
     
             parser.add_argument('-A',  # '--ambitoTiffNuevo',
                                 dest='ambitoTiffNuevo',
+                                type=str,
                                 help='Tipo de ambito para el rango de coordenadas (loteASC, CyL, CyL_nw, etc). Default: %(default)s',
                                 default = GLO.GLBLambitoTiffNuevoPorDefecto,)
     
             parser.add_argument('-P',  # '--noDataTiffProvi',
                                 dest='noDataTiffProvi',
+                                type=int,
                                 help='NoData temporal para los ficheros raster de salida para el dasolidar. Default: %(default)s',
                                 default = GLO.GLBLnoDataTiffProviPorDefecto,)
             parser.add_argument('-T',  # '--noDataTiffFiles',
                                 dest='noDataTiffFiles',
+                                type=int,
                                 help='NoData definitivo para los ficheros raster de salida para el dasolidar. Default: %(default)s',
                                 default = GLO.GLBLnoDataTiffFilesPorDefecto,)
             parser.add_argument('-O',  # '--noDataTipoDMasa',
                                 dest='noDataTipoDMasa',
+                                type=int,
                                 help='NoData definitivo para el raster de salida con el tipo de masa para el dasolidar. Default: %(default)s',
                                 default = GLO.GLBLnoDataTipoDMasaPorDefecto,)
             parser.add_argument('-U',  # '--umbralMatriDist',
                                 dest='umbralMatriDist',
+                                type=int,
                                 help='Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars. Default: %(default)s',
                                 default = GLO.GLBLumbralMatriDistPorDefecto,)
 
@@ -1210,6 +1214,7 @@ if (
     or r'tests\test_' in sys.argv[0]
     or '/pytest' in sys.argv[0]
     or r'\pytest' in sys.argv[0]
+    or 'prueba' in sys.argv[0]
 ):
     testTwins = True
 else:

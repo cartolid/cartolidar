@@ -67,17 +67,20 @@ if __verbose__ > 2:
 # ==============================================================================
 
 # ==============================================================================
-try:
+# Recuperar la captura de errores de importacion en la version beta
+# try:
+if True:
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidraster
     from cartolidar.clidtools.clidtwins_config import GLO
-except:
-    if __verbose__ > 2:
-        print(f'qlidtwins-> Se importan clidconfig y clidraster desde clidtwins del directorio local {os.getcwd()}/clidtools')
-        print('\tNo hay vesion de cartolidar instalada en site-packages.')
-    from clidax import clidconfig
-    from clidax import clidraster
-    from clidtools.clidtwins_config import GLO
+# except:
+#     if __verbose__ > 2:
+#         print(f'qlidtwins-> Se importan clidconfig y clidraster desde clidtwins del directorio local {os.getcwd()}/clidtools')
+#         print('\tNo hay vesion de cartolidar instalada en site-packages.')
+#     from clidax import clidconfig
+#     from clidax import clidraster
+#     from clidtools.clidtwins_config import GLO
+
 # Alternativa, si necesitara algun otro infreciente de clidtwins_config:
 # from cartolidar.clidtools import clidtwins_config as CNFG
 # ==============================================================================

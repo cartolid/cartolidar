@@ -1441,6 +1441,8 @@ class VariablesGlobales(object):
 # salvo que quiera que un numero se interprete como texto, por ejemplo: 0000
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 def valorConfig(valorPrincipalTxt, valorAlternativoTxt='', usarAlternativo=False, nombreParametro='SinNombre', tipoVariable=''):
+    # if nombreParametro == 'GLBLmetrosCelda':
+    #     print('clidconfig->Borrar-> nombreParametro', nombreParametro, valorPrincipalTxt, tipoVariable)
     if valorPrincipalTxt == None:
         valorPrincipalOk = None
         tipoVariable = 'NoneType'
@@ -1513,6 +1515,8 @@ def valorConfig(valorPrincipalTxt, valorAlternativoTxt='', usarAlternativo=False
                 valorPrincipalOk = valorPrincipalTxt
                 tipoVariable = 'str'
         # print('-->>', nombreParametro, tipoVariable, type(valorPrincipalOk), valorPrincipalOk)
+        # if nombreParametro == 'GLBLmetrosCelda':
+        #     print('clidconfig->Borrar-> int/float valorPrincipalOk', valorPrincipalOk, type(valorPrincipalOk))
 
     if usarAlternativo and valorAlternativoTxt != '':
         if tipoVariable == 'NoneType':
@@ -1545,6 +1549,8 @@ def valorConfig(valorPrincipalTxt, valorAlternativoTxt='', usarAlternativo=False
         valorElegido = valorAlternativoOk
     else:
         valorElegido = valorPrincipalOk
+    # if nombreParametro == 'GLBLmetrosCelda':
+    #     print('clidconfig->Borrar-> valorElegido', nombreParametro, valorElegido, type(valorElegido))
     return valorElegido
 
 
@@ -1912,13 +1918,19 @@ def leerCambiarVariablesGlobales(
 
     try:
         config.read(configFileName)
-        if verbose and GLO.GLBLmostrarVariablesDeConfiguracion == 'GrupoMAIN':
+        if (CONFIGverbose or verbose) and GLO.GLBLmostrarVariablesDeConfiguracion == 'GrupoMAIN':
             print('clidconfig-> Configuracion ({}):'.format(configFileName))
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
                 listaParametroConfiguracion = strParametroConfiguracion.split('|+|')
-                valorParametroConfiguracion = valorConfig(listaParametroConfiguracion[0], tipoVariable=listaParametroConfiguracion[1])
+                valorParametroConfiguracion = valorConfig(
+                    listaParametroConfiguracion[0],
+                    nombreParametro=nombreParametroDeConfiguracion,
+                    tipoVariable=listaParametroConfiguracion[1]
+                )
+                if CONFIGverbose and nombreParametroDeConfiguracion == 'GLBLmetrosCelda':
+                    print(f'\t+> {nombreParametroDeConfiguracion}: {valorParametroConfiguracion} {type(valorParametroConfiguracion)} ({listaParametroConfiguracion})')
                 if len(listaParametroConfiguracion) > 1:
                     tipoParametroConfiguracion = listaParametroConfiguracion[1]
                 else:
