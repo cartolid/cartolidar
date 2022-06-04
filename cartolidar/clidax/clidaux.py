@@ -15,6 +15,7 @@ import time
 from datetime import datetime, timedelta
 import math
 import random
+import logging
 import struct
 import platform, subprocess
 import inspect
@@ -94,7 +95,54 @@ else:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
 # ==============================================================================
+# Verbose provisional para la version alpha
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
+    __verbose__ = 0
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 12
+TV = ' ' * 3
+# ==============================================================================
 
+# ==============================================================================
+thisModule = __name__.split('.')[-1]
+formatter0 = logging.Formatter('{message}', style='{')
+consoleLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consoleLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consoleLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consoleLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consoleLog.setLevel(logging.ERROR)
+else:
+    consoleLog.setLevel(logging.CRITICAL)
+consoleLog.setFormatter(formatter0)
+myLog = logging.getLogger(thisModule)
+myLog.addHandler(consoleLog)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidaux-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
 
 # ==============================================================================
 def showCallingModules(inspect_stack=inspect.stack(), verbose=True):

@@ -20,6 +20,7 @@ import sys
 import unicodedata
 import warnings
 import pathlib
+import logging
 from operator import itemgetter, attrgetter
 # import random
 
@@ -51,6 +52,28 @@ except:
 #     print('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
 #     sys.exit(0)
 
+# Recuperar la captura de errores de importacion en la version beta
+# try:
+if True:
+    from cartolidar.clidax import clidconfig
+    from cartolidar.clidax import clidraster
+    from cartolidar.clidtools.clidtwcfg import GLO
+# except:
+#     myLog.warning(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+#     myLog.warning('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
+#     from clidax import clidconfig
+#     from clidax import clidraster
+#     from clidtools.clidtwcfg import GLO
+myUser = clidconfig.infoUsuario()
+
+# Alternativa, si necesitara algun otro ingreciente de clidtwcfg:
+# from cartolidar.clidtools import clidtwcfg as CNFG
+# ==============================================================================
+# Nota: en clidtwcfg se asignan algunos parametros de configuracion que
+# no se usan en clidtwins: pero se mantienen porque se usan en otros modulos
+# de cartolidar, como son las funciones compartidas con clidmerge.py
+# ==============================================================================
+
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -60,42 +83,50 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 0
-if __verbose__ > 2:
-    print(f'clidtwins-> __name__:     <{__name__}>')
-    print(f'clidtwins-> __package__ : <{__package__ }>')
 # ==============================================================================
-
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
 # ==============================================================================
-# Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
-    from cartolidar.clidax import clidconfig
-    from cartolidar.clidax import clidraster
-    from cartolidar.clidtools.clidtwins_config import GLO
-# except:
-#     if __verbose__ > 2:
-#         print(f'qlidtwins-> Se importan clidconfig y clidraster desde clidtwins del directorio local {os.getcwd()}/clidtools')
-#         print('\tNo hay vesion de cartolidar instalada en site-packages.')
-#     from clidax import clidconfig
-#     from clidax import clidraster
-#     from clidtools.clidtwins_config import GLO
-
-# Alternativa, si necesitara algun otro infreciente de clidtwins_config:
-# from cartolidar.clidtools import clidtwins_config as CNFG
-# ==============================================================================
-# Nota: en clidtwins_config se asignan algunos parametros de configuracion que
-# no se usan en clidtwins: pero se mantienen porque se usan en otros modulos
-# de cartolidar, como son las funciones compartidas con clidmerge.py
-# ==============================================================================
-
+# TB = '\t'
+TB = ' ' * 12
+TV = ' ' * 3
 # ==============================================================================
 TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
 # TRNSmostrarClusterMatch = False # Se define mas adelante
 MINIMO_PIXELS_POR_CLUSTER = 5
-# TB = '\t'
-TB = ' ' * 12
-TV = ' ' * 3
+# ==============================================================================
+
+# ==============================================================================
+thisModule = __name__.split('.')[-1]
+formatter0 = logging.Formatter('{message}', style='{')
+consoleLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consoleLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consoleLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consoleLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consoleLog.setLevel(logging.ERROR)
+else:
+    consoleLog.setLevel(logging.CRITICAL)
+consoleLog.setFormatter(formatter0)
+myLog = logging.getLogger(thisModule)
+myLog.addHandler(consoleLog)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidtwins-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
 # ==============================================================================
 
 
@@ -124,7 +155,7 @@ the reference one(s) in terms of DLVs."""
             LCL_verbose=__verbose__,  # optional
         ):
         """Instantiation of DasoLidarSource Class with asignation of some optional extra arguments
-that usually take the default values (from configuration file or clidtwins_config.py module
+that usually take the default values (from configuration file or clidtwcfg.py module
     Attributes
     ----------
     LCL_leer_extra_args : bool
@@ -219,7 +250,7 @@ that usually take the default values (from configuration file or clidtwins_confi
         LCL_marcoCoordMaxiY : int
             Default: None
         LCL_marcoPatronTest = bool
-            Default: parameter GLBLmarcoPatronTestPorDefecto from cfg file or clidtwins_config.py module
+            Default: parameter GLBLmarcoPatronTestPorDefecto from cfg file or clidtwcfg.py module
         LCL_rutaAscRaizBase : str
             Default: None (optional)
         LCL_patronVectrName : str
@@ -328,8 +359,8 @@ that usually take the default values (from configuration file or clidtwins_confi
                 self.LOCLmarcoCoordMaxiY = envolventePatron[3]
                 self.usarVectorFileParaDelimitarZona = True
             else:
-                print('\nclidtwins-> ATENCION: no esta disponible el fichero {}'.format(self.LOCLpatronVectrName))
-                print('{}-> Ruta base: {}'.format(TB, self.LOCLrutaAscRaizBase))
+                print('\nclidtwins-> AVISO: identificando rango de coordenadas-> no esta disponible el fichero: {}'.format(self.LOCLpatronVectrName))
+                print(f'{TB}-> Ruta base: {self.LOCLrutaAscRaizBase}')
                 # sys.exit(0)
             envolventeTesteo = obtenerExtensionDeCapaVectorial(
                 self.LOCLrutaAscRaizBase,
@@ -3177,7 +3208,7 @@ def obtenerExtensionDeCapaVectorial(
         LOCLrutaAscBase=LOCLrutaAscBase,
         )
     if not usarVectorFileParaDelimitarZona:
-        print('\nclidtwins-> ATENCION: no esta disponible el fichero %s' % (patronVectrNameConPath))
+        print(f'\nclidtwins-> ATENCION: obteniendo extension de la capa, no esta disponible el fichero: {patronVectrNameConPath}')
         return None
     if not gdalOk:
         print('\nclidtwins-> ATENCION: Gdal no disponible; no se puede leer %s' % (patronVectrNameConPath))
@@ -3289,7 +3320,7 @@ def recortarRasterTiffPatronDasoLidar(
         LOCLverbose=False,
     )
     if envolventeShape is None:
-        print('\nclidtwins-> ATENCION: no esta disponible el fichero {}'.format(self_LOCLpatronVectrName))
+        print('\nclidtwins-> AVISO: no esta disponible el fichero {}'.format(self_LOCLpatronVectrName))
         print(f'{TB}-> Ruta base: {self_LOCLrutaAscRaizBase}')
         sys.exit(0)
     patronVectorXmin = envolventeShape[0]

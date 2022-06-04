@@ -16,6 +16,7 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 '''
 
 import sys
+import logging
 
 __version__ = '0.0a3'
 __updated__ = '2022-06-01'
@@ -31,17 +32,52 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 0
-if __verbose__ > 2:
-    print(f'clidtools.__init__-> __name__:     <{__name__}>')
-    print(f'clidtools.__init__-> __package__ : <{__package__ }>')
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 12
+TV = ' ' * 3
 # ==============================================================================
 
-# from cartolidar.clidtools.clidtwins_config import GLO # GLO es una variable publica del modulo clidtwins_config
+# ==============================================================================
+thisModule = __name__.split('.')[-1]
+formatter0 = logging.Formatter('{message}', style='{')
+consoleLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consoleLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consoleLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consoleLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consoleLog.setLevel(logging.ERROR)
+else:
+    consoleLog.setLevel(logging.CRITICAL)
+consoleLog.setFormatter(formatter0)
+myLog = logging.getLogger(thisModule)
+myLog.addHandler(consoleLog)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidtools.__init__-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
+
+# from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
 # from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
 # from cartolidar.clidtools.clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
 
-from .clidtwins_config import GLO # GLO es una variable publica del modulo clidtwins_config
+from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
 from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
 from .clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
 
@@ -53,9 +89,9 @@ __all__ = [
 ]
 
 # from . import clidtwins # Inlcuye DasoLidarSource, mostrarListaDrivers, etc.
-# from . import clidtwins_config # Incluye GLO, que es una variable publica del modulo clidtwins_config
+# from . import clidtwcfg # Incluye GLO, que es una variable publica del modulo clidtwcfg
 # __all__ = [
 #     'clidtwins',
-#     'clidtwins_config',
+#     'clidtwcfg',
 # ]
 

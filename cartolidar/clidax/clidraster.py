@@ -6,7 +6,7 @@ cartolidar: tools for Lidar processing focused on Spanish PNOA datasets
 
 clidraster (ancillary to clidtools) is used for raster creation and
 MFE vector layer reading
-clidtwins_config requires clidcarto and clidtwins_config modules.
+clidtwcfg requires clidcconfig module
 
 @author:     Jose Bengoa
 @copyright:  2022 @clid
@@ -21,6 +21,7 @@ import sys
 import time
 import math
 import random
+import logging
 # import pathlib
 # import struct
 
@@ -73,10 +74,45 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 0
-if __verbose__ > 2:
-    print(f'clidraster-> __name__:     <{__name__}>')
-    print(f'clidraster-> __package__ : <{__package__ }>')
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 12
+TV = ' ' * 3
+# ==============================================================================
+
+# ==============================================================================
+thisModule = __name__.split('.')[-1]
+formatter0 = logging.Formatter('{message}', style='{')
+consoleLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consoleLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consoleLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consoleLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consoleLog.setLevel(logging.ERROR)
+else:
+    consoleLog.setLevel(logging.CRITICAL)
+consoleLog.setFormatter(formatter0)
+myLog = logging.getLogger(thisModule)
+myLog.addHandler(consoleLog)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidraster-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
 # ==============================================================================
 
 # ==============================================================================
@@ -87,15 +123,11 @@ if True:
     from cartolidar.clidax import clidcarto
     # Se importan los parametros de configuracion por defecto por si
     # se carga esta clase sin aportar algun parametro de configuracion
-    from cartolidar.clidtools.clidtwins_config import GLO
-    # import cartolidar.clidtools.clidtwins_config as CNFG
-    # from cartolidar.clidtools import clidtwins_config as CNFG
 # except:
 #     if __verbose__ > 2:
 #         print(f'qlidtwins-> Se importan clidcarto desde clidraster del directorio local {os.getcwd()}/clidtools')
 #         print('\tNo hay vesion de cartolidar instalada en site-packages.')
 #     from clidax import clidcarto
-#     from clidtools.clidtwins_config import GLO
 # ==============================================================================
 
 GLO_GLBLsubLoteTiff = ''
@@ -136,7 +168,7 @@ def crearRasterTiff(
     PAR_cartoMFErecorte=None,
 
     PAR_generarDasoLayers=False,
-    PAR_ambitoTiffNuevo=GLO.GLBLambitoTiffNuevoPorDefecto,
+    PAR_ambitoTiffNuevo=None,
     PAR_verbose=False,
 
     AUX_subLoteTiff=GLO_GLBLsubLoteTiff,
@@ -188,6 +220,9 @@ def crearRasterTiff(
                 sys.exit(0)
         if PAR_verbose:
             print(f'\t-> ruta de salida: {self_LOCLoutPathNameRuta}')
+
+    if PAR_ambitoTiffNuevo is None:
+        PAR_ambitoTiffNuevo = 'loteAsc'
 
     if self_LOCLoutFileNameWExt is None:
         if PAR_outRasterDriver == 'GTiff':
@@ -383,7 +418,7 @@ def crearRasterTiff(
 
     # ==========================================================================
     for contadorInFiles, (inputAscDirTipo0, inputAscName1) in enumerate(infilesListTipo0):
-        print('-->>1', inputAscDirTipo0, inputAscName1)
+        myLog.debug(f'clidraster-> contadorInFiles: {contadorInFiles} -> {inputAscDirTipo0} {inputAscName1}')
         #=======================================================================
         if PAR_ambitoTiffNuevo[:3] == 'CyL':
             nMinX_NombreAsc = int(inputAscName1[:3]) * 1000
@@ -435,8 +470,8 @@ def crearRasterTiff(
         if PAR_verbose:
             if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
                 print(f'\t\t-> Tipo de fichero_0: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
-                # print('clidraster---->>>1-> self_LOCLlistaDasoVarsFileTypes[0]:        ', self_LOCLlistaDasoVarsFileTypes[0])
-                # print('clidraster---->>>2-> self_LOCLlistaDasoVarsFileTypes[nInputVar]:', self_LOCLlistaDasoVarsFileTypes[nInputVar])
+                # print(f'clidraster---->>>1-> self_LOCLlistaDasoVarsFileTypes[0]:         {self_LOCLlistaDasoVarsFileTypes[0]}')
+                # print(f'clidraster---->>>2-> self_LOCLlistaDasoVarsFileTypes[nInputVar]: {self_LOCLlistaDasoVarsFileTypes[nInputVar]}')
 
         try:
             dictAscFileObjet[0] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
@@ -597,7 +632,7 @@ def crearRasterTiff(
                 noDataDasoVarX = noDataValuesPorTipoFichero[nInputVar]
                 if noDataDasoVarX != noDataDasoVarAll and abs(noDataDasoVarX) > abs(noDataDasoVarAll):
                     noDataDasoVarAll = noDataDasoVarX
-                # print('\t--->>> noDataDasoVarX:', noDataDasoVarX, 'noDataDasoVarAll:', noDataDasoVarAll)
+                # print(f'\t--->>> noDataDasoVarX: {noDataDasoVarX}, noDataDasoVarAll: {noDataDasoVarAll}')
 
         elif integrarFicherosAsc:
             if contadorBloquesProcesando == 1:
@@ -651,8 +686,8 @@ def crearRasterTiff(
                 nMaxY_tif = max(nMaxY_tif, nMaxY_HeaderAsc)
 
         if PAR_verbose:
-            print('--->>> nMinX_HeaderAsc:', nMinX_HeaderAsc)
-            print('--->>> nMaxX_HeaderAsc:', nMaxX_HeaderAsc)
+            print(f'--->>> nMinX_HeaderAsc: {nMinX_HeaderAsc}')
+            print(f'--->>> nMaxX_HeaderAsc: {nMaxX_HeaderAsc}')
             if mostrarNumFicheros == 0 or (
                 contadorInFiles < mostrarNumFicheros
                 or contadorInFiles == len(infilesListTipo0) - 1
@@ -866,7 +901,6 @@ def crearRasterTiff(
     #===========================================================================
     if not cartoRefMfe.usarVectorRef:
         print('\nclidraster-> ATENCION: no se ha podido leer el MFE.')
-        print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
         sys.exit(0)
     elif (
         nMinX_tif > cartoRefMfe.inputVectorXmax
@@ -879,7 +913,6 @@ def crearRasterTiff(
             and cartoRefMfe.inputVectorYmin < 90
         ):
             print('\nclidraster-> ATENCION: usar una capa MFE con cordenadas proyectadas (no geograficas)')
-            print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
             sys.exit(0)
         
         print('\nclidraster-> ATENCION: no hay cobertura de MFE en la zona analizada (a):')
@@ -902,7 +935,6 @@ def crearRasterTiff(
                 PAR_cartoMFEfileName,
             )
         )
-        print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
         sys.exit(0)
     #===========================================================================
 
@@ -1531,9 +1563,9 @@ def crearRasterTiff(
                                     if cartoRefMfe.usarVectorRef:
                                         # arrayMFE = (cartoRefMfe.aCeldasLandUseCover)[::-1]).transpose()
                                         arrayMFE = np.flipud(cartoRefMfe.aCeldasLandUseCover.transpose())
-                                        # print('---->>', nFilaRaster, nColumnaRaster, dictArrayBandaX[nBandasOutput - 1].shape, cartoRefMfe.aCeldasLandUseCover.shape, arrayMFE.shape)
+                                        # print(f'---->> {nFilaRaster} {nColumnaRaster} -> shapes: {dictArrayBandaX[nBandasOutput - 1].shape} {cartoRefMfe.aCeldasLandUseCover.shape} {arrayMFE.shape}')
                                         dictArrayBandaX[nBandasOutput - 1][nFilaRaster, nColumnaRaster] = arrayMFE[nFilaRaster, nColumnaRaster]
-                                        # print('---->> outputNBand:', nBandasOutput - 1, 'nFilaColuna:', nFilaRaster, nColumnaRaster, 'nTipoMasa:', arrayMFE[nFilaRaster, nColumnaRaster])
+                                        # print(f'---->> outputNBand: {nBandasOutput - 1}, nFilaColuna: {nFilaRaster} {nColumnaRaster}, nTipoMasa: {arrayMFE[nFilaRaster, nColumnaRaster]}')
                                     else:
                                         print('\nclidraster-> ATENCION: no se ha podido crear el MFE recortado')
                                         sys.exit(0)
@@ -1856,7 +1888,6 @@ def crearRasterTiff(
                                 PAR_cartoMFEfileName,
                             )
                         )
-                        print(f'\t-> Fichero de configuracion: {GLO.configFileNameCfg}')
                         # print(nFilaRaster, nColumnaRaster, 'dictArrayBandaX[MFE]:', dictArrayBandaX[nBandasOutput - 1])
                         sys.exit(0)
 

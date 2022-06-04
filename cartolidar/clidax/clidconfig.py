@@ -11,6 +11,7 @@ import os
 import sys
 import time
 import inspect
+import logging
 import math
 import platform
 import types
@@ -40,12 +41,46 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 0
-if __verbose__ > 2:
-    print(f'clidconfig-> __name__:     <{__name__}>')
-    print(f'clidconfig-> __package__ : <{__package__ }>')
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 12
+TV = ' ' * 3
 # ==============================================================================
 
+# ==============================================================================
+thisModule = __name__.split('.')[-1]
+formatter0 = logging.Formatter('{message}', style='{')
+consoleLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consoleLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consoleLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consoleLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consoleLog.setLevel(logging.ERROR)
+else:
+    consoleLog.setLevel(logging.CRITICAL)
+consoleLog.setFormatter(formatter0)
+myLog = logging.getLogger(thisModule)
+myLog.addHandler(consoleLog)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidconfig-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 # Una vez importado este modulo as CG puedo usar:
@@ -163,7 +198,7 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 # Duplico esta funcion de clidaux para no importar clidaux
-def infoUsuario(verbose):
+def infoUsuario(verbose=False):
     if psutilOk:
         try:
             esteUsuario = psutil.users()[0].name
@@ -1966,7 +2001,7 @@ def leerCambiarVariablesGlobales(
         # config_ok = True
     except Exception as excpt:
         program_name = 'clidconfig.py'
-        print(f'\n{program_name}-> Error Exception en clidtwins_config-> {excpt}\n')
+        print(f'\n{program_name}-> Error Exception en clidconfig-> {excpt}\n')
         # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
         exc_type, exc_obj, exc_tb = sys.exc_info()
         if verbose > 1:

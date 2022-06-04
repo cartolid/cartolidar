@@ -4,10 +4,10 @@
 Module included in cartolidar project 
 cartolidar: tools for Lidar processing focused on Spanish PNOA datasets
 
-clidtwins_config (ancillary to clidtwins) is used for clidtwins configuration.
+clidtwcfg (ancillary to clidtwins) is used for clidtwins configuration.
 It creates global object GLO with configuration parameters as properties.
 GLO can be imported from clidtwins module to read configuration parameters.
-clidtwins_config requires clidconfig module (clidax package of cartolidar).
+clidtwcfg requires clidconfig module (clidax package of cartolidar).
 
 clidtwins provides classes and functions that can be used to search for
 areas similar to a reference one in terms of dasometric Lidar variables (DLVs).
@@ -23,6 +23,7 @@ import os
 import sys
 import pathlib
 import traceback
+import logging
 from configparser import RawConfigParser
 import unicodedata
 try:
@@ -30,6 +31,15 @@ try:
     psutilOk = True
 except:
     psutilOk = False
+
+# try:
+if True:
+    from cartolidar.clidax import clidconfig
+# except:
+#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+#     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
+#     from clidax import clidconfig
+myUser = clidconfig.infoUsuario()
 
 
 # ==============================================================================
@@ -41,21 +51,82 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
-    __verbose__ = 2
-if __verbose__ > 2:
-    print(f'clidtwins_config-> __name__:     <{__name__}>')
-    print(f'clidtwins_config-> __package__ : <{__package__ }>')
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
+    __verbose__ = 0
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 19
+TV = ' ' * 3
+# ==============================================================================
+if (
+    'tests/test_' in sys.argv[0]
+    or 'tests\\test_' in sys.argv[0]
+    or r'tests\test_' in sys.argv[0]
+    or '/pytest' in sys.argv[0]
+    or r'\pytest' in sys.argv[0]
+    or 'prueba' in sys.argv[0]
+):
+    TRNS_testTwins = True
+else:
+    TRNS_testTwins = False
 # ==============================================================================
 
-# Acceso a un modulo del package clidax
-try:
-    from cartolidar.clidax import clidconfig
-except:
-    if __verbose__ > 2:
-        print(f'qlidtwins-> Se importa clidconfig desde clidtwins_config del directorio local {os.getcwd()}/clidtools')
-        print('\tNo hay vesion de cartolidar instalada en site-packages.')
-    from clidax import clidconfig
+# ==============================================================================
+thisModule = __name__.split('.')[-1]
+# class ContextFilter(logging.Filter):
+#     """
+#     This is a filter which injects contextual information into the log.
+#     """
+#
+#     def filter(self, record):
+#         record.thisUser = myUser
+#         record.thisFile = thisModule[:10]
+#         return True
+# myFilter = ContextFilter()
+# ==============================================================================
+# formatter1 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
+# formatterFile = logging.Formatter(formatter1, style='{', datefmt='%d-%m-%y %H:%M:%S')
+formatterCons = logging.Formatter('{message}', style='{')
 
+# fileLog = logging.FileHandler('qlidtwins.log', mode='w')
+# fileLog.set_name(thisModule)
+# fileLog.setLevel(logging.DEBUG)
+# fileLog.setFormatter(formatterFile)
+# fileLog.addFilter(myFilter)
+
+consLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consLog.setLevel(logging.ERROR)
+else:
+    consLog.setLevel(logging.CRITICAL)
+consLog.setFormatter(formatterCons)
+
+myLog = logging.getLogger(thisModule)
+myLog.setLevel(logging.DEBUG)
+# myLog.addFilter(myFilter)
+# myLog.addHandler(fileLog)
+myLog.addHandler(consLog)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidtwcfg-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
 
 # ==============================================================================
 # El idProceso sirve para dar nombres unicos a los ficheros de configracion y
@@ -130,13 +201,11 @@ def mensajeError(program_name):
 
 # ==============================================================================
 def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=False, LOCL_verboseAll=False):
-    if LOCL_verbose > 1:
-        print('\n{:_^80}'.format(''))
-        print('clidtwins_config-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.info('clidtwcfg-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
     # ==========================================================================
     if not os.path.exists(LOCL_configFileNameCfg):
-        if LOCL_verbose > 1:
-            print('\t-> Fichero no disponible; se crea con valores por defecto.')
+        myLog.info('\t-> Fichero no disponible; se crea con valores por defecto.')
         # En ausencia de fichero de configuracion, uso valores por defecto y los guardo en un nuevo fichero cfg
         config = RawConfigParser()
         config.optionxform = str  # Avoid change to lowercase
@@ -145,13 +214,13 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
             grupoParametroConfiguracion = LOCL_configDictPorDefecto[nombreParametroDeConfiguracion][1]
             if not grupoParametroConfiguracion in config.sections():
                 if LOCL_verboseAll:
-                    print('\t\tclidtwins_config-> grupoParametros nuevo:', grupoParametroConfiguracion)
+                    myLog.debug('\t\tclidtwcfg-> grupoParametros nuevo:', grupoParametroConfiguracion)
                 config.add_section(grupoParametroConfiguracion)
         # Puedo agregar otras secciones:
         # config.add_section('custom')
     
         if LOCL_verboseAll:
-            print('\t\tclidtwins_config-> Lista de parametros de configuracion por defecto:')
+            myLog.debug('\t\tclidtwcfg-> Lista de parametros de configuracion por defecto:')
         for nombreParametroDeConfiguracion in LOCL_configDictPorDefecto.keys():
             listaParametroConfiguracion = LOCL_configDictPorDefecto[nombreParametroDeConfiguracion]
             valorParametroConfiguracion = listaParametroConfiguracion[0]
@@ -195,14 +264,14 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                 listaConcatenada
             )
             if LOCL_verboseAll:
-                print('\t\t\t-> {}: {} (tipo {})-> {}'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion, tipoParametroConfiguracion, descripcionParametroConfiguracion))
-    
+                myLog.debug('\t\t\t-> {}: {} (tipo {})-> {}'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion, tipoParametroConfiguracion, descripcionParametroConfiguracion))
+
         try:
             with open(LOCL_configFileNameCfg, mode='w+') as configfile:
                 config.write(configfile)
         except PermissionError as excpt:
-            program_name = 'clidtwins_config.py'
-            # print(f'\n{program_name}-> Error PermissionError: {excpt}')
+            program_name = 'clidtwcfg.py'
+            # myLog.error(f'\n{program_name}-> Error PermissionError: {excpt}')
             (lineError, descError, typeError) = mensajeError(program_name)
             if lineError == 13 or descError.strerror == 'Permission denied' or typeError == 'PermissionError':
                 sys.stderr.write(f'Revisar el acceso de escritura en la ruta:\n')
@@ -214,22 +283,22 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
             sys.exit(0)
 
         except UnicodeError as excpt:
-            program_name = 'clidtwins_config.py'
-            # print(f'\n{program_name}-> Error UnicodeError: {excpt}')
+            program_name = 'clidtwcfg.py'
+            # myLog.error(f'\n{program_name}-> Error UnicodeError: {excpt}')
             mensajeError(program_name)
-            print(f'\nclidtwins_config-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion: {LOCL_configFileNameCfg}')
-            print('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
+            myLog.error(f'\nclidtwcfg-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion: {LOCL_configFileNameCfg}')
+            myLog.error('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
             sys.exit(0)
 
         except ValueError as excpt:
-            program_name = 'clidtwins_config.py'
-            # print(f'\n{program_name}-> Error ValueError: {excpt}')
+            program_name = 'clidtwcfg.py'
+            # myLog.error(f'\n{program_name}-> Error ValueError: {excpt}')
             mensajeError(program_name)
             sys.exit(0)
 
         except Exception as excpt:
-            program_name = 'clidtwins_config.py'
-            # print(f'\n{program_name}-> Error Exception: {excpt}')
+            program_name = 'clidtwcfg.py'
+            # myLog.error(f'\n{program_name}-> Error Exception: {excpt}')
             mensajeError(program_name)
             sys.exit(0)
 
@@ -240,15 +309,15 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
     
     # Confirmo que se ha creado correctamente el fichero de configuracion
     if not os.path.exists(LOCL_configFileNameCfg):
-        print('\nclidtwins_config-> ATENCION: fichero de configuracion no encontrado ni creado:', LOCL_configFileNameCfg)
-        print('\t-> Revisar derechos de escritura en la ruta en la que esta la aplicacion')
+        myLog.error('\nclidtwcfg-> ATENCION: fichero de configuracion no encontrado ni creado:', LOCL_configFileNameCfg)
+        myLog.error('\t-> Revisar derechos de escritura en la ruta en la que esta la aplicacion')
         sys.exit(0)
     
     try:
         LOCL_configDict = {}
         config.read(LOCL_configFileNameCfg)
         if LOCL_verboseAll:
-            print('\t-> Parametros de configuracion:')
+            myLog.debug('\t-> Parametros de configuracion:')
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
@@ -281,7 +350,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                     tipoParametroConfiguracion,
                 ]
                 if LOCL_verboseAll:
-                    print('\t\t-> parametro {:<35} -> {}'.format(nombreParametroDeConfiguracion, LOCL_configDict[nombreParametroDeConfiguracion]))
+                    myLog.debug('\t\t-> parametro {:<35} -> {}'.format(nombreParametroDeConfiguracion, LOCL_configDict[nombreParametroDeConfiguracion]))
     
         # Compruebo que el fichero de configuracion tiene todos los parametros de LOCL_configDictPorDefecto
         for nombreParametroDeConfiguracion in LOCL_configDictPorDefecto.keys():
@@ -307,18 +376,20 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                     tipoParametroConfiguracion,
                     descripcionParametroConfiguracion,
                 ]
-                if LOCL_verbose:
-                    print('\t-> AVISO: el parametro <{}> no esta en el fichero de configuacion; se adopta valor por defecto: <{}>'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion))
-    
-        config_ok = True
-    except:
-        print('clidtwins_config-> Error al leer la configuracion del fichero:', LOCL_configFileNameCfg)
-        config_ok = False
-        sys.exit(0)
-    # print('\t\tclidtwins_config-> LOCL_configDict:', LOCL_configDict)
+                myLog.info('\t-> AVISO: el parametro <{}> no esta en el fichero de configuacion; se adopta valor por defecto: <{}>'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion))
 
-    if LOCL_verbose:
-        print('{:=^80}'.format(''))
+        # config_ok = True
+    except Exception as excpt:
+        program_name = 'clidtwcfg.py'
+        # myLog.error(f'\n{program_name}-> Error Exception: {excpt}')
+        myLog.error(f'clidtwcfg-> Error al leer la configuracion del fichero: {LOCL_configFileNameCfg}')
+        mensajeError(program_name)
+        # config_ok = False
+        sys.exit(0)
+    # myLog.debug('\t\tclidtwcfg-> LOCL_configDict:', LOCL_configDict)
+
+    myLog.info('{:=^80}'.format(''))
+
     return LOCL_configDict
 
 
@@ -638,7 +709,7 @@ def checkGLO(GLO):
         GLO.GLBLinputVectorDriverNameMFE = 'ESRI Shapefile'
     else:
         GLO.GLBLinputVectorDriverNameMFE = ''
-        print(f'clidtwins_config-> No se ha identificado bien el driver de esta extension: {GLO.GLBLinputVectorMfeFileExt} (fichero: {GLO.GLBLrutaCompletaMFEPorDefecto})')
+        myLog.critical(f'clidtwcfg-> No se ha identificado bien el driver de esta extension: {GLO.GLBLinputVectorMfeFileExt} (fichero: {GLO.GLBLrutaCompletaMFEPorDefecto})')
         sys.exit(0)
 
     # ==============================================================================
@@ -651,15 +722,15 @@ def checkGLO(GLO):
         or len(GLO.GLBLlistaDasoVarsPonderado) < len(GLO.GLBLlistaDasoVarsFileTypes)
         
     ):
-        print('\nclidtwins_config-> ATENCION: revisar coherencia en numero de propiedades de la lista de variables en el fichero de parametros de configuracion:')
-        print('\t-> FileTypes', type(GLO.GLBLlistaDasoVarsFileTypes), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsFileTypes), '->', GLO.GLBLlistaDasoVarsFileTypes)
-        print('\t-> NickNames', type(GLO.GLBLlistaDasoVarsNickNames), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsNickNames), '->', GLO.GLBLlistaDasoVarsNickNames)
-        print('\t-> RangoLinf', type(GLO.GLBLlistaDasoVarsRangoLinf), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsRangoLinf), '->', GLO.GLBLlistaDasoVarsRangoLinf)
-        print('\t-> RangoLinf', type(GLO.GLBLlistaDasoVarsRangoLinf), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsRangoLsup), '->', GLO.GLBLlistaDasoVarsRangoLinf)
-        print('\t-> NumClases', type(GLO.GLBLlistaDasoVarsNumClases), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsNumClases), '->', GLO.GLBLlistaDasoVarsNumClases)
-        print('\t-> Movilidad', type(GLO.GLBLlistaDasoVarsMovilidad), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsMovilidad), '->', GLO.GLBLlistaDasoVarsMovilidad)
-        print('\t-> Ponderado', type(GLO.GLBLlistaDasoVarsPonderado), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsPonderado), '->', GLO.GLBLlistaDasoVarsPonderado)
-        print(f'Corregir o eliminar el fichero almacenado ({GLO.configFileNameCfg}).')
+        myLog.error('\nclidtwcfg-> ATENCION: revisar coherencia en numero de propiedades de la lista de variables en el fichero de parametros de configuracion:')
+        myLog.error('\t-> FileTypes', type(GLO.GLBLlistaDasoVarsFileTypes), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsFileTypes), '->', GLO.GLBLlistaDasoVarsFileTypes)
+        myLog.error('\t-> NickNames', type(GLO.GLBLlistaDasoVarsNickNames), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsNickNames), '->', GLO.GLBLlistaDasoVarsNickNames)
+        myLog.error('\t-> RangoLinf', type(GLO.GLBLlistaDasoVarsRangoLinf), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsRangoLinf), '->', GLO.GLBLlistaDasoVarsRangoLinf)
+        myLog.error('\t-> RangoLinf', type(GLO.GLBLlistaDasoVarsRangoLinf), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsRangoLsup), '->', GLO.GLBLlistaDasoVarsRangoLinf)
+        myLog.error('\t-> NumClases', type(GLO.GLBLlistaDasoVarsNumClases), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsNumClases), '->', GLO.GLBLlistaDasoVarsNumClases)
+        myLog.error('\t-> Movilidad', type(GLO.GLBLlistaDasoVarsMovilidad), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsMovilidad), '->', GLO.GLBLlistaDasoVarsMovilidad)
+        myLog.error('\t-> Ponderado', type(GLO.GLBLlistaDasoVarsPonderado), 'NumDasoVars:', len(GLO.GLBLlistaDasoVarsPonderado), '->', GLO.GLBLlistaDasoVarsPonderado)
+        myLog.error(f'Corregir o eliminar el fichero almacenado ({GLO.configFileNameCfg}).')
         sys.exit(0)
 
     nBandasPrevistasOutput = len(GLO.GLBLlistaDasoVarsFileTypes)
@@ -706,12 +777,12 @@ def checkGLO(GLO):
     #             listDasoVar = [int(item.strip()) for item in txtListaDasovar.split(',')]
     #         GLO.GLBLlistLstDasoVarsPorDefecto.append(listDasoVar)
 
-        # print('clidtwins_config->', nVar, type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar], end=' -> ')
+        # myLog.debug('clidtwcfg->', nVar, type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar], end=' -> ')
         # GLO.GLBLlistaDasoVarsRangoLinf[nVar] = int(GLO.GLBLlistaDasoVarsRangoLinf[nVar])
         # GLO.GLBLlistaDasoVarsRangoLsup[nVar] = int(GLO.GLBLlistaDasoVarsRangoLsup[nVar])
         # GLO.GLBLlistaDasoVarsNumClases[nVar] = int(GLO.GLBLlistaDasoVarsNumClases[nVar])
         # GLO.GLBLlistaDasoVarsMovilidad[nVar] = int(GLO.GLBLlistaDasoVarsMovilidad[nVar])
-        # print(type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar])
+        # myLog.debug(type(GLO.GLBLlistaDasoVarsMovilidad[nVar]), GLO.GLBLlistaDasoVarsMovilidad[nVar])
     # ==========================================================================
     GLO.GLBLverbose = GLO.GLBLverbose
     GLO.GLBLaccionPrincipalPorDefecto = int(GLO.GLBLaccionPrincipalPorDefecto)
@@ -757,9 +828,9 @@ def checkGLO(GLO):
         binomioEspeciesB = f'{codeEsp2}_{codeEsp1}'
         GLO.GLBLdictProximidadInterEspecies[binomioEspeciesA] = proximidadInterEsp
         GLO.GLBLdictProximidadInterEspecies[binomioEspeciesB] = proximidadInterEsp
-    # print('GLBLdictProximidadInterEspecies:')
+    # myLog.debug('GLBLdictProximidadInterEspecies:')
     # for binomioSpp in GLO.GLBLdictProximidadInterEspecies:
-    #     print(binomioSpp, GLO.GLBLdictProximidadInterEspecies[binomioSpp])
+    #     myLog.debug(binomioSpp, GLO.GLBLdictProximidadInterEspecies[binomioSpp])
     # ==========================================================================
 
     return GLO
@@ -777,20 +848,19 @@ def readGLO():
     GLO.configFileNameCfg = configFileNameCfg
     checkGLO(GLO)
 
-
-    if __verbose__ > 2:
-        print('clidtwins_config-> GLO:')
+    if __verbose__ == 3:
+        myLog.debug('clidtwcfg-> GLO:')
         for myParameter in dir(GLO):
             if not myParameter.startswith('__'):
-                print('\t', myParameter)
+                myLog.debug('\t', myParameter)
                 if hasattr(GLO, myParameter) and (
                     'listaDasoVars' in myParameter
                     or 'listLstDasoVars' in myParameter
                     or 'listTxtDasoVars' in myParameter
                 ):
                     
-                    print('\t\t->', getattr(GLO, myParameter))
-        quit()
+                    myLog.debug('\t\t->', getattr(GLO, myParameter))
+
     return GLO
 
 

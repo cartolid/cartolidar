@@ -25,9 +25,22 @@ monkeypatch = MonkeyPatch()
 # print(f'monkeypatch: {type(monkeypatch)} {monkeypatch}')
 monkeypatch.setattr('builtins.input', lambda _: listaInputs.pop(0))
 
+from cartolidar.clidax import clidconfig
+if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
+    MAIN_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+else:
+    MAIN_idProceso = 0
+configFileNameCfg = clidconfig.getConfigFileName(MAIN_idProceso)
+
 listaVerbose = ['', '-v', '-vv', '-vvv']
 listaExtras = ['-e']
+
 for numTest, myVerbose in enumerate(listaVerbose):
+    if numTest == 0:
+        # La primera vez se testea sin fichero de configuracion; el resto con.
+        if os.path.exists(configFileNameCfg):
+            os.remove(configFileNameCfg)
+
     if numTest < len(listaExtras):
         myExtra = listaExtras[numTest]
     else:
@@ -111,6 +124,16 @@ for numTest, myVerbose in enumerate(listaVerbose):
         argsConfig = qlidtwins.leerConfiguracion()
         cfgDict = qlidtwins.creaConfigDict(argsConfig)
         myDasolidar = qlidtwins.clidtwinsUseCase(cfgDict, accionPral=0)
+
+        print('test_qlidtwins-> DasoLidarSource')
+        assert myDasolidar is not None, 'Se debe crear el objeto de la clase DasoLidarSource'
+        assert hasattr(myDasolidar, 'GLBLmenuInteractivo'), 'El objeto DasoLidarSource debe tener las propiedades extra asignadas desde su creacion.'
+        assert hasattr(myDasolidar, 'LOCLmarcoCoordMiniX'), 'El objeto DasoLidarSource debe tener algunas propiedades asignadas desde su creacion.'
+        assert hasattr(myDasolidar, 'LOCLmarcoCoordMaxiY'), 'El objeto DasoLidarSource debe tener algunas propiedades asignadas desde su creacion.'
+        print('test_qlidtwins-> setRangeUTM')
+        assert hasattr(myDasolidar, 'GLBLmarcoPatronTest'), 'El objeto DasoLidarSource debe tener la propiedad GLBLmarcoPatronTest.'
+        assert myDasolidar.LOCLmarcoCoordMiniX > 0, 'El objeto DasoLidarSource debe tener coordenadas de marco definidas.'
+        assert myDasolidar.LOCLmarcoCoordMaxiY > 0, 'El objeto DasoLidarSource debe tener coordenadas de marco definidas.'
         print('test_qlidtwins-> searchSourceFiles')
         # assert len(myDasolidar.inFilesListAllTypes) == 2, 'El match de ejemplo debe encontrar 2 ficheros asc con variables dasoLidar'
         assert len(myDasolidar.inFilesListAllTypes) == 3, 'El match de ejemplo debe encontrar 3 tipos de fichero asc con variables dasoLidar'

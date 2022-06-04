@@ -13,6 +13,7 @@ import sys
 import os
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+import logging
 import traceback
 
 __version__ = '0.0a3'
@@ -29,12 +30,46 @@ elif '-vv' in sys.argv:
 elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
     __verbose__ = 0
-if __verbose__ > 2:
-    print(f'cartolidar.__main__-> __name__:     <{__name__}>')
-    print(f'cartolidar.__main__-> __package__:  <{__package__}>')
-    print(f'cartolidar.__main__-> sys.argv:     <{sys.argv}>')
-    print()
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 12
+TV = ' ' * 3
+# ==============================================================================
+
+# ==============================================================================
+# set a format which is simpler for console use
+formatter0 = logging.Formatter('{message}', style='{')
+# define a Handler which writes INFO messages or higher to the sys.stderr
+consoleLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consoleLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consoleLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consoleLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consoleLog.setLevel(logging.ERROR)
+else:
+    consoleLog.setLevel(logging.CRITICAL)
+consoleLog.setFormatter(formatter0)
+myLog = logging.getLogger(__name__.split('.')[-1])
+myLog.addHandler(consoleLog)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('cartolidar.__main__-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
 # ==============================================================================
 
 
@@ -122,8 +157,6 @@ def leerArgumentosEnLineaDeComandos(
   or conditions of any kind, either express or implied.
 '''.format(program_shortdesc, str(__date__))
 
-    # print('qlidtwins.__main__-> sys.argv:', sys.argv)
-
     # ==========================================================================
     # https://docs.python.org/es/3/howto/argparse.html
     # https://docs.python.org/3/library/argparse.html
@@ -162,8 +195,8 @@ def leerArgumentosEnLineaDeComandos(
         # args = parser.parse_args()
         # Se ignoran argumentos desconocidos sin problemas porque no los hay posicionales
         args, unknown = parser.parse_known_args()
-        if __verbose__ > 2 and not unknown is None and unknown != []:
-            print(f'\ncartolidar.__main__-> Argumentos ignorados: {unknown}')
+        if not unknown is None and unknown != []:
+            myLog.warning(f'\ncartolidar.__main__-> Argumentos ignorados: {unknown}')
         return args, unknown
     except KeyboardInterrupt:
         program_name = 'cartolidar_main'
@@ -197,23 +230,25 @@ if __name__ == '__main__':
         opcionesPrincipales=opcionesPrincipales,
         )
     if args is None:
-        print('\ncartolidar-> ATENCION: revisar error en argumentos en linea')
-        print('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
+        myLog.error('\ncartolidar-> ATENCION: error en los argumentos en linea de comandos')
+        # myLog.error('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
+        sys.stderr.write(f'\nFor help use:\n')
+        sys.stderr.write(f'\tpython -m cartolidar -h\n')
         sys.exit(0)
 
 
     if not args.toolHelp == 'None':
         # for num_arg in range(len(sys.argv) - 1):
         #     del sys.argv[num_arg + 1]
-        print(f'sys.argv pre:  {sys.argv}')
+        myLog.debug(f'sys.argv pre:  {sys.argv}')
         for sys_arg in sys.argv[1:]:
             sys.argv.remove(sys_arg)
-        print(f'sys.argv post: {sys.argv}')
+        myLog.debug(f'sys.argv post: {sys.argv}')
         sys.argv.append('-h')
         if '-e' in unknown:
-            # print(f'\ncartolidar.__main__-> Recuperando el argumento ignorado: -e')
+            # myLog.debug(f'\ncartolidar.__main__-> Recuperando el argumento ignorado: -e')
             sys.argv.append('-e')
-        print(f'sys.argv fin:  {sys.argv}')
+        myLog.debug(f'sys.argv fin:  {sys.argv}')
         if args.toolHelp == 'qlidtwins':
             from cartolidar import qlidtwins
             sys.exit(0)
@@ -221,8 +256,8 @@ if __name__ == '__main__':
             from cartolidar import qlidmerge
             sys.exit(0)
         else:
-            print(f'Revisar los argumentos. El argumento -H debe ir con nombre del modulo sobre el que se pide ayuda.')
-            print(f'\t-> sys.argv: {sys.argv}')
+            myLog.error(f'Revisar los argumentos. El argumento -H debe ir con nombre del modulo sobre el que se pide ayuda.')
+            myLog.error(f'\t-> sys.argv: {sys.argv}')
             sys.exit(0)
 
 
@@ -239,28 +274,26 @@ if __name__ == '__main__':
             try:
                 nOpcionElegida = int(selec)
             except:
-                print(f'\nATENCION: Opcion elegida no disponible: <{selec}>')
+                myLog.error(f'\nATENCION: Opcion elegida no disponible: <{selec}>')
                 sys.exit(0)
-        print(f'\nSe ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}')
+        myLog.info(f'\nSe ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}')
     elif args.menuOption < len(opcionesPrincipales):
-        print(f'\nOpcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}')
+        myLog.info(f'\nOpcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}')
         nOpcionElegida = args.menuOption
     else:
-        print(f'\nATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}')
-        print('Fin de cartolidar\n')
+        myLog.error(f'\nATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}')
+        myLog.error('Fin de cartolidar\n')
         sys.exit(0)
 
     if nOpcionElegida == 1:
-        if __verbose__ > 1:
-            print('\ncartolidar.__main__-> Se ha elegido ejecutar qlidtwuins:')
-            print('\t-> Se importa el modulo qlidtwins.py.')
+        myLog.info('\ncartolidar.__main__-> Se ha elegido ejecutar qlidtwuins:')
+        myLog.debug('\t-> Se importa el modulo qlidtwins.py.')
         from cartolidar import qlidtwins
     elif nOpcionElegida == 2:
-        if __verbose__ > 1:
-            print('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
-        print('\nAVISO: herramienta pendiente de incluir en cartolidar.')
+        myLog.info('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
+        myLog.warning('\nAVISO: herramienta pendiente de incluir en cartolidar.')
         # from cartolidar import qlidmerge
-    print('\nFin de cartolidar\n')
+    myLog.info('\nFin de cartolidar\n')
 
 #TODO: Completar cuando haya incluido mas herramientas en cartolidar
 

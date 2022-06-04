@@ -20,18 +20,30 @@ import os
 import argparse
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
+import logging
 # import traceback
 # import warnings
 # import errno
 # print {i:os.strerror(i) for i in sorted(errno.errorcode)}
 # import random
 
+# try:
+if True:
+    from cartolidar.clidax import clidconfig
+# except ModuleNotFoundError:
+#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+#     sys.stderr.write('\t-> Se importa clidconfig desde qlidtwins del directorio local {os.getcwd()}/clidtools.')
+#     from clidax import clidconfig
+myUser = clidconfig.infoUsuario()
+
+# ==============================================================================
+# ========================== Variables globales ================================
+# ==============================================================================
 __version__ = '0.0a3'
 __date__ = '2016-2022'
 __updated__ = '2022-06-01'
 # No se importa nada con: from qlidtwins import *
 __all__ = []
-
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -42,16 +54,15 @@ elif '-v' in sys.argv or '--verbose' in sys.argv:
     __verbose__ = 1
 else:
     # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
-    __verbose__ = 2
-if __verbose__ > 2:
-    print(f'qlidtwins-> __name__:     <{__name__}>')
-    print(f'qlidtwins-> __package__ : <{__package__ }>')
+    __verbose__ = 0
 # ==============================================================================
-# if '-e' in sys.argv and len(sys.argv) > sys.argv.index('-e') + 1:
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
 if '-e' in sys.argv or '--extraArguments' in sys.argv:
-    # TRNS_LEER_EXTRA_ARGS = sys.argv[sys.argv.index('-e') + 1]
-    if __verbose__ > 1 or True:
-        print('\nqlidtwins-> Se leen argumentos extra')
     TRNS_LEER_EXTRA_ARGS = True
 else:
     TRNS_LEER_EXTRA_ARGS = False
@@ -61,10 +72,118 @@ TRNS_soloAdmitirOpcionesPermitidas = False
 TB = ' ' * 12
 TV = ' ' * 3
 # ==============================================================================
+if (
+    'tests/test_' in sys.argv[0]
+    or 'tests\\test_' in sys.argv[0]
+    or r'tests\test_' in sys.argv[0]
+    or '/pytest' in sys.argv[0]
+    or r'\pytest' in sys.argv[0]
+    or 'prueba' in sys.argv[0]
+):
+    TRNS_testTwins = True
+else:
+    TRNS_testTwins = False
+# ==============================================================================
 
+# ==============================================================================
 # https://docs.python.org/3/library/warnings.html#warning-filter
 # https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 # warnings.warn()
+# ==============================================================================
+# https://docs.python.org/3/library/logging.html
+# https://docs.python.org/3/howto/logging-cookbook.html#logging-to-multiple-destinations
+# https://stackoverflow.com/questions/13733552/logger-configuration-to-log-to-file-and-print-to-stdout
+# https://realpython.com/python-logging/
+# https://realpython.com/python-logging-source-code/
+# ==============================================================================
+thisModule = __name__.split('.')[-1]
+class ContextFilter(logging.Filter):
+    """
+    This is a filter which injects contextual information into the log.
+    """
+
+    def filter(self, record):
+        record.thisUser = myUser
+        record.thisFile = thisModule[:10]
+        return True
+# ==============================================================================
+myFilter = ContextFilter()
+# ==============================================================================
+# formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+# formatter = logging.Formatter('%(name)-12s: %(message)s')
+# formatter = logging.Formatter('{name:16s}: {levelname:8s} {message}', style='{')
+# formatter0 = '%(asctime)s|%(process)d|%(thisFile)-10s|%(levelname)-8s|%(thisUser)-8s|>%(message)s'
+
+formatter0 = '{asctime}|{name:10s}|{levelname:8s}|> {message}'
+formatter1 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
+formatterFile = logging.Formatter(formatter1, style='{', datefmt='%d-%m-%y %H:%M:%S')
+formatterCons = logging.Formatter('{message}', style='{')
+
+# Este logger vale para todos los modulos
+# Pero no puedo utilizar myFilter con todos los modulos porque algunas librerias (matplotlib)
+# lanzan mensajes de debug y no tienen definido el filtro, con lo que da error
+# https://docs.python.org/3/library/logging.html#logging.basicConfig
+logging.basicConfig(
+    filename='cartolidar.log',
+    filemode='w',
+    format=formatter0,
+    style='{',
+    datefmt='%d-%m-%y %H:%M:%S',
+    # datefmt='%d-%b-%y %H:%M:%S',
+    level=logging.DEBUG,
+    # level=logging.INFO,
+    # level=logging.WARNING,
+    # level=logging.ERROR,
+    # level=logging.CRITICAL,
+)
+
+# Este logger solo vale para este modulo:
+# https://docs.python.org/3/library/logging.handlers.html#filehandler
+fileLog = logging.FileHandler('qlidtwins.log', mode='w')
+fileLog.set_name(thisModule)
+fileLog.setLevel(logging.DEBUG)
+fileLog.setFormatter(formatterFile)
+fileLog.addFilter(myFilter)
+
+# https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler
+consLog = logging.StreamHandler()
+if __verbose__ == 3:
+    consLog.setLevel(logging.DEBUG)
+elif __verbose__ == 2:
+    consLog.setLevel(logging.INFO)
+elif __verbose__ == 1:
+    consLog.setLevel(logging.WARNING)
+elif not __quiet__:
+    consLog.setLevel(logging.ERROR)
+else:
+    consLog.setLevel(logging.CRITICAL)
+consLog.setFormatter(formatterCons)
+
+myLog = logging.getLogger(thisModule)
+myLog.setLevel(logging.DEBUG)
+myLog.addFilter(myFilter)
+# logging.getLogger().addHandler(fileLog)
+myLog.addHandler(fileLog)
+# logging.getLogger().addHandler(consLog)
+myLog.addHandler(consLog)
+# ==============================================================================
+# myLog.debug('qlidtwins-> debug')
+# myLog.info('qlidtwins-> info')
+# myLog.warning('qlidtwins-> warning')
+# myLog.error('qlidtwins-> error')
+# ==============================================================================
+
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('qlidtwins-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug(f'{TB}-> extraArgs:    <{TRNS_LEER_EXTRA_ARGS}>')
+myLog.debug(f'{TB}-> testTwins:    <{TRNS_testTwins}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
 
 # ==============================================================================
 # El idProceso sirve para dar nombres unicos a los ficheros de configracion y
@@ -84,15 +203,15 @@ else:
 # Recuperar la captura de errores de importacion en la version beta
 # try:
 if True:
-    from cartolidar.clidtools import clidtwins_config
-    from cartolidar.clidtools.clidtwins_config import GLO
+    from cartolidar.clidtools import clidtwcfg
+    from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools.clidtwins import DasoLidarSource
 # except ModuleNotFoundError:
-#     if __verbose__ > 2:
-#         print(f'qlidtwins-> Se importa clidtwins desde qlidtwins del directorio local {os.getcwd()}/clidtools')
-#         print(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
-#     from clidtools import clidtwins_config
-#     from clidtools.clidtwins_config import GLO
+#     if __verbose__ == 3:
+#         myLog.warning(f'qlidtwins-> Se importa clidtwins desde qlidtwins del directorio local {os.getcwd()}/clidtools')
+#         myLog.warning(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
+#     from clidtools import clidtwcfg
+#     from clidtools.clidtwcfg import GLO
 #     from clidtools.clidtwins import DasoLidarSource
 # # except ModuleNotFoundError:
 # #     sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
@@ -103,19 +222,20 @@ if True:
 # #     sys.exit(0)
 # except SystemError as excpt:
 #     program_name = 'qlidtwins.py'
-#     print(f'\n{program_name}-> Error SystemError: {excpt}')
+#     # myLog.error(f'\n{program_name}-> Error SystemError: {excpt}', exc_info=True)
+#     myLog.exception(f'\n{program_name}-> Error SystemError: {excpt}')
 #     sys.exit(0)
 # except OSError as excpt:
 #     program_name = 'qlidtwins.py'
-#     print(f'\n{program_name}-> Error OSError: {excpt}')
+#     myLog.error(f'\n{program_name}-> Error OSError: {excpt}', exc_info=True)
 #     sys.exit(0)
 # except PermissionError as excpt:
 #     program_name = 'qlidtwins.py'
-#     print(f'\n{program_name}-> Error PermissionError: {excpt}')
+#     myLog.error(f'\n{program_name}-> Error PermissionError: {excpt}', exc_info=True)
 #     sys.exit(0)
 # except Exception as excpt:
 #     program_name = 'qlidtwins.py'
-#     # print(f'\n{program_name}-> Error Exception: {excpt}')
+#     # myLog.error(f'\n{program_name}-> Error Exception: {excpt}', exc_info=True)
 #
 #     # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
 #     exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -152,24 +272,15 @@ if True:
 
 # ==============================================================================
 
-# ==============================================================================
-if __verbose__ > 1:
-    print('\n{:_^80}'.format(''))
-    print('qlidtwins-> Info transitoria de la version alpha:')
-    print(f'{TB}qlidtwins-> __name__:     <{__name__}>')
-    print(f'{TB}qlidtwins-> __package__ : <{__package__ }>')
-    print(f'{TB}qlidtwins-> sys.argv:     <{sys.argv}>')
-    print(f'\nqlidtwins-> __verbose__: {__verbose__}')
-    print('{:=^80}'.format(''))
-# ==============================================================================
+
 if False:
     # Provisional en version alpha: usar mas adelante para indicar el progreso
     try:
         from cartolidar.clidax.clidaux import Bar
     except:
-        if __verbose__ > 2:
-            print(f'qlidtwins-> Se importa clidaux desde clidax del directorio local {os.getcwd()}/clidtools')
-            print(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
+        if __verbose__ == 3:
+            myLog.warning(f'qlidtwins-> Se importa clidaux desde clidax del directorio local {os.getcwd()}/clidtools')
+            myLog.warning(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
         from clidax.clidaux import Bar
     
     bar = Bar('Procesando', max=100)
@@ -206,53 +317,50 @@ def checkRun():
     '''Chequeo de la forma de ejecucion. Provisional para la version alpha'''
     # ==========================================================================
     tipoEjecucion = 0
-    print('\n{:_^80}'.format(''))
+    myLog.info('')
+    myLog.info('{:_^80}'.format(''))
     try:
         if len(sys.argv) == 0:
-            print(f'qlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
+            myLog.critical(f'qlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
             sys.exit(0)
         elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
             # Tb cumple:
             # __name__:    <cartolidar.qlidtwins>
             # __package__: <cartolidar>
             tipoEjecucion = 1
-            if __verbose__ > 1:
-                print('qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
-                print(f'{TB}  python -m cartolidar')
+            myLog.info('qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
+            myLog.info(f'{TB} python -m cartolidar')
         elif sys.argv[0].endswith('qlidtwins.py'):
             tipoEjecucion = 2
-            if __verbose__ > 1:
-                print('qlidtwins.py se ha lanzado desde linea de comandos:')
-                print(f'{TB}  python qlidtwins.py')
+            myLog.info('qlidtwins.py se ha lanzado desde linea de comandos:')
+            myLog.info(f'{TB} python qlidtwins.py')
         elif sys.argv[0] == '':
             tipoEjecucion = 3
-            if __verbose__ > 1:
-                # Al importar el modulo no se pueden incluir el argumento -v (ni ningun otro)
-                print('qlidtwins se esta importando desde el interprete interactivo:')
-                print(f'{TB}>>> from cartolidar import qlidtwins')
-                print('o, si esta accesible (en el path):')
-                print(f'{TB}>>> import qlidtwins')
+            # Al importar el modulo no se pueden incluir el argumento -v (ni ningun otro)
+            myLog.info('qlidtwins se esta importando desde el interprete interactivo:')
+            myLog.info(f'{TB}>>> from cartolidar import qlidtwins')
+            myLog.info('o, si esta accesible (en el path):')
+            myLog.info(f'{TB}>>> import qlidtwins')
         else:
             tipoEjecucion = 4
-            if __verbose__ > 1 or True:
-                print(f'checkRun-> qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
+            myLog.info(f'checkRun-> qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
     except:
-        print('\nqlidtwins-> Revisar MAIN_idProceso:')
-        print(f'MAIN_idProceso: <{MAIN_idProceso}> type: {type(MAIN_idProceso)}')
-        print(f'sys.argv:       <{sys.argv}>')
-        print(f'sys.argv[0]:    <{sys.argv[0]}>')
+        # myLog.critical(qlidtwins-> Revisar MAIN_idProceso:', exc_info=True)
+        myLog.exception('qlidtwins-> Revisar MAIN_idProceso:')
+        myLog.critical(f'MAIN_idProceso: <{MAIN_idProceso}> type: {type(MAIN_idProceso)}')
+        myLog.critical(f'sys.argv:       <{sys.argv}>')
     # ==========================================================================
 
     if sys.argv[0] == '':
         if __verbose__ > 1:
-            print('\nAVISO: clidqins.py es un modulo escrito para ejecutarse desde linea de comandos:')
-            print(f'{TB}  python -m cartolidar')
-            print('o bien:')
-            print(f'{TB}  python qlidtwins.py')
-            print('\nSin embargo, se esta importando desde el interprete interactivo de python y')
-            print('no se pueden incluir argumentos en linea de comandos.')
-            print(f'Se usa fichero de configuracion: {GLO.configFileNameCfg}')
-            print('(si existe) o configuracion por defecto (en caso contrario).')
+            myLog.warning('AVISO: clidqins.py es un modulo escrito para ejecutarse desde linea de comandos:')
+            myLog.warning(f'{TB}  python -m cartolidar')
+            myLog.warning('o bien:')
+            myLog.warning(f'{TB}  python qlidtwins.py')
+            myLog.warning('Sin embargo, se esta importando desde el interprete interactivo de python y')
+            myLog.warning('no se pueden incluir argumentos en linea de comandos.')
+            myLog.warning(f'Se usa fichero de configuracion: {GLO.configFileNameCfg}')
+            myLog.warning('(si existe) o configuracion por defecto (en caso contrario).')
             if __verbose__ > 1:
                 selec = input('\r\nLanzar el modulo como si se ejecutara desde linea de comandos (S/n): ')
             else:
@@ -260,9 +368,9 @@ def checkRun():
         else:
             selec = 's'
     elif len(sys.argv) == 3 and TRNS_preguntarPorArgumentosEnLineaDeComandos:
-        print('\nAVISO: no se han introducido argumentos en linea de comandos')
-        print(f'{TB}-> Para obtener ayuda sobre estos argumentos escribir:')
-        print(f'{TB}{TV}python {os.path.basename(sys.argv[0])} -h')
+        myLog.warning('AVISO: no se han introducido argumentos en linea de comandos')
+        myLog.warning(f'{TB}-> Para obtener ayuda sobre estos argumentos escribir:')
+        myLog.warning(f'{TB}{TV}python {os.path.basename(sys.argv[0])} -h')
         selec = input('\nContinuar con la configuracion por defecto? (S/n): ')
     else:
         selec = 's'
@@ -274,14 +382,13 @@ def checkRun():
         try:
             if selec.upper() == 'N':
                 sys.argv.append("-h")
-                print('')
-                # print('Fin')
-                # sys.exit(0)
+                myLog.info('')
         except (Exception) as thisError: # Raised when a generated error does not fall into any category.
-            print(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
-            print(f'{TB}Revisar error: {thisError}')
+            # myLog.critical(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>', exc_info=True)
+            myLog.exception(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
+            myLog.critical(f'{TB}Revisar error: {thisError}')
             sys.exit(0)
-    print('{:=^80}'.format(''))
+    myLog.info('{:=^80}'.format(''))
 
     return tipoEjecucion
 
@@ -371,6 +478,11 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
                             # action="store_true",
                             help='set verbosity level [default: %(default)s]',
                             default = GLO.GLBLverbose,)
+        parser.add_argument('-q', '--quiet',
+                            dest='quietMode',
+                            action="store_false",
+                            help='Activates quiet mode (mude, not output). Default: %(default)s',
+                            default = __quiet__,)
         parser.add_argument('-e', '--extraArguments',
                             dest='extraArguments',
                             # action='count', # Cuenta el numero de veces que aparece la e (-e, -ee, etc.)
@@ -556,67 +668,62 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
             argsConfig = parser.parse_args()
         else:
             argsConfig, unknown = parser.parse_known_args()
-            if __verbose__ > 1:
-                print('\n{:_^80}'.format(''))
-                print('qlidtwins-> Info transitoria de la version alpha:')
-                print(f'Argumentos leidos en linea de comandos y/o fichero de configuracion ({type(argsConfig)}):')
-                print(f'{argsConfig}')
-                if not unknown is None and unknown != []:
-                    print(f'\nArgumentos ignorados: {type(unknown)} {unknown}')
-                    print(f'\nRevisando argumentos ignorados:')
+            myLog.debug('{:_^80}'.format(''))
+            myLog.debug('qlidtwins-> Info transitoria de la version alpha:')
+            myLog.debug(f'Argumentos leidos en linea de comandos y/o fichero de configuracion ({type(argsConfig)}):')
+            myLog.debug(f'{argsConfig}')
+            if not unknown is None and unknown != []:
+                myLog.debug(f'\nArgumentos ignorados: {type(unknown)} {unknown}')
+                myLog.debug(f'\nRevisando argumentos ignorados:')
             if type(unknown) == list and unknown != []:
                 for argumentoIgnorado in unknown:
-                    if __verbose__ > 1 and argumentoIgnorado in sys.argv:
-                        print(f'{TB}-> argumentoIgnorado: {argumentoIgnorado}')
+                    if argumentoIgnorado in sys.argv:
+                        myLog.debug(f'{TB}-> argumentoIgnorado: {argumentoIgnorado}')
                     if argumentoIgnorado in sys.argv and len(sys.argv) > sys.argv.index(argumentoIgnorado) + 1:
                         valorDelArgumentoIgnorado = sys.argv[sys.argv.index(argumentoIgnorado) + 1]
                         if valorDelArgumentoIgnorado[0] != '-':
-                            if __verbose__ > 1:
-                                print(f'{TB}{TV}-> Eliminando valorDelArgumentoIgnorado: {valorDelArgumentoIgnorado}')
-                            if __verbose__ > 2:
-                                print(f'{TB}{TV}{TV}-> sys.argv pre:  {sys.argv}')
+                            myLog.debug(f'{TB}{TV}-> Eliminando valorDelArgumentoIgnorado: {valorDelArgumentoIgnorado}')
+                            if __verbose__ == 3:
+                                myLog.debug(f'{TB}{TV}{TV}-> sys.argv pre:  {sys.argv}')
                             del sys.argv[sys.argv.index(argumentoIgnorado) + 1]
-                            if __verbose__ > 2:
-                                print(f'{TB}{TV}{TV}-> sys.argv post: {sys.argv}')
+                            if __verbose__ == 3:
+                                myLog.debug(f'{TB}{TV}{TV}-> sys.argv post: {sys.argv}')
                             if argsConfig.listTxtDasoVars == [valorDelArgumentoIgnorado]:
-                                if __verbose__ > 2:
-                                    print(f'{TB}{TV}-> Este valor se habia asignado a listTxtDasoVars: {argsConfig.listTxtDasoVars}')
-                                    print(f'{TB}{TV}{TV}-> Se elimina ese valor y asigna el valor por defecto')
+                                if __verbose__ == 3:
+                                    myLog.debug(f'{TB}{TV}-> Este valor se habia asignado a listTxtDasoVars: {argsConfig.listTxtDasoVars}')
+                                    myLog.debug(f'{TB}{TV}{TV}-> Se elimina ese valor y asigna el valor por defecto')
                                 try:
                                     del argsConfig.listTxtDasoVars
-                                    # print('borrado ok2')
+                                    # myLog.debug('borrado ok2')
                                 except:
                                     del argsConfig['listTxtDasoVars']
-                                    if __verbose__ > 1:
-                                        print(f'\nqlidtwins-> No se ha podido borrar el argumento {argumentoIgnorado}. Revisar codigo.')
+                                    myLog.debug(f'\nqlidtwins-> No se ha podido borrar el argumento {argumentoIgnorado}. Revisar codigo.')
                                 argsConfig.listTxtDasoVars = GLO.GLBLlistTxtDasoVarsPorDefecto
-                                if __verbose__ > 2:
-                                    print(f'{TB}{TV}-> Valor asignado a listTxtDasoVars: {argsConfig.listTxtDasoVars}')
+                                if __verbose__ == 3:
+                                    myLog.debug(f'{TB}{TV}-> Valor asignado a listTxtDasoVars: {argsConfig.listTxtDasoVars}')
                             elif valorDelArgumentoIgnorado in argsConfig.listTxtDasoVars:
                                 (argsConfig.listTxtDasoVars).remove(valorDelArgumentoIgnorado)
                     if argumentoIgnorado in sys.argv:
-                        if __verbose__ > 1:
-                            print(f'{TB}{TV}-> Eliminando argumentoIgnorado: {argumentoIgnorado}')
-                        if __verbose__ > 2:
-                            print(f'{TB}{TV}{TV}-> sys.argv pre:  {sys.argv}')
+                        myLog.debug(f'{TB}{TV}-> Eliminando argumentoIgnorado: {argumentoIgnorado}')
+                        if __verbose__ == 3:
+                            myLog.debug(f'{TB}{TV}{TV}-> sys.argv pre:  {sys.argv}')
                         del sys.argv[sys.argv.index(argumentoIgnorado)]
-                        if __verbose__ > 2:
-                            print(f'{TB}{TV}{TV}-> sys.argv post: {sys.argv}')
-            if __verbose__ > 2:
-                print(f'{TB}{TV}-> argsConfig post: {argsConfig}')
-            if __verbose__ > 1:
-                print('{:=^80}'.format(''))
+                        if __verbose__ == 3:
+                            myLog.debug(f'{TB}{TV}{TV}-> sys.argv post: {sys.argv}')
+            if __verbose__ == 3:
+                myLog.debug(f'{TB}{TV}-> argsConfig post: {argsConfig}')
+            myLog.debug('{:=^80}'.format(''))
 
     except KeyboardInterrupt:
         program_name = 'qlidtwins.py'
-        clidtwins_config.mensajeError(program_name)
+        clidtwcfg.mensajeError(program_name)
         sys.exit(0)
 
     except Exception as excpt:
         if TESTRUN:
             raise(excpt)
         program_name = 'qlidtwins.py'
-        clidtwins_config.mensajeError(program_name)
+        clidtwcfg.mensajeError(program_name)
         sys.exit(0)
 
     # ==========================================================================
@@ -664,12 +771,12 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
 
     for myMainArg in listaMainArgs:
         if not myMainArg in dir(argsConfig):
-            print('qlidtwins-> Revisar codigo para que lea todos los argumentos principales por defecto.')
+            myLog.critical('qlidtwins-> Revisar codigo para que lea todos los argumentos principales por defecto.')
             sys.exit(0)
 
     for myExtraArg in listaExtraArgs:
         if not myExtraArg in dir(argsConfig):
-            print('qlidtwins-> Revisar codigo para que lea todos los argumentos extras por defecto.')
+            myLog.critical('qlidtwins-> Revisar codigo para que lea todos los argumentos extras por defecto.')
             sys.exit(0)
 
     return argsConfig
@@ -677,7 +784,7 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
 
 # ==============================================================================
 def saveArgs(args: argparse.Namespace) -> str:
-    if GLO.configFileNameCfg.endswith('.cfg'):
+    if (GLO.configFileNameCfg).endswith('.cfg'):
         argsFileName = (GLO.configFileNameCfg).replace('.cfg', '.args')
     elif sys.argv[0].endswith('.py'):
         argsFileName = sys.argv[0].replace('.py', '.args')
@@ -752,8 +859,7 @@ def saveArgs(args: argparse.Namespace) -> str:
             for miDasoVar in args.listTxtDasoVars:
                 argsFileControl.write(f'{miDasoVar}\n')
     except:
-        if __verbose__ > 1:
-            print(f'\nqlidtwins-> No se ha podido crear el fichero de argumentos para linea de comandos: {argsFileName}')
+        myLog.warning(f'\nqlidtwins-> No se ha podido crear el fichero de argumentos para linea de comandos: {argsFileName}')
 
     return argsFileName
 
@@ -766,7 +872,7 @@ def creaConfigDict(
     """
     Se crea el diccionario usando los argumentos leidos en linea de comandos
     o, en su defecto, los valores por defecto del fichero de configuracion
-    o, en su defecto, los valores por defecto del modulo clidtwins_config.py
+    o, en su defecto, los valores por defecto del modulo clidtwcfg.py
     """
 
     cfgDict = {}
@@ -792,9 +898,9 @@ def creaConfigDict(
         cfgDict['testeoLayerName'] = args.testeoLayerName
 
 
-    if __verbose__ > 2:
-        print(f'qlidtwins-> args.listTxtDasoVars de tipos {type(args.listTxtDasoVars)} -> {args.listTxtDasoVars}')
-        print(f'{TB}El primer argumento posicional tiene {len((args.listTxtDasoVars[0]).split(","))} elementos: {(args.listTxtDasoVars[0]).split(",")}')
+    if __verbose__ == 3:
+        myLog.debug(f'qlidtwins-> args.listTxtDasoVars de tipos {type(args.listTxtDasoVars)} -> {args.listTxtDasoVars}')
+        myLog.debug(f'{TB}El primer argumento posicional tiene {len((args.listTxtDasoVars[0]).split(","))} elementos: {(args.listTxtDasoVars[0]).split(",")}')
 
     # args.listTxtDasoVars es una lista de cadenas (argumentos posicionales)
     if len((args.listTxtDasoVars[0]).split(',')) == 1:
@@ -802,8 +908,8 @@ def creaConfigDict(
         # Los textos de la lista de textos se usa directamente son los FileTypeId
         # cfgDict['listLstDasoVars'] = args.listTxtDasoVars
         cfgDict['listaTxtDasoVarsFileTypes'] = args.listTxtDasoVars
-        if __verbose__ > 2 and (tipoEjecucion == 1 or tipoEjecucion == 2):
-            print(f'\nqlidtwins-> Los argumentos posicionales (listTxtDasoVars) son una secuencia de FileTypeId')
+        if __verbose__ == 3 and (tipoEjecucion == 1 or tipoEjecucion == 2):
+            myLog.debug(f'\nqlidtwins-> Los argumentos posicionales (listTxtDasoVars) son una secuencia de FileTypeId')
     else:
         args_listLstDasoVars = []
         # Argumentos posicionales completos: FileTypeId,NickName,RangoLinf,RangoLsup,NumClases,Movilidad,Ponderacion
@@ -813,15 +919,15 @@ def creaConfigDict(
             # "FileTypeId, NickName, RangoLinf, RangoLsup, NumClases, Movilidad(0-100), Ponderacion(0-10)"
             listDasoVar = [item.strip() for item in txtListaDasovar.split(',')]
             if len(listDasoVar) <= 5:
-                print(f'\nqlidtwins-> ATENCION: el argumento posicional (listTxtDasoVars) debe ser una')
-                print(f'{TB} Secuencia (uno por variable) de cadenas de texto separados por espacios del tipo:')
-                print(f'{TB}     texto1 texto2 ...')
-                print(f'{TB} Los elementos de esta secuencia deben ser:')
-                print(f'{TB}     Opcion a: identificadores de DLVs (FileTypeId). P. ej. alt95 fcc05 fcc03') 
-                print(f'{TB}     Opcion b: una secuencia de cinco elementos separados por comas (sin espacios) del tipo:')
-                print(f'{TB}         FileTypeId,NickName,RangoLinf,RangoLsup,NumClases,Movilidad,Ponderacion')
-                print(f'{TB}         Ejemplo: {GLO.GLBLlistTxtDasoVarsPorDefecto}')
-                print(f'{TB}-> La variable {numDasoVar} ({listDasoVar[0]}) solo tiene {len(listDasoVar)} elementos: {listDasoVar}')
+                myLog.error(f'\nqlidtwins-> ATENCION: el argumento posicional (listTxtDasoVars) debe ser una')
+                myLog.error(f'{TB} Secuencia (uno por variable) de cadenas de texto separados por espacios del tipo:')
+                myLog.error(f'{TB}     texto1 texto2 ...')
+                myLog.error(f'{TB} Los elementos de esta secuencia deben ser:')
+                myLog.error(f'{TB}     Opcion a: identificadores de DLVs (FileTypeId). P. ej. alt95 fcc05 fcc03') 
+                myLog.error(f'{TB}     Opcion b: una secuencia de cinco elementos separados por comas (sin espacios) del tipo:')
+                myLog.error(f'{TB}         FileTypeId,NickName,RangoLinf,RangoLsup,NumClases,Movilidad,Ponderacion')
+                myLog.error(f'{TB}         Ejemplo: {GLO.GLBLlistTxtDasoVarsPorDefecto}')
+                myLog.error(f'{TB}-> La variable {numDasoVar} ({listDasoVar[0]}) solo tiene {len(listDasoVar)} elementos: {listDasoVar}')
                 sys.exit(0)
             listDasoVar[2] = int(listDasoVar[2])
             listDasoVar[3] = int(listDasoVar[3])
@@ -859,7 +965,7 @@ def creaConfigDict(
         cfgDict['noDataTipoDMasa'] = args.noDataTipoDMasa
         cfgDict['umbralMatriDist'] = args.umbralMatriDist
     except Exception as e:
-        print(f'qlidtwins-> args: {list(myArgs for myArgs in dir(args) if not myArgs.startswith("__"))}')
+        myLog.error(f'qlidtwins-> args: {list(myArgs for myArgs in dir(args) if not myArgs.startswith("__"))}')
         program_name = 'qlidtwins.py'
         indent = len(program_name) * " "
         sys.stderr.write(f'{program_name}-> {repr(e)}\n')
@@ -891,135 +997,131 @@ def mostrarConfiguracion(cfgDict):
     # configFileNameCfg = getConfigFileName()
     configFileNameCfg = GLO.configFileNameCfg
 
-    print('\n{:_^80}'.format(''))
-    print(f'Parametros de configuracion principales:')
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.info(f'Parametros de configuracion principales:')
     if len(sys.argv) == 3:
         if os.path.exists(configFileNameCfg):
             infoConfiguracionUsada = f'Son valores leidos del fichero de configuracion ({configFileNameCfg}).'
         else:
-            infoConfiguracionUsada = 'Son valores "de fabrica" incluidos en codigo (clidtwins_config.py).'
+            infoConfiguracionUsada = 'Son valores "de fabrica" incluidos en codigo (clidtwcfg.py).'
     else:
         infoConfiguracionUsada = 'Incluye valores leidos en linea de comandos (los que no van en linea de comandos, son por defecto).'
-    print(f'{TB}{infoConfiguracionUsada}')
+    myLog.info(f'{TB}{infoConfiguracionUsada}')
 
-    accionesPrincipales = [
-        '1. Verificar analogia con un determinado patron dasoLidar.',
-        '2. Generar raster con presencia de un determinado patron dasoLidar.'
-    ]
-    print(f'{TB}-> Ejecutando: {accionesPrincipales[cfgDict["mainAction"] - 1]}')
     if 'listLstDasoVars' in cfgDict.keys():
-        print(f'{TB}-> Listado de dasoVars:')
-        print(f'{TB}-> formato: [fileType, nickName, limInf, limSup, numClases, movilidadInterclases (0-100), ponderacion (0-10)]')
+        myLog.info(f'{TB}-> Listado de dasoVars:')
+        myLog.info(f'{TB}-> formato: [fileType, nickName, limInf, limSup, numClases, movilidadInterclases (0-100), ponderacion (0-10)]')
         for numDasoVar, listDasoVar in enumerate(cfgDict['listLstDasoVars']):
-            print(f'{TB}{TV}Variable {numDasoVar}: {listDasoVar}')
+            myLog.info(f'{TB}{TV}Variable {numDasoVar}: {listDasoVar}')
     elif 'listaTxtDasoVarsFileTypes' in cfgDict.keys():
-        print(f'{TB}-> Listado de FileTypeId (identificadores de dasoVars:')
+        myLog.info(f'{TB}-> Listado de FileTypeId (identificadores de dasoVars:')
         for numDasoVar, FileTypeId in enumerate(cfgDict['listaTxtDasoVarsFileTypes']):
-            print(f'{TB}{TV}Variable {numDasoVar}: {FileTypeId}')
-    print(f'{TB}-> Rango de coordenadas UTM:')
+            myLog.info(f'{TB}{TV}Variable {numDasoVar}: {FileTypeId}')
+    myLog.info(f'{TB}-> Rango de coordenadas UTM:')
 
     if cfgDict['marcoPatronTest']:
-        print(f'{TB}{TV}Se adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
-        print(f'{TB}{TV}Ver valores mas adelante.')
+        myLog.info(f'{TB}{TV}Se adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
+        myLog.info(f'{TB}{TV}Ver valores mas adelante.')
     elif (
         cfgDict['marcoCoordMiniX'] == 0
         or cfgDict['marcoCoordMaxiX'] == 0
         or cfgDict['marcoCoordMiniY'] == 0
         or cfgDict['marcoCoordMaxiY'] == 0
         ):
-        print(f'{TB}{TV}No se han establecido coordenadas para la zona de estudio.')
-        print(f'{TB}{TV}Se adopta la envolvente de los ficheros con variables dasoLidar.')
+        myLog.info(f'{TB}{TV}No se han establecido coordenadas para la zona de estudio.')
+        myLog.info(f'{TB}{TV}Se adopta la envolvente de los ficheros con variables dasoLidar.')
     else:
-        print(
+        myLog.info(
             '\t\tX {:07f} - {:07f} -> {:04.0f} m:'.format(
                 cfgDict['marcoCoordMiniX'], cfgDict['marcoCoordMaxiX'],
                 cfgDict['marcoCoordMaxiX'] - cfgDict['marcoCoordMiniX']
             )
         )
-        print(
+        myLog.info(
             '\t\tY {:07f} - {:07f} -> {:04.0f} m:'.format(
                 cfgDict['marcoCoordMiniY'], cfgDict['marcoCoordMaxiY'],
                 cfgDict['marcoCoordMaxiY'] - cfgDict['marcoCoordMiniY']
             )
         )
-    print(f'{TB}-> Ruta base (raiz) y ficheros:')
-    print(f'{TB}{TV}rutaAscRaizBase: {cfgDict["rutaAscRaizBase"]}')
-    print(f'{TB}{TV}patronVectrName: {cfgDict["patronVectrName"]}')
+    myLog.info(f'{TB}-> Ruta base (raiz) y ficheros:')
+    myLog.info(f'{TB}{TV}rutaAscRaizBase: {cfgDict["rutaAscRaizBase"]}')
+    myLog.info(f'{TB}{TV}patronVectrName: {cfgDict["patronVectrName"]}')
     if type(cfgDict['patronLayerName']) == str and cfgDict['patronLayerName'] != '': 
-        print(f'{TB}{TV}patronLayerName: {cfgDict["patronLayerName"]}')
-    print(f'{TB}{TV}testeoVectrName: {cfgDict["testeoVectrName"]}')
+        myLog.info(f'{TB}{TV}patronLayerName: {cfgDict["patronLayerName"]}')
+    myLog.info(f'{TB}{TV}testeoVectrName: {cfgDict["testeoVectrName"]}')
     if type(cfgDict['testeoLayerName']) == str and cfgDict['testeoLayerName'] != '':
-        print(f'{TB}{TV}testeoLayerName: {cfgDict["testeoLayerName"]}')
-    print(f'{TB}-> Cartografia de cubiertas (MFE):')
-    print(f'{TB}{TV}rutaCompletaMFE: {cfgDict["rutaCompletaMFE"]}')
-    print(f'{TB}{TV}cartoMFEcampoSp: {cfgDict["cartoMFEcampoSp"]}')
-    print('{:=^80}'.format(''))
+        myLog.info(f'{TB}{TV}testeoLayerName: {cfgDict["testeoLayerName"]}')
+    myLog.info(f'{TB}-> Cartografia de cubiertas (MFE):')
+    myLog.info(f'{TB}{TV}rutaCompletaMFE: {cfgDict["rutaCompletaMFE"]}')
+    myLog.info(f'{TB}{TV}cartoMFEcampoSp: {cfgDict["cartoMFEcampoSp"]}')
+    myLog.info('{:=^80}'.format(''))
 
-    if __verbose__ > 1:
-        print('\n{:_^80}'.format(''))
-        print('__verbose__: {}'.format(__verbose__))
-        if __verbose__ > 2:
-            print('->> qlidtwins-> args:', argsConfig)
-            # print(f'{TB}->> dir(args):', dir(args))
-        print('->> Lista de dasoVars en formato para linea de comandos:')
-        print(f'{TB}{argsConfig.listTxtDasoVars}')
-        print('{:=^80}'.format(''))
+    myLog.debug('\n{:_^80}'.format(''))
+    myLog.debug('__verbose__: {}'.format(__verbose__))
+    if __verbose__ == 3:
+        myLog.debug('->> qlidtwins-> args:', argsConfig)
+        # myLog.info(f'{TB}->> dir(args):', dir(args))
+    myLog.debug('->> Lista de dasoVars en formato para linea de comandos:')
+    myLog.debug(f'{TB}{argsConfig.listTxtDasoVars}')
+    myLog.debug('{:=^80}'.format(''))
 
+    if __verbose__ >= 2:
         if TRNS_LEER_EXTRA_ARGS:
             infoConfiguracionUsada = ' (valores leidos en linea de comandos o, si no van en linea de comandos, valores por defecto)'
         else:
             if os.path.exists(configFileNameCfg):
                 infoConfiguracionUsada = f' (valores leidos del fichero de configuracion, {configFileNameCfg})'
             else:
-                infoConfiguracionUsada = ' (valores "de fabrica" incluidos en codigo, clidtwins_config.py)'
-        print('\n{:_^80}'.format(''))
-        print(f'Parametros de configuracion adicionales{infoConfiguracionUsada}:')
-        print(f'{TB}-> menuInteractivo: {cfgDict["menuInteractivo"]}')
-        print(f'{TB}-> marcoCoordMiniX: {cfgDict["marcoCoordMiniX"]}')
-        print(f'{TB}-> marcoCoordMaxiX: {cfgDict["marcoCoordMaxiX"]}')
-        print(f'{TB}-> marcoCoordMiniY: {cfgDict["marcoCoordMiniY"]}')
-        print(f'{TB}-> marcoCoordMaxiY: {cfgDict["marcoCoordMaxiY"]}')
-        print(f'{TB}-> marcoPatronTest: {cfgDict["marcoPatronTest"]}')
-        print(f'{TB}-> nPatronDasoVars: {cfgDict["nPatronDasoVars"]}')
-        print(f'{TB}-> rasterPixelSize: {cfgDict["rasterPixelSize"]}')
-        print(f'{TB}-> radioClusterPix: {cfgDict["radioClusterPix"]}')
-        print(f'{TB}-> nivelSubdirExpl: {cfgDict["nivelSubdirExpl"]}')
-        print(f'{TB}-> outRasterDriver: {cfgDict["outRasterDriver"]}')
-        print(f'{TB}-> outputSubdirNew: {cfgDict["outputSubdirNew"]}')
-        print(f'{TB}-> cartoMFErecorte: {cfgDict["cartoMFErecorte"]}')
-        print(f'{TB}-> varsTxtFileName: {cfgDict["varsTxtFileName"]}')
-        print(f'{TB}-> ambitoTiffNuevo: {cfgDict["ambitoTiffNuevo"]}')
-        print(f'{TB}-> noDataTiffProvi: {cfgDict["noDataTiffProvi"]}')
-        print(f'{TB}-> noDataTiffFiles: {cfgDict["noDataTiffFiles"]}')
-        print(f'{TB}-> noDataTipoDMasa: {cfgDict["noDataTipoDMasa"]}')
-        print(f'{TB}-> umbralMatriDist: {cfgDict["umbralMatriDist"]}')
-        print('{:=^80}'.format(''))
+                infoConfiguracionUsada = ' (valores "de fabrica" incluidos en codigo, clidtwcfg.py)'
+        myLog.info('\n{:_^80}'.format(''))
+        myLog.info(f'Parametros de configuracion adicionales{infoConfiguracionUsada}:')
+        myLog.info(f'{TB}-> menuInteractivo: {cfgDict["menuInteractivo"]}')
+        myLog.info(f'{TB}-> marcoCoordMiniX: {cfgDict["marcoCoordMiniX"]}')
+        myLog.info(f'{TB}-> marcoCoordMaxiX: {cfgDict["marcoCoordMaxiX"]}')
+        myLog.info(f'{TB}-> marcoCoordMiniY: {cfgDict["marcoCoordMiniY"]}')
+        myLog.info(f'{TB}-> marcoCoordMaxiY: {cfgDict["marcoCoordMaxiY"]}')
+        myLog.info(f'{TB}-> marcoPatronTest: {cfgDict["marcoPatronTest"]}')
+        myLog.info(f'{TB}-> nPatronDasoVars: {cfgDict["nPatronDasoVars"]}')
+        myLog.info(f'{TB}-> rasterPixelSize: {cfgDict["rasterPixelSize"]}')
+        myLog.info(f'{TB}-> radioClusterPix: {cfgDict["radioClusterPix"]}')
+        myLog.info(f'{TB}-> nivelSubdirExpl: {cfgDict["nivelSubdirExpl"]}')
+        myLog.info(f'{TB}-> outRasterDriver: {cfgDict["outRasterDriver"]}')
+        myLog.info(f'{TB}-> outputSubdirNew: {cfgDict["outputSubdirNew"]}')
+        myLog.info(f'{TB}-> cartoMFErecorte: {cfgDict["cartoMFErecorte"]}')
+        myLog.info(f'{TB}-> varsTxtFileName: {cfgDict["varsTxtFileName"]}')
+        myLog.info(f'{TB}-> ambitoTiffNuevo: {cfgDict["ambitoTiffNuevo"]}')
+        myLog.info(f'{TB}-> noDataTiffProvi: {cfgDict["noDataTiffProvi"]}')
+        myLog.info(f'{TB}-> noDataTiffFiles: {cfgDict["noDataTiffFiles"]}')
+        myLog.info(f'{TB}-> noDataTipoDMasa: {cfgDict["noDataTipoDMasa"]}')
+        myLog.info(f'{TB}-> umbralMatriDist: {cfgDict["umbralMatriDist"]}')
+        myLog.info('{:=^80}'.format(''))
 
 
 # ==============================================================================
 def clidtwinsUseCase(
         cfgDict,
-        accionPral=0,
+        accionPral=None,
     ):
-    if accionPral == 0:
+    if accionPral is None:
         accionPral = cfgDict['mainAction']
     else:
         cfgDict['mainAction'] = accionPral
-    if __verbose__:
-        print('\n{:_^80}'.format(''))
-        if __verbose__ > 1:
-            print('qlidtwins-> Creando objeto de la clase DasoLidarSource...')
 
+    myLog.debug('\n{:_^80}'.format(''))
+    myLog.debug('qlidtwins-> Creando objeto de la clase DasoLidarSource...')
     myDasolidar = DasoLidarSource(LCL_verbose=__verbose__)
     # Resultados a testear:
-    # -> pendiente
+    # -> Que existe el objeto myDasolidar
+    # -> Que tiene como propiedades los argumentos extra y otros adicionales:
+    #    GLBLmenuInteractivo, etc.
+    #    LOCLmarcoCoordMiniX, etc.
+    myLog.debug('qlidtwins-> tests-> Verifica DasoLidarSource')
+    myLog.debug(f'type(myDasolidar): {type(myDasolidar)}')
+    myLog.debug(f'hasattr(myDasolidar, "GLBLmenuInteractivo"): {hasattr(myDasolidar, "GLBLmenuInteractivo")}')
+    myLog.debug('{:=^80}'.format(''))
 
-    if __verbose__:
-        print('{:=^80}'.format(''))
-        print('\n{:_^80}'.format(''))
-        if __verbose__ > 1:
-            print('qlidtwins-> Ejecutando setRangeUTM...')
-
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('qlidtwins-> Ejecutando setRangeUTM...')
     myDasolidar.setRangeUTM(
         LCL_marcoCoordMiniX=cfgDict['marcoCoordMiniX'],
         LCL_marcoCoordMaxiX=cfgDict['marcoCoordMaxiX'],
@@ -1027,12 +1129,18 @@ def clidtwinsUseCase(
         LCL_marcoCoordMaxiY=cfgDict['marcoCoordMaxiY'],
     )
     # Resultados a testear:
-    # -> pendiente
+    # -> Que el objeto myDasolidar tiene la propiedad GLBLmarcoPatronTest
+    # -> Que el objeto myDasolidar tiene coordenadas del marco definidas
+    myLog.debug('qlidtwins-> tests-> Verifica setRangeUTM')
+    myLog.debug(f'myDasolidar.GLBLmarcoPatronTest: {myDasolidar.GLBLmarcoPatronTest}')
+    myLog.debug(f'myDasolidar.LOCLmarcoCoordMiniX: {myDasolidar.LOCLmarcoCoordMiniX}')
+    myLog.debug(f'myDasolidar.LOCLmarcoCoordMaxiX: {myDasolidar.LOCLmarcoCoordMaxiX}')
+    myLog.debug(f'myDasolidar.LOCLmarcoCoordMiniY: {myDasolidar.LOCLmarcoCoordMiniY}')
+    myLog.debug(f'myDasolidar.LOCLmarcoCoordMaxiY: {myDasolidar.LOCLmarcoCoordMaxiY}')
+    myLog.info('{:=^80}'.format(''))
 
-    if __verbose__:
-        print('{:=^80}'.format(''))
-        print('\n{:_^80}'.format(''))
-        print('qlidtwins-> Ejecutando searchSourceFiles...')
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('qlidtwins-> Ejecutando searchSourceFiles...')
     if (
         'listLstDasoVars' in cfgDict.keys()
         and type(cfgDict['listLstDasoVars'][0]) == list
@@ -1072,21 +1180,20 @@ def clidtwinsUseCase(
             LCL_outputSubdirNew=cfgDict['outputSubdirNew'],  # opcional
         )
     else:
-        print(f'\nqlidtwins-> Revisar los argumentos pasados en linea de comandos. sys.argv: <{sys.argv}>')
+        myLog.error(f'\nqlidtwins-> Atencion: revisar los argumentos pasados en linea de comandos. sys.argv: <{sys.argv}>')
         sys.exit(0)
     # Resultados a testear:
     # -> Lista de ficheros encontrados:
-    print('qlidtwins-> tests-> Verifica searchSourceFiles')
+    myLog.debug('qlidtwins-> tests-> Verifica searchSourceFiles')
     # myDasolidar.inFilesListAllTypes
-    print('len(myDasolidar.inFilesListAllTypes):', len(myDasolidar.inFilesListAllTypes))
+    myLog.debug(f'len(myDasolidar.inFilesListAllTypes): {len(myDasolidar.inFilesListAllTypes)}')
     for numDasoVarX, listaFileTuplesDasoVarX in enumerate(myDasolidar.inFilesListAllTypes):
         for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
-            print('inFilesListAllTypes', numDasoVarX, numFile, pathFile, nameFile)
+            myLog.debug(f'inFilesListAllTypes-> {numDasoVarX}, {numFile}, {pathFile}, {nameFile}')
 
-    if __verbose__:
-        print('{:=^80}'.format(''))
-        print('\n{:_^80}'.format(''))
-        print('qlidtwins-> Ejecutando createMultiDasoLayerRasterFile...')
+    myLog.info('{:=^80}'.format(''))
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('qlidtwins-> Ejecutando createMultiDasoLayerRasterFile...')
     myDasolidar.createMultiDasoLayerRasterFile(
         LCL_rutaCompletaMFE=cfgDict['rutaCompletaMFE'],
         LCL_cartoMFEcampoSp=cfgDict['cartoMFEcampoSp'],
@@ -1099,11 +1206,10 @@ def clidtwinsUseCase(
     # -> que se ha creado el raster:
     #    myDasolidar.LOCLoutPathNameRuta
     #    myDasolidar.LOCLoutFileNameWExt_mergedUniCellAllDasoVars
+    myLog.info('{:=^80}'.format(''))
 
-    if __verbose__:
-        print('{:=^80}'.format(''))
-        print('\n{:_^80}'.format(''))
-        print('qlidtwins-> Ejecutando analyzeMultiDasoLayerRasterFile...')
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('qlidtwins-> Ejecutando analyzeMultiDasoLayerRasterFile...')
     myDasolidar.analyzeMultiDasoLayerRasterFile(
         LCL_patronVectrName=cfgDict['patronVectrName'],
         LCL_patronLayerName=cfgDict['patronLayerName'],
@@ -1120,38 +1226,58 @@ def clidtwinsUseCase(
     #    myDasolidar.LOCLoutPathNameRuta
     #    myDasolidar.outputRangosFileTxtSinPath
     #    myDasolidar.outputRangosFileNpzSinPath,
-    print('qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
-    print('qlidtwins-> tests-> Verifica los tipos de bosque mas frecuentes en zona patron:')
-    print(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
-    print(myDasolidar.codeTipoBosquePatronMasFrecuente1)
-    print(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
-    print(myDasolidar.codeTipoBosquePatronMasFrecuente2)
-    print('qlidtwins-> tests-> Verifica que los rangos son correctos:')
-    print('0_Alt95_ref:', myDasolidar.dictHistProb01['0_Alt95_ref'])
-    print('0_Alt95_min:', myDasolidar.dictHistProb01['0_Alt95_min'])
-    print('0_Alt95_max:', myDasolidar.dictHistProb01['0_Alt95_max'])
-    print('1_Fcc3m_ref:', myDasolidar.dictHistProb01['1_Fcc3m_ref'])
-    print('1_Fcc3m_min:', myDasolidar.dictHistProb01['1_Fcc3m_min'])
-    print('1_Fcc3m_max:', myDasolidar.dictHistProb01['1_Fcc3m_max'])
-    print('2_CobMt_ref:', myDasolidar.dictHistProb01['2_CobMt_ref'])
-    print('2_CobMt_min:', myDasolidar.dictHistProb01['2_CobMt_min'])
-    print('2_CobMt_max:', myDasolidar.dictHistProb01['2_CobMt_max'])
-    print('qlidtwins-> tests-> Verifica que se ha creado el txt con los rangos:')
-    print(myDasolidar.LOCLoutPathNameRuta)
-    print(myDasolidar.outputRangosFileTxtSinPath)
-    print(myDasolidar.outputRangosFileNpzSinPath)
+    myLog.debug('qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
+    myLog.debug('qlidtwins-> tests-> Verifica los tipos de bosque mas frecuentes en zona patron:')
+    myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
+    myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente1)
+    myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
+    myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente2)
+    myLog.debug(f'qlidtwins-> tests-> Verifica que los rangos son correctos:')
+    myLog.debug(f'0_Alt95_ref: {myDasolidar.dictHistProb01["0_Alt95_ref"]}')
+    myLog.debug(f'0_Alt95_min: {myDasolidar.dictHistProb01["0_Alt95_min"]}')
+    myLog.debug(f'0_Alt95_max: {myDasolidar.dictHistProb01["0_Alt95_max"]}')
+    myLog.debug(f'1_Fcc3m_ref: {myDasolidar.dictHistProb01["1_Fcc3m_ref"]}')
+    myLog.debug(f'1_Fcc3m_min: {myDasolidar.dictHistProb01["1_Fcc3m_min"]}')
+    myLog.debug(f'1_Fcc3m_max: {myDasolidar.dictHistProb01["1_Fcc3m_max"]}')
+    myLog.debug(f'2_CobMt_ref: {myDasolidar.dictHistProb01["2_CobMt_ref"]}')
+    myLog.debug(f'2_CobMt_min: {myDasolidar.dictHistProb01["2_CobMt_min"]}')
+    myLog.debug(f'2_CobMt_max: {myDasolidar.dictHistProb01["2_CobMt_max"]}')
+    myLog.debug(f'qlidtwins-> tests-> Verifica que se ha creado el txt con los rangos:')
+    myLog.debug(myDasolidar.LOCLoutPathNameRuta)
+    myLog.debug(myDasolidar.outputRangosFileTxtSinPath)
+    myLog.debug(myDasolidar.outputRangosFileNpzSinPath)
 
-    if __verbose__:
-        print('{:=^80}'.format(''))
+    myLog.info('{:=^80}'.format(''))
 
-    if cfgDict['mainAction'] == 0 or cfgDict['menuInteractivo']:
-        # Sin uso por el momento, probablemente quite esta opcion
-        pass
-        # return myDasolidar
+    accionesPrincipales = [
+        '0. Ninguna accion.',
+        '1. qlidtwins - chequearCompatibilidadConTesteoVector: verificar analogia con un determinado patron dasoLidar.',
+        '2. qlidtwins - generarRasterCluster: generar raster con presencia de un determinado patron dasoLidar.'
+    ]
+    if cfgDict['menuInteractivo']:
+        accionPorDefecto = 1
+        print('\ncartolidar-> Menu de herramientas de cartolidar')
+        for opcionPrincipal in accionesPrincipales[1:]:
+            print(f'\t{opcionPrincipal}.')
+        selec = input(f'Elije opcion ({accionPorDefecto}): ')
+        if selec == '':
+            nAccionElegida = accionPorDefecto
+        else:
+            try:
+                nAccionElegida = int(selec)
+            except:
+                myLog.error(f'\nATENCION: Opcion elegida no disponible: <{selec}>')
+                sys.exit(0)
+        myLog.info(f'\nSe ha elegido:\n\t{accionesPrincipales[nAccionElegida]}')
+        cfgDict['mainAction'] = nAccionElegida
+        myLog.info(f'{TB}-> Ejecutando: {accionesPrincipales[cfgDict["mainAction"] - 1]}')
+
+    if cfgDict['mainAction'] == 0:
+        # No se ejecuta ninguna accion (solo para testing)
+        return myDasolidar
     elif cfgDict['mainAction'] == 1:
-        if __verbose__:
-            print('\n{:_^80}'.format(''))
-            print('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
+        myLog.info('\n{:_^80}'.format(''))
+        myLog.debug('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
         myDasolidar.chequearCompatibilidadConTesteoVector(
             LCL_testeoVectrName=cfgDict['testeoVectrName'],
             LCL_testeoLayerName=cfgDict['testeoLayerName'],
@@ -1162,17 +1288,16 @@ def clidtwinsUseCase(
         #     myDasolidar.distanciaEuclideaMedia,
         #     myDasolidar.pctjPorcentajeDeProximidad,
         #     myDasolidar.matrizDeDistancias,
-        print('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
-        print(myDasolidar.tipoBosqueOk)
-        print(myDasolidar.nVariablesNoOk)
-        print(myDasolidar.distanciaEuclideaMedia)
-        print(myDasolidar.pctjPorcentajeDeProximidad)
-        print(myDasolidar.matrizDeDistancias)
+        myLog.debug('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
+        myLog.debug(myDasolidar.tipoBosqueOk)
+        myLog.debug(myDasolidar.nVariablesNoOk)
+        myLog.debug(myDasolidar.distanciaEuclideaMedia)
+        myLog.debug(myDasolidar.pctjPorcentajeDeProximidad)
+        myLog.debug(myDasolidar.matrizDeDistancias)
 
     elif cfgDict['mainAction'] == 2:
-        if __verbose__:
-            print('\n{:_^80}'.format(''))
-            print('qlidtwins-> Ejecutando generarRasterCluster...')
+        myLog.info('\n{:_^80}'.format(''))
+        myLog.debug('qlidtwins-> Ejecutando generarRasterCluster...')
         myDasolidar.generarRasterCluster(
             LCL_radioClusterPix=cfgDict['radioClusterPix'],
         )
@@ -1183,24 +1308,27 @@ def clidtwinsUseCase(
         #     myDasolidar.codeTipoBosquePatronMasFrecuente2,
         #
         #     myDasolidar.LOCLoutPathNameRuta,
-        #     myDasolidar.outputRangosFileNpzSinPath,
-        #     myDasolidar.dictHistProb01,
-        print('qlidtwins-> tests-> generarRasterCluster')
-        print(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
-        print(myDasolidar.codeTipoBosquePatronMasFrecuente1)
-        print(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
-        print(myDasolidar.codeTipoBosquePatronMasFrecuente2)
+        #     myDasolidar.outputClusterAllDasoVarsFileNameSinPath,
+        #     myDasolidar.outputClusterTiposDeMasaFileNameSinPath,
+        #     myDasolidar.outputClusterFactorProxiFileNameSinPath,
+        #     myDasolidar.outputClusterDistanciaEuFileNameSinPath,
+        myLog.debug('qlidtwins-> tests-> generarRasterCluster')
+        myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
+        myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente1)
+        myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
+        myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente2)
         #
-        print(myDasolidar.LOCLoutPathNameRuta)
-        print(myDasolidar.outputRangosFileNpzSinPath)
-        print(myDasolidar.dictHistProb01)
+        myLog.debug(myDasolidar.LOCLoutPathNameRuta)
+        myLog.debug(myDasolidar.outputClusterAllDasoVarsFileNameSinPath)
+        myLog.debug(myDasolidar.outputClusterTiposDeMasaFileNameSinPath)
+        myLog.debug(myDasolidar.outputClusterFactorProxiFileNameSinPath)
+        myLog.debug(myDasolidar.outputClusterDistanciaEuFileNameSinPath)
 
     else:
         return None
 
-    if __verbose__:
-        print('{:=^80}'.format(''))
-        print('\nqlidtwins-> Fin.')
+    myLog.info('{:=^80}'.format(''))
+    myLog.info('\nqlidtwins-> Fin.')
     return myDasolidar
 
 
@@ -1208,21 +1336,8 @@ def clidtwinsUseCase(
 def foo():
     pass
 
-if (
-    'tests/test_' in sys.argv[0]
-    or 'tests\\test_' in sys.argv[0]
-    or r'tests\test_' in sys.argv[0]
-    or '/pytest' in sys.argv[0]
-    or r'\pytest' in sys.argv[0]
-    or 'prueba' in sys.argv[0]
-):
-    testTwins = True
-else:
-    testTwins = False
-print(f'\nqlidtwins-> testTwins: {testTwins}')
-
 # ==============================================================================
-if (__name__ == '__main__' or 'qlidtwins' in __name__) and not testTwins:
+if (__name__ == '__main__' or 'qlidtwins' in __name__) and not TRNS_testTwins:
 
     tipoEjecucion = checkRun()
     testRun()
@@ -1232,7 +1347,5 @@ if (__name__ == '__main__' or 'qlidtwins' in __name__) and not testTwins:
     cfgDict = creaConfigDict(argsConfig, tipoEjecucion=tipoEjecucion)
     if __verbose__:
         mostrarConfiguracion(cfgDict)
-
-    if __verbose__:
-        print('qlidtwins-> sys.argv:', sys.argv)
-    clidtwinsUseCase(cfgDict)
+    
+    _ = clidtwinsUseCase(cfgDict)
