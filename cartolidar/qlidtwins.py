@@ -27,14 +27,80 @@ import logging
 # print {i:os.strerror(i) for i in sorted(errno.errorcode)}
 # import random
 
+# ==============================================================================
+# Recuperar la captura de errores de importacion en la version beta
 # try:
 if True:
-    from cartolidar.clidax import clidconfig
+    from cartolidar.clidtools import clidtwcfg
+    from cartolidar.clidtools.clidtwcfg import GLO
+    from cartolidar.clidtools.clidtwins import DasoLidarSource
 # except ModuleNotFoundError:
 #     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-#     sys.stderr.write('\t-> Se importa clidconfig desde qlidtwins del directorio local {os.getcwd()}/clidtools.')
-#     from clidax import clidconfig
-myUser = clidconfig.infoUsuario()
+#     sys.stderr.write('\t-> Se importan paquetes de cartolidar desde qlidtwins del directorio local {os.getcwd()}/clidtools.')
+#     from clidtools import clidtwcfg
+#     from clidtools.clidtwcfg import GLO
+#     from clidtools.clidtwins import DasoLidarSource
+# # except ModuleNotFoundError:
+# #     sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
+# #     sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
+# #     sys.stderr.write(f'              $ python -m cartolidar\n')
+# #     sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
+# #     sys.stderr.write(f'              $ python qlidtwins -h\n')
+# #     sys.exit(0)
+# except SystemError as excpt:
+#     program_name = 'qlidtwins.py'
+#     # sys.stderr.write(f'\n{program_name}-> Error SystemError:\n{excpt}', exc_info=True)
+#     myLog.exception(f'\n{program_name}-> Error SystemError:\n{excpt}')
+#     sys.exit(0)
+# except OSError as excpt:
+#     program_name = 'qlidtwins.py'
+#     sys.stderr.write(f'\n{program_name}-> Error OSError:\n{excpt}', exc_info=True)
+#     sys.exit(0)
+# except PermissionError as excpt:
+#     program_name = 'qlidtwins.py'
+#     sys.stderr.write(f'\n{program_name}-> Error PermissionError:\n{excpt}', exc_info=True)
+#     sys.exit(0)
+# except Exception as excpt:
+#     program_name = 'qlidtwins.py'
+#     # sys.stderr.write(f'\n{program_name}-> Error Exception:\n{excpt}', exc_info=True)
+#
+#     # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+#     exc_type, exc_obj, exc_tb = sys.exc_info()
+#     # ==================================================================
+#     fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+#     funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+#     lineError = exc_tb.tb_lineno
+#     typeError = exc_type.__name__
+#     try:
+#         lineasTraceback = list((traceback.format_exc()).split('\n'))
+#         codigoConError = lineasTraceback[2]
+#     except:
+#         codigoConError = ''
+#     try:
+#         descError = exc_obj.strerror
+#     except:
+#         descError = exc_obj
+#     sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
+#     sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
+#     sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
+#     sys.stderr.write(f'\tError en:    {fileNameError}\n')
+#     sys.stderr.write(f'\tFuncion:     {funcError}\n')
+#     sys.stderr.write(f'\tLinea:       {lineError}\n')
+#     sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
+#     sys.stderr.write(f'\tTipo:        {typeError}\n')
+#     sys.stderr.write(f'\tError en:    {codigoConError}\n')
+#     sys.stderr.write(f'Gracias!\n')
+#     # ==================================================================
+#     sys.stderr.write(f'\nFor help use:\n')
+#     sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
+#     sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e -h\n')
+#     # ==================================================================
+#     sys.exit(0)
+
+# ==============================================================================
+
+myUser = clidtwcfg.infoUsuario()
+print('\nqlidtwins-> usuario:', myUser)
 
 # ==============================================================================
 # ========================== Variables globales ================================
@@ -112,15 +178,15 @@ myFilter = ContextFilter()
 # formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 # formatter = logging.Formatter('%(name)-12s: %(message)s')
 # formatter = logging.Formatter('{name:16s}: {levelname:8s} {message}', style='{')
-# formatter0 = '%(asctime)s|%(process)d|%(thisFile)-10s|%(levelname)-8s|%(thisUser)-8s|>%(message)s'
+# formatter0 = '%(asctime)s|%(process)d|%(thisFile)-10s|%(levelname)-8s|%(thisUser)-8s|>%(message)s' # tyle='%'
 
 formatter0 = '{asctime}|{name:10s}|{levelname:8s}|> {message}'
 formatter1 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
 formatterFile = logging.Formatter(formatter1, style='{', datefmt='%d-%m-%y %H:%M:%S')
 formatterCons = logging.Formatter('{message}', style='{')
 
-# Este logger vale para todos los modulos
-# Pero no puedo utilizar myFilter con todos los modulos porque algunas librerias (matplotlib)
+# Este logger se mantiene activo para todos los modulos,
+# pero no puedo utilizar myFilter con todos los modulos porque algunas librerias (matplotlib)
 # lanzan mensajes de debug y no tienen definido el filtro, con lo que da error
 # https://docs.python.org/3/library/logging.html#logging.basicConfig
 logging.basicConfig(
@@ -137,7 +203,7 @@ logging.basicConfig(
     # level=logging.CRITICAL,
 )
 
-# Este logger solo vale para este modulo:
+# Este logger solo actua para este modulo:
 # https://docs.python.org/3/library/logging.handlers.html#filehandler
 fileLog = logging.FileHandler('qlidtwins.log', mode='w')
 fileLog.set_name(thisModule)
@@ -171,6 +237,7 @@ myLog.addHandler(consLog)
 # myLog.info('qlidtwins-> info')
 # myLog.warning('qlidtwins-> warning')
 # myLog.error('qlidtwins-> error')
+# myLog.critical('qlidtwins-> critical')
 # ==============================================================================
 
 # ==============================================================================
@@ -197,79 +264,6 @@ else:
     MAIN_idProceso = 0
     sys.argv.append('--idProceso')
     sys.argv.append(MAIN_idProceso)
-# ==============================================================================
-
-# ==============================================================================
-# Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
-    from cartolidar.clidtools import clidtwcfg
-    from cartolidar.clidtools.clidtwcfg import GLO
-    from cartolidar.clidtools.clidtwins import DasoLidarSource
-# except ModuleNotFoundError:
-#     if __verbose__ == 3:
-#         myLog.warning(f'qlidtwins-> Se importa clidtwins desde qlidtwins del directorio local {os.getcwd()}/clidtools')
-#         myLog.warning(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
-#     from clidtools import clidtwcfg
-#     from clidtools.clidtwcfg import GLO
-#     from clidtools.clidtwins import DasoLidarSource
-# # except ModuleNotFoundError:
-# #     sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
-# #     sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
-# #     sys.stderr.write(f'              $ python -m cartolidar\n')
-# #     sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
-# #     sys.stderr.write(f'              $ python qlidtwins -h\n')
-# #     sys.exit(0)
-# except SystemError as excpt:
-#     program_name = 'qlidtwins.py'
-#     # myLog.error(f'\n{program_name}-> Error SystemError: {excpt}', exc_info=True)
-#     myLog.exception(f'\n{program_name}-> Error SystemError: {excpt}')
-#     sys.exit(0)
-# except OSError as excpt:
-#     program_name = 'qlidtwins.py'
-#     myLog.error(f'\n{program_name}-> Error OSError: {excpt}', exc_info=True)
-#     sys.exit(0)
-# except PermissionError as excpt:
-#     program_name = 'qlidtwins.py'
-#     myLog.error(f'\n{program_name}-> Error PermissionError: {excpt}', exc_info=True)
-#     sys.exit(0)
-# except Exception as excpt:
-#     program_name = 'qlidtwins.py'
-#     # myLog.error(f'\n{program_name}-> Error Exception: {excpt}', exc_info=True)
-#
-#     # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-#     exc_type, exc_obj, exc_tb = sys.exc_info()
-#     # ==================================================================
-#     fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-#     funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
-#     lineError = exc_tb.tb_lineno
-#     typeError = exc_type.__name__
-#     try:
-#         lineasTraceback = list((traceback.format_exc()).split('\n'))
-#         codigoConError = lineasTraceback[2]
-#     except:
-#         codigoConError = ''
-#     try:
-#         descError = exc_obj.strerror
-#     except:
-#         descError = exc_obj
-#     sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
-#     sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
-#     sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
-#     sys.stderr.write(f'\tError en:    {fileNameError}\n')
-#     sys.stderr.write(f'\tFuncion:     {funcError}\n')
-#     sys.stderr.write(f'\tLinea:       {lineError}\n')
-#     sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
-#     sys.stderr.write(f'\tTipo:        {typeError}\n')
-#     sys.stderr.write(f'\tError en:    {codigoConError}\n')
-#     sys.stderr.write(f'Gracias!\n')
-#     # ==================================================================
-#     sys.stderr.write(f'\nFor help use:\n')
-#     sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
-#     sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e -h\n')
-#     # ==================================================================
-#     sys.exit(0)
-
 # ==============================================================================
 
 

@@ -148,10 +148,10 @@ def infoUsuario():
     if psutilOk:
         try:
             USERusuario = psutil.users()[0].name
-        except:
+        except Exception as excpt:
             USERusuario = psutil.users()
         if not isinstance(USERusuario, str) or USERusuario == '':
-            USERusuario = 'PC1'
+            USERusuario = 'local'
         return USERusuario
     else:
         return 'SinUsuario'
@@ -271,7 +271,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                 config.write(configfile)
         except PermissionError as excpt:
             program_name = 'clidtwcfg.py'
-            # myLog.error(f'\n{program_name}-> Error PermissionError: {excpt}')
+            # myLog.error(f'\n{program_name}-> Error PermissionError:\n{excpt}')
             (lineError, descError, typeError) = mensajeError(program_name)
             if lineError == 13 or descError.strerror == 'Permission denied' or typeError == 'PermissionError':
                 sys.stderr.write(f'Revisar el acceso de escritura en la ruta:\n')
@@ -284,7 +284,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
 
         except UnicodeError as excpt:
             program_name = 'clidtwcfg.py'
-            # myLog.error(f'\n{program_name}-> Error UnicodeError: {excpt}')
+            # myLog.error(f'\n{program_name}-> Error UnicodeError:\n{excpt}')
             mensajeError(program_name)
             myLog.error(f'\nclidtwcfg-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion: {LOCL_configFileNameCfg}')
             myLog.error('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
@@ -292,13 +292,13 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
 
         except ValueError as excpt:
             program_name = 'clidtwcfg.py'
-            # myLog.error(f'\n{program_name}-> Error ValueError: {excpt}')
+            # myLog.error(f'\n{program_name}-> Error ValueError:\n{excpt}')
             mensajeError(program_name)
             sys.exit(0)
 
         except Exception as excpt:
             program_name = 'clidtwcfg.py'
-            # myLog.error(f'\n{program_name}-> Error Exception: {excpt}')
+            # myLog.error(f'\n{program_name}-> Error Exception:\n{excpt}')
             mensajeError(program_name)
             sys.exit(0)
 
@@ -381,7 +381,7 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
         # config_ok = True
     except Exception as excpt:
         program_name = 'clidtwcfg.py'
-        # myLog.error(f'\n{program_name}-> Error Exception: {excpt}')
+        # myLog.error(f'\n{program_name}-> Error Exception:\n{excpt}')
         myLog.error(f'clidtwcfg-> Error al leer la configuracion del fichero: {LOCL_configFileNameCfg}')
         mensajeError(program_name)
         # config_ok = False
