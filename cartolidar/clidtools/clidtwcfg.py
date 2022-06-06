@@ -32,6 +32,7 @@ try:
 except:
     psutilOk = False
 
+# Recuperar la captura de errores de importacion en la version beta
 # try:
 if True:
     from cartolidar.clidax import clidconfig
@@ -412,6 +413,7 @@ def foo0():
 # GLO.GLBLpatronVectrNamePorDefecto = None
 # GLO.GLBLtesteoVectrNamePorDefecto = None
 # GLO.GLBLpatronLayerNamePorDefecto = None
+# GLO.GLBLpatronFieldNamePorDefecto = None
 # GLO.GLBLtesteoLayerNamePorDefecto = None
 # GLO.GLBLnPatronDasoVarsPorDefecto = None
 #
@@ -541,6 +543,10 @@ def leerConfigDictPorDefecto():
         'GLBLtesteoLayerNamePorDefecto': [r'vectorTesteo',
                                           'dasoLidar', 'str',
                                           'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
+
+        'GLBLpatronLayerFieldPorDefecto': [r'fieldPatron',
+                                          'dasoLidar', 'str',
+                                          'Nombre del campo con el identificador del tipo de masa de los poligonos de referencia (patron) para caracterizacion dasoLidar.'],
     
         'GLBLradioClusterPixPorDefecto': [3,
                                           'dasoLidar', 'uint8',
@@ -793,6 +799,7 @@ def checkGLO(GLO):
     GLO.GLBLcartoMFEcampoSpPorDefecto = str(GLO.GLBLcartoMFEcampoSpPorDefecto)
     GLO.GLBLpatronVectrNamePorDefecto = str(GLO.GLBLpatronVectrNamePorDefecto)
     GLO.GLBLpatronLayerNamePorDefecto = GLO.GLBLpatronLayerNamePorDefecto
+    GLO.GLBLpatronFieldNamePorDefecto = GLO.GLBLpatronFieldNamePorDefecto
     GLO.GLBLtesteoVectrNamePorDefecto = str(GLO.GLBLtesteoVectrNamePorDefecto)
     GLO.GLBLtesteoLayerNamePorDefecto = GLO.GLBLtesteoLayerNamePorDefecto
     GLO.GLBLnPatronDasoVarsPorDefecto = int(GLO.GLBLnPatronDasoVarsPorDefecto)
@@ -852,14 +859,14 @@ def readGLO():
         myLog.debug('clidtwcfg-> GLO:')
         for myParameter in dir(GLO):
             if not myParameter.startswith('__'):
-                myLog.debug('\t', myParameter)
+                myLog.debug(f'{TB}{myParameter}')
                 if hasattr(GLO, myParameter) and (
                     'listaDasoVars' in myParameter
                     or 'listLstDasoVars' in myParameter
                     or 'listTxtDasoVars' in myParameter
                 ):
                     
-                    myLog.debug('\t\t->', getattr(GLO, myParameter))
+                    myLog.debug(f'{TB}{TV}-> {getattr(GLO, myParameter)}')
 
     return GLO
 

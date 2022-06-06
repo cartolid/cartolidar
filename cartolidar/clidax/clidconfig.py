@@ -82,7 +82,7 @@ myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
 # ==============================================================================
 
-# ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+# ==============================================================================
 # Una vez importado este modulo as CG puedo usar:
 #    from cartolidar.clidax.clidconfig import GLOBALconfigDict
 #    variable global -> GLOBALconfigDict['miVariable']
@@ -209,7 +209,7 @@ def infoUsuario(verbose=False):
             if verbose:
                 print('clidconfig-> Users:', esteUsuario)
         if not isinstance(esteUsuario, str) or esteUsuario == '':
-            esteUsuario = 'PC1'
+            esteUsuario = 'local'
     else:
         esteUsuario = 'SinUsuario'
     return esteUsuario

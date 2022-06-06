@@ -27,7 +27,7 @@ from PIL import Image
 # Con esto resuelvo el error al cargar gdal, que ocurre en eclipse pero no el cmd.
 # No entiendo porque en eclipse mira antes algun diretorio que tiene un gdal que no es el correcto (el de OSGeo4W64)
 # os.environ['PATH'] = 'C:/OSGeo4W64/bin;' + os.environ['PATH']
-# print(os.environ['PATH'])
+# os.stdout.write(os.environ['PATH'] + '\n')
 # sys.path.insert(0,'C:\OSGeo4W64\bin')
 
 # Para que funcione GDAL en eclipse he hecho esto:
@@ -37,7 +37,7 @@ try:
     gdalOk = True
 except:
     gdalOk = False
-    print('clidcarto-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo')
+    sys.stdout.write('clidcarto-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo\n')
     sys.exit(0)
 # if not gdalOk:
 #     try:
@@ -45,11 +45,19 @@ except:
 #         gdalOk = True
 #     except:
 #         gdalOk = False
-#         print('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
+#         sys.stdout.write('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo\n')
 #         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
+
+# Anulo esta importacion porque por el momento no las uso
+# from cartolidar.clidax import clidaux
+# La importacion de clidconfig (GLO) y clidnaux la pospongo a mas adelante
+# from cartolidar.clidax import clidconfig
+# from cartolidar.clidnb import clidnaux
+# Hasta despues de leer el callingModuleInicial y verificar que no son:
+#        'clidtwins', 'qlidtwins'
 
 # ==============================================================================
 # Verbose provisional para la version alpha
@@ -70,8 +78,9 @@ else:
     __quiet__ = 0
 # ==============================================================================
 # TB = '\t'
-TB = ' ' * 19
+TB = ' ' * 12
 TV = ' ' * 3
+TW = ' ' * 2
 # ==============================================================================
 
 # ==============================================================================
@@ -100,6 +109,7 @@ myLog.debug(f'{TB}-> __name__:     <{__name__}>')
 myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
 # ==============================================================================
+
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
     MAIN_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
@@ -110,14 +120,6 @@ else:
     sys.argv.append(MAIN_idProceso)
 # ==============================================================================
 
-# Anulo esta importacion porque por el momento no las uso
-# from cartolidar.clidax import clidaux
-# La importacion de clidconfig (GLO) y clidnaux la pospongo a mas adelante
-# from cartolidar.clidax import clidconfig
-# from cartolidar.clidnb import clidnaux
-# Hasta despues de leer el callingModuleInicial y verificar que no son:
-#        'clidtwins', 'qlidtwins'
-
 
 # ==============================================================================
 class myClass(object):
@@ -126,8 +128,8 @@ class myClass(object):
 
 # ==============================================================================
 def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
-    # print('->->->inspect_stack  ', inspect_stack
-    # print('->->->inspect.stack()', inspect.stack())
+    # myLog.debug('->->inspect_stack  ', inspect_stack
+    # myLog.debug('->->inspect.stack()', inspect.stack())
     if len(inspect_stack) > 1:
         try:
             esteModuloFile0 = inspect_stack[0][1]
@@ -137,10 +139,10 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
             esteModuloName0 = inspect.getmodulename(esteModuloFile0)
             esteModuloName1 = inspect.getmodulename(esteModuloFile1)
         except:
-            print('\tclidcarto-> Error identificando el modulo 1')
+            myLog.error('\tclidcarto-> Error identificando el modulo 1')
             return 'desconocido1', 'desconocido1'
     else:
-        print('\tclidcarto-> No hay modulos que identificar')
+        myLog.warning('\tclidcarto-> No hay modulos que identificar')
         return 'desconocido2', 'desconocido2'
 
     if not esteModuloName0 is None:
@@ -155,7 +157,7 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
     callingModulePrevio = ''
     callingModuleInicial = ''
     if verbose:
-        print('\tclidcarto-> El modulo {} ({}) ha sido'.format(esteModuloName, esteModuloNum), end=' ')
+        myLog.info('\tclidcarto-> El modulo {} ({}) ha sido'.format(esteModuloName, esteModuloNum), end=' ')
     for llamada in inspect_stack[stackSiguiente:]:
         if 'cartolid' in llamada[1] or 'clid' in llamada[1] or 'qlid' in llamada[1]:
             callingModule = inspect.getmodulename(llamada[1])
@@ -163,22 +165,24 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
                 callingModulePrevio = callingModule
             callingModuleInicial = callingModule
             # if callingModule != 'clidaux' and callingModule != 'callingModule':
-                # print('clidcarto-> llamado por', llamada[1:3], end=' ')
+                # myLog.debug('clidcarto-> llamado por', llamada[1:3], end=' ')
             if verbose:
-                print('importado desde: {} ({})'.format(callingModule, llamada[2]), end='; ')
+                myLog.info('importado desde: {} ({})'.format(callingModule, llamada[2]), end='; ')
     if verbose:
-        print()
+        myLog.info('')
     return callingModulePrevio, callingModuleInicial
 # ==============================================================================
 
 # ==============================================================================
 CONFIGverbose = False
 if CONFIGverbose:
-    print('clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd():', os.getcwd())
-    print('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
+    myLog.debug(f'clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
+    myLog.debug('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
 callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=CONFIGverbose)
 if CONFIGverbose:
-    print('clidcarto-> Pila de llamadas revisada-> callingModulePrevio:', callingModulePrevio, 'callingModuleInicial:', callingModuleInicial)
+    myLog.debug(f'clidcarto-> Pila de llamadas revisada-> callingModulePrevio: {callingModulePrevio} callingModuleInicial: {callingModuleInicial}')
+# ==============================================================================
+
 
 # ==============================================================================
 # Recuperar la captura de errores de importacion en la version beta
@@ -187,8 +191,8 @@ if True:
     from cartolidar.clidax import clidconfig
 # except:
 #     if __verbose__ > 2:
-#         print(f'qlidtwins-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools')
-#         print('\tNo hay vesion de cartolidar instalada en site-packages.')
+#         sys.stderr.write(f'qlidtwins-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools\n')
+#         sys.stderr.write('\tNo hay vesion de cartolidar instalada en site-packages.')
 #     from clidax import clidconfig
 
 # if (
@@ -207,12 +211,13 @@ if (
     # or callingModuleInicial == 'clidtry':
 ):
     try:
+        # clidnaux se incorporara proximamente de cartolid a cartolidar
         from cartolidar.clidnb import clidnaux
     except:
-        print('clidcarto-> ATENCION: error al cargar clidnaux desde clidcarto ')
-        print('\t-> Modulo inicial: <{}>'.format(callingModuleInicial))
-        print('\t-> Modificar el codigo para que no importe clidnaux')
-        print('\t   cuando se llama desde este modulo inicial.')
+        myLog.warning('clidcarto-> ATENCION: error al cargar clidnaux desde clidcarto ')
+        myLog.warning('\t-> Modulo inicial: <{}>'.format(callingModuleInicial))
+        myLog.warning('\t-> Modificar el codigo para que no importe clidnaux')
+        myLog.warning('\t   cuando se llama desde este modulo inicial.')
 
 # ==============================================================================
 # if (
@@ -231,7 +236,7 @@ if (
     and callingModuleInicial != 'clidclas'
     # and callingModuleInicial != 'clidtry':
 ):
-    # print('clidcarto-> Modulo importado desde', os.getcwd(), 'No se cargan las variables globales de cartolid.xls')
+    # sys.stdout.write('clidcarto-> Modulo importado desde', os.getcwd(), 'No se cargan las variables globales de cartolid.xls\n')
     class Object(object):
         pass
     GLO = Object()
@@ -251,7 +256,7 @@ else:
     GLO = clidconfig.VariablesGlobales(configVarsDict)
 
 if GLO.GLBLverbose:
-    print('->->Cargando clidcarto')
+    myLog.debug('->->Cargando clidcarto')
     # clidaux.showCallingModules(inspect_stack=inspect.stack())
 
 GLBNsubCeldasPorCelda = int(GLO.GLBLmetrosCelda / GLO.GLBLmetrosSubCelda)
@@ -259,11 +264,11 @@ GLBNsubCeldasPorCelda = int(GLO.GLBLmetrosCelda / GLO.GLBLmetrosSubCelda)
 if False:
     inputVectorDriverName = 'ESRI Shapefile'
     inputVectorDriverName = 'GPKG'
-    drv = ogr.GetDriverByName( inputVectorDriverName )
+    drv = ogr.GetDriverByName(inputVectorDriverName)
     if drv is None:
-        print('El driver {} esta disponible.'.format(inputVectorDriverName))
+        myLog.debug('El driver {} esta disponible.'.format(inputVectorDriverName))
     else:
-        print('Atencion: el driver {} NO esta disponible.'.format(inputVectorDriverName))
+        myLog.error('Atencion: el driver {} NO esta disponible.'.format(inputVectorDriverName))
         sys.exit(0)
     quit()
 
@@ -396,7 +401,7 @@ class CartoRefVector(object):
     def leerArraysGuardadasVuelta01_cartoRefVector(self, npzFileNameArraysVuelta0a1, LCLverbose=False):
         self.LCLverbose = LCLverbose
         if GLO.GLBLverbose or self.LCLverbose:
-            print('\t-> clidndat-> Leyendo npz:', npzFileNameArraysVuelta0a1)
+            myLog.info(f'\t-> clidndat-> Leyendo npz: {npzFileNameArraysVuelta0a1}')
         if os.path.exists(npzFileNameArraysVuelta0a1):
             try:
                 npzArraysVuelta01 = np.load(npzFileNameArraysVuelta0a1, allow_pickle=True)
@@ -408,44 +413,44 @@ class CartoRefVector(object):
                     if GLO.GLBLverbose or self.LCLverbose:
                         try:
                             if npzArrayData.shape[0] < 10:
-                                print('\t-> Array:', npzArrayName, '-> shape:', npzArrayData.shape, '-> dtype:', npzArrayData.dtype, 'Valores:', npzArrayData)
+                                myLog.debug(f'\t-> Array: {npzArrayName}, -> shape: {npzArrayData.shape}, -> dtype: {npzArrayData.dtype}, Valores: {npzArrayData}')
                             else:
-                                print('\t-> Array:', npzArrayName, '-> shape:', npzArrayData.shape, '-> dtype:', npzArrayData.dtype)
+                                myLog.debug(f'\t-> Array: {npzArrayName}, -> shape: {npzArrayData.shape}, -> dtype: {npzArrayData.dtype}')
                         except:
-                            print('\t-> Variable:', npzArrayName, 'Valor:', npzArrayData)
+                            myLog.debug(f'\t-> Variable: {npzArrayName}, Valor: {npzArrayData}')
                     if npzArrayData.shape == (): # ndim = 0
                         setattr(self, npzArrayName, npzArrayData.item())
                         if GLO.GLBLverbose or self.LCLverbose:
-                            print('\t\t-> Valor asignado:', getattr(self, npzArrayName), type(getattr(self, npzArrayName)))
+                            myLog.debug(f'\t\t-> Valor asignado: {getattr(self, npzArrayName)} {type(getattr(self, npzArrayName))}')
                     else:
                         setattr(self, npzArrayName, npzArrayData)
                         if GLO.GLBLverbose or self.LCLverbose:
                             try:
                                 if npzArrayData.shape[0] < 10:
-                                    print('\t\t-> Array asignada:', type(getattr(self, npzArrayName)), getattr(self, npzArrayName))
+                                    myLog.debug(f'\t\t-> Array asignada: {type(getattr(self, npzArrayName))} {getattr(self, npzArrayName)}')
                                 else:
-                                    print('\t\t-> Array asignada:', type(getattr(self, npzArrayName)))
+                                    myLog.debug(f'\t\t-> Array asignada: {type(getattr(self, npzArrayName))}')
                             except:
-                                print('\t\t-> Valor asignado:', type(getattr(self, npzArrayName)), getattr(self, npzArrayName))
+                                myLog.debug(f'\t\t-> Valor asignado: {type(getattr(self, npzArrayName))} {getattr(self, npzArrayName)}')
                 self.leidoNpzVuelta0a1 = True
             except:
-                print('clidcarto-> Aviso: error intentando leer {}'.format(npzFileNameArraysVuelta0a1))
-                print('\t-> Es probable que el fichero este corrupto por producirse una interrupcion mientras se generaba')
-                print('\t-> Se intenta borrar ese fichero:')
+                myLog.warning('clidcarto-> Aviso: error intentando leer {}'.format(npzFileNameArraysVuelta0a1))
+                myLog.warning('\t-> Es probable que el fichero este corrupto por producirse una interrupcion mientras se generaba')
+                myLog.warning('\t-> Se intenta borrar ese fichero:')
                 try:
                     os.remove(npzFileNameArraysVuelta0a1)
-                    print('\t\t-> Fichero npz borrado ok.')
+                    myLog.info('\t\t-> Fichero npz borrado ok.')
                 except:
-                    print('\t\t-> Aviso: no se ha podido borrar el Fichero npz.')
+                    myLog.warning('\t\t-> Aviso: no se ha podido borrar el Fichero npz.')
                 self.leidoNpzVuelta0a1 = False
         else:
-            print('\tAviso: no se encuentra el npz:', npzFileNameArraysVuelta0a1)
+            print(f'\tAviso: no se encuentra el npz: {npzFileNameArraysVuelta0a1}')
             self.leidoNpzVuelta0a1 = False
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def guardarArraysTrasVuelta01_cartoRefVector(self, npzFileNameArraysVuelta0a1_cartoRef):
-        print('\tclidcarto-> Guardando cartoRef {}. ->usarVectorRef: {}'.format(
+        myLog.info('\tclidcarto-> Guardando cartoRef {}. ->usarVectorRef: {}'.format(
             npzFileNameArraysVuelta0a1_cartoRef, self.usarVectorRef
             )
         )
@@ -483,9 +488,9 @@ class CartoRefVector(object):
         try:
             targetRasterDataset = gdal.Open(targetRasterFileName, gdalconst.GA_ReadOnly)
             if targetRasterDataset is None:
-                print('\tclidcarto-> Error abriendo raster', targetRasterFileName)
+                myLog.error(f'\tclidcarto-> Error abriendo raster {targetRasterFileName}')
                 return False
-            # print('\tclidcarto-> Capa leida ok:', targetRasterFileName)
+            # myLog.debug(f'{TW}clidcarto-> Capa leida ok: {targetRasterFileName})
     
             geotransform = targetRasterDataset.GetGeoTransform()
             self.cartoRefRecortadaOrigenX = geotransform[0]
@@ -559,33 +564,33 @@ class CartoRefVector(object):
                     self.cartoRefRecortadaNumCeldasX / self.myLasData.nCeldasX != self.nPixelsPorCelda
                     or self.cartoRefRecortadaNumCeldasY / self.myLasData.nCeldasY != self.nPixelsPorCelda
                 ):
-                    print('clidcarto-> ATENCION: no sale una de estas cuentas:')
-                    print('\tcartoRefRecortadaNumCeldasX: {} / nCeldasX {}  != self.nPixelsPorCelda {}'.format(
+                    myLog.critical('clidcarto-> ATENCION: no sale una de estas cuentas:')
+                    myLog.critical('\tcartoRefRecortadaNumCeldasX: {} / nCeldasX {}  != self.nPixelsPorCelda {}'.format(
                         self.cartoRefRecortadaNumCeldasX,
                         self.myLasData.nCeldasX,
                         self.nPixelsPorCelda,
                         )
                     )
-                    print('\tcartoRefRecortadaNumCeldasY: {} / nCeldasY {}  != self.nPixelsPorCelda {}'.format(
+                    myLog.critical('\tcartoRefRecortadaNumCeldasY: {} / nCeldasY {}  != self.nPixelsPorCelda {}'.format(
                         self.cartoRefRecortadaNumCeldasY,
                         self.myLasData.nCeldasY,
                         self.nPixelsPorCelda,
                         )
                     )
                 if self.cartoRefRecortadaPixelX != GLO.GLBLrasterPixelSize or self.cartoRefRecortadaPixelY != -GLO.GLBLrasterPixelSize:
-                    print('clidcarto-> ATENCION: revisar metros pixel', self.cartoRefRecortadaPixelX, GLO.GLBLrasterPixelSize)
+                    myLog.error(f'clidcarto-> ATENCION: revisar metros pixel {self.cartoRefRecortadaPixelX} {GLO.GLBLrasterPixelSize}')
                 self.vectorRasterizadoCongruenteLidar = True
             else:
-                print('clidcarto-> La cartoRef no cubre todo el ambito del Lidar y/o el ambito del fichero lidar no cubre todo el bloque')
+                myLog.warning('clidcarto-> La cartoRef no cubre todo el ambito del Lidar y/o el ambito del fichero lidar no cubre todo el bloque')
                 self.vectorRasterizadoCongruenteLidar = False
         except:
-            print('clidcarto-> ATENCION: error al leer o procesar {}. Se intenta borrar el fichero:'.format(targetRasterFileName))
-            print('\t-> Es probable que el fichero este corrupto por producirse una interrupcion mientras se generaba')
+            myLog.warning('clidcarto-> ATENCION: error al leer o procesar {}. Se intenta borrar el fichero:'.format(targetRasterFileName))
+            myLog.warning('\t-> Es probable que el fichero este corrupto por producirse una interrupcion mientras se generaba')
             try:
                 os.remove(targetRasterFileName)
-                print('\t\t-> Fichero tif borrado ok.')
+                myLog.info('\t\t-> Fichero tif borrado ok.')
             except:
-                print('\t\t-> Aviso: no se ha podido borrar el fichero tif.')
+                myLog.error('\t\t-> Aviso: no se ha podido borrar el fichero tif.')
             return False
         return True
 
@@ -593,9 +598,9 @@ class CartoRefVector(object):
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def leerVector(self):
         if GLO.GLBLverbose:
-            print('\tclidcarto-> Leyendo vector file {}'.format(self.nombreCapaInputVector))
+            myLog.info('\tclidcarto-> Leyendo vector file {}'.format(self.nombreCapaInputVector))
         # if GLO.GLBLverbose > 1:
-        #     print(f'\t\t-> inputVectorDriverName: {self.inputVectorDriverName}')
+        #     myLog.debug(f'\t\t-> inputVectorDriverName: {self.inputVectorDriverName}')
         # inDriver = 'PostgreSQL'
         if self.inputVectorDriverName == 'ESRI Shapefile':
             driverExt = 'shp'
@@ -607,29 +612,29 @@ class CartoRefVector(object):
             '{}.{}'.format(self.nombreCapaInputVector, driverExt)
         )
         if not gdalOk:
-            print('\tclidcarto-> Gdal no disponible; no se puede leer %s' % (self.nombreConPathCapaInputVector))
+            myLog.error('\tclidcarto-> Gdal no disponible; no se puede leer %s' % (self.nombreConPathCapaInputVector))
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
         if not os.path.exists(self.nombreConPathCapaInputVector):
-            print('\tclidcarto-> AVISO no esta disponible el fichero %s' % (self.nombreConPathCapaInputVector))
+            myLog.error('\tclidcarto-> AVISO no esta disponible el fichero %s' % (self.nombreConPathCapaInputVector))
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
         inputVectorRefOgrDriver = ogr.GetDriverByName(self.inputVectorDriverName)
 #         if inputVectorRefOgrDriver is None:
-#             print('El driver {} esta disponible.'.format(self.inputVectorDriverName))
+#             myLog.debug('El driver {} esta disponible.'.format(self.inputVectorDriverName))
 #         else:
-#             print('Atencion: el driver {} NO esta disponible.'.format(self.inputVectorDriverName))
-#         print( 'clidcarto-> inputVectorRefOgrDriver->', inputVectorRefOgrDriver)
+#             myLog.error('Atencion: el driver {} NO esta disponible.'.format(self.inputVectorDriverName))
+#         myLog.debug(f'clidcarto-> inputVectorRefOgrDriver-> {inputVectorRefOgrDriver}')
  
         try:
             self.inputVectorRefDataSource = inputVectorRefOgrDriver.Open(self.nombreConPathCapaInputVector, 0)  # 0 means read-only. 1 means writeable.
         except:
-            print('\tclidcarto-> No se puede abrir {}-> revisar si esta corrupto, faltan ficheros o esta bloqueado'.format(self.nombreConPathCapaInputVector))
+            myLog.error('\tclidcarto-> No se puede abrir {}-> revisar si esta corrupto, faltan ficheros o esta bloqueado'.format(self.nombreConPathCapaInputVector))
             quit()
         if self.inputVectorRefDataSource is None:
-            print('\tclidcarto-> No se puede abrir {}: possible corrupto'.format(self.nombreConPathCapaInputVector))
+            myLog.error('\tclidcarto-> No se puede abrir {}: possible corrupto'.format(self.nombreConPathCapaInputVector))
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
@@ -644,7 +649,12 @@ class CartoRefVector(object):
             self.inputVectorYmax,
         ) = self.inputVectorRefLayer.GetExtent()
         if GLO.GLBLverbose or self.LCLverbose:
-            print('clidcarto-> usarVectorRef: {}; Numero de registros en {}: {}'.format(self.usarVectorRef, os.path.basename(self.nombreConPathCapaInputVector), self.inputVectorRefFeatureCount))
+            myLog.info('{}clidcarto-> usarVectorRef: {}; Numero de registros en {}: {}'.format(
+                TW,
+                self.usarVectorRef,
+                os.path.basename(self.nombreConPathCapaInputVector),
+                self.inputVectorRefFeatureCount),
+            )
         # wkt = "POLYGON ((494000 4606000, 496000 4606000, 496000 4604000, 494000 4604000, 494000 4606000))"
         # wkt = 'POLYGON ((%i %i, %i %i, %i %i, %i %i, %i %i))' % (self.myLasHead.xmin, self.myLasHead.ymin,
         #                                                         self.myLasHead.xmin, self.myLasHead.ymax,
@@ -671,8 +681,8 @@ class CartoRefVector(object):
                 )
             )
             outputVectorRecLayerName = self.nombreCapaInputVector
-            print('\tclidcarto-> outputVectorRecFileName', outputVectorRecFileName)
-            # print('\tclidcarto-> outputVectorRecLayerName', outputVectorRecLayerName)
+            myLog.debug(f'{TW}clidcarto-> outputVectorRecFileName {outputVectorRecFileName}')
+            # myLog.debug(f'{TW}clidcarto-> outputVectorRecLayerName {outputVectorRecLayerName}')
         else:
             outputVectorDriverName = 'Memory'
             outputVectorRecFileName = '{}DataFrameInMemory{}'.format(
@@ -680,13 +690,13 @@ class CartoRefVector(object):
             )
             outputVectorRecLayerName = self.nombreCapaInputVector + 'layerInMemory'
         if not gdalOk:
-            print('clidcarto-> Gdal no disponible; no se puede generar %s: ' % (outputVectorDriverName))
+            myLog.debug(f'{TW}clidcarto-> Gdal no disponible; no se puede generar {outputVectorDriverName}')
             self.usarVectorRef = 0
             return False
         self.inputVectorRefSRS = self.inputVectorRefLayer.GetSpatialRef()
         self.inputVectorRefWkt = self.inputVectorRefSRS.ExportToWkt()
         # self.inputVectorRefSRS = osr.SpatialReference(wkt = inputVectorRefWkt) #Reciproco de inputVectorRefSRS.ExportToWkt()
-        print('\tclidcarto-> Revisando srs: self.inputVectorRefWkt:', self.inputVectorRefWkt)
+        myLog.debug(f'{TW}clidcarto-> Revisando srs: self.inputVectorRefWkt: {self.inputVectorRefWkt}')
 
         if self.LCLhusoUTM != 30:
             self.xminBloqueH30 = self.myLasHead.xminBloqueH30
@@ -717,13 +727,13 @@ class CartoRefVector(object):
             pixelsPorMetro = -1
 
         if self.LCLhusoUTM != 30:
-            print(f'\ncartolider-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
-            print(f'\t-> Previamente se abre la primera ortofoto, solo para conocer la dimension del pixel y hacer este ajuste antes de las intersecciones')
-            print(f'\t\t-> Dimension del pixel -> cartoRefRecortadaPixelX: {GLO.GLBLrasterPixelSize}; cartoRefRecortadaPixelY: {GLO.GLBLrasterPixelSize}')
-            print(f'\t\t-> metrosPorPixel/pixelsPorMetro: {metrosPorPixel}/{pixelsPorMetro}')
-            print(f'\t-> Antes del ajuste:')
-            print(f'\t\t-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
-            print(f'\t\t-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
+            myLog.debug(f'{TW}cartolider-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
+            myLog.debug(f'{TW}{TB}-> Previamente se abre la primera ortofoto, solo para conocer la dimension del pixel y hacer este ajuste antes de las intersecciones')
+            myLog.debug(f'{TW}{TB}{TV}-> Dimension del pixel -> cartoRefRecortadaPixelX: {GLO.GLBLrasterPixelSize}; cartoRefRecortadaPixelY: {GLO.GLBLrasterPixelSize}')
+            myLog.debug(f'{TW}{TB}{TV}-> metrosPorPixel/pixelsPorMetro: {metrosPorPixel}/{pixelsPorMetro}')
+            myLog.debug(f'{TW}{TB}-> Antes del ajuste:')
+            myLog.debug(f'{TW}{TB}{TV}-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
+            myLog.debug(f'{TW}{TB}{TV}-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
         if pixelsPorMetro != -1 and metrosPorPixel != -1:
             self.xminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.xminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
             self.xmaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.xmaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
@@ -735,9 +745,9 @@ class CartoRefVector(object):
                 if (self.xmaxBloqueH30 - self.xminBloqueH30) > (self.ymaxBloqueH30 - self.yminBloqueH30):
                     self.ymaxBloqueH30 = self.yminBloqueH30 + (self.xmaxBloqueH30 - self.xminBloqueH30)
         if self.LCLhusoUTM == 29:
-            print(f'\t-> Despues del ajuste:')
-            print(f'\t\t-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
-            print(f'\t\t-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
+            myLog.debug(f'{TW}{TB}-> Despues del ajuste:')
+            myLog.debug(f'{TW}{TB}{TV}-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
+            myLog.debug(f'{TW}{TB}{TV}-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
 
         # Filter (select) features that intersect my las block
         self.inputVectorRefLayer.SetSpatialFilterRect(
@@ -752,16 +762,13 @@ class CartoRefVector(object):
         self.nPixelsYRaster = int((self.ymaxBloqueH30 - self.yminBloqueH30) / GLO.GLBLrasterPixelSize)
 
         if GLO.GLBLverbose:
-            print('\tclidcarto-> Creando capa vectorial:', outputVectorRecFileName, 'layer:', outputVectorRecLayerName)
+            myLog.info(f'{TW}clidcarto-> Creando capa vectorial: {outputVectorRecFileName} layer {outputVectorRecLayerName}')
         # Create a vectorDataSet in memory for the selected features
         outputOgrDriver = ogr.GetDriverByName(outputVectorDriverName)
         # Remove output shapefile if it already exists
         if outputVectorDriverName == 'ESRI Shapefile' and os.path.exists(outputVectorRecFileName):
             outputOgrDriver.DeleteDataSource(outputVectorRecFileName)
         self.outputVectorRecDataSource = outputOgrDriver.CreateDataSource(outputVectorRecFileName)
-        #         print( 'clidcarto-> outputOgrDriver', outputOgrDriver)
-        #         print( 'clidcarto-> outputVectorRecFileName', outputVectorRecFileName)
-        #         print( 'clidcarto-> self.outputVectorRecDataSource', self.outputVectorRecDataSource)
         numIntentosEscritura = 0
         while True:
             numIntentosEscritura += 1
@@ -771,9 +778,9 @@ class CartoRefVector(object):
                 )
                 break
             except:
-                print(
-                    'clidcarto-> No se puede borrar o escribir {} -> Se reintenta despues de 5 segundos ({} de 5).'.format(
-                        outputVectorRecFileName, numIntentosEscritura
+                myLog.error(
+                    '{}clidcarto-> No se puede borrar o escribir {} -> Se reintenta despues de 5 segundos ({} de 5).'.format(
+                        TW, outputVectorRecFileName, numIntentosEscritura
                     )
                 )
                 time.sleep(5)
@@ -798,15 +805,15 @@ class CartoRefVector(object):
         listaCampos = []
         for nCampo in range(featureDefnAll.GetFieldCount()):
             listaCampos.append(featureDefnAll.GetFieldDefn(nCampo).GetName())
-        print('clidcarto-> listaCampos:', listaCampos)
+        myLog.debug(f'{TW}clidcarto-> listaCampos: {listaCampos}')
         if not self.nombreCampoLandUseCover in listaCampos:
-            print(f'\nclidcarto-> ATENCION: la capa {self.nombreConPathCapaInputVector} no incluye el campo {self.nombreCampoLandUseCover}')
+            myLog.error(f'{TW}clidcarto-> ATENCION: la capa {self.nombreConPathCapaInputVector} no incluye el campo {self.nombreCampoLandUseCover}')
             self.usarVectorRef = 0
             return False
 
         featureDefnRec = self.inputVectorRefLayerRec.GetLayerDefn()
         featureNew = ogr.Feature(featureDefnRec)
-        # print( '\tclidcarto-> Mostrando features copiadas')
+        # myLog.debug(f'{TW}clidcarto-> Mostrando features copiadas')
         nFeature = 0
         for feature in self.inputVectorRefLayer:
             geom = feature.GetGeometryRef()
@@ -814,10 +821,8 @@ class CartoRefVector(object):
                 landUseCoverValue = feature.GetField(self.nombreCampoLandUseCover)
                 # FID_UsosSi = feature.GetField("FID_UsosSi")
                 nFeature += 1
-                # print( '\tclidcarto-> nFeature', nFeature, FID_UsosSi, landUseCoverValue)
-                # print( '\tclidcarto-> nFeature', nFeature, landUseCoverValue)
             except:
-                print('\tclidcarto-> nFeature', nFeature, 'ERROR')
+                myLog.error(f'{TW}clidcarto-> nFeature {nFeature} ERROR')
                 landUseCoverValue = 0
                 # FID_UsosSi = ''
             featureNew.SetGeometry(geom)
@@ -828,10 +833,10 @@ class CartoRefVector(object):
         self.outputVectorRecLayer_featureCount = self.inputVectorRefLayerRec.GetFeatureCount()
         if GLO.GLBLverbose:
             tiempo1 = time.time()
-            print(
-                '\tclidcarto-> recortarVector - Number of features in %s: %d' % (os.path.basename(outputVectorRecFileName), self.outputVectorRecLayer_featureCount)
+            myLog.debug(
+                f'{TW}clidcarto-> recortarVector - Number of features in {os.path.basename(outputVectorRecFileName)}: {self.outputVectorRecLayer_featureCount}'
             )
-            print('\tclidcarto-> Tiempo para recortar capa: %0.1f segundos' % (tiempo1 - tiempo0))
+            myLog.debug(f'{TW}clidcarto-> Tiempo para recortar capa: {(tiempo1 - tiempo0):0.1f} segundos')
 
         if self.chequearPuntosDeEjemplo:
             aNumPuntosPorClase = np.zeros(256, dtype=np.int16)
@@ -905,14 +910,13 @@ class CartoRefVector(object):
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def rasterizarVectorRecortado(self):
         if not gdalOk:
-            print('clidcarto-> Gdal no disponible; no se puede crear %s: ' % (self.nombreCapaOutputRaster + '.tif'))
+            myLog.error('clidcarto-> Gdal no disponible; no se puede crear %s: ' % (self.nombreCapaOutputRaster + '.tif'))
             self.usarVectorRef = 0
             return False
 
         if GLO.GLBLverbose:
             tiempo0 = time.time()
-            print('\tclidcarto-> Preparando nuevo raster...', end=' -> ')
-        # print( 'clidcarto-> ->->->GLBLrasterPixelSize', GLO.GLBLrasterPixelSize)
+            myLog.info(f'{TW}clidcarto-> Preparando nuevo raster...')
         # Filename of the raster Tiff that will be created
         targetRasterFileName = os.path.join(self.miRutaCartoRecortes, '{}.tif'.format(self.nombreCapaOutputRaster))
         # vectorDataset = ogr.GetDriverByName("Memory").CopyDataSource(vectorFile, "")
@@ -932,14 +936,13 @@ class CartoRefVector(object):
         nPixelesXraster = int((x_max - x_min) / GLO.GLBLrasterPixelSize)
         nPixelesYraster = int((y_max - y_min) / GLO.GLBLrasterPixelSize)
         if nPixelesXraster == 0 or nPixelesYraster == 0:
-            print(
-                'clidcarto-> La capa %s no tiene poligonos en el bloque %i-%i, %i-%i'
-                % (self.nombreCapaInputVector, self.xminBloqueH30, self.xmaxBloqueH30, self.yminBloqueH30, self.ymaxBloqueH30)
+            myLog.error(
+                f'{TW}clidcarto-> La capa {self.nombreCapaInputVector} no tiene poligonos en el bloque {self.xminBloqueH30}-{self.xmaxBloqueH30}, {self.yminBloqueH30}-{self.ymaxBloqueH30}'
             )
             self.usarVectorRef = 0
             return False
-        if GLO.GLBLverbose or True:
-            print('\t-> nPixelesXraster (X x Y): {} x {}'.format(nPixelesXraster, nPixelesYraster))
+        if GLO.GLBLverbose:
+            myLog.debug(f'{TW}{TB}-> nPixelesXraster (X x Y): {nPixelesXraster} x {nPixelesYraster}')
         targetBands = 1
         targetDatatype = gdal.GDT_Byte
         driver = gdal.GetDriverByName('GTiff')
@@ -971,14 +974,14 @@ class CartoRefVector(object):
                 break
             except:
                 if nIntentosEscritura > 5:
-                    print('\nclidcarto.{:006}-> ATENCION!!!: No se ha podido crear crear {}'.format(GLO.MAINidProceso, targetRasterFileName))
+                    myLog.error(f'{TW}clidcarto.{GLO.MAINidProceso:006d}-> ATENCION!!!: No se ha podido crear crear {targetRasterFileName}')
                     return False
-                print('\nclidcarto.{:006}-> ATENCION: error al crear {}'.format(GLO.MAINidProceso, targetRasterFileName))
+                myLog.error(f'{TW}clidcarto.{GLO.MAINidProceso:006d}-> ATENCION: error al crear {targetRasterFileName}')
                 time.sleep(5)
 
         try:
             if GLO.GLBLverbose:
-                print('\tclidcarto-> targetRasterDataset.SetGeoTransform', x_min, y_max)
+                myLog.debug(f'{TW}clidcarto-> targetRasterDataset.SetGeoTransform: {x_min} {y_max}')
             # Pendiente revisar si esto es cierto para mi capa, que esta proyectada:
             # Si quisiera importar directamente la proyeccion de la capa vectorial:
             # targetRasterDataset.SetProjection(self.inputVectorRefSRS.ExportToWkt())
@@ -992,27 +995,23 @@ class CartoRefVector(object):
                 # print( 'clidcarto-> Unidad:', self.inputVectorRefSRS.GetAttrValue('UNIT'))
                 targetRasterDataset.SetProjection(self.inputVectorRefSRS.ExportToWkt())
             else:
-                print('clidcarto-> La capa de entrada no tiene info de proyeccion (needs GDAL >= 1.7.0). Se selecciona EPSG 25830', end=' -> ')
+                myLog.warning(f'{TW}clidcarto-> La capa de entrada no tiene info de proyeccion (needs GDAL >= 1.7.0). Se selecciona EPSG 25830')
                 miRasterSRS = osr.SpatialReference()
                 # miRasterSRS.SetUTM(30, True)
                 # miRasterSRS.SetWellKnownGeogCS( 'EPSG:25830' ) #ETRS89 30N -> No funciona
                 # miRasterSRS.SetWellKnownGeogCS( "WGS84" ) #->ok
                 miRasterSRS.ImportFromEPSG(25830)  # ->ok
-                # print( 'clidcarto-> ->SRS creado por mi:       ', miRasterSRS.ExportToWkt())
-                # print( 'clidcarto-> Unidad:', miRasterSRS.GetAttrValue('UNIT'))
                 targetRasterDataset.SetProjection(miRasterSRS.ExportToWkt())
     
             # miWkt = targetRasterDataset.GetProjection()
             # targetRasterSRS = osr.SpatialReference(wkt = miWkt) #->self.inputVectorRefSRS o miRasterSRS
-            # print( 'clidcarto-> ->->SRS del raster creado: ', miWkt)
-            # print( 'clidcarto-> Unidad:', targetRasterSRS.GetAttrValue('UNIT'))
     
             outputRasterRecBandLandCover = targetRasterDataset.GetRasterBand(1)
             outputRasterRecBandLandCover.SetNoDataValue(self.noDataVectorRef)
             outputRasterRecBandLandCover.FlushCache()
 
             if GLO.GLBLverbose:
-                print('\tclidcarto-> Rasterizing...', end=' -> ')
+                myLog.warning(f'{TW}clidcarto-> Rasterizing...')
             # Si creo un raster de 3 bandas, uso esto:
             # err = gdal.RasterizeLayer(targetRasterDataset, (3, 2, 1), self.inputVectorRefLayerRec,
             #                          burn_values=(0, 0, 0),
@@ -1039,25 +1038,15 @@ class CartoRefVector(object):
             self.vectorRefMinY = self.vectorRefOrigenY + (self.vectorRefNumCeldasY * self.vectorRefPixelY)
             self.vectorRefMaxY = self.vectorRefOrigenY
         except:
-            print('\nclidcarto.{:006}-> ATENCION!!!: Error al crear {}'.format(GLO.MAINidProceso, targetRasterFileName))
+            myLog.error(f'{TW}clidcarto.{GLO.MAINidProceso:006d}-> ATENCION!!!: Error al crear {targetRasterFileName}')
             return False
 
         if GLO.GLBLverbose or True:
-            print(
-                'clidcarto-> Nuevo raster creado (vector rasterizado):',
-                'vectorRefOrigen:',
-                self.vectorRefOrigenX,
-                self.vectorRefOrigenY,
-                'NumCeldas:',
-                self.vectorRefNumCeldasX,
-                self.vectorRefNumCeldasY,
-                'RefPixel:',
-                self.vectorRefPixelX,
-                self.vectorRefPixelY,
-                'noData:',
-                self.noDataVectorRef,
-            )
-            # print('clidcarto-> Algunos valores del raster creado-:', self.aCeldasVectorRecRasterizado)
+            myLog.info(f'{TW}clidcarto-> Nuevo raster creado (vector rasterizado):')
+            myLog.info(f'{TW}{TB}-> vectorRefOrigen: {self.vectorRefOrigenX} {self.vectorRefOrigenY}')
+            myLog.info(f'{TW}{TB}-> NumCeldas: {self.vectorRefNumCeldasX} {self.vectorRefNumCeldasY}')
+            myLog.info(f'{TW}{TB}-> RefPixel: {self.vectorRefPixelX} {self.vectorRefPixelY}')
+            myLog.info(f'{TW}{TB}-> noData: {self.noDataVectorRef}')
         if (
             self.vectorRefMinX == self.xminBloqueH30
             and self.vectorRefMaxX == self.xmaxBloqueH30
@@ -1068,33 +1057,26 @@ class CartoRefVector(object):
             self.nPixelsXRaster = int((self.xmaxBloqueH30 - self.xminBloqueH30) / GLO.GLBLrasterPixelSize)
             self.nPixelsYRaster = int((self.ymaxBloqueH30 - self.yminBloqueH30) / GLO.GLBLrasterPixelSize)
             if self.vectorRefNumCeldasX / self.myLasData.nCeldasX != self.nPixelsPorCelda or self.vectorRefNumCeldasY / self.myLasData.nCeldasY != self.nPixelsPorCelda:
-                print('clidcarto-> ATENCION: no salen las cuentas')
+                myLog.error(f'{TW}clidcarto-> ATENCION: no salen las cuentas')
             if self.vectorRefPixelX != GLO.GLBLrasterPixelSize or self.vectorRefPixelY != -GLO.GLBLrasterPixelSize:
-                print('clidcarto-> ATENCION: revisar metros pixel', self.vectorRefPixelX, GLO.GLBLrasterPixelSize)
+                myLog.error(f'{TW}clidcarto-> ATENCION: revisar metros pixel {self.vectorRefPixelX} {GLO.GLBLrasterPixelSize}')
             self.vectorRasterizadoCongruenteLidar = True
         else:
             self.vectorRasterizadoCongruenteLidar = False
-            print('clidcarto-> La cartoRef no cubre todo el ambito del Lidar y/o el ambito del fichero lidar no cubre todo el bloque')
-            print('\t-> self.vectorRefMinX:', self.vectorRefMinX, 'self.xminBloqueH30:', self.xminBloqueH30)
-            print('\t-> self.vectorRefMaxX:', self.vectorRefMaxX, 'self.xmaxBloqueH30:', self.xmaxBloqueH30)
-            print('\t-> self.vectorRefMinY:', self.vectorRefMinY, 'self.yminBloqueH30:', self.yminBloqueH30)
-            print('\t-> self.vectorRefMaxY:', self.vectorRefMaxY, 'self.ymaxBloqueH30:', self.ymaxBloqueH30)
+            myLog.warning(f'{TW}clidcarto-> La cartoRef no cubre todo el ambito del Lidar y/o el ambito del fichero lidar no cubre todo el bloque')
+            myLog.warning(f'{TW}{TB}-> self.vectorRefMinX: {self.vectorRefMinX} self.xminBloqueH30: {self.xminBloqueH30}')
+            myLog.warning(f'{TW}{TB}-> self.vectorRefMaxX: {self.vectorRefMaxX} self.xmaxBloqueH30: {self.xmaxBloqueH30}')
+            myLog.warning(f'{TW}{TB}-> self.vectorRefMinY: {self.vectorRefMinY} self.yminBloqueH30: {self.yminBloqueH30}')
+            myLog.warning(f'{TW}{TB}-> self.vectorRefMaxY: {self.vectorRefMaxY} self.ymaxBloqueH30: {self.ymaxBloqueH30}')
 
         if GLO.GLBLverbose:
-            print('\tclidcarto-> vectorRasterizadoCongruenteLidar', self.vectorRasterizadoCongruenteLidar)
+            myLog.warning(f'{TW}clidcarto-> vectorRasterizadoCongruenteLidar: {self.vectorRasterizadoCongruenteLidar}')
 
         self.miRasterRefMinXY = np.array([self.vectorRefMinX, self.vectorRefMinY], dtype=np.float32)
         self.miRasterRefOrigen = np.array([self.vectorRefOrigenX, self.vectorRefOrigenY], dtype=np.float32)
         self.miRasterRefPixel = np.array([self.vectorRefPixelX, self.vectorRefPixelY], dtype=np.float32)
         self.miRasterRefNumCeldas = np.array([self.vectorRefNumCeldasX, self.vectorRefNumCeldasY], dtype=np.int32)
         self.miRasterRefCoordenadas = np.array([self.vectorRefMinX, self.vectorRefMaxX, self.vectorRefMinY, self.vectorRefMaxY], dtype=np.float32)
-
-        # print( 'clidcarto-> ->->->self.vectorRefOrigenX', self.vectorRefOrigenX)
-        # print( 'clidcarto-> ->->->self.vectorRefOrigenY', self.vectorRefOrigenY)
-        # print( 'clidcarto-> ->->->self.vectorRefPixelX', self.vectorRefPixelX)
-        # print( 'clidcarto-> ->->->self.vectorRefPixelY', self.vectorRefPixelY)
-        # print( 'clidcarto-> ->->->self.vectorRefNumCeldasX', self.vectorRefNumCeldasX)
-        # print( 'clidcarto-> ->->->self.vectorRefNumCeldasY', self.vectorRefNumCeldasY)
 
         if err != 0:
             raise Exception("error rasterizing layer: %s" % err)
@@ -1105,11 +1087,11 @@ class CartoRefVector(object):
         self.aCeldasVectorRecRasterizado = outputRasterRecBandLandCover.ReadAsArray()[::-1].transpose()
 
         if GLO.GLBLverbose:
-            print('clidcarto-> Algunos valores del raster creado+:', self.aCeldasVectorRecRasterizado[:5, :10])
+            myLog.debug(f'{TW}clidcarto-> Algunos valores del raster creado+: {self.aCeldasVectorRecRasterizado[:5, :10]}')
 
         if GLO.GLBLverbose:
             tiempo1 = time.time()
-            print('\tclidcarto-> Tiempo para rasterize %s vector layer %0.2f segundos' % (self.nombreCapaInputVector, ((tiempo1 - tiempo0))))
+            myLog.debug(f'{TW}clidcarto-> Tiempo para rasterize {self.nombreCapaInputVector} vector layer {(tiempo1 - tiempo0):0.2f} segundos')
         self.inputVectorRefDataSource.Destroy()
 
         if self.chequearPuntosDeEjemplo:
@@ -1128,9 +1110,9 @@ class CartoRefVector(object):
                 'Despoblado JCyL',
             ]
             nPuntosMuestreo = 40
-            print(f'clidcarto-> Muestreo {nPuntosMuestreo} x {nPuntosMuestreo} raster:', end='')
+            myLog.debug(f'{TW}clidcarto-> Muestreo {nPuntosMuestreo} x {nPuntosMuestreo} raster:', end='')
             for nPuntoY in range(nPuntosMuestreo):
-                print('\nclidcarto->', '%02i' % nPuntoY, end='>>')
+                myLog.debug(f'{TW}clidcarto-> {nPuntoY:02d}')
                 for nPuntoX in range(40):
                     miPuntoX = self.xminBloqueH30 + 605 + (nPuntoX * 5)
                     miPuntoY = self.yminBloqueH30 + 305 + (nPuntoY * 5)
@@ -1148,9 +1130,9 @@ class CartoRefVector(object):
                         and int(miPuntoYraster) < self.aCeldasVectorRecRasterizado.shape[1]
                     ):
                         landCover = self.aCeldasVectorRecRasterizado[int(miPuntoXraster), int(miPuntoYraster)]
-                        print(self.aCeldasVectorRecRasterizado[int(miPuntoXraster), int(miPuntoYraster)], end='')
+                        myLog.debug(f'{TW}{TB}{self.aCeldasVectorRecRasterizado[int(miPuntoXraster), int(miPuntoYraster)]}')
                     else:
-                        print(miPuntoXraster, miPuntoYraster, 'fuera del rasterArray de dimensiones', self.aCeldasVectorRecRasterizado.shape)
+                        myLog.debug(f'{TW}{TB}{miPuntoXraster} {miPuntoYraster} fuera del rasterArray de dimensiones {self.aCeldasVectorRecRasterizado.shape}')
                         landCover = 0
                     #                     if nPuntoX == 12 and nPuntoY == 12:
                     #                         print( 'clidcarto-> nPuntoXY', nPuntoX, nPuntoY, 'miPuntoXY', miPuntoX, miPuntoY)
@@ -1158,51 +1140,46 @@ class CartoRefVector(object):
                     aNumPuntosPorClase[landCover] += 1
 
             if GLO.GLBLverbose:
-                print()
-                print(
-                    'clidcarto-> self.xminBloqueH30',
-                    self.xminBloqueH30,
-                    'self.vectorRefOrigenX',
-                    self.vectorRefOrigenX,
-                    'self.yminBloqueH30',
-                    self.yminBloqueH30,
-                    'self.vectorRefOrigenY',
-                    self.vectorRefOrigenY,
+                myLog.debug('')
+                myLog.debug(
+                    f'{TW}clidcarto-> self.xminBloqueH30 {self.xminBloqueH30} '
+                    f'self.vectorRefOrigenX {self.vectorRefOrigenX} '
+                    f'self.yminBloqueH30 {self.yminBloqueH30} '
+                    f'self.vectorRefOrigenY {self.vectorRefOrigenY} '
                 )
 
                 if self.nombreCapaInputVector == 'IGR0204NUC_URB_CYL_S_E25':
                     for nClase in range(len(aTiposDeNucleoUrbano)):
                         if aNumPuntosPorClase[nClase] > 0:
-                            print(
-                                'clidcarto-> Leyendo raster: numero de puntos clasCob %i (%s): %i de 100'
-                                % (nClase, aTiposDeNucleoUrbano[nClase], aNumPuntosPorClase[nClase])
+                            myLog.debug(
+                                f'{TW}clidcarto-> Leyendo raster: numero de puntos clasCob {nClase} ({aTiposDeNucleoUrbano[nClase]}): {aNumPuntosPorClase[nClase]} de 100'
                             )
                 elif self.nombreCapaInputVector == 'SingularUse' or self.nombreCapaInputVector.strartswith('BTN25'):
-                    print('clidcarto-> Numero de puntos clasCob 1 (edificio):    %i de 100' % aNumPuntosPorClase[1])
-                    print('clidcarto-> Numero de puntos clasCob 2 (via):         %i de 100' % aNumPuntosPorClase[2])
-                    print('clidcarto-> Numero de puntos clasCob 3 (ferrocarril): %i de 100' % aNumPuntosPorClase[3])
-                    print('clidcarto-> Numero de puntos clasCob 4 (agua):        %i de 100' % aNumPuntosPorClase[4])
+                    myLog.debug(f'{TW}clidcarto-> Numero de puntos clasCob 1 (edificio):    {aNumPuntosPorClase[1]} de 100')
+                    myLog.debug(f'{TW}clidcarto-> Numero de puntos clasCob 2 (via):         {aNumPuntosPorClase[1]} de 100')
+                    myLog.debug(f'{TW}clidcarto-> Numero de puntos clasCob 3 (ferrocarril): {aNumPuntosPorClase[1]} de 100')
+                    myLog.debug(f'{TW}clidcarto-> Numero de puntos clasCob 4 (agua):        {aNumPuntosPorClase[1]} de 100')
 
                 tiempo2 = time.time()
-                print('\tclidcarto-> Tiempo para leer 100 puntos en el raster: %0.2f mili-segundos' % ((tiempo2 - tiempo1) * 1e3))
+                myLog.debug(f'{TW}clidcarto-> Tiempo para leer 100 puntos en el raster: {(tiempo2 - tiempo1) * 1e3:0.2f} mili-segundos')
 
         if self.vectorRefNumCeldasX != self.aCeldasVectorRecRasterizado.shape[0] or self.vectorRefNumCeldasX != nPixelesXraster:
-            print(self.vectorRefNumCeldasX, self.aCeldasVectorRecRasterizado.shape[0])
-            input('clidcarto-> revisarX')
+            myLog.critical(f'{TW}{self.vectorRefNumCeldasX} {self.aCeldasVectorRecRasterizado.shape[0]}')
+            myLog.critical(f'{TW}clidcarto-> revisarX')
         if self.vectorRefNumCeldasY != self.aCeldasVectorRecRasterizado.shape[1] or self.vectorRefNumCeldasY != nPixelesYraster:
-            print(self.vectorRefNumCeldasY, self.aCeldasVectorRecRasterizado.shape[1])
-            input('clidcarto-> revisarY')
+            myLog.critical(f'{TW}{self.vectorRefNumCeldasY} {self.aCeldasVectorRecRasterizado.shape[1]}')
+            myLog.critical(f'{TW}clidcarto-> revisarY')
 
         return True
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def asignarUsoSingularArrayCeldas(self):
-        print('clidcarto-> Se va a asignar UsoSingular al arrayCeldas.')
-        print('\t-> Num de columnas en el raster (dimension X):', self.nPixelsXRaster)
-        print('\t-> Num de filas en el raster (dimension Y):   ', self.nPixelsYRaster)
-        print('\t-> self.vectorRasterizadoCongruenteLidar:     ', self.vectorRasterizadoCongruenteLidar)
-        print('\t-> self.nPixelsPorCelda:                      ', self.nPixelsPorCelda)
+        myLog.debug(f'{TW}clidcarto-> Se va a asignar UsoSingular al arrayCeldas.')
+        myLog.debug(f'{TW}{TB}-> Num de columnas en el raster (dimension X): {self.nPixelsXRaster}')
+        myLog.debug(f'{TW}{TB}-> Num de filas en el raster (dimension Y):    {self.nPixelsYRaster}')
+        myLog.debug(f'{TW}{TB}-> self.vectorRasterizadoCongruenteLidar:      {self.vectorRasterizadoCongruenteLidar}')
+        myLog.debug(f'{TW}{TB}-> self.nPixelsPorCelda:                       {self.nPixelsPorCelda}')
         if self.usarVectorRef:
             if self.LCLhusoUTM != 30:
                 for nXrasterSingularUse in range(int(self.nPixelsXRaster)):

@@ -49,8 +49,7 @@ if True:
 # #     sys.exit(0)
 # except SystemError as excpt:
 #     program_name = 'qlidtwins.py'
-#     # sys.stderr.write(f'\n{program_name}-> Error SystemError:\n{excpt}', exc_info=True)
-#     myLog.exception(f'\n{program_name}-> Error SystemError:\n{excpt}')
+#     sys.stderr.write(f'\n{program_name}-> Error SystemError:\n{excpt}', exc_info=True)
 #     sys.exit(0)
 # except OSError as excpt:
 #     program_name = 'qlidtwins.py'
@@ -96,11 +95,10 @@ if True:
 #     sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e -h\n')
 #     # ==================================================================
 #     sys.exit(0)
-
 # ==============================================================================
 
 myUser = clidtwcfg.infoUsuario()
-print('\nqlidtwins-> usuario:', myUser)
+# sys.stdout.write(f'\nqlidtwins-> usuario: {myUser}\n')
 
 # ==============================================================================
 # ========================== Variables globales ================================
@@ -311,8 +309,8 @@ def checkRun():
     '''Chequeo de la forma de ejecucion. Provisional para la version alpha'''
     # ==========================================================================
     tipoEjecucion = 0
-    myLog.info('')
-    myLog.info('{:_^80}'.format(''))
+    myLog.debug('')
+    myLog.debug('{:_^80}'.format(''))
     try:
         if len(sys.argv) == 0:
             myLog.critical(f'qlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
@@ -322,22 +320,22 @@ def checkRun():
             # __name__:    <cartolidar.qlidtwins>
             # __package__: <cartolidar>
             tipoEjecucion = 1
-            myLog.info('qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
-            myLog.info(f'{TB} python -m cartolidar')
+            myLog.debug('qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
+            myLog.debug(f'{TB} python -m cartolidar')
         elif sys.argv[0].endswith('qlidtwins.py'):
             tipoEjecucion = 2
-            myLog.info('qlidtwins.py se ha lanzado desde linea de comandos:')
-            myLog.info(f'{TB} python qlidtwins.py')
+            myLog.debug('qlidtwins.py se ha lanzado desde linea de comandos:')
+            myLog.debug(f'{TB} python qlidtwins.py')
         elif sys.argv[0] == '':
             tipoEjecucion = 3
             # Al importar el modulo no se pueden incluir el argumento -v (ni ningun otro)
-            myLog.info('qlidtwins se esta importando desde el interprete interactivo:')
-            myLog.info(f'{TB}>>> from cartolidar import qlidtwins')
-            myLog.info('o, si esta accesible (en el path):')
-            myLog.info(f'{TB}>>> import qlidtwins')
+            myLog.debug('qlidtwins se esta importando desde el interprete interactivo:')
+            myLog.debug(f'{TB}>>> from cartolidar import qlidtwins')
+            myLog.debug('o, si esta accesible (en el path):')
+            myLog.debug(f'{TB}>>> import qlidtwins')
         else:
             tipoEjecucion = 4
-            myLog.info(f'checkRun-> qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
+            myLog.debug(f'checkRun-> qlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
     except:
         # myLog.critical(qlidtwins-> Revisar MAIN_idProceso:', exc_info=True)
         myLog.exception('qlidtwins-> Revisar MAIN_idProceso:')
@@ -376,13 +374,13 @@ def checkRun():
         try:
             if selec.upper() == 'N':
                 sys.argv.append("-h")
-                myLog.info('')
+                myLog.debug('')
         except (Exception) as thisError: # Raised when a generated error does not fall into any category.
             # myLog.critical(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>', exc_info=True)
             myLog.exception(f'\nqlidtwins-> ATENCION: revisar codigo. selec: {type(selec)}´<{selec}>')
             myLog.critical(f'{TB}Revisar error: {thisError}')
             sys.exit(0)
-    myLog.info('{:=^80}'.format(''))
+    myLog.debug('{:=^80}'.format(''))
 
     return tipoEjecucion
 
@@ -1053,7 +1051,7 @@ def mostrarConfiguracion(cfgDict):
     myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('__verbose__: {}'.format(__verbose__))
     if __verbose__ == 3:
-        myLog.debug('->> qlidtwins-> args:', argsConfig)
+        myLog.debug(f'->-> qlidtwins-> args: {argsConfig}')
         # myLog.info(f'{TB}->> dir(args):', dir(args))
     myLog.debug('->> Lista de dasoVars en formato para linea de comandos:')
     myLog.debug(f'{TB}{argsConfig.listTxtDasoVars}')
@@ -1067,28 +1065,28 @@ def mostrarConfiguracion(cfgDict):
                 infoConfiguracionUsada = f' (valores leidos del fichero de configuracion, {configFileNameCfg})'
             else:
                 infoConfiguracionUsada = ' (valores "de fabrica" incluidos en codigo, clidtwcfg.py)'
-        myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'Parametros de configuracion adicionales{infoConfiguracionUsada}:')
-        myLog.info(f'{TB}-> menuInteractivo: {cfgDict["menuInteractivo"]}')
-        myLog.info(f'{TB}-> marcoCoordMiniX: {cfgDict["marcoCoordMiniX"]}')
-        myLog.info(f'{TB}-> marcoCoordMaxiX: {cfgDict["marcoCoordMaxiX"]}')
-        myLog.info(f'{TB}-> marcoCoordMiniY: {cfgDict["marcoCoordMiniY"]}')
-        myLog.info(f'{TB}-> marcoCoordMaxiY: {cfgDict["marcoCoordMaxiY"]}')
-        myLog.info(f'{TB}-> marcoPatronTest: {cfgDict["marcoPatronTest"]}')
-        myLog.info(f'{TB}-> nPatronDasoVars: {cfgDict["nPatronDasoVars"]}')
-        myLog.info(f'{TB}-> rasterPixelSize: {cfgDict["rasterPixelSize"]}')
-        myLog.info(f'{TB}-> radioClusterPix: {cfgDict["radioClusterPix"]}')
-        myLog.info(f'{TB}-> nivelSubdirExpl: {cfgDict["nivelSubdirExpl"]}')
-        myLog.info(f'{TB}-> outRasterDriver: {cfgDict["outRasterDriver"]}')
-        myLog.info(f'{TB}-> outputSubdirNew: {cfgDict["outputSubdirNew"]}')
-        myLog.info(f'{TB}-> cartoMFErecorte: {cfgDict["cartoMFErecorte"]}')
-        myLog.info(f'{TB}-> varsTxtFileName: {cfgDict["varsTxtFileName"]}')
-        myLog.info(f'{TB}-> ambitoTiffNuevo: {cfgDict["ambitoTiffNuevo"]}')
-        myLog.info(f'{TB}-> noDataTiffProvi: {cfgDict["noDataTiffProvi"]}')
-        myLog.info(f'{TB}-> noDataTiffFiles: {cfgDict["noDataTiffFiles"]}')
-        myLog.info(f'{TB}-> noDataTipoDMasa: {cfgDict["noDataTipoDMasa"]}')
-        myLog.info(f'{TB}-> umbralMatriDist: {cfgDict["umbralMatriDist"]}')
-        myLog.info('{:=^80}'.format(''))
+        myLog.debug('\n{:_^80}'.format(''))
+        myLog.debug(f'Parametros de configuracion adicionales{infoConfiguracionUsada}:')
+        myLog.debug(f'{TB}-> menuInteractivo: {cfgDict["menuInteractivo"]}')
+        myLog.debug(f'{TB}-> marcoCoordMiniX: {cfgDict["marcoCoordMiniX"]}')
+        myLog.debug(f'{TB}-> marcoCoordMaxiX: {cfgDict["marcoCoordMaxiX"]}')
+        myLog.debug(f'{TB}-> marcoCoordMiniY: {cfgDict["marcoCoordMiniY"]}')
+        myLog.debug(f'{TB}-> marcoCoordMaxiY: {cfgDict["marcoCoordMaxiY"]}')
+        myLog.debug(f'{TB}-> marcoPatronTest: {cfgDict["marcoPatronTest"]}')
+        myLog.debug(f'{TB}-> nPatronDasoVars: {cfgDict["nPatronDasoVars"]}')
+        myLog.debug(f'{TB}-> rasterPixelSize: {cfgDict["rasterPixelSize"]}')
+        myLog.debug(f'{TB}-> radioClusterPix: {cfgDict["radioClusterPix"]}')
+        myLog.debug(f'{TB}-> nivelSubdirExpl: {cfgDict["nivelSubdirExpl"]}')
+        myLog.debug(f'{TB}-> outRasterDriver: {cfgDict["outRasterDriver"]}')
+        myLog.debug(f'{TB}-> outputSubdirNew: {cfgDict["outputSubdirNew"]}')
+        myLog.debug(f'{TB}-> cartoMFErecorte: {cfgDict["cartoMFErecorte"]}')
+        myLog.debug(f'{TB}-> varsTxtFileName: {cfgDict["varsTxtFileName"]}')
+        myLog.debug(f'{TB}-> ambitoTiffNuevo: {cfgDict["ambitoTiffNuevo"]}')
+        myLog.debug(f'{TB}-> noDataTiffProvi: {cfgDict["noDataTiffProvi"]}')
+        myLog.debug(f'{TB}-> noDataTiffFiles: {cfgDict["noDataTiffFiles"]}')
+        myLog.debug(f'{TB}-> noDataTipoDMasa: {cfgDict["noDataTipoDMasa"]}')
+        myLog.debug(f'{TB}-> umbralMatriDist: {cfgDict["umbralMatriDist"]}')
+        myLog.debug('{:=^80}'.format(''))
 
 
 # ==============================================================================
@@ -1114,7 +1112,7 @@ def clidtwinsUseCase(
     myLog.debug(f'hasattr(myDasolidar, "GLBLmenuInteractivo"): {hasattr(myDasolidar, "GLBLmenuInteractivo")}')
     myLog.debug('{:=^80}'.format(''))
 
-    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando setRangeUTM...')
     myDasolidar.setRangeUTM(
         LCL_marcoCoordMiniX=cfgDict['marcoCoordMiniX'],
@@ -1131,9 +1129,9 @@ def clidtwinsUseCase(
     myLog.debug(f'myDasolidar.LOCLmarcoCoordMaxiX: {myDasolidar.LOCLmarcoCoordMaxiX}')
     myLog.debug(f'myDasolidar.LOCLmarcoCoordMiniY: {myDasolidar.LOCLmarcoCoordMiniY}')
     myLog.debug(f'myDasolidar.LOCLmarcoCoordMaxiY: {myDasolidar.LOCLmarcoCoordMaxiY}')
-    myLog.info('{:=^80}'.format(''))
+    myLog.debug('{:=^80}'.format(''))
 
-    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando searchSourceFiles...')
     if (
         'listLstDasoVars' in cfgDict.keys()
@@ -1184,9 +1182,9 @@ def clidtwinsUseCase(
     for numDasoVarX, listaFileTuplesDasoVarX in enumerate(myDasolidar.inFilesListAllTypes):
         for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
             myLog.debug(f'inFilesListAllTypes-> {numDasoVarX}, {numFile}, {pathFile}, {nameFile}')
+    myLog.debug('{:=^80}'.format(''))
 
-    myLog.info('{:=^80}'.format(''))
-    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando createMultiDasoLayerRasterFile...')
     myDasolidar.createMultiDasoLayerRasterFile(
         LCL_rutaCompletaMFE=cfgDict['rutaCompletaMFE'],
@@ -1200,7 +1198,7 @@ def clidtwinsUseCase(
     # -> que se ha creado el raster:
     #    myDasolidar.LOCLoutPathNameRuta
     #    myDasolidar.LOCLoutFileNameWExt_mergedUniCellAllDasoVars
-    myLog.info('{:=^80}'.format(''))
+    myLog.debug('{:=^80}'.format(''))
 
     myLog.info('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando analyzeMultiDasoLayerRasterFile...')
@@ -1222,10 +1220,10 @@ def clidtwinsUseCase(
     #    myDasolidar.outputRangosFileNpzSinPath,
     myLog.debug('qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
     myLog.debug('qlidtwins-> tests-> Verifica los tipos de bosque mas frecuentes en zona patron:')
-    myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
-    myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente1)
-    myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
-    myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente2)
+    myLog.debug(f'pctjTipoBosquePatronMasFrecuente1: {myDasolidar.pctjTipoBosquePatronMasFrecuente1}')
+    myLog.debug(f'codeTipoBosquePatronMasFrecuente1: {myDasolidar.codeTipoBosquePatronMasFrecuente1}')
+    myLog.debug(f'pctjTipoBosquePatronMasFrecuente2: {myDasolidar.pctjTipoBosquePatronMasFrecuente2}')
+    myLog.debug(f'codeTipoBosquePatronMasFrecuente2: {myDasolidar.codeTipoBosquePatronMasFrecuente2}')
     myLog.debug(f'qlidtwins-> tests-> Verifica que los rangos son correctos:')
     myLog.debug(f'0_Alt95_ref: {myDasolidar.dictHistProb01["0_Alt95_ref"]}')
     myLog.debug(f'0_Alt95_min: {myDasolidar.dictHistProb01["0_Alt95_min"]}')
@@ -1270,7 +1268,7 @@ def clidtwinsUseCase(
         # No se ejecuta ninguna accion (solo para testing)
         return myDasolidar
     elif cfgDict['mainAction'] == 1:
-        myLog.info('\n{:_^80}'.format(''))
+        myLog.debug('\n{:_^80}'.format(''))
         myLog.debug('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
         myDasolidar.chequearCompatibilidadConTesteoVector(
             LCL_testeoVectrName=cfgDict['testeoVectrName'],
@@ -1290,7 +1288,7 @@ def clidtwinsUseCase(
         myLog.debug(myDasolidar.matrizDeDistancias)
 
     elif cfgDict['mainAction'] == 2:
-        myLog.info('\n{:_^80}'.format(''))
+        myLog.debug('\n{:_^80}'.format(''))
         myLog.debug('qlidtwins-> Ejecutando generarRasterCluster...')
         myDasolidar.generarRasterCluster(
             LCL_radioClusterPix=cfgDict['radioClusterPix'],
@@ -1321,7 +1319,7 @@ def clidtwinsUseCase(
     else:
         return None
 
-    myLog.info('{:=^80}'.format(''))
+    myLog.debug('{:=^80}'.format(''))
     myLog.info('\nqlidtwins-> Fin.')
     return myDasolidar
 

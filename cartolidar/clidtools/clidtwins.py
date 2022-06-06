@@ -59,8 +59,8 @@ if True:
     from cartolidar.clidax import clidraster
     from cartolidar.clidtools.clidtwcfg import GLO
 # except:
-#     myLog.warning(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-#     myLog.warning('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
+#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+#     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
 #     from clidax import clidconfig
 #     from clidax import clidraster
 #     from clidtools.clidtwcfg import GLO
@@ -126,7 +126,6 @@ myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
 myLog.debug(f'{TB}-> __name__:     <{__name__}>')
 myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
-# ==============================================================================
 # ==============================================================================
 
 
@@ -315,6 +314,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             self.LOCLmarcoCoordMaxiY = 0
             self.LOCLmarcoLibreMaxiY = True
 
+        myLog.info('\n{:_^80}'.format(''))
         if self.GLBLmarcoPatronTest:
             if LCL_rutaAscRaizBase is None:
                 self.LOCLrutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
@@ -337,7 +337,6 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             else:
                 self.LOCLtesteoLayerName = LCL_testeoLayerName
 
-#ññ
             # if hasattr(self, 'LOCLpatronVectrName') and hasattr(self, 'LOCLpatronLayerName'):
             #     (usarVectorFileParaDelimitarZona, patronVectrNameConPath) = verificarExistencia(self.LOCLpatronVectrName)
             # else:
@@ -398,6 +397,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 'clidtwins-> AVISO: tras ejecutar el metodo .setRangeUTM\n'
                 f'{TB}no se han establecido coordenadas para la zona de estudio.'
             )
+        # myLog.info('{:=^80}'.format(''))
 
     # ==========================================================================
     def searchSourceFiles(
@@ -479,7 +479,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
         myLog.info('{:=^80}'.format(''))
 
         myLog.info('\n{:_^80}'.format(''))
-        myLog.info('clidtwins-> Buscando ficheros de cada tipo en todos los directorios previstos:')
+        myLog.info('clidtwins-> Ficheros encontrados:')
         if not self.marcoCoordDisponible:
             myLog.info(f'{TB}-> Sin restricciones de coordendas porque no se han pre-establecido coordenadas para la zona de estudio.')
         elif not TRNS_buscarBloquesSoloDentroDelMarcoUTM and not self.GLBLmarcoPatronTest:
@@ -511,7 +511,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             if self.LOCLnPatronDasoVars != 0 and nInputVar >= self.LOCLnPatronDasoVars:
                 break
             miDasoVarNickName = self.LOCLlistaDasoVarsNickNames[nInputVar]
-            if self.LOCLverbose:
+            if nInputVar < self.nInputVars:
                 myLog.info('-> Tipo {}: > Variable: {} - Identificador del tipo de fichero: {}'.format(nInputVar, miDasoVarNickName, miTipoDeFicheroDasoLayer))
             if miDasoVarNickName.startswith('MFE') or miDasoVarNickName == 'TMasa':
                 myLog.debug(f'{TB}{TV}-> No requiere explorar directorios')
@@ -701,7 +701,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                     if len(listaFileTuplesDasoVarX) > 2:
                         myLog.debug(f'{TB}Etc.')
 
-        myLog.info('\nclidtwins-> Numero total de bloques encontrados por codigoBloque:')
+        myLog.info('\nclidtwins-> Numero total de ficheros encontrados por cada bloque:')
         # Corregir: RuntimeError: dictionary changed size during iteration
         listaCodigosBloque = list(self.inFilesDictAllTypes.keys())
         for bloqueKey in listaCodigosBloque:
@@ -756,7 +756,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             or self.LOCLmarcoLibreMiniY
             or self.LOCLmarcoLibreMaxiY
         ):
-            myLog.info('\nclidtwuins-> Actualizando marco de analisis:')
+            myLog.debug('\nclidtwuins-> Actualizando marco de analisis:')
         for codigoBloque in self.inFilesNumPorBloque.keys():
             if (
                 self.LOCLmarcoLibreMiniX
@@ -765,7 +765,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                     and int(codigoBloque[:3]) * 1000 < self.LOCLmarcoCoordMiniX
                 )
             ):
-                myLog.info(
+                myLog.debug(
                     '{}-> Actualizando marcoCoordMiniX de {:0.2f} a {}'.format(
                         TB,
                         self.LOCLmarcoCoordMiniX,
@@ -780,7 +780,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                     and (int(codigoBloque[:3]) * 1000) + 2000 > self.LOCLmarcoCoordMaxiX
                 )
             ):
-                myLog.info(
+                myLog.debug(
                     '{}-> Actualizando marcoCoordMaxiX de {:0.2f} a {:0.2f}'.format(
                         TB,
                         self.LOCLmarcoCoordMaxiX,
@@ -795,7 +795,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                     and int(codigoBloque[4:8]) * 1000 > self.LOCLmarcoCoordMaxiY
                 )
             ):
-                myLog.info(
+                myLog.debug(
                     '{}-> Actualizando marcoCoordMaxiY de {:0.2f} a {:0.2f}'.format(
                         TB,
                         self.LOCLmarcoCoordMaxiY,
@@ -810,7 +810,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                     and (int(codigoBloque[4:8]) * 1000) - 2000 < self.LOCLmarcoCoordMiniY
                 )
             ):
-                myLog.info(
+                myLog.debug(
                     '{}-> Actualizando marcoCoordMiniY de {:0.2f} a {:0.2f}'.format(
                         TB,
                     self.LOCLmarcoCoordMiniY,
@@ -824,7 +824,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             myLog.debug(f'Variable num {numDasoVarX} -> Files: {listaFileTuplesDasoVarX}')
         for bloqueKey in self.inFilesDictAllTypes.keys():
             myLog.debug(f'Bloque: {bloqueKey} -> Files -> {self.inFilesDictAllTypes[bloqueKey]}')
-
+        myLog.info('{:=^80}'.format(''))
 
     # ==========================================================================
     def verificarlistaDasoVars(
@@ -836,16 +836,16 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             LCL_nPatronDasoVars=None,  # optional
         ):
         # ======================================================================
-        myLog.info('\n{:_^80}'.format(''))
+        myLog.debug('\n{:_^80}'.format(''))
         if not LCL_listLstDasoVars is None:
             self.LOCLlistLstDasoVars = LCL_listLstDasoVars
-            myLog.info('clidtwins-> Se crea un objeto de la clase DasoLidarSource con las listas\n'
+            myLog.debug('clidtwins-> Se crea un objeto de la clase DasoLidarSource con las listas\n'
                   f'{TB}de identificadores de tipo de fichero y demas propiedades de cada\n'
                   f'{TB}variable pasadas oomo argumento (LCL_listLstDasoVars): nickName, rango\n'
                   f'{TB}de valores, numero de clases, movilidad inter-clases y peso relativo.')
             self.calcularRangoVariables = False
         elif not LCL_listaTxtDasoVarsFileTypes is None:
-            myLog.info('clidtwins-> Se crea un objeto de la clase DasoLidarSource con la lista de\n'
+            myLog.debug('clidtwins-> Se crea un objeto de la clase DasoLidarSource con la lista de\n'
                   f'{TB}identificadores de tipo de fichero (LCL_listaTxtDasoVarsFileTypes).\n'
                   f'{TB}Cada tipo de fichero corresponde a una variable dasoLidar.\n'
                   f'{TB}Ficheros: XXX_YYYY_*IdFileType*.asc\n'
@@ -857,19 +857,18 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                   f'{TB}inter-clases y el peso relativo son iguales para todas las variables:')
             if LCL_nClasesDasoVars is None:
                 self.LOCLnClasesDasoVars = GLO.GLBLnClasesDasoVarsPorDefecto
-                myLog.info(f'{TB}{TV}Numero de clases: {self.LOCLnClasesDasoVars} clases (valor por defecto).')
+                myLog.debug(f'{TB}{TV}Numero de clases: {self.LOCLnClasesDasoVars} clases (valor por defecto).')
             else:
                 self.LOCLnClasesDasoVars = LCL_nClasesDasoVars
-                myLog.info(f'{TB}{TV}Numero de clases: {self.LOCLnClasesDasoVars} clases (argumeto LCL_nClasesDasoVars).')
+                myLog.debug(f'{TB}{TV}Numero de clases: {self.LOCLnClasesDasoVars} clases (argumeto LCL_nClasesDasoVars).')
             if LCL_trasferDasoVars is None:
                 self.LOCLtrasferDasoVars = GLO.GLBLtrasferDasoVarsPorDefecto
-                myLog.info(f'{TB}{TV}Movilidad inter-clases: {self.LOCLtrasferDasoVars} % (valor por defecto).')
+                myLog.debug(f'{TB}{TV}Movilidad inter-clases: {self.LOCLtrasferDasoVars} % (valor por defecto).')
             else:
                 self.LOCLtrasferDasoVars = LCL_trasferDasoVars
-                myLog.info(f'{TB}{TV}Movilidad inter-clases: {self.LOCLnClasesDasoVars} % (argumeto LCL_nClasesDasoVars).')
+                myLog.debug(f'{TB}{TV}Movilidad inter-clases: {self.LOCLnClasesDasoVars} % (argumeto LCL_nClasesDasoVars).')
             self.LOCLponderaDasoVars = 10
-            if self.LOCLverbose > 1:
-                    myLog.info(f'{TB}{TV}Todas las variables se poderan igual.')
+            myLog.debug(f'{TB}{TV}Todas las variables se poderan igual.')
 
             self.calcularRangoVariables = True
             if type(LCL_listaTxtDasoVarsFileTypes) == str:
@@ -1010,12 +1009,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
 
         # ======================================================================
         myLog.info('\n{:_^80}'.format(''))
-        myLog.info('clidtwins-> Lista de variables DasoLidar con indicacion para cada una de:')
-        myLog.info(f'{TB}-> codigoFichero             -> para buscar ficheros con ese codigo')
-        myLog.info(f'{TB}-> (nickName)                -> sin uso interno, unicamente para identificacion rapida')
-        myLog.info(f'{TB}-> rango y numero de clases  -> para crear histograma') 
-        myLog.info(f'{TB}-> movilidad inter-clases    -> para buscar zonas similares')
-        myLog.info(f'{TB}-> peso relativo             -> para ponderar al comparar con el patron')
+        myLog.info('clidtwins-> Lista de variables DasoLidar:')
 
         # Esto es reiterativo:
         # self.LOCLlistaDasoVarsFileTypes = []
@@ -1025,7 +1019,8 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
         # self.LOCLlistaDasoVarsNumClases = []
         # self.LOCLlistaDasoVarsMovilidad = []
         # self.LOCLlistaDasoVarsPonderado = []
-        for nVar, thisListLstDasoVar in enumerate(self.LOCLlistLstDasoVars):
+        for nInputVar, thisListLstDasoVar in enumerate(self.LOCLlistLstDasoVars):
+            # nBanda = nInputVar + 1
             # self.LOCLlistaDasoVarsFileTypes.append(thisListLstDasoVar[0])
             # self.LOCLlistaDasoVarsNickNames.append(thisListLstDasoVar[1])
             # self.LOCLlistaDasoVarsRangoLinf.append(thisListLstDasoVar[2])
@@ -1042,23 +1037,30 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 pesoPonderado = '--'
             else:
                 pesoPonderado = '{:>2} (/10)'.format(thisListLstDasoVar[6])
-            myLog.info(
-                '{}Variable {} ({})-> codigoFichero: {:<35}'.format(
-                    TB, 
-                    nVar,
-                    thisListLstDasoVar[1],
-                    thisListLstDasoVar[0],
+            # if nBanda < self.nBandasPrevistasOutput - 1:
+            if nInputVar < self.nInputVars:
+                myLog.info(
+                    '{}Variable {} ({})-> codigoFichero: {:<35}'.format(
+                        TB, 
+                        nInputVar,
+                        thisListLstDasoVar[1],
+                        thisListLstDasoVar[0],
+                    )
                 )
-            )
-            myLog.info(
-                '{}{}Rango: {:>2} - {:>3};'.format(TB, TV, thisListLstDasoVar[2], thisListLstDasoVar[3])
-                + ' clases: {:>3};'.format(thisListLstDasoVar[4])
-                + ' movilidad: {:>3} %'.format(thisListLstDasoVar[5])
-                + ' peso: {}'.format(pesoPonderado)
-            )
+                myLog.info(
+                    '{}{}Rango: {:>2} - {:>3};'.format(TB, TV, thisListLstDasoVar[2], thisListLstDasoVar[3])
+                    + ' clases: {:>3};'.format(thisListLstDasoVar[4])
+                    + ' movilidad: {:>3} %'.format(thisListLstDasoVar[5])
+                    + ' peso: {}'.format(pesoPonderado)
+                )
 
+        myLog.info(f'{TB}-> Para cada variable DasoLidar se indica:')
+        myLog.info(f'{TB}{TV}-> CodigoFichero             -> para buscar ficheros con ese codigo')
+        myLog.info(f'{TB}{TV}-> (NickName)                -> sin uso interno, unicamente para identificacion rapida')
+        myLog.info(f'{TB}{TV}-> Rango y numero de clases  -> para crear histograma') 
+        myLog.info(f'{TB}{TV}-> Movilidad inter-clases    -> para buscar zonas similares')
+        myLog.info(f'{TB}{TV}-> Peso relativo             -> para ponderar al comparar con el patron')
         myLog.info('{:=^80}'.format(''))
-        # ======================================================================
 
     # ==========================================================================
     def verificarRutaAscRaiz(
@@ -1166,28 +1168,23 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             self.LOCLtesteoVectrName = None
             self.LOCLtesteoLayerName = None
 
-        if self.LOCLverbose:
-            if not self.marcoCoordEjecutado:
-                myLog.warning('clidtwins-> AVISO: no se ha ejecurtado el metodo .setRangeUTM para delimitar la zona de estudio.\n'
-                      f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
-                      f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
-                myLog.warning('{:=^80}'.format(''))
-            elif not self.marcoCoordDisponible and not self.GLBLmarcoPatronTest:
-                myLog.warning('clidtwins-> AVISO: no se dispone de coordenadas para delimitar la zona de estudio.\n'
-                      f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
-                      f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
-                myLog.warning('{:=^80}'.format(''))
-            elif self.marcoCoordDisponible and self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
-                myLog.warning('clidtwins-> AVISO: se delimita la zona de estudio que abarca tanto las coordenadas indicadas expresamente\n'
-                      f'{TB}como la envolvente de los ficheros de referencia y chequeo para las variables dasoLidar (patron y testeo).')
-                myLog.warning('{:=^80}'.format(''))
-            elif self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
-                myLog.info('clidtwins-> Se delimita la zona de estudio con la envolvente de los ficheros\n'
-                      f'{TB}de referencia y chequeo para las variables dasoLidar (patron y testeo).')
-                myLog.info('{:=^80}'.format(''))
-            else:
-                myLog.info('clidtwins-> Se delimita la zona de estudio con las coordenadas indicadas expresamente.')
-                myLog.info('{:=^80}'.format(''))
+        if not self.marcoCoordEjecutado:
+            myLog.warning('clidtwins-> AVISO: no se ha ejecurtado el metodo .setRangeUTM para delimitar la zona de estudio.\n'
+                  f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
+                  f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
+        elif not self.marcoCoordDisponible and not self.GLBLmarcoPatronTest:
+            myLog.warning('clidtwins-> AVISO: no se dispone de coordenadas para delimitar la zona de estudio.\n'
+                  f'{TB}-> Se adopta la envolvente de los ficheros ASC que se encuentren en {self.LOCLrutaAscRaizBase}\n'
+                  f'{TB}con dasoLidarVars (siempre que se esten los ficheros correspondientes a todas las dasoLidarVars).')
+        elif self.marcoCoordDisponible and self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
+            myLog.warning('clidtwins-> AVISO: se delimita la zona de estudio que abarca tanto las coordenadas indicadas expresamente\n'
+                  f'{TB}como la envolvente de los ficheros de referencia y chequeo (patron y testeo) para las variables dasoLidar.')
+        elif self.GLBLmarcoPatronTest and self.usarVectorFileParaDelimitarZona:
+            myLog.info('clidtwins-> Se delimita la zona de estudio con la envolvente de los ficheros\n'
+                  f'{TB}de referencia y chequeo (patron y testeo) para las variables dasoLidar.')
+        else:
+            myLog.info('clidtwins-> Se delimita la zona de estudio con las coordenadas indicadas expresamente.')
+        myLog.info('{:=^80}'.format(''))
         # ======================================================================
 
     # ==========================================================================
@@ -1419,12 +1416,15 @@ and two more layers for forest type (land cover) and stand type.
             self,
             LCL_patronVectrName=None,
             LCL_patronLayerName=None,
+            LCL_patronFieldName=None,
         ):
         f"""Analize the dasoLidar Variables included in the created raster file (with one band for every DLV).
         ----------
         LCL_patronVectrName : str
             Default: None (optional)
         LCL_patronLayerName : str
+            Default: None (optional)
+        LCL_patronFieldName : str
             Default: None (optional)
         """
         #===========================================================================
@@ -1446,6 +1446,11 @@ and two more layers for forest type (land cover) and stand type.
             self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
         else:
             self.LOCLpatronLayerName = LCL_patronLayerName
+        if LCL_patronLayerName is None:
+            self.LOCLpatronFieldName = GLO.GLBLpatronFieldNamePorDefecto
+        else:
+            self.LOCLpatronFieldName = LCL_patronLayerName
+
 
         #===========================================================================
         (
@@ -1477,6 +1482,7 @@ and two more layers for forest type (land cover) and stand type.
             self_LOCLvarsTxtFileName=self.GLBLvarsTxtFileName,
             self_LOCLpatronVectrName=self.LOCLpatronVectrName,
             self_LOCLpatronLayerName=self.LOCLpatronLayerName,
+            self_LOCLpatronFieldName=self.LOCLpatronFieldName,
             self_LOCLlistLstDasoVars=self.LOCLlistLstDasoVars,
 
             self_nCeldasX_Destino=self.nCeldasX_Destino,
@@ -1545,7 +1551,8 @@ and two more layers for forest type (land cover) and stand type.
         mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self.LOCLoutPathNameRuta, self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
         outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global.', 'Testeo.')
         myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'Recortando testeoArea {mergedUniCellAllDasoVarsFileNameConPath} con {testeoVectrNameConPath}')
+        myLog.info(f'clidtwins-> Recortando raster: {mergedUniCellAllDasoVarsFileNameConPath}')
+        myLog.info(f'{TB}con perimetro de testeo: {testeoVectrNameConPath}')
         rasterDataset = gdal.Open(mergedUniCellAllDasoVarsFileNameConPath, gdalconst.GA_ReadOnly)
 
         # outputBand1 = rasterDataset.GetRasterBand(1)
@@ -1592,7 +1599,7 @@ and two more layers for forest type (land cover) and stand type.
 
         nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskTesteo == 0)
         listaCeldasConDasoVarsTesteo = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=self.outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
-        myLog.info(f'Numero de celdas Testeo con dasoVars ok: {nCeldasConDasoVarsOk}')
+        myLog.info(f'{TB}-> Numero de celdas Testeo con dasoVars ok: {nCeldasConDasoVarsOk}')
 
         # Las self.nInputVars primeras bandas corresponden a las variables utilizadas (self_LOCLlistaDasoVarsFileTypes)
         # La penultima corresponde al tipo de bosque o cobertura MFE
@@ -1607,7 +1614,7 @@ and two more layers for forest type (land cover) and stand type.
                 if self.nFicherosDisponiblesPorTipoVariable[nInputVar] != self.nFicherosDisponiblesPorTipoVariable[0]:
                     # myLog.warning(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self.LOCLlistLstDasoVars[nInputVar][1]})')
                     claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_ref'
-                    myLog.warning(f'\n(2) Chequeando rangos admisibles para: {claveDef}')
+                    myLog.warning(f'{TB}-> (2) Chequeando rangos admisibles para: {claveDef}')
                     myLog.warning(f'{TB}AVISO: La banda {nBanda} (variable {nInputVar}) no cuenta con fichero para todos los bloques ({self.nFicherosDisponiblesPorTipoVariable[nInputVar]} de {self.nFicherosDisponiblesPorTipoVariable[0]})')
                     continue
             outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
@@ -1761,7 +1768,7 @@ and two more layers for forest type (land cover) and stand type.
 
 
 
-                myLog.debug(f'\n(3) Chequeando rangos admisibles para: {claveDef}')
+                myLog.debug(f'{TB}-> (3) Chequeando rangos admisibles para: {claveDef}')
                 # myLog.debug(f'{TB}Valores de referencia:')
                 # myLog.debug(f'{TB}{TV}-> self.dictHistProb01[claveDef]: {self.dictHistProb01[claveDef]}')
                 todosLosRangosOk = True
@@ -1783,7 +1790,7 @@ and two more layers for forest type (land cover) and stand type.
                 if todosLosRangosOk:
                     myLog.info(f'{TB}-> Todos los tramos ok.')
                 else:
-                    myLog.info(f'{TB}-> TestShape-> Numero de tramos fuera de rango: {nTramosFueraDeRango}')
+                    myLog.info(f'{TB}-> Banda {nBanda}-> Numero de tramos fuera de rango: {nTramosFueraDeRango} de {self.myNBins[nBanda]}')
                     if nTramosFueraDeRango >= 1:
                         nVariablesNoOk += 1
 
@@ -1793,10 +1800,9 @@ and two more layers for forest type (land cover) and stand type.
             np.count_nonzero(matrizDeDistancias < self.GLBLumbralMatriDist)
             / np.ma.count(matrizDeDistancias)
         )
-        myLog.info('\n{:_^80}'.format(''))
         # myLog.debug('clidtwins-> Matriz de distancias:')
         # myLog.debug(matrizDeDistancias[:5,:5])
-        myLog.info(f'Resumen del match:')
+        myLog.info(f'clidtwins-> Resumen del match:')
         myLog.info(f'{TB}-> tipoBosqueOk:             {tipoBosqueOk}')
         myLog.info(f'{TB}-> nVariablesNoOk:           {nVariablesNoOk}')
         myLog.info(f'{TB}-> matrizDeDistancias.shape: {matrizDeDistancias.shape}') 
@@ -1875,16 +1881,16 @@ and two more layers for forest type (land cover) and stand type.
         if self.LOCLverbose:
             myLog.info('\n{:_^80}'.format(''))
             myLog.info('clidtwins-> Ficheros que se generan:')
-            myLog.info(f'{TB} Fichero multibanda* con las variables dasoLidar clusterizadas (radio de {self.LOCLradioClusterPix} pixeles): {self.outputClusterAllDasoVarsFileNameSinPath}')
-            myLog.info(f'{TB}{TV} * Con todas las variables dasoLidar (una en cada banda) y dos bandas adicionales con tipo de bosque y tipo de masa.')
-            myLog.info(f'{TB} Fichero biBanda con presencia del tipo de masa patron y proximidad a especie principal:')
-            myLog.info(f'{TB}{TV} {self.outputClusterTiposDeMasaFileNameSinPath}')
-            myLog.info(f'{TB}{TV} * Segunda banda: MFE')
-            myLog.info(f'{TB} Fichero biBanda con la distancia euclidea al patron y especie principal clusterizados:')
-            myLog.info(f'{TB}{TV} {self.outputClusterDistanciaEuFileNameSinPath}')
-            myLog.info(f'{TB}{TV} * Segunda banda: MFE')
-            myLog.info(f'{TB} Fichero monoBanda con el factor de proximidad al patron y proximidad a especie principal:')
-            myLog.info(f'{TB}{TV} {self.outputClusterFactorProxiFileNameSinPath}')
+            myLog.info(f'{TB}-> Fichero multibanda* con las variables dasoLidar clusterizadas (radio de {self.LOCLradioClusterPix} pixeles): {self.outputClusterAllDasoVarsFileNameSinPath}')
+            myLog.info(f'{TB}{TV}* Con todas las variables dasoLidar (una en cada banda) y dos bandas adicionales con tipo de bosque y tipo de masa.')
+            myLog.info(f'{TB}-> Fichero biBanda con presencia del tipo de masa patron y proximidad a especie principal:')
+            myLog.info(f'{TB}{TV}{self.outputClusterTiposDeMasaFileNameSinPath}')
+            myLog.info(f'{TB}{TV}* Segunda banda: MFE')
+            myLog.info(f'{TB}-> Fichero biBanda con la distancia euclidea al patron y especie principal clusterizados:')
+            myLog.info(f'{TB}{TV}{self.outputClusterDistanciaEuFileNameSinPath}')
+            myLog.info(f'{TB}{TV}* Segunda banda: MFE')
+            myLog.info(f'{TB}-> Fichero monoBanda con el factor de proximidad al patron y proximidad a especie principal:')
+            myLog.info(f'{TB}{TV}{self.outputClusterFactorProxiFileNameSinPath}')
 
         # ======================================================================
         # Lectura del raster con todas las variables en distintas bandas,
@@ -1941,7 +1947,7 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         # 1. El tipo de masa similar al de referencia (patron)
         # ======================================================================
-        myLog.info('\n{:_^80}'.format(''))
+        # myLog.info('\n{:_^80}'.format(''))
         myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa {self.outputClusterTiposDeMasaFileNameSinPath}')
         outputDatasetTipoMasa, outputBandaTipoMasa = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
@@ -1966,7 +1972,7 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         # 2. Bilayer con DistanciaEu y MFE
         # ======================================================================
-        myLog.info('\n{:_^80}'.format(''))
+        # myLog.info('\n{:_^80}'.format(''))
         myLog.info(f'clidtwins-> Creando fichero para el layer distanciaEu {self.outputClusterDistanciaEuFileNameSinPath}')
         outputDatasetDistanciaEuclideaMedia, outputBandaDistanciaEuclideaMedia = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
@@ -1992,7 +1998,7 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         # 3. Bilayer con factorProxi y MFE
         # ======================================================================
-        myLog.info('\n{:_^80}'.format(''))
+        # myLog.info('\n{:_^80}'.format(''))
         myLog.info(f'clidtwins-> Creando fichero para el layer factorProxi {self.outputClusterFactorProxiFileNameSinPath}')
         outputDatasetPorcentajeDeProximidad, outputBandaPorcentajeDeProximidad = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
@@ -2019,7 +2025,7 @@ and two more layers for forest type (land cover) and stand type.
         # 4. MultiLayer clusterAllDasoVars
         # ======================================================================
         # Creacion del raster, con las variables y tipo de bosque clusterizados
-        myLog.info('\n{:_^80}'.format(''))
+        # myLog.info('\n{:_^80}'.format(''))
         myLog.info(f'clidtwins-> Creando fichero para el multiLayer clusterAllDasoVars {self.outputClusterAllDasoVarsFileNameSinPath}')
         outputDatasetClusterDasoVarMultiple, outputBandaClusterDasoVarBanda1 = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
@@ -2040,6 +2046,8 @@ and two more layers for forest type (land cover) and stand type.
             self.GLBLnoDataTiffFiles,
             generarMetaPixeles=True,
         )
+        if self.LOCLverbose:
+            myLog.info('{:=^80}'.format(''))
         # ======================================================================
 
         # ======================================================================
@@ -2153,11 +2161,18 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         contadorAvisosCluster = 0
         myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'Recorriendo raster multibanda para calcular clusterVars, tipoDeMasa y parametros de proximidad (nBandas: {self.nBandasRasterOutput}; ladoCluster: {ladoCluster})\n')
+        myLog.info(f'clidtwins-> Recorriendo raster multibanda para calcular clusterVars, tipoDeMasa y parametros de proximidad (nBandas: {self.nBandasRasterOutput}; ladoCluster: {ladoCluster})')
         for nRowRaster in range(arrayBandaTipoMasa.shape[0]):
             if self.LOCLverbose:
                 if nRowRaster % (arrayBandaTipoMasa.shape[0] / 10) == 0:
-                    print(f'\nRecorriendo fila {nRowRaster} de {arrayBandaTipoMasa.shape[0]}', end ='')
+                    if nRowRaster > 0:
+                        print()
+                    if arrayBandaTipoMasa.shape[0] <= 999:
+                        print(f'{TB}Recorriendo fila {nRowRaster:03d} de {arrayBandaTipoMasa.shape[0]}', end ='')
+                    elif arrayBandaTipoMasa.shape[0] <= 9999:
+                        print(f'{TB}Recorriendo fila {nRowRaster:04d} de {arrayBandaTipoMasa.shape[0]}', end ='')
+                    else:
+                        print(f'{TB}Recorriendo fila {nRowRaster:06d} de {arrayBandaTipoMasa.shape[0]}', end ='')
                 else:
                     print('.', end ='')
             coordY = arrayBandaTipoMasa.shape[0] - nRowRaster
@@ -3148,8 +3163,8 @@ def obtenerExtensionDeCapaVectorial(
         myLog.error('\nclidtwins-> ATENCION: Gdal no disponible; no se puede leer %s' % (patronVectrNameConPath))
         sys.exit(0)
 
-    myLog.info('\n{:_^80}'.format(''))
-    myLog.info('clidtwins-> Leyendo vector file {}'.format(patronVectrNameConPath))
+    myLog.info(f'clidtwins-> Leyendo capa vectorial:')
+    myLog.info(f'{TB}-> File {patronVectrNameConPath}')
     if (LOCLvectorFileName.lower()).endswith('.shp'):
         LOCLPatronVectorDriverName = 'ESRI Shapefile'
     elif (LOCLvectorFileName.lower()).endswith('.gpkg'):
@@ -3161,7 +3176,7 @@ def obtenerExtensionDeCapaVectorial(
         myLog.critical(f'clidtwins-> No se ha identificado bien el driver para este fichero: {patronVectrNameConPath}')
         sys.exit(0)
     if LOCLverbose > 1:
-        myLog.debug(f'{TB}-> inputVectorDriverName:           {LOCLPatronVectorDriverName}')
+        myLog.debug(f'{TB}{TV}-> Driver: {LOCLPatronVectorDriverName}')
 
     inputVectorRefOgrDriver = ogr.GetDriverByName(LOCLPatronVectorDriverName)
     if inputVectorRefOgrDriver is None:
@@ -3182,6 +3197,7 @@ def obtenerExtensionDeCapaVectorial(
             # Ver tb: https://gdal.org/tutorials/vector_api_tut.html
             # Para editar los registros de forma rápida usar StartTransaction:
             #  https://gis.stackexchange.com/questions/277587/why-editing-a-geopackage-table-with-ogr-is-very-slow
+            myLog.info(f'{TB}{TV}-> Layer: {LOCLlayerName}')
             patronVectorRefLayer = patronVectorRefDataSource.GetLayer(LOCLlayerName)
     except:
         myLog.error('\nclidtwins-> ATENCION: el fichero {} no tiene al layer {} (o da error al intentar leerlo).'.format(patronVectrNameConPath, LOCLlayerName))
@@ -3199,10 +3215,13 @@ def obtenerExtensionDeCapaVectorial(
         patronVectorYmax,
     ) = patronVectorRefLayer.GetExtent()
 
-    if LOCLverbose:
-        myLog.debug(f'{TB}-> Layer:                           {LOCLlayerName}')
-        myLog.debug(f'{TB}-> Numero de elementos en el layer: {patronVectorRefFeatureCount}')
-        myLog.info('{:=^80}'.format(''))
+    myLog.debug(f'{TB}-> Layer leido ok: {LOCLlayerName}')
+    myLog.info(f'{TB}{TV}-> Numero de poligonos: {patronVectorRefFeatureCount}')
+    myLog.debug(f'{TB}{TV}-> Extension del layer:')
+    myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorXmin}')
+    myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorXmax}')
+    myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorYmin}')
+    myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorYmax}')
 
     return (
         patronVectorXmin,
@@ -3228,6 +3247,7 @@ def recortarRasterTiffPatronDasoLidar(
         self_LOCLvarsTxtFileName=GLO.GLBLvarsTxtFileNamePorDefecto,
         self_LOCLpatronVectrName=GLO.GLBLpatronVectrNamePorDefecto,
         self_LOCLpatronLayerName=GLO.GLBLpatronLayerNamePorDefecto,
+        self_LOCLpatronFieldName=GLO.GLBLpatronFieldNamePorDefecto,
         self_LOCLlistLstDasoVars=GLO.GLBLlistLstDasoVarsPorDefecto,
 
         self_nCeldasX_Destino=0,
@@ -3299,7 +3319,7 @@ def recortarRasterTiffPatronDasoLidar(
     # ==========================================================================
     mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
     outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global.', 'Patron.')
-    myLog.info('\n{:_^80}'.format(''))
+    # myLog.info('\n{:_^80}'.format(''))
     myLog.info(f'clidtwins-> Abriendo raster creado mergedUniCellAllDasoVars:\n{TB}{mergedUniCellAllDasoVarsFileNameConPath}')
     rasterDatasetAll = gdal.Open(mergedUniCellAllDasoVarsFileNameConPath, gdalconst.GA_ReadOnly)
     # myLog.debug('--->>> rasterDatasetAll (1): {rasterDatasetAll}')
@@ -3311,7 +3331,7 @@ def recortarRasterTiffPatronDasoLidar(
 
     # outputBand1 = rasterDatasetAll.GetRasterBand(1)
     # arrayBanda1 = outputBand1.ReadAsArray().astype(outputNpDatatypeAll)
-    myLog.info(f'\nclidtwins-> Recortando el raster con poligono de referencia (patron):\n'
+    myLog.info(f'clidtwins-> Recortando el raster con poligono de referencia (patron):\n'
           f'{TB}{patronVectrNameConPath}')
     # Ver: https://gdal.org/python/osgeo.gdal-module.html
     try:
@@ -3342,7 +3362,7 @@ def recortarRasterTiffPatronDasoLidar(
         sys.exit(0)
 
 
-    myLog.info(f'\nclidtwins-> Abriendo raster recortado: {outputRasterNameClip}')
+    myLog.info(f'clidtwins-> Abriendo raster recortado: {outputRasterNameClip}')
     rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
     nBandasRasterOutput = rasterDatasetClip.RasterCount
 
@@ -3390,7 +3410,7 @@ def recortarRasterTiffPatronDasoLidar(
             myNBins[nBanda] = self_LOCLlistLstDasoVars[nInputVar][4]
             # factorMovilidad[nBanda] = 0.25
 
-    myLog.info(f'\nclidtwins-> Analizando bandas del raster recortado:')
+    myLog.info(f'clidtwins-> Analizando bandas del raster recortado:')
 
     for nBanda in range(1, nBandasRasterOutput + 1):
         # Si para esa variable estan todos los bloques:
@@ -3399,7 +3419,7 @@ def recortarRasterTiffPatronDasoLidar(
             if nFicherosDisponiblesPorTipoVariable[nInputVar] != nFicherosDisponiblesPorTipoVariable[0]:
                 myLog.debug(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][1]})')
                 # claveDef = f'{str(nInputVar)}_{self_LOCLlistLstDasoVars[nInputVar][1]}_ref'
-                # myLog.debug(f'\n(1) Chequeando rangos admisibles para: {claveDef}')
+                # myLog.debug(f'{TB}-> (1) Chequeando rangos admisibles para: {claveDef}')
                 myLog.warning(f'{TB}AVISO: La banda {nBanda} (variable {nInputVar}) no cuenta con fichero para todos los bloques ({nFicherosDisponiblesPorTipoVariable[nInputVar]} de {nFicherosDisponiblesPorTipoVariable[0]})')
                 continue
         outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
@@ -3415,7 +3435,7 @@ def recortarRasterTiffPatronDasoLidar(
             mask=arrayBandaXMaskClip,
             dtype=outputNpDatatypeAll
             )
-        myLog.info(f'{TB}Banda {nBanda}: numero de puntos patron con dasoVars ok: {len(ma.compressed(arrayBandaXClipMasked))}')
+        myLog.debug(f'{TB}Banda {nBanda}: numero de puntos patron con dasoVars ok: {len(ma.compressed(arrayBandaXClipMasked))}')
         listaCeldasConDasoVarsPatron[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
 
         # histNumberPatron = [np.zeros(myNBins[nBanda]), None]
@@ -3456,15 +3476,15 @@ def recortarRasterTiffPatronDasoLidar(
             codeTipoDeMasaPatronMasFrecuente1 = (histNumberPatron[0]).argmax(axis=0)
             arrayPosicionTipoDeMasaPatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoDeMasaPatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
-            myLog.info(f'{TB}-> Tipo de masa principal (patron): {codeTipoDeMasaPatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente1], 0))} %')
+            myLog.debug(f'{TB}-> Tipo de masa principal (patron): {codeTipoDeMasaPatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente1], 0))} %')
             # myLog.debug(f'{TB}-> {arrayPosicionTipoDeMasaPatron1}')
             for contadorTB1, numPosicionTipoDeMasaPatron1 in enumerate(arrayPosicionTipoDeMasaPatron1[0]):
                 # myLog.debug(f'{TB}-> {numPosicionTipoDeMasaPatron1}')
-                myLog.info(f'{TB}-> {contadorTB1} Tipo de masa primero (patron): {numPosicionTipoDeMasaPatron1}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoDeMasaPatron1], 0))} %')
+                myLog.debug(f'{TB}-> {contadorTB1} Tipo de masa primero (patron): {numPosicionTipoDeMasaPatron1}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoDeMasaPatron1], 0))} %')
             if histProb01PatronBandaX[arrayPosicionTipoDeMasaPatron2[0][0]] != 0:
                 for contadorTB2, numPosicionTipoDeMasaPatron2 in enumerate(arrayPosicionTipoDeMasaPatron2[0]):
                     # myLog.debug(f'{TB}-> {numPosicionTipoDeMasaPatron2}')
-                    myLog.info(f'{TB}-> {contadorTB2} Tipo de masa segundo (patron): {numPosicionTipoDeMasaPatron2}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoDeMasaPatron2], 0))} %')
+                    myLog.debug(f'{TB}-> {contadorTB2} Tipo de masa segundo (patron): {numPosicionTipoDeMasaPatron2}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoDeMasaPatron2], 0))} %')
 
             if codeTipoDeMasaPatronMasFrecuente1 != arrayPosicionTipoDeMasaPatron1[0][0]:
                 myLog.critical(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoDeMasaPatronMasFrecuente1} != {arrayPosicionTipoDeMasaPatron1[0][0]}')
@@ -3476,11 +3496,11 @@ def recortarRasterTiffPatronDasoLidar(
             pctjTipoDeMasaPatronMasFrecuente1 = int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente1], 0))
             pctjTipoDeMasaPatronMasFrecuente2 = int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente2], 0))
 
-            myLog.info(f'{TB}-> Tipos de masa mas frecuentes (patron): 1-> {codeTipoDeMasaPatronMasFrecuente1} ({pctjTipoDeMasaPatronMasFrecuente1} %); 2-> {codeTipoDeMasaPatronMasFrecuente2} ({pctjTipoDeMasaPatronMasFrecuente2} %)')
-            myLog.info(f'{TB}-> Numero pixeles de cada tipo de masa (patron) ({(histNumberPatron[0]).sum()}):')
+            myLog.info(f'{TB}-> Tipos de masa mas frecuentes (patron):   1-> {codeTipoDeMasaPatronMasFrecuente1} ({pctjTipoDeMasaPatronMasFrecuente1} %); 2-> {codeTipoDeMasaPatronMasFrecuente2} ({pctjTipoDeMasaPatronMasFrecuente2} %)')
+            myLog.debug(f'{TB}-> Numero pixeles de cada tipo de masa (patron) ({(histNumberPatron[0]).sum()}):')
             for numTipoMasa in range(len(histNumberPatron[0])):
                 if histNumberPatron[0][numTipoMasa] != 0:
-                    myLog.info(f'{TB}{TV}-> tipoMasa: {numTipoMasa} -> nPixeles: {histNumberPatron[0][numTipoMasa]}')
+                    myLog.debug(f'{TB}{TV}-> tipoMasa: {numTipoMasa} -> nPixeles: {histNumberPatron[0][numTipoMasa]}')
 
         elif nBanda == nBandasRasterOutput - 1:
             myLog.debug(f'\nHistograma para tipos de bosque (banda {nBanda})')
@@ -3495,17 +3515,17 @@ def recortarRasterTiffPatronDasoLidar(
             codeTipoBosquePatronMasFrecuente1 = (histNumberPatron[0]).argmax(axis=0)
             arrayPosicionTipoBosquePatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoBosquePatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
-            myLog.info(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))} %')
+            myLog.debug(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))} %')
             # myLog.debug(f'{TB}-> {arrayPosicionTipoBosquePatron1}')
             for contadorTB1, numPosicionTipoBosquePatron1 in enumerate(arrayPosicionTipoBosquePatron1[0]):
                 # myLog.debug(f'{TB}-> {numPosicionTipoBosquePatron1}')
-                myLog.info(f'{TB}-> {contadorTB1} Tipo de bosque primero (patron): {numPosicionTipoBosquePatron1}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoBosquePatron1], 0))} %')
+                myLog.debug(f'{TB}-> {contadorTB1} Tipo de bosque primero (patron): {numPosicionTipoBosquePatron1}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoBosquePatron1], 0))} %')
             if histProb01PatronBandaX[arrayPosicionTipoBosquePatron2[0][0]] != 0:
                 for contadorTB2, numPosicionTipoBosquePatron2 in enumerate(arrayPosicionTipoBosquePatron2[0]):
                     # myLog.debug(f'{TB}-> {numPosicionTipoBosquePatron2}')
-                    myLog.info(f'{TB}-> {contadorTB2} Tipo de bosque segundo (patron): {numPosicionTipoBosquePatron2}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoBosquePatron2], 0))} %')
+                    myLog.debug(f'{TB}-> {contadorTB2} Tipo de bosque segundo (patron): {numPosicionTipoBosquePatron2}; frecuencia: {int(round(100 * histProb01PatronBandaX[numPosicionTipoBosquePatron2], 0))} %')
             else:
-                myLog.info(f'{TB}-> Solo hay tipo de bosque princial')
+                myLog.debug(f'{TB}-> Solo hay tipo de bosque princial')
             if codeTipoBosquePatronMasFrecuente1 != arrayPosicionTipoBosquePatron1[0][0]:
                 myLog.critical(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosquePatronMasFrecuente1} != {arrayPosicionTipoBosquePatron1[0][0]}')
             if len(arrayPosicionTipoBosquePatron1[0]) == 1:
@@ -3517,10 +3537,10 @@ def recortarRasterTiffPatronDasoLidar(
             pctjTipoBosquePatronMasFrecuente2 = int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente2], 0))
 
             myLog.info(f'{TB}-> Tipos de bosque mas frecuentes (patron): 1-> {codeTipoBosquePatronMasFrecuente1} ({pctjTipoBosquePatronMasFrecuente1} %); 2-> {codeTipoBosquePatronMasFrecuente2} ({pctjTipoBosquePatronMasFrecuente2} %)')
-            myLog.info(f'{TB}-> Numero pixeles de cada tipo de bosque (patron) ({(histNumberPatron[0]).sum()}):')
+            myLog.debug(f'{TB}-> Numero pixeles de cada tipo de bosque (patron) ({(histNumberPatron[0]).sum()}):')
             for numTipoBosque in range(len(histNumberPatron[0])):
                 if histNumberPatron[0][numTipoBosque] != 0:
-                    myLog.info(f'tipoBosque: {numTipoBosque} -> nPixeles: {histNumberPatron[0][numTipoBosque]}')
+                    myLog.debug(f'{TB}{TV}-> tipoBosque: {numTipoBosque} -> nPixeles: {histNumberPatron[0][numTipoBosque]}')
         else:
             if nInputVar < len(self_LOCLlistLstDasoVars):
                 myLog.debug(f'\nHistograma para banda {nBanda} (variable {nInputVar}: {self_LOCLlistLstDasoVars[nInputVar][1]}) con {myNBins[nBanda]} Clases')
@@ -3553,9 +3573,9 @@ def recortarRasterTiffPatronDasoLidar(
                 ultimoNoZero = np.max(np.nonzero(LOCLdictHistProb01[claveDef]))
             except:
                 ultimoNoZero = 0
-            myLog.info(f'{TB}-> Creando rangos admisibles para: {claveDef}')
-            myLog.info(f'{TB}{TV}Valores de referencia (patron):')
-            myLog.info(f'{TB}{TV}-> LOCLdictHistProb01[{claveDef}]: {LOCLdictHistProb01[claveDef][:ultimoNoZero + 2]}')
+            myLog.info(f'{TB}-> Banda {nBanda} -> Creando rangos admisibles para: {claveDef}')
+            myLog.debug(f'{TB}{TV}Valores de referencia (patron):')
+            myLog.debug(f'{TB}{TV}-> LOCLdictHistProb01[{claveDef}]: {LOCLdictHistProb01[claveDef][:ultimoNoZero + 2]}')
             # myLog.debug('LOCLdictHistProb01[claveMin]: {LOCLdictHistProb01[claveMin]}')
             # myLog.debug('LOCLdictHistProb01[claveMax]: {LOCLdictHistProb01[claveMax]}')
             for nRango in range(len(histProb01PatronBandaX)):
@@ -3785,13 +3805,13 @@ def mostrarExportarRangos(
     outputRangosFileTxtControl = open(outputRangosFileTxtConPath, mode='w+')
     outputRangosFileTxtControl.write('Valores y rangos admisibles para el histograma de frecuencias de las variables analizadas.\n')
 
-    myLog.info('\nMostrando rangos para cada variable en self_LOCLdictHistProb01[claveDef]:')
+    myLog.debug('clidtwins-> Rangos para cada variable en self_LOCLdictHistProb01[claveDef]:')
     for claveDef in self_LOCLdictHistProb01.keys():
         try:
             ultimoNoZero = np.max(np.nonzero(self_LOCLdictHistProb01[claveDef]))
         except:
             ultimoNoZero = 0
-        myLog.info(f'{TB}-> claveDef: {claveDef} -> num. de rangos: {len(self_LOCLdictHistProb01[claveDef])} -> self_LOCLdictHistProb01: {self_LOCLdictHistProb01[claveDef][:ultimoNoZero + 2]}')
+        myLog.debug(f'{TB}-> claveDef: {claveDef} -> num. de rangos: {len(self_LOCLdictHistProb01[claveDef])} -> self_LOCLdictHistProb01: {self_LOCLdictHistProb01[claveDef][:ultimoNoZero + 2]}')
 
     myLog.debug('\nclidtwins-> Recorriendo bandas para guardar intervalos para el histograma de cada variable:')
     for nBanda in range(1, self_nBandasRasterOutput + 1):

@@ -37,15 +37,14 @@ try:
 except:
     psutilOk = False
 
-##No usar esto con Anaconda
+# Para que funcione GDAL en eclipse:
+#   En Windows->Preferences->Pydev->Interpreters->Python interpreter->Pestanna environment -> Incluir PATH = C:/OSGeo4W64/bin
+#   Alternativa (no usar esto con Anaconda):
+#     os.environ['PATH'] = 'C:/OSGeo4W64/bin;' + os.environ['PATH']
+#    o bien:
+#     sys.path.insert(0,'C:\OSGeo4W64\bin')
 # Con esto resuelvo el error al cargar gdal, que ocurre en eclipse pero no el cmd.
-# No entiendo porque en eclipse mira antes algun diretorio que tiene un gdal que no es el correcto (el de OSGeo4W64)
-# os.environ['PATH'] = 'C:/OSGeo4W64/bin;' + os.environ['PATH']
-# print(os.environ['PATH'])
-# sys.path.insert(0,'C:\OSGeo4W64\bin')
-
-# Para que funcione GDAL en eclipse he hecho esto:
-# En Windows->Preferences->Pydev->Interpreters->Python interpreter->Pestanna environment -> INlcuir PATH = C:/OSGeo4W64/bin
+# En eclipse busca antes en algun diretorio que tiene un gdal que no es que quiero usar (el de OSGeo4W64)
 try:
     import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
@@ -64,6 +63,18 @@ except:
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
+
+# Recuperar la captura de errores de importacion en la version beta
+# try:
+if True:
+    # from cartolidar.clidax import clidconfig
+    from cartolidar.clidax import clidcarto
+    # Se importan los parametros de configuracion por defecto por si
+    # se carga esta clase sin aportar algun parametro de configuracion
+# except:
+#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+#     sys.stderr.write('\t-> Se importa clidcarto desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
+#     from clidax import clidcarto
 
 # ==============================================================================
 # Verbose provisional para la version alpha
@@ -113,21 +124,6 @@ myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
 myLog.debug(f'{TB}-> __name__:     <{__name__}>')
 myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
-# ==============================================================================
-
-# ==============================================================================
-# Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
-    # from cartolidar.clidax import clidconfig
-    from cartolidar.clidax import clidcarto
-    # Se importan los parametros de configuracion por defecto por si
-    # se carga esta clase sin aportar algun parametro de configuracion
-# except:
-#     if __verbose__ > 2:
-#         print(f'qlidtwins-> Se importan clidcarto desde clidraster del directorio local {os.getcwd()}/clidtools')
-#         print('\tNo hay vesion de cartolidar instalada en site-packages.')
-#     from clidax import clidcarto
 # ==============================================================================
 
 GLO_GLBLsubLoteTiff = ''
@@ -181,13 +177,13 @@ def crearRasterTiff(
 
     # ==========================================================================
     if self_inFilesListAllTypes is None and self_inFilesDictAllTypes is None:
-        print(f'\nclidraster-> ATENCION: no se han especificado las listas de ficheros a integrar.')
-        print('\t-> Se interrumpe la ejecucion de cartolidar')
+        myLog.error(f'\nclidraster-> ATENCION: no se han especificado las listas de ficheros a integrar.')
+        myLog.error('\t-> Se interrumpe la ejecucion de cartolidar')
         sys.exit(0)
 
     if not os.path.isdir(self_LOCLoutPathNameRuta):
         if PAR_verbose:
-            print(f'\nclidraster-> AVISO: ruta {self_LOCLoutPathNameRuta} no disponible, se busca una alternativa.')
+            myLog.warning(f'\nclidraster-> AVISO: ruta {self_LOCLoutPathNameRuta} no disponible, se busca una alternativa.')
         self_LOCLoutPathNameRuta = None
     if self_LOCLoutPathNameRuta is None:
         MAIN_THIS_DIR = os.getcwd()
@@ -214,12 +210,12 @@ def crearRasterTiff(
             try:
                 os.makedirs(self_LOCLoutPathNameRuta)
             except:
-                print('\nATENCION: No se ha podido crear el directorio {}'.format(self_LOCLoutPathNameRuta))
-                print('\tRevisar derechos de escritura en esa ruta o indicar una especifica con derechos.')
-                print('\nSe interrumpe la ejecucion de cartolidar')
+                myLog.error('\nATENCION: No se ha podido crear el directorio {}'.format(self_LOCLoutPathNameRuta))
+                myLog.error('\tRevisar derechos de escritura en esa ruta o indicar una especifica con derechos.')
+                myLog.error('\nSe interrumpe la ejecucion de cartolidar')
                 sys.exit(0)
         if PAR_verbose:
-            print(f'\t-> ruta de salida: {self_LOCLoutPathNameRuta}')
+            myLog.info(f'\t-> ruta de salida: {self_LOCLoutPathNameRuta}')
 
     if PAR_ambitoTiffNuevo is None:
         PAR_ambitoTiffNuevo = 'loteAsc'
@@ -241,13 +237,13 @@ def crearRasterTiff(
         self_LOCLoutFileNameWExtCyL = '{}_{}_GlobalCyL.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
         self_LOCLoutFileNameWExtIndi = '{}_{}_GlobalIndi.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
     else:
-        self_LOCLoutFileNameWExtLote = self_LOCLoutFileNameWExt.replace('.', '.Lote')
-        self_LOCLoutFileNameWExtCyL = self_LOCLoutFileNameWExt.replace('.', '.CyL')
-        self_LOCLoutFileNameWExtIndi = self_LOCLoutFileNameWExt.replace('.', '.Indi')
+        self_LOCLoutFileNameWExtLote = self_LOCLoutFileNameWExt.replace('.', 'Lote.')
+        self_LOCLoutFileNameWExtCyL = self_LOCLoutFileNameWExt.replace('.', 'CyL.')
+        self_LOCLoutFileNameWExtIndi = self_LOCLoutFileNameWExt.replace('.', 'Indi.')
 
     # ==========================================================================
     if self_LOCLlistaDasoVarsFileTypes is None:
-        print('clidraster-> ATENCION: esto no debiera ocurrir')
+        myLog.critical('clidraster-> ATENCION: esto no debiera ocurrir (revisar codigo).')
         self_LOCLlistaDasoVarsFileTypes = []
         if not self_inFilesListAllTypes is None:
             # Se lee de las listas de ficheros (el priero de cada lista)
@@ -258,7 +254,7 @@ def crearRasterTiff(
                 self_LOCLlistaDasoVarsFileTypes.append(inFileTypePathName[1][9:-4])
         self_LOCLlistaDasoVarsFileTypes.append('MFE25')
         self_LOCLlistaDasoVarsFileTypes.append('TMasa')
-        print('\t-> Creado self_LOCLlistaDasoVarsFileTypes', self_LOCLlistaDasoVarsFileTypes)
+        myLog.critical('\t-> Creado self_LOCLlistaDasoVarsFileTypes', self_LOCLlistaDasoVarsFileTypes)
     # ==========================================================================
 
     if not self_inFilesListAllTypes is None:
@@ -269,17 +265,13 @@ def crearRasterTiff(
             # Debiera haber el mismo numero de ficheros por fileType.
             # Se verifica por si self_inFilesListAllTypes llegara incorrecto.
             if numBloques != len(inFilesListTypeX):
-                print('clidraster-> ATENCION: todas las listas en self_inFilesListAllTypes deben tener el mismo numero de ficheros (ordenados por codBloque).')
-                print('{TB}-> Se inerrume la ejecucion.')
+                myLog.error('clidraster-> ATENCION: todas las listas en self_inFilesListAllTypes deben tener el mismo numero de ficheros (ordenados por codBloque).')
+                myLog.error('{TB}-> Se inerrume la ejecucion.')
                 sys.exit(0)
     else:
         numDLVs = len(list(self_inFilesDictAllTypes.values())[0])
         numBloques = len(self_inFilesDictAllTypes)
         listaCodigosBloque = sorted(list(self_inFilesDictAllTypes.keys()))
-
-        # inFilesListAllTypesBloque0 = self_inFilesDictAllTypes[listaCodigosBloque[0]]
-        # print('\n->->-> Bloque0', inFilesListAllTypesBloque0)
-        # print('\n->->-> Bloque0', list(self_inFilesDictAllTypes.values())[0])
 
         numOrdenCodigoBloque0 = 0
         inFilesListPorCodigoBloque0 = list(self_inFilesDictAllTypes.values())[numOrdenCodigoBloque0]
@@ -290,15 +282,17 @@ def crearRasterTiff(
             # no tiene todos los fileTypes, pero eso ya se ha controlado en clidtwins
             inFilesListPorCodigoBloqueX = list(self_inFilesDictAllTypes.values())[numOrdenCodigoBloqueX]
             if nFilesPorCodigoBloque0 != len(inFilesListPorCodigoBloqueX):
-                print('clidraster-> ATENCION: todos los bloques de self_inFilesDictAllTypes deben tener el mismo numero de ficheros (ordenados por DLV).')
-                print('{TB}-> Se inerrume la ejecucion.')
+                myLog.error('clidraster-> ATENCION: todos los bloques de self_inFilesDictAllTypes deben tener el mismo numero de ficheros (ordenados por DLV).')
+                myLog.error('{TB}-> Se inerrume la ejecucion.')
                 sys.exit(0)
 
     nBandasOutput = numDLVs + 2
-    if PAR_verbose > 1:
-        print('\n->->-> Num DLVs           ', numDLVs)
-        print('\n->->-> Num bloques:       ', numBloques)
-        print('\n->->-> listaCodigosBloque:', listaCodigosBloque)
+    myLog.debug('\n{:_^80}'.format(''))
+    myLog.debug('clidraster-> Recuento de DLVs y boques:')
+    myLog.debug(f'{TB}-> Num DLVs            {numDLVs}')
+    myLog.debug(f'{TB}-> Num bloques:        {numBloques}')
+    myLog.debug(f'{TB}-> listaCodigosBloque: {listaCodigosBloque}')
+    myLog.debug('{:=^80}'.format(''))
     # myDasoVarsFileType0 = self_LOCLlistaDasoVarsFileTypes[0]
             
     txtTipoFichero = self_LOCLlistaDasoVarsFileTypes[AUX_numTipoFichero]
@@ -386,23 +380,21 @@ def crearRasterTiff(
             # Lista de duplas (tuple) de (pathName, fileNme)
             infilesListTipo0.append(listaInFilesAllTypesPorCodigoBloque[0])
             # for listaInFilesType0PorCodigoBloque in listaInFilesAllTypesPorCodigoBloque:
-            #     print(f'\t\t---->>>> listaInFilesType0PorCodigoBloque[1]: {listaInFilesType0PorCodigoBloque[1]}')
+            #     myLog.debug(f'{TB}{TV}{TV}---->>>> listaInFilesType0PorCodigoBloque[1]: {listaInFilesType0PorCodigoBloque[1]}')
 
-    print('\n{:_^80}'.format(''))
-    if PAR_verbose:
-        if PAR_generarDasoLayers:
-            print(f'clidraster-> Leyendo {len(infilesListTipo0)} bloques y {PAR_nInputVars} variables para cada bloque ({PAR_nInputVars} tipos de fichero):')
-            print('\t-> Se leen las cabeceras de los ficheros del tipo {} ({}).'.format(0, txtTipoFichero))
-            print('\t\t-> Tambien se verifica que los ficheros de las otras variables tienen las mismas dimensiones y resolucion.')
-            print('\t\t-> El noDataValue debe ser el mismo para todos los bloques en cada variable pero puede cambiar de una variable a otra.')
-            print('\t\t-> Las coordenadas de la esquina superior-izquierda cambian de bloque a bloque')
-            print('\t-> Se leen los valores de cada variable en todos los ficheros para calcular rango de valores de cada una.')
-        else:
-            print(f'clidraster-> Leyendo {len(infilesListTipo0)} bloques:')
+    myLog.info('\n{:_^80}'.format(''))
+    if PAR_generarDasoLayers:
+        myLog.info(f'clidraster-> Leyendo {len(infilesListTipo0)} bloques y {PAR_nInputVars} variables para cada bloque ({PAR_nInputVars} tipos de fichero):')
+        myLog.info('\t-> Se leen las cabeceras de los ficheros del tipo {} ({}).'.format(0, txtTipoFichero))
+        myLog.info('\t\t-> Tambien se verifica que los ficheros de las otras variables tienen las mismas dimensiones y resolucion.')
+        myLog.info('\t\t-> El noDataValue debe ser el mismo para todos los bloques en cada variable pero puede cambiar de una variable a otra.')
+        myLog.info('\t\t-> Las coordenadas de la esquina superior-izquierda cambian de bloque a bloque')
+        myLog.info('\t-> Se leen los valores de cada variable en todos los ficheros para calcular rango de valores de cada una.')
+    else:
+        myLog.info(f'clidraster-> Leyendo {len(infilesListTipo0)} bloques:')
     if len(infilesListTipo0) > 5:
         mostrarNumFicheros = 5
-        if PAR_verbose:
-            print(f'\t-> Solo se muestran los {mostrarNumFicheros} primeros bloques.')
+        myLog.info(f'\t-> Solo se muestran los {mostrarNumFicheros} primeros bloques.')
     else:
         mostrarNumFicheros = 0
 
@@ -430,20 +422,18 @@ def crearRasterTiff(
                 or nMaxY_NombreAsc > nMaxY_tif
             ):
                 # Bloque fuera del marco
-                if PAR_verbose:
-                    print(
-                        'Fichero {} fuera del marco {}-{} x {}-{}'. format(
-                            inputAscName1, nMinX_tif, nMaxX_tif, nMinY_tif, nMaxY_tif
-                        )
+                myLog.info(
+                    'Fichero {} fuera del marco {}-{} x {}-{}'. format(
+                        inputAscName1, nMinX_tif, nMaxX_tif, nMinY_tif, nMaxY_tif
                     )
+                )
                 continue
             else:
                 contadorBloquesCandidatos += 1
-                if PAR_verbose:
-                    print('Fichero {} Ok dentro del marco'. format(
-                        inputAscName1,
-                        )
+                myLog.info('Fichero {} Ok dentro del marco'. format(
+                    inputAscName1,
                     )
+                )
 
         # Para cada bloque, abro los todos los ascFiles (uno por variable) y guardo su controlador en este dict:
         contadorBloquesProcesando += 1
@@ -453,34 +443,31 @@ def crearRasterTiff(
         dictInputAscNameSinPath[0] = inputAscName1
         dictInputAscNameConPath[0] = os.path.join(inputAscDirTipo0, dictInputAscNameSinPath[0])
         if not os.path.exists(dictInputAscNameConPath[0]):
-            print('clidraster-> ATENCION: no existe el fichero {}; debe haber un error de codigo'.format(dictInputAscNameConPath[0]))
+            myLog.error('clidraster-> ATENCION: no existe el fichero {}; debe haber un error de codigo'.format(dictInputAscNameConPath[0]))
             sys.exit(0)
         fileBytes = os.stat(dictInputAscNameConPath[0]).st_size
         if fileBytes <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
-            print('\n{}/{} Fichero sin contenido1: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), inputAscName1))
-            print('\t-> Se pasa al siguiente: {}'.format(inputAscName1))
+            myLog.warning('\n{}/{} Aviso: fichero sin contenido1: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), inputAscName1))
+            myLog.warning('\t-> Se pasa al siguiente: {}'.format(inputAscName1))
             continue
         #===================================================================
-        if PAR_verbose:
-            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                print('\nProcesando bloque {}/{}:'.format(contadorBloquesProcesando, len(infilesListTipo0)))
-                print(f'\t-> Primero se abren todos los tipos de fichero para este bloque ({inputAscName1[:8]}):')
+        if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+            myLog.info(f'{TB}Procesando bloque {contadorBloquesProcesando}/{infilesListTipo0}:')
+            myLog.debug(f'{TB}{TV}-> Primero se abren todos los tipos de fichero para este bloque ({inputAscName1[:8]}):')
         #===================================================================
         nInputVar = 0
-        if PAR_verbose:
-            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                print(f'\t\t-> Tipo de fichero_0: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
-                # print(f'clidraster---->>>1-> self_LOCLlistaDasoVarsFileTypes[0]:         {self_LOCLlistaDasoVarsFileTypes[0]}')
-                # print(f'clidraster---->>>2-> self_LOCLlistaDasoVarsFileTypes[nInputVar]: {self_LOCLlistaDasoVarsFileTypes[nInputVar]}')
+        if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+            myLog.debug(f'{TB}{TV}{TV}-> Tipo de fichero_0: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
+            # myLog.debug(f'clidraster---->>>1-> self_LOCLlistaDasoVarsFileTypes[0]:         {self_LOCLlistaDasoVarsFileTypes[0]}')
+            # myLog.debug(f'clidraster---->>>2-> self_LOCLlistaDasoVarsFileTypes[nInputVar]: {self_LOCLlistaDasoVarsFileTypes[nInputVar]}')
 
         try:
             dictAscFileObjet[0] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
-            if PAR_verbose > 1:
-                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print(f'\t\t\t-> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                myLog.debug(f'{TB}{TV}{TV}{TV}-> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
         except:
-            print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-            print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
+            myLog.error('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+            myLog.error('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
             sys.exit(0)
         nFicherosDisponiblesPorTipoVariable[0] += 1
         #=======================================================================
@@ -496,37 +483,34 @@ def crearRasterTiff(
                     (inputAscPathNew, inputAscNameNew) = self_inFilesListAllTypes[nInputVar][contadorInFiles]
                 else:
                     (inputAscPathNew, inputAscNameNew) = self_inFilesDictAllTypes[codigoBloque][nInputVar]
-                if PAR_verbose:
-                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                        print(f'\t\t-> Tipo de fichero_{nInputVar}: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscNameNew}')
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                    myLog.debug(f'{TB}{TV}{TV}-> Tipo de fichero_{nInputVar}: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscNameNew}')
 
                 dictInputAscNameSinPath[nInputVar] = inputAscNameNew
                 dictInputAscNameConPath[nInputVar] = os.path.join(inputAscPathNew, inputAscNameNew)
                 if not os.path.exists(dictInputAscNameConPath[nInputVar]):
-                    print('\nclidraster-> ATENCION: no se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                    print('\t-> Revisar codigo, porque ha sido previamente localizado.')
+                    myLog.error('\nclidraster-> ATENCION: no se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                    myLog.error('\t-> Revisar codigo, porque ha sido previamente localizado.')
                     sys.exit(0)
                 fileBytes2 = os.stat(dictInputAscNameConPath[nInputVar]).st_size
                 if fileBytes2 <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
                     if PAR_verbose:
-                        print('\t\t\t{}/{} Fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
-                        print('\t\t\t\t-> Se pasa al siguiente.')
+                        myLog.warning('\t\t\t{}/{} Aviso: fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
+                        myLog.warning('\t\t\t\t-> Se pasa al siguiente.')
                     continue
                 try:
                     dictAscFileObjet[nInputVar] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
-                    if PAR_verbose > 1:
-                        if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                            print(f'\t\t\t-> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
+                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                        myLog.debug(f'{TB}{TV}{TV}{TV}-> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
                 except:
-                    print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                    print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
+                    myLog.error('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                    myLog.error('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
                     sys.exit(0)
-            if PAR_verbose:
-                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print('\t-> Se toma como referencia la cabecera de los ficheros tipo {}: {}'.format(txtTipoFichero, inputAscName1))
-                    print('\t\t-> Los demas tipos deben tener las mismas coordenadas, dimensiones y pixel, pero pueden tener distinto noData')
-                    print('\t\t-> Para el raster generado uso el noData y tipo de dato que sea apto para todos:')
-                    print('\t\t\t-> Si hay algun -9999, prevalece sobre el 255 y el 0')
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                myLog.debug('\t-> Se toma como referencia la cabecera de los ficheros tipo {}: {}'.format(txtTipoFichero, inputAscName1))
+                myLog.debug('\t\t-> Los demas tipos deben tener las mismas coordenadas, dimensiones y pixel, pero pueden tener distinto noData')
+                myLog.debug('\t\t-> Para el raster generado uso el noData y tipo de dato que sea apto para todos:')
+                myLog.debug('\t\t\t-> Si hay algun -9999, prevalece sobre el 255 y el 0')
         # ======================================================================
 
         ncolsRef = -1
@@ -540,7 +524,6 @@ def crearRasterTiff(
         try:
             for nLinea in range(6):
                 alinea1 = dictAscFileObjet[0].readline().split(' ')
-                # print('alinea1:', alinea1)
                 if alinea1[0] == 'ncols':
                     ncolsRef = int(alinea1[1])
                 elif alinea1[0] == 'nrows':
@@ -560,10 +543,10 @@ def crearRasterTiff(
         except:
             cabeceraLeida = False
         if not cabeceraLeida:
-            print(f'\nclidraster-> ATENCION: error de cabecera en {dictInputAscNameSinPath[0]}')
+            myLog.error(f'\nclidraster-> ATENCION: error de cabecera en {dictInputAscNameSinPath[0]}')
             for nLinea in range(6):
                 alinea1 = dictAscFileObjet[0].readline().split(' ')
-                print('\tLinea {}: {} ({} elementos)'.format(nLinea, alinea1, len(alinea1)))
+                myLog.error('\tLinea {}: {} ({} elementos)'.format(nLinea, alinea1, len(alinea1)))
             sys.exit(0)
 
         ncolsValoresOk = True
@@ -576,34 +559,28 @@ def crearRasterTiff(
             try:
                 for nLinea in range(6):
                     alineaX = dictAscFileObjet[nInputVar].readline().split(' ')
-                    # print('alineaX:', alineaX)
                     if alineaX[0] == 'ncols' and ncolsRef != int(alineaX[1]):
-                        if PAR_verbose or True:
-                            print(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
-                            print(f'\t ncols-> Deferencia: {ncolsRef}; Actual: {int(alineaX[1])}')
+                        myLog.error(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
+                        myLog.error(f'\t ncols-> Deferencia: {ncolsRef}; Actual: {int(alineaX[1])}')
                         cabeceraLeida = False
                         ncolsValoresOk = False
                     elif alineaX[0] == 'nrows' and nrowsRef != int(alineaX[1]):
-                        if PAR_verbose or True:
-                            print(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
-                            print(f'\t nrows-> Deferencia: {nrowsRef}; Actual: {int(alineaX[1])}')
+                        myLog.error(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
+                        myLog.error(f'\t nrows-> Deferencia: {nrowsRef}; Actual: {int(alineaX[1])}')
                         cabeceraLeida = False
                         nrowsValoresOk = False
                     elif alineaX[0] == 'xllcenter' and xllcenterRef != float(alineaX[1]):
-                        if PAR_verbose or True:
-                            print(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
-                            print(f'\t xllcenter-> Deferencia: {xllcenterRef}; Actual: {int(alineaX[1])}')
+                        myLog.error(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
+                        myLog.error(f'\t xllcenter-> Deferencia: {xllcenterRef}; Actual: {int(alineaX[1])}')
                         cabeceraLeida = False
                     elif alineaX[0] == 'yllcenter' and yllcenterRef != float(alineaX[1]):
-                        if PAR_verbose or True:
-                            print(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
-                            print(f'\t yllcenter-> Deferencia: {yllcenterRef}; Actual: {int(alineaX[1])}')
+                        myLog.error(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
+                        myLog.error(f'\t yllcenter-> Deferencia: {yllcenterRef}; Actual: {int(alineaX[1])}')
                         cabeceraLeida = False
                         cellsizeValoresOk = False
                     elif alineaX[0] == 'cellsize' and cellsizeRef != float(alineaX[1]):
-                        if PAR_verbose or True:
-                            print(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
-                            print(f'\t cellsize-> Deferencia: {cellsizeRef}; Actual: {int(alineaX[1])}')
+                        myLog.error(f'ATENCION: el fichero {dictInputAscNameSinPath[nInputVar]} no tiene la misma cabecera que el de referencia ({dictInputAscNameSinPath[0]})')
+                        myLog.error(f'\t cellsize-> Deferencia: {cellsizeRef}; Actual: {int(alineaX[1])}')
                         cabeceraLeida = False
                     elif alineaX[0] == 'nodata_value':
                         noDataValuesPorTipoFichero[nInputVar] = int(alineaX[1])
@@ -611,8 +588,7 @@ def crearRasterTiff(
                 cabeceraLeida = False
 
             if not cabeceraLeida:
-                if PAR_verbose or True:
-                    print(f'clidraster-> ATENCION: error de cabeceras: la cabecera de {dictInputAscNameSinPath[nInputVar]} es distinta a la de referencia ({dictInputAscNameSinPath[0]})')
+                myLog.error(f'clidraster-> ATENCION: error de cabeceras: la cabecera de {dictInputAscNameSinPath[nInputVar]} es distinta a la de referencia ({dictInputAscNameSinPath[0]})')
                 continue
 
         if not cellsizeRef in listaCellSize:
@@ -624,25 +600,21 @@ def crearRasterTiff(
             # No data virtual para tipoMasa
             noDataValuesPorTipoFichero[PAR_nInputVars + 1] = PAR_noDataMergeTiff
 
-            if PAR_verbose:
-                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print(f'\t\t\t-> noDataValuesPorTipoFichero: {noDataValuesPorTipoFichero}')
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                myLog.debug(f'{TB}{TV}{TV}{TV}-> noDataValuesPorTipoFichero: {noDataValuesPorTipoFichero}')
             # Adopto el valor de noData mas elevado en valor absoluto (normalmente -9999)
             for nInputVar in noDataValuesPorTipoFichero.keys():
                 noDataDasoVarX = noDataValuesPorTipoFichero[nInputVar]
                 if noDataDasoVarX != noDataDasoVarAll and abs(noDataDasoVarX) > abs(noDataDasoVarAll):
                     noDataDasoVarAll = noDataDasoVarX
-                # print(f'\t--->>> noDataDasoVarX: {noDataDasoVarX}, noDataDasoVarAll: {noDataDasoVarAll}')
 
         elif integrarFicherosAsc:
             if contadorBloquesProcesando == 1:
                 noDataIni = nodata_valueRef
-                if PAR_verbose:
-                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                        print('\t\t-> noData_valueRef:', nodata_valueRef)
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                    myLog.debug('\t\t-> noData_valueRef:', nodata_valueRef)
             elif noDataIni != nodata_valueRef:
-                if PAR_verbose:
-                    print('\t\t->AVISO: Fichero con noData ({}) != del inicial ({})'.format(nodata_valueRef, noDataIni))
+                myLog.warning('\t\t->AVISO: Fichero con noData ({}) != del inicial ({})'.format(nodata_valueRef, noDataIni))
 
         nMaxX_NombreAsc = (int(inputAscName1[:3]) * 1000) + (cellsizeRef * ncolsRef)
         nMinY_NombreAsc = (int(inputAscName1[4:8]) * 1000) - (cellsizeRef * nrowsRef)
@@ -685,24 +657,22 @@ def crearRasterTiff(
                 nMinY_tif = min(nMinY_tif, nMinY_HeaderAsc)
                 nMaxY_tif = max(nMaxY_tif, nMaxY_HeaderAsc)
 
-        if PAR_verbose:
-            print(f'--->>> nMinX_HeaderAsc: {nMinX_HeaderAsc}')
-            print(f'--->>> nMaxX_HeaderAsc: {nMaxX_HeaderAsc}')
+        if PAR_verbose > 1:
+            myLog.debug(f'->-> nMinX_HeaderAsc: {nMinX_HeaderAsc}')
+            myLog.debug(f'->-> nMaxX_HeaderAsc: {nMaxX_HeaderAsc}')
             if mostrarNumFicheros == 0 or (
                 contadorInFiles < mostrarNumFicheros
                 or contadorInFiles == len(infilesListTipo0) - 1
             ):
-                print(f'\t-> Resultado tras leer todas las cabeceras ({contadorInFiles + 1}/{len(infilesListTipo0)}:')
-                if mostrarNumFicheros < len(infilesListTipo0):
-                    print(f'\t\tSe muestran {mostrarNumFicheros} del total de {len(infilesListTipo0)} + el ultimo.')
-                print(f'\t\t-> noDataDasoVarAll:     {noDataDasoVarAll}')
-                print(f'\t\t-> cellsizeRef:          {cellsizeRef} (ok: {cellsizeValoresOk})')
-                print(f'\t\t-> ncolsRef x nrowsRef:  {ncolsRef} x {nrowsRef} (ok: {ncolsValoresOk} & {nrowsValoresOk})')
-                print(f'\t\t-> metrosBloqueX:        {metrosBloqueX} metrosBloqueY: {metrosBloqueY}')
-                print(f'\t\t-> nMinXY_HeaderAsc:     {nMinX_HeaderAsc} // {nMinY_HeaderAsc}')
-                print(f'\t\t-> nMaxXY_HeaderAsc:     {nMaxX_HeaderAsc} // {nMaxY_HeaderAsc}')
-                print(f'\t\t-> Min XY:               {nMinX_tif} // {nMinY_tif}')
-                print(f'\t\t-> Max XY:               {nMaxX_tif} // {nMaxY_tif}')
+                myLog.debug(f'{TB}{TV}-> Resultado tras leer todas las cabeceras ({contadorInFiles + 1}/{len(infilesListTipo0)}):')
+                myLog.debug(f'{TB}{TV}{TV}-> noDataDasoVarAll:     {noDataDasoVarAll}')
+                myLog.debug(f'{TB}{TV}{TV}-> cellsizeRef:          {cellsizeRef} (ok: {cellsizeValoresOk})')
+                myLog.debug(f'{TB}{TV}{TV}-> ncolsRef x nrowsRef:  {ncolsRef} x {nrowsRef} (ok: {ncolsValoresOk} & {nrowsValoresOk})')
+                myLog.debug(f'{TB}{TV}{TV}-> metrosBloqueX:        {metrosBloqueX} metrosBloqueY: {metrosBloqueY}')
+                myLog.debug(f'{TB}{TV}{TV}-> nMinXY_HeaderAsc:     {nMinX_HeaderAsc} // {nMinY_HeaderAsc}')
+                myLog.debug(f'{TB}{TV}{TV}-> nMaxXY_HeaderAsc:     {nMaxX_HeaderAsc} // {nMaxY_HeaderAsc}')
+                myLog.debug(f'{TB}{TV}{TV}-> Min XY:               {nMinX_tif} // {nMinY_tif}')
+                myLog.debug(f'{TB}{TV}{TV}-> Max XY:               {nMaxX_tif} // {nMaxY_tif}')
 
         for nInputVar in range(PAR_nInputVars):
             if not nInputVar in dictAscFileObjet.keys():
@@ -715,14 +685,14 @@ def crearRasterTiff(
                     listLineaCompleta.remove('')
                 nColumnas = len(listLineaCompleta)
                 if nColumnas != ncolsRef:
-                    print(f'El fichero {dictInputAscNameSinPath[nInputVar]} tiene en la fila {nFila}: {nColumnas} columnas y su cabecera dice {ncolsRef} columnas. Ultimo elemento: <{listLineaCompleta[-1]}> len: {len(listLineaCompleta[-1])}')
+                    myLog.warning(f'clidraster-> Aviso: el fichero {dictInputAscNameSinPath[nInputVar]} tiene en la fila {nFila}: {nColumnas} columnas y su cabecera dice {ncolsRef} columnas. Ultimo elemento: <{listLineaCompleta[-1]}> len: {len(listLineaCompleta[-1])}')
                 # print('alinea leida y con split:', listLineaCompleta)
                 for nColumna in range(nColumnas):
                     saltarFila = False
                     txtValorVariable = listLineaCompleta[nColumna]
                     if not txtValorVariable.replace('.', '', 1).replace('-', '', 1).isdigit():
                         if txtValorVariable != '\n' and txtValorVariable != '\r' and txtValorVariable != '':
-                            print(f'ATENCION: Revisar el contenido del fichero {dictInputAscNameSinPath[nInputVar]}, fila de datos num {nFila}: no debe tener texto: {txtValorVariable}')
+                            myLog.warning(f'clidraster-> Aviso: revisar el contenido del fichero {dictInputAscNameSinPath[nInputVar]}, fila de datos num {nFila}: no debe tener texto: {txtValorVariable}')
                         saltarFila = True
                         break
                     valorVariable = np.float32(txtValorVariable)
@@ -734,14 +704,14 @@ def crearRasterTiff(
                     continue
     # ==========================================================================
     if nMinX_tif == 99999999 or nMinY_tif == 99999999 or nMaxX_tif == 0 or nMaxY_tif == 0:
-        print('clidraster-> Revisar coordenadas de los ficheros ASC X. Rango::', nMinX_tif, nMaxX_tif, 'Y:', nMinY_tif, nMaxY_tif)
+        myLog.error(f'clidraster-> Revisar coordenadas de los ficheros ASC X. Rango: {nMinX_tif} {nMaxX_tif}, Y: {nMinY_tif} {nMaxY_tif}')
         sys.exit(0)
     # ==========================================================================
     if len(listaCellSize) == 0:
-        print('Ningun fichero ASC entra dentro del marco previsto-> X:', nMinX_tif, nMaxX_tif, 'Y:', nMinY_tif, nMaxY_tif)
+        myLog.error(f'Ningun fichero ASC entra dentro del marco previsto-> X: {nMinX_tif} {nMaxX_tif}, Y: {nMinY_tif} {nMaxY_tif}')
         sys.exit(0)
     # ==========================================================================
-    print('{:=^80}'.format(''))
+    myLog.info('{:=^80}'.format(''))
 
     if integrarFicherosAsc:
         noDataValueDasoVarAsc = noDataIni
@@ -816,12 +786,12 @@ def crearRasterTiff(
             origenX = geoTransform[0]
             origenY = geoTransform[3]
             if rasterQueSeUsaComoDeferencia:
-                print('\nPara generar el tiff se utiliza uno de referencia: {}'.format(rasterQueSeUsaComoDeferencia))
+                myLog.info('\nPara generar el tiff se utiliza uno de referencia: {}'.format(rasterQueSeUsaComoDeferencia))
             elif rasterEnElQueSeEscribe and os.path.exists(os.path.join(self_LOCLoutPathNameRuta, rasterEnElQueSeEscribe)):
-                print('\nLos fichero asc se escriben un un tiff ya existente: {}'.format(rasterEnElQueSeEscribe))
-            print('\trasterSize: %i x %i' % (rasterXSize, rasterYSize))
-            print('\tEsquina superior izquierda:', origenX, origenY)
-            print('\tAncho y alto de pixel:     ', nPixelX_Deferencia, nPixelY_Deferencia)
+                myLog.info('\nLos fichero asc se escriben en un tiff ya existente: {}'.format(rasterEnElQueSeEscribe))
+            myLog.info('\trasterSize: %i x %i' % (rasterXSize, rasterYSize))
+            myLog.info(f'\tEsquina superior izquierda: {origenX} {origenY}')
+            myLog.info(f'\tAncho y alto de pixel:      {nPixelX_Deferencia} {nPixelY_Deferencia}')
             # inputRaster.Destroy() #Esto es para los datasources
             # inputBand1 = inputRaster.GetRasterBand(1)
             # infoSrcband(inputBand1)
@@ -829,20 +799,18 @@ def crearRasterTiff(
             del inputRaster
             '''
             #Otra forma de cargar el Raster como matriz de numpy:
-            print('Cargando el raster en un np.array con gdalnumeric.LoadFile()')
+            myLog.info('Cargando el raster en un np.array con gdalnumeric.LoadFile()')
             srcArray = gdalnumeric.LoadFile(rasterQueSeUsaComoDeferencia)
-            #print('srcArray:', type(srcArray), dir(srcArray) #<type 'np.ndarray'>)
-            #['T', '__abs__', '__add__', '__and__', '__array__', '__array_finalize__', '__array_interface__', '__array_prepare__', '__array_priority__', '__array_struct__', '__array_wrap__', '__class__', '__contains__', '__copy__', '__deepcopy__', '__delattr__', '__delitem__', '__delslice__', '__div__', '__divmod__', '__doc__', '__eq__', '__float__', '__floordiv__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getslice__', '__gt__', '__hash__', '__hex__', '__iadd__', '__iand__', '__idiv__', '__ifloordiv__', '__ilshift__', '__imod__', '__imul__', '__index__', '__init__', '__int__', '__invert__', '__ior__', '__ipow__', '__irshift__', '__isub__', '__iter__', '__itruediv__', '__ixor__', '__le__', '__len__', '__long__', '__lshift__', '__lt__', '__mod__', '__mul__', '__ne__', '__neg__', '__new__', '__nonzero__', '__oct__', '__or__', '__pos__', '__pow__', '__radd__', '__rand__', '__rdiv__', '__rdivmod__', '__reduce__', '__reduce_ex__', '__repr__', '__rfloordiv__', '__rlshift__', '__rmod__', '__rmul__', '__ror__', '__rpow__', '__rrshift__', '__rshift__', '__rsub__', '__rtruediv__', '__rxor__', '__setattr__', '__setitem__', '__setslice__', '__setstate__', '__sizeof__', '__str__', '__sub__', '__subclasshook__', '__truediv__', '__xor__', 'all', 'any', 'argmax', 'argmin', 'argpartition', 'argsort', 'astype', 'base', 'byteswap', 'choose', 'clip', 'compress', 'conj', 'conjugate', 'copy', 'ctypes', 'cumprod', 'cumsum', 'data', 'diagonal', 'dot', 'dtype', 'dump', 'dumps', 'fill', 'flags', 'flat', 'flatten', 'getfield', 'imag', 'item', 'itemset', 'itemsize', 'max', 'mean', 'min', 'nbytes', 'ndim', 'newbyteorder', 'nonzero', 'partition', 'prod', 'ptp', 'put', 'ravel', 'real', 'repeat', 'reshape', 'resize', 'round', 'searchsorted', 'setfield', 'setflags', 'shape', 'size', 'sort', 'squeeze', 'std', 'strides', 'sum', 'swapaxes', 'take', 'tobytes', 'tofile', 'tolist', 'tostring', 'trace', 'transpose', 'var', 'view']
-            print('srcArray.size:', srcArray.size)
-            print('srcArray.shape:', srcArray.shape)
+            print(f'srcArray.size:  {srcArray.size}')
+            print(f'srcArray.shape: {srcArray.shape}')
             '''
             nMinX_tif = origenX
             nMaxY_tif = origenY
             metrosPixelX_Destino, metrosPixelY_Destino = nPixelX_Deferencia, nPixelY_Deferencia
             nCeldasX_Destino, nCeldasY_Destino = rasterXSize, rasterYSize
         else:
-            print('ATEMCION: No se encuentra el raster de referencia o en el que se escribe: {}'.format(rasterQueSeUsaComoDeferencia))
-            print('\t-> Revisar codigo')
+            myLog.critical('clidraster-> ATENCION: No se encuentra el raster de referencia o en el que se escribe: {}'.format(rasterQueSeUsaComoDeferencia))
+            myLog.critical('\t-> Revisar codigo')
     #===========================================================================
 
 
@@ -900,7 +868,7 @@ def crearRasterTiff(
 
     #===========================================================================
     if not cartoRefMfe.usarVectorRef:
-        print('\nclidraster-> ATENCION: no se ha podido leer el MFE.')
+        myLog.error('\nclidraster-> ATENCION: no se ha podido leer el MFE.')
         sys.exit(0)
     elif (
         nMinX_tif > cartoRefMfe.inputVectorXmax
@@ -912,16 +880,16 @@ def crearRasterTiff(
             cartoRefMfe.inputVectorYmin > 0
             and cartoRefMfe.inputVectorYmin < 90
         ):
-            print('\nclidraster-> ATENCION: usar una capa MFE con cordenadas proyectadas (no geograficas)')
+            myLog.error('\nclidraster-> ATENCION: usar una capa MFE con cordenadas proyectadas (no geograficas)')
             sys.exit(0)
         
-        print('\nclidraster-> ATENCION: no hay cobertura de MFE en la zona analizada (a):')
-        print(
+        myLog.error('\nclidraster-> ATENCION: no hay cobertura de MFE en la zona analizada (a):')
+        myLog.error(
             '\t-> Rango de coordenadas UTM de la zona analizada: X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
                 nMinX_tif, nMaxX_tif, nMinY_tif, nMaxY_tif,
             )
         )
-        print(
+        myLog.error(
             '\t-> Rango de coordenadas UTM cubiertas por el MFE: X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
                 cartoRefMfe.inputVectorXmin,
                 cartoRefMfe.inputVectorXmax,
@@ -929,7 +897,7 @@ def crearRasterTiff(
                 cartoRefMfe.inputVectorYmax,
             )
         )
-        print(
+        myLog.error(
             '\t-> Fichero MFE: {}/{}'.format(
                 PAR_cartoMFEpathName,
                 PAR_cartoMFEfileName,
@@ -956,14 +924,14 @@ def crearRasterTiff(
                     outputBandCyL1.SetNoDataValue(PAR_noDataMergeTiff)
                 else:
                     outputBandCyL1.SetNoDataValue(noDataValueDasoVarAsc)
-                print('\n{:_^80}'.format(''))
-                print('clidraster-> Raster CyL en el que se va a grabar la informacion de los grid de entrada:', rasterEnElQueSeEscribe)
+                myLog.info('\n{:_^80}'.format(''))
+                myLog.info(f'clidraster-> Raster CyL en el que se va a grabar la informacion de los grid de entrada: {rasterEnElQueSeEscribe}')
             else:
-                print('ATEMCION: No se encuentra el raster en el que se escribe: {}'.format(rasterEnElQueSeEscribe))
-                print('\t-> Revisar codigo')
+                myLog.critical('ATEMCION: No se encuentra el raster en el que se escribe: {}'.format(rasterEnElQueSeEscribe))
+                myLog.critical('\t-> Revisar codigo')
         else:
-            print('\n{:_^80}'.format(''))
-            print(f'clidraster-> Creando fichero raster: {self_LOCLoutFileNameWExtLote}')
+            myLog.info('\n{:_^80}'.format(''))
+            myLog.info(f'clidraster-> Creando fichero raster: {self_LOCLoutFileNameWExtLote}')
             outputDatasetLote, outputBandLote1 = CrearOutputRaster(
                 self_LOCLoutPathNameRuta,
                 self_LOCLoutFileNameWExtLote,
@@ -986,41 +954,41 @@ def crearRasterTiff(
                 LCL_verbose=PAR_verbose,
             )
 
-            # print('{:_^80}'.format(''))
-            # print('clidraster-> Raster en el que se va a grabar la informacion de los grid de entrada:', self_LOCLoutFileNameWExtLote)
+            # myLog.info('{:_^80}'.format(''))
+            # myLog.info(f'clidraster-> Raster en el que se va a grabar la informacion de los grid de entrada: {self_LOCLoutFileNameWExtLote}')
 
         # ======================================================================
         if PAR_generarDasoLayers:
             # for nInputVar in range(PAR_nInputVars):
-            print(f'clidraster-> Leyendo las {nBandasOutput} bandas del tif creado')
+            myLog.info(f'clidraster-> Leyendo las {nBandasOutput} bandas del tif creado')
             for outputNBand in range(1, nBandasOutput + 1):
                 if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
                     dictOutputBandX[outputNBand] = outputDatasetCyL.GetRasterBand(outputNBand)
                 else:
                     dictOutputBandX[outputNBand] = outputDatasetLote.GetRasterBand(outputNBand)
                 dictArrayBandaX[outputNBand] = dictOutputBandX[outputNBand].ReadAsArray().astype(PAR_outputNpDatatype)
-                # print(f'\t\t-> Banda: {outputNBand} -> shape: {dictArrayBandaX[outputNBand].shape}')
-            # print(f'\tclaves de dictArrayBandaX: {dictArrayBandaX.keys()}')
-            print(f'\tTipo de contenido de dictArrayBandaX[outputNBand]: {type(dictArrayBandaX[outputNBand])} {dictArrayBandaX[outputNBand].dtype}')
-        print('{:=^80}'.format(''))
+                # myLog.debug(f'{TB}{TV}{TV}-> Banda: {outputNBand} -> shape: {dictArrayBandaX[outputNBand].shape}')
+            # myLog.debug(f'{TB}{TV}claves de dictArrayBandaX: {dictArrayBandaX.keys()}')
+            myLog.debug(f'\tTipo de contenido de dictArrayBandaX[outputNBand]: {type(dictArrayBandaX[outputNBand])} {dictArrayBandaX[outputNBand].dtype}')
+        myLog.info('{:=^80}'.format(''))
 
         # ======================================================================
         # Compruebo si puedo cargar la banda 1 en memoria
-        print('\n{:_^80}'.format(''))
-        print('clidraster-> Comprobando memoria RAM disponible:')
+        myLog.debug('\n{:_^80}'.format(''))
+        myLog.debug('clidraster-> Comprobando memoria RAM disponible:')
         nBytesPorBanda = 4
         if psutilOk:
             ramMem = psutil.virtual_memory()
             megasLibres = ramMem.available / 1048576 # ~1E6
             megasReservados = 1000 if megasLibres > 2000 else megasLibres / 2
-            print('\t-> Megas libres: {:0.2f} MB'.format(megasLibres))
+            myLog.debug('\t-> Megas libres: {:0.2f} MB'.format(megasLibres))
             numMaximoPixeles = (megasLibres - megasReservados) * 1e6 / (nBandasOutput * nBytesPorBanda)
-            print(f'\t-> Num max. Pixeles: {numMaximoPixeles} ({nBandasOutput} bandas, {nBytesPorBanda} bytes por pixel)')
+            myLog.debug(f'{TB}{TV}-> Num max. Pixeles: {numMaximoPixeles} ({nBandasOutput} bandas, {nBytesPorBanda} bytes por pixel)')
         else:
             numMaximoPixeles = 1e9
         nMegaPixeles = nCeldasX_Destino * nCeldasY_Destino / 1e6
         nMegaBytes = nMegaPixeles * nBandasOutput * nBytesPorBanda
-        print(
+        myLog.debug(
             '\t-> nCeldas previstas:  {} x {} = {:0.2f} MegaPixeles = {:0.2f} MegaBytes'.format(
                 nCeldasX_Destino,
                 nCeldasY_Destino,
@@ -1032,26 +1000,26 @@ def crearRasterTiff(
             # Se puede cargar toda la banda1 en memoria
             cargarRasterEnMemoria = True
             # Creo un ndarray con el contenido de la banda 1 del raster dataset creado
-            print('\t-> SI se carga toda la banda en memoria.')
+            myLog.debug('\t-> SI se carga toda la banda en memoria.')
             arrayBanda1 = outputBandLote1.ReadAsArray().astype(PAR_outputNpDatatype)
-            print(f'\t-> Tipo de dato de la Banda con el tipo de masa:  {type(arrayBanda1)}, dtype: {arrayBanda1.dtype}')
-            print(f'\t-> Dimensiones de la banda 1 del ndArray creado:  {arrayBanda1.shape}')
+            myLog.debug(f'{TB}{TV}-> Tipo de dato de la Banda con el tipo de masa:  {type(arrayBanda1)}, dtype: {arrayBanda1.dtype}')
+            myLog.debug(f'{TB}{TV}-> Dimensiones de la banda 1 del ndArray creado:  {arrayBanda1.shape}')
         else:
             cargarRasterEnMemoria = False
-            print('\t-> Dimensiones de la banda destino: Y->', outputBandLote1.YSize, 'X->', outputBandLote1.XSize)
-            print('\t-> NO se carga toda la banda en memoria porque no cabe')
+            myLog.debug(f'{TB}{TV}-> Dimensiones de la banda destino: Y-> {outputBandLote1.YSize} X-> {outputBandLote1.XSize}')
+            myLog.debug(f'{TB}{TV}-> NO se carga toda la banda en memoria porque no cabe.')
         # ======================================================================
 
-        print('clidraster-> cargarRasterEnMemoria:', cargarRasterEnMemoria)
+        myLog.debug(f'clidraster-> cargarRasterEnMemoria: {cargarRasterEnMemoria}')
         nMaxX_tif = nMinX_tif + (nCeldasX_Destino * metrosPixelX_Destino)
         nMinY_tif = nMaxY_tif + (nCeldasY_Destino * metrosPixelY_Destino)
-        print('{:=^80}'.format(''))
+        myLog.debug('{:=^80}'.format(''))
         # ======================================================================
 
-        # print('-->arrayBanda1:')
-        # print(arrayBanda1[10:15, 10:15])
-        # print('-->dictArrayBandaX:')
-        # print(dictArrayBandaX[outputNBand][10:15, 10:15])
+        # myLog.debug('-->arrayBanda1:')
+        # myLog.debug(arrayBanda1[10:15, 10:15])
+        # myLog.debug('-->dictArrayBandaX:')
+        # myLog.debug(dictArrayBandaX[outputNBand][10:15, 10:15])
 
     nMinTipoMasa = 999999
     nMaxTipoMasa = -999999
@@ -1086,40 +1054,39 @@ def crearRasterTiff(
         # ==========================================================================
 
         # ==========================================================================
-        if PAR_verbose:
-            print('\n{:_^80}'.format(''))
-            print('clidraster-> Algunos datos de las capas input y output:')
-            print('\t-> Ambito de trabajo:                                  {}'.format(PAR_ambitoTiffNuevo))
-            print('\t-> Tipo de fichero de referencia (0):                  {}'.format(txtTipoFichero))
-            print('\t-> Numero de Bloques Procesados                        {}'.format(contadorBloquesProcesando))
-            print('\t-> Esquina superior izda del fichero tif a generar:    {:0.2f}, {:0.2f}'.format(nMinX_tif, nMaxY_tif))
-            print('\t\tRango de coordenadas X del fichero tif a generar:  {:0.2f}, {:0.2f}'.format(nMinX_tif, nMaxX_tif))
-            print('\t\tRango de coordenadas Y del fichero tif a generar:  {:0.2f}, {:0.2f}'.format(nMinY_tif, nMaxY_tif))
-            if PAR_ambitoTiffNuevo.startswith('subLoteAsc'):
-                print('\t-> Este rango es un cuarto ({}) del lote completo.'.format(AUX_subLoteTiff))
-            if len(listaMetrosBloqueX) == 1 and len(listaMetrosBloqueY) == 1:
-                print('\t-> Todos los bloques tienen las mismas dimensiones (en m):')
-                print('\t\tDimensiones X e Y de los ficheros asc (en m):      {}, {}'.format(listaMetrosBloqueX[0], listaMetrosBloqueY[0]))
-            else:
-                print('\t-> No todos los bloques tienen las mismas dimensiones:')
-                print('\t\tLista de dimensiones X de los ficheros asc (en m): {}'.format(listaMetrosBloqueX[:5]))
-                print('\t\tLista de dimensiones Y de los ficheros asc (en m): {}'.format(listaMetrosBloqueY[:5]))
-            print('\t-> Cellsize (pixel) y num de celdas (pixeles):')
-            print('\t\tCelda (pixel) de los ficheros asc (en m):          {}'.format(listaCellSize[:5]))
-            print('\t\tPixel asignado al tif que se crea (en m):          {}'.format(metrosPixelX_Destino))
-            print('\t\tnCeldas de la envolvente de los asc:               {}, {}'.format(nCeldasX_Destino, nCeldasY_Destino))
-            print('\t-> noDataValueDasoVarAsc:                              {}'.format(noDataValueDasoVarAsc))
-            print('{:=^80}'.format(''))
+        myLog.info('\n{:_^80}'.format(''))
+        myLog.info('clidraster-> Algunos datos de las capas input y output:')
+        myLog.info('\t-> Ambito de trabajo:                                  {}'.format(PAR_ambitoTiffNuevo))
+        myLog.info('\t-> Tipo de fichero de referencia (0):                  {}'.format(txtTipoFichero))
+        myLog.info('\t-> Numero de Bloques Procesados                        {}'.format(contadorBloquesProcesando))
+        myLog.info('\t-> Esquina superior izda del fichero tif a generar:    {:0.2f}, {:0.2f}'.format(nMinX_tif, nMaxY_tif))
+        myLog.info('\t\tRango de coordenadas X del fichero tif a generar:  {:0.2f}, {:0.2f}'.format(nMinX_tif, nMaxX_tif))
+        myLog.info('\t\tRango de coordenadas Y del fichero tif a generar:  {:0.2f}, {:0.2f}'.format(nMinY_tif, nMaxY_tif))
+        if PAR_ambitoTiffNuevo.startswith('subLoteAsc'):
+            myLog.info('\t-> Este rango es un cuarto ({}) del lote completo.'.format(AUX_subLoteTiff))
+        if len(listaMetrosBloqueX) == 1 and len(listaMetrosBloqueY) == 1:
+            myLog.info('\t-> Todos los bloques tienen las mismas dimensiones (en m):')
+            myLog.info('\t\tDimensiones X e Y de los ficheros asc (en m):      {}, {}'.format(listaMetrosBloqueX[0], listaMetrosBloqueY[0]))
+        else:
+            myLog.info('\t-> No todos los bloques tienen las mismas dimensiones:')
+            myLog.info('\t\tLista de dimensiones X de los ficheros asc (en m): {}'.format(listaMetrosBloqueX[:5]))
+            myLog.info('\t\tLista de dimensiones Y de los ficheros asc (en m): {}'.format(listaMetrosBloqueY[:5]))
+        myLog.info('\t-> Cellsize (pixel) y num de celdas (pixeles):')
+        myLog.info('\t\tCelda (pixel) de los ficheros asc (en m):          {}'.format(listaCellSize[:5]))
+        myLog.info('\t\tPixel asignado al tif que se crea (en m):          {}'.format(metrosPixelX_Destino))
+        myLog.info('\t\tnCeldas de la envolvente de los asc:               {}, {}'.format(nCeldasX_Destino, nCeldasY_Destino))
+        myLog.info('\t-> noDataValueDasoVarAsc:                              {}'.format(noDataValueDasoVarAsc))
+        myLog.info('{:=^80}'.format(''))
         # ======================================================================
 
         # ======================================================================
         # Bucle para cada fichero
         contadorFicherosIntegrando = 0
-        print('\n{:_^80}'.format(''))
-        print(f'clidraster-> Se van a procesar {len(infilesListTipo0)} bloques con {PAR_nInputVars} tipos de fichero (variables) por bloque.')
+        myLog.info('\n{:_^80}'.format(''))
+        myLog.info(f'clidraster-> Se van a procesar {len(infilesListTipo0)} bloques con {PAR_nInputVars} tipos de fichero (variables) por bloque.')
         if mostrarNumFicheros:
             if PAR_verbose > 1:
-                print(f'\t-> Solo se Muestran los {mostrarNumFicheros} primeros bloques.')
+                myLog.info(f'\t-> Solo se Muestran los {mostrarNumFicheros} primeros bloques.')
         for contadorInFiles, (inputAscDir, inputAscName1) in enumerate(infilesListTipo0):
             codigoBloque = inputAscName1[:8]
             # if PAR_ambitoTiffNuevo != 'FicherosTiffIndividuales' and PAR_ambitoTiffNuevo != 'ConvertirSoloUnFicheroASC':
@@ -1146,29 +1113,26 @@ def crearRasterTiff(
             dictInputAscNameSinPath[0] = inputAscName1
             dictInputAscNameConPath[0] = os.path.join(inputAscDir, dictInputAscNameSinPath[0])
             if not os.path.exists(dictInputAscNameConPath[0]):
-                print('No existe el fichero {}; debe haber un error de codigo'.format(dictInputAscNameConPath[0]))
+                myLog.info('No existe el fichero {}; debe haber un error de codigo'.format(dictInputAscNameConPath[0]))
                 sys.exit(0)
             fileBytes = os.stat(dictInputAscNameConPath[0]).st_size
             if fileBytes <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
-                print('\n{}/{} Fichero sin contenido1: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), inputAscName1))
-                print('\t-> Se pasa al siguiente: {}'.format(inputAscName1))
+                myLog.warning('\n{}/{} Fichero sin contenido1: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), inputAscName1))
+                myLog.warning('\t-> Se pasa al siguiente: {}'.format(inputAscName1))
                 continue
             #===================================================================
             contadorFicherosIntegrando += 1
-            if PAR_verbose > 1:
-                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print('\nProcesando bloque {}/{}:'.format(contadorInFiles + 1, len(infilesListTipo0)))
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                myLog.info(f'{TB}Procesando bloque {contadorInFiles + 1}/{len(infilesListTipo0)}:')
             nInputVar = 0
-            if PAR_verbose > 1:
-                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                myLog.debug(f'\t\t-> Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscName1}')
             try:
                 dictAscFileObjet[0] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
-                if PAR_verbose > 1:
-                    print(f'\t\t\t->> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
+                myLog.debug(f'\t\t\t->> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
             except:
-                print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
+                myLog.error('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                myLog.error('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
                 sys.exit(0)
             #===================================================================
 
@@ -1182,41 +1146,38 @@ def crearRasterTiff(
                     else:
                         (inputAscPathNew, inputAscNameNew) = self_inFilesDictAllTypes[codigoBloque][nInputVar]
 
-                    if PAR_verbose > 1:
-                        if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                            print(f'\t\t-> nFile: {contadorInFiles + 1}; Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscNameNew}')
+                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                        myLog.debug(f'\t\t-> nFile: {contadorInFiles + 1}; Tipo de fichero: {nInputVar} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}): {inputAscNameNew}')
 
                     dictInputAscNameSinPath[nInputVar] = inputAscNameNew
                     dictInputAscNameConPath[nInputVar] = os.path.join(inputAscPathNew, inputAscNameNew)
                     if not os.path.exists(dictInputAscNameConPath[nInputVar]):
-                        print('ATENCION: No se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                        print('\t-> Revisar codigo, porque ha sido previamente localizado.')
+                        myLog.error('ATENCION: No se encuentra el fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                        myLog.error('\t-> Revisar codigo, porque ha sido previamente localizado.')
                         sys.exit(0)
                     fileBytes2 = os.stat(dictInputAscNameConPath[nInputVar]).st_size
                     if fileBytes2 <= 200: # 200 Bytes = 0.2 KB (un asc con solo cabecera tiene 102 B)
-                        print('\n{}/{} Fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
-                        print('\t-> Se pasa al siguiente.')
+                        myLog.warning('\n{}/{} Aviso: fichero sin contenido2: {}'.format(contadorBloquesProcesando, len(infilesListTipo0), dictInputAscNameSinPath[nInputVar]))
+                        myLog.warning('\t-> Se pasa al siguiente.')
                         continue
                     try:
                         dictAscFileObjet[nInputVar] = open(dictInputAscNameConPath[nInputVar], mode='r', buffering=1)  # buffering=1 indica que lea por lineas
-                        if PAR_verbose > 1:
-                            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                                print(f'\t\t\t->> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
+                        if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                            myLog.debug(f'\t\t\t->> Fichero abierto ok: {dictInputAscNameSinPath[nInputVar]}')
                     except:
-                        print('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
-                        print('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
+                        myLog.error('ATENCION: No se ha posido abrir e fichero {}'.format(dictInputAscNameConPath[nInputVar]))
+                        myLog.error('\t-> Revisar disponibilidad del fichero y si esta corrupto.')
                         sys.exit(0)
             #===================================================================
 
-            # print('\nResumen de ficheros abiertos:')
+            # myLog.debug('\nResumen de ficheros abiertos:')
             # for nInputVar in range(PAR_nInputVars):
             #     if nInputVar in dictAscFileObjet.keys():
-            #         print('dictAscFileObjet[{}]: {}'.format(nInputVar, dictAscFileObjet[nInputVar]))
+            #         myLog.debug('dictAscFileObjet[{}]: {}'.format(nInputVar, dictAscFileObjet[nInputVar]))
             #     else:
-            #         print('dictAscFileObjet[{}]: {}'.format(nInputVar, 'No hay fichero'))
-            if PAR_verbose > 1:
-                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print('\t-> Segundo se toma como referencia la cabecera de los ficheros tipo {}: {}'.format(txtTipoFichero, inputAscName1))
+            #         myLog.debug('dictAscFileObjet[{}]: {}'.format(nInputVar, 'No hay fichero'))
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                myLog.debug('\t-> Segundo se toma como referencia la cabecera de los ficheros tipo {}: {}'.format(txtTipoFichero, inputAscName1))
             cabeceraLeida = True
             for nLinea in range(6):
                 alinea1 = dictAscFileObjet[0].readline().split(' ')
@@ -1226,7 +1187,6 @@ def crearRasterTiff(
                         # No uso las cabeceras de los otros ficheros
                         # Para simplificar, asumo que son iguales 
                         alineaX = dictAscFileObjet[nInputVar].readline().split(' ')
-                # print(alinea1)
                 if alinea1[0] == 'ncols':
                     ncolsRef = int(alinea1[1])
                 elif alinea1[0] == 'nrows':
@@ -1251,7 +1211,7 @@ def crearRasterTiff(
             nodata_value -9999
             '''
             if not cabeceraLeida:
-                print('\nATENCION: Error de cabecera en %s \n' % (inputAscName1))
+                myLog.error('\nclidraster-> ATENCION: Error de cabecera en %s \n' % (inputAscName1))
                 input('Pulsa una tecla.....')
                 continue
             nMinX_HeaderAsc = xllcenterRef - (cellsizeRef / 2)
@@ -1316,16 +1276,16 @@ def crearRasterTiff(
             if PAR_ambitoTiffNuevo == 'FicherosTiffIndividuales' and PAR_ambitoTiffNuevo == 'ConvertirSoloUnFicheroASC':
                 # nTipoOutput == 8 or nTipoOutput == 9:
                 # Por el momento creo un raster como el cuadrado que proceso; luego lo grabare a un raster general
-                print('\nCreacion de raster con %ix%i celdas en formato GTiff, 1 banda.' % (ncolsRef, nrowsRef))
+                myLog.debug('\nCreacion de raster con %ix%i celdas en formato GTiff, 1 banda.' % (ncolsRef, nrowsRef))
                 metrosPixelX_Destino, metrosPixelY_Destino = nPixelX_Origen, nPixelY_Origen
                 nCeldasX_Destino, nCeldasY_Destino = nCeldasX_Origen, nCeldasY_Origen
                 nMinX_tif = nMinX_HeaderAsc
                 nMaxY_tif = nMaxY_HeaderAsc
-                print('\tEsquina superior izda:', nMinX_tif, nMaxY_tif)
-                print('\tnCeldasX_Destino, nCeldasY_Destino', nCeldasX_Destino, nCeldasY_Destino)
+                myLog.debug(f'\tEsquina superior izda: {nMinX_tif} {nMaxY_tif}')
+                myLog.debug(f'\tnCeldasX_Destino, nCeldasY_Destino: {nCeldasX_Destino} {nCeldasY_Destino}')
                 # PAR_outputGdalDatatype = gdal.GDT_Float32  # Alternativas: gdal.GDT_Int32, gdal.GDT_Float32, gdal.GDT_Byte
-                print('\n{:_^80}'.format(''))
-                print(f'clidraster-> crearTiff-> Creando raster: {self_LOCLoutFileNameWExtIndi}')
+                myLog.debug('\n{:_^80}'.format(''))
+                myLog.debug(f'clidraster-> crearTiff-> Creando raster: {self_LOCLoutFileNameWExtIndi}')
                 outputDatasetIndi, outputBandIndi1 = CrearOutputRaster(
                     self_LOCLoutPathNameRuta,
                     self_LOCLoutFileNameWExtIndi,
@@ -1348,8 +1308,8 @@ def crearRasterTiff(
 
                 # Creo un ndarray con el contenido de la banda 1 del raster dataset creado
                 arrayBanda1 = outputBandIndi1.ReadAsArray().astype(PAR_outputNpDatatype)
-                print('Creo un ndArray que contiene toda la banda 1: ', type(arrayBanda1), arrayBanda1.dtype)
-                print('Dimensiones del ndArray creado con la banda 1:', arrayBanda1.shape)
+                myLog.debug(f'Creo un ndArray que contiene toda la banda 1:  {type(arrayBanda1)} {arrayBanda1.dtype}')
+                myLog.debug(f'Dimensiones del ndArray creado con la banda 1: {arrayBanda1.shape}')
                 nOffsetX = 0
                 nOffsetY = 0
             else:
@@ -1357,56 +1317,52 @@ def crearRasterTiff(
                 # O para escribir los valores en la ubicacion adecuada de outputBand____1 cuando se carga toda la manda en memoria
                 nOffsetX = int((nMinX_NombreAsc - nMinX_tif) / nPixelX_Origen)  # Numero de celdas del asc
                 nOffsetY = int((nMaxY_NombreAsc - nMaxY_tif) / nPixelY_Origen)  # nPixelY_Origen es negativo
-                if PAR_verbose > 1:
-                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                        print('\t\t-> Coordenadas y dimensiones del bloque:')
-                        if TRNShuso29:
-                            print('\t\t\t-> nMinX nMaxY del asc origen en H29:   {:9.2f}, {:10.2f}'.format(nMinX_HeaderAscH29, nMaxY_HeaderAscH29))
-                            print('\t\t\t-> Dimensiones del asc origen en H29:   {} x {} celdas de pixel {} m. = {} x {} m.'.format(nCeldasX_Origen, nCeldasY_Origen, nPixelX_Origen, rangoX_H29, rangoY_H29))
-                            print('\t\t\t-> \tCoordenadas de bloque transformadas a H30:')
-                            print('\t\t\t-> \t\tnMinX nMaxY del asc origen en H30:   {:9.2f}, {:10.2f}'.format(nMinX_HeaderAsc, nMaxY_HeaderAsc))
-                            try:
-                                print(
-                                    '\t\t\t\tRango del bloque transformado a H30: {:0.2f} x {:0.2f} m. ~> {} pixeles teoricos de {} m.'.format(
-                                        rangoX_H30, rangoY_H30,
-                                        int((rangoX_H30 / cellsizeRef) * (rangoY_H30 / cellsizeRef)),
-                                        nPixelX_Origen
-                                    )
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                    myLog.debug('\t\t-> Coordenadas y dimensiones del bloque:')
+                    if TRNShuso29:
+                        myLog.debug('\t\t\t-> nMinX nMaxY del asc origen en H29:   {:9.2f}, {:10.2f}'.format(nMinX_HeaderAscH29, nMaxY_HeaderAscH29))
+                        myLog.debug('\t\t\t-> Dimensiones del asc origen en H29:   {} x {} celdas de pixel {} m. = {} x {} m.'.format(nCeldasX_Origen, nCeldasY_Origen, nPixelX_Origen, rangoX_H29, rangoY_H29))
+                        myLog.debug('\t\t\t-> \tCoordenadas de bloque transformadas a H30:')
+                        myLog.debug('\t\t\t-> \t\tnMinX nMaxY del asc origen en H30:   {:9.2f}, {:10.2f}'.format(nMinX_HeaderAsc, nMaxY_HeaderAsc))
+                        try:
+                            myLog.debug(
+                                '\t\t\t\tRango del bloque transformado a H30: {:0.2f} x {:0.2f} m. ~> {} pixeles teoricos de {} m.'.format(
+                                    rangoX_H30, rangoY_H30,
+                                    int((rangoX_H30 / cellsizeRef) * (rangoY_H30 / cellsizeRef)),
+                                    nPixelX_Origen
                                 )
-                            except:
-                                print('clidraster-> Revisar este error')
-                        else:
-                            print('\t\t\t-> nMinX nMaxY del asc origen (H30):    {:9.2f}, {:10.2f}'.format(nMinX_HeaderAsc, nMaxY_HeaderAsc))
-                            print('\t\t\t-> Dimensiones del asc origen (H30):    {} x {} celdas de pixel {} m. = {} x {} m.'.format(nCeldasX_Origen, nCeldasY_Origen, nPixelX_Origen, rangoX_H30, rangoY_H30))
-                        print('\t\t\t-> nMinX nMaxY del tif (destino):       {:9.2f}, {:10.2f}'.format(nMinX_tif, nMaxY_tif))
-                        if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
-                            print('\t\t\t-> Dimensiones X & Y del tif destino:   {} x {} celdas de {} m.'.format(outputBandCyL1.XSize, outputBandCyL1.YSize, metrosPixelX_Destino))
-                        else:
-                            print('\t\t\t-> Dimensiones X & Y del tif destino:   {} x {} celdas de {} m.'.format(outputBandLote1.XSize, outputBandLote1.YSize, metrosPixelX_Destino))
-                        print('\t\t\t-> offset X e Y:                        {} {}'.format(nOffsetX, nOffsetY))
+                            )
+                        except:
+                            myLog.critical('clidraster-> Revisar este error')
+                    else:
+                        myLog.debug('\t\t\t-> nMinX nMaxY del asc origen (H30):    {:9.2f}, {:10.2f}'.format(nMinX_HeaderAsc, nMaxY_HeaderAsc))
+                        myLog.debug('\t\t\t-> Dimensiones del asc origen (H30):    {} x {} celdas de pixel {} m. = {} x {} m.'.format(nCeldasX_Origen, nCeldasY_Origen, nPixelX_Origen, rangoX_H30, rangoY_H30))
+                    myLog.debug('\t\t\t-> nMinX nMaxY del tif (destino):       {:9.2f}, {:10.2f}'.format(nMinX_tif, nMaxY_tif))
+                    if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
+                        myLog.debug('\t\t\t-> Dimensiones X & Y del tif destino:   {} x {} celdas de {} m.'.format(outputBandCyL1.XSize, outputBandCyL1.YSize, metrosPixelX_Destino))
+                    else:
+                        myLog.debug('\t\t\t-> Dimensiones X & Y del tif destino:   {} x {} celdas de {} m.'.format(outputBandLote1.XSize, outputBandLote1.YSize, metrosPixelX_Destino))
+                    myLog.debug('\t\t\t-> offset X e Y:                        {} {}'.format(nOffsetX, nOffsetY))
     
                 if nMinX_NombreAsc < nMinX_tif or nMaxX_NombreAsc > nMaxX_tif or nMinY_NombreAsc < nMinY_tif or nMaxY_NombreAsc > nMaxY_tif:
-                    print('\nATENCION: Coordenadas del fichero asc de entrada (%s) fuera del raster generado' % (inputAscName1))
-                    print('Fichero asc de entrada - Rango de coordendas segun el nombre   (x=%i-%i, y=%i-%i)' % (
+                    myLog.warning('\nATENCION: Coordenadas del fichero asc de entrada (%s) fuera del raster generado' % (inputAscName1))
+                    myLog.warning('Fichero asc de entrada - Rango de coordendas segun el nombre   (x=%i-%i, y=%i-%i)' % (
                         nMinX_NombreAsc,
                         nMaxX_NombreAsc,
                         nMinY_NombreAsc,
                         nMaxY_NombreAsc,
                     ))
-                    print('Fichero asc de entrada - Rango de coordendas segun su cabecera (x=%i-%i, y=%i-%i)' % (
+                    myLog.warning('Fichero asc de entrada - Rango de coordendas segun su cabecera (x=%i-%i, y=%i-%i)' % (
                         nMinX_HeaderAsc,
                         nMaxX_HeaderAsc,
                         nMinY_HeaderAsc,
                         nMaxY_HeaderAsc,
                     ))
-                    print('Fichero tif de salida  - Rango de coordendas (x=%i-%i, y=%i-%i)' % (nMinX_tif, nMaxX_tif, nMinY_tif, nMaxY_tif))
+                    myLog.warning('Fichero tif de salida  - Rango de coordendas (x=%i-%i, y=%i-%i)' % (nMinX_tif, nMaxX_tif, nMinY_tif, nMaxY_tif))
                     continue
-    
+
                 # Cargo la arrayBanda1 si no lo he hecho antes
                 if not cargarRasterEnMemoria:
-                    # print('ncolsRef, nrowsRef:', type(ncolsRef), type(nrowsRef), ncolsRef, nrowsRef)
-                    # print(nMinX_NombreAsc, nMinX_tif, nMaxY_tif, nMaxY_NombreAsc)
-                    # print('outputBand1:', type(outputBandLote1), outputBandLote1.XSize, outputBandLote1.YSize)
                     if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
                         arrayBanda1 = outputBandCyL1.ReadAsArray(xoff=nOffsetX, yoff=nOffsetY, win_xsize=int(nCeldasX_Origen), win_ysize=int(nCeldasY_Origen)).astype(
                             PAR_outputNpDatatype
@@ -1421,15 +1377,14 @@ def crearRasterTiff(
             # Traslado los valores del fichero asc al arrayBanda1
             # aInputVals = np.zeros(nrowsRef * ncolsRef * PAR_nInputVars, dtype=np.float32).reshape(nrowsRef, ncolsRef, PAR_nInputVars)
             # aInputVals.fill(noDataValueDasoVarAsc)
-            # print('Numero de filas del fichero ASC:', nrowsRef)
             nMinColumnaAsc = 1E8
             nMinFilaAsc = 1E8
             nMaxColumnaAsc = 0
             nMaxFilaAsc = 0
             if PAR_verbose > 1:
                 if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print('\t-> Se continua leyendo todos los datos en todos los tipos de fichero (todas las variables).')
-                    # print(f'\t\t-> dictAscFileObjet.keys(): {dictAscFileObjet.keys()}')
+                    myLog.debug('\t-> Se continua leyendo todos los datos en todos los tipos de fichero (todas las variables).')
+                    # myLog.debug(f'{TB}{TV}{TV}-> dictAscFileObjet.keys(): {dictAscFileObjet.keys()}')
             # ==================================================================
 
             for nInputVar in range(PAR_nInputVars):
@@ -1450,8 +1405,8 @@ def crearRasterTiff(
                     dictArrayLinea[nInputVar] = strLineaCompleta.split(' ')
                     nColumnas = len(dictArrayLinea[nInputVar]) - 1
                     if nColumnas > ncolsRef:
-                        print('El fichero %s tiene mas columnas (%i) de las que indica su cabecera (%i)' % (dictInputAscNameSinPath[nInputVar], nColumnas, ncolsRef))
-                        print('Revisar ficheros o codigo')
+                        myLog.error('El fichero %s tiene mas columnas (%i) de las que indica su cabecera (%i)' % (dictInputAscNameSinPath[nInputVar], nColumnas, ncolsRef))
+                        myLog.error('Revisar ficheros o codigo')
                         sys.exit(0)
 
                     # nInputVar = 0
@@ -1460,17 +1415,17 @@ def crearRasterTiff(
                     for nColumna in range(ncolsRef):
                         # if not valor1.replace('.', '', 1).isdigit():
                         #     if valor1 != '\n' or valor1 != '\r' or valor1 != '':
-                        #         print(f'ATENCION: Revisar el contenido del fichero {dictInputAscNameSinPath[nInputVar]}, fila de datos {nFila}; no debe tener texto: {valor1}')
+                        #         myLog.error(f'ATENCION: Revisar el contenido del fichero {dictInputAscNameSinPath[nInputVar]}, fila de datos {nFila}; no debe tener texto: {valor1}')
                         #     continue
                         # aInputVals[nFila, nColumna, nInputVar] = np.float32(valor1)
-                        # print('valor1:', valor1, type(valor1), float(valor1))
-    
+                        # myLog.debug(f'valor1: {valor1} {type(valor1)} {float(valor1)}')
+
                         saltarFila = False
                         dictValorVariables = {}
                         txtValorVariable = dictArrayLinea[nInputVar][nColumna]
                         if not txtValorVariable.replace('.', '', 1).replace('-', '', 1).isdigit():
                             if txtValorVariable != '\n' and txtValorVariable != '\r' and txtValorVariable != '':
-                                print(f'ATENCION: Revisar el contenido del fichero {dictInputAscNameSinPath[nInputVar]}, fila de datos num {nFila}: no debe tener texto: {txtValorVariable}')
+                                myLog.error(f'ATENCION: Revisar el contenido del fichero {dictInputAscNameSinPath[nInputVar]}, fila de datos num {nFila}: no debe tener texto: {txtValorVariable}')
                             saltarFila = True
                             continue
                         valorVariableLeida = np.float32(txtValorVariable)
@@ -1507,11 +1462,11 @@ def crearRasterTiff(
                                 nFilaRaster = nFila
     
                         if nFilaRaster < 0 or nColumnaRaster < 0:
-                            print('clidraster-> ATENCION: revisar transformacion de coordenadas.')
+                            myLog.critical('clidraster-> ATENCION: revisar transformacion de coordenadas.')
                             if TRNShuso29:
-                                print('\t-> coordXYH29:', coordXH29, coordYH29)
-                            print('\t-> coordXYH30:', coordX, coordY)
-                            print('\t-> nFilaRaster:', nFilaRaster, 'nColumnaRaster:', nColumnaRaster)
+                                myLog.critical(f'\t-> coordXYH29: {coordXH29} {coordYH29}')
+                            myLog.critical(f'\t-> coordXYH30: {coordX} {coordY}')
+                            myLog.critical(f'\t-> nFilaRaster: {nFilaRaster} nColumnaRaster: {nColumnaRaster}')
                             sys.exit(0)
                         nMinColumnaAsc = min(nMinColumnaAsc, nColumnaRaster)
                         nMinFilaAsc = min(nMinFilaAsc, nFilaRaster)
@@ -1533,11 +1488,11 @@ def crearRasterTiff(
                                     else:
                                         if (ARGSdasoVar.lower()).startswith('alt'):
                                             if valorVariableLeida > 100:
-                                                print('\t-> ATENCION: valor1 de altura excesivo: {}'.format(valorVariableLeida))
+                                                myLog.warning('\t-> Aviso: valor1 de altura excesivo: {}'.format(valorVariableLeida))
                                                 if TRNShuso29:
-                                                    print('\t\t-> coordXYH29: {:9.2f}, {:10.2f}'.format(coordXH29, coordYH29))
-                                                print('\t\t-> coordXYH30: {:9.2f}, {:10.2f}'.format(coordX, coordY))
-                                                print('\t\t-> nFilaRaster: {}; nColumnaRaster: {}'.format(nFilaRaster, nColumnaRaster))
+                                                    myLog.warning('\t\t-> coordXYH29: {:9.2f}, {:10.2f}'.format(coordXH29, coordYH29))
+                                                myLog.warning('\t\t-> coordXYH30: {:9.2f}, {:10.2f}'.format(coordX, coordY))
+                                                myLog.warning('\t\t-> nFilaRaster: {}; nColumnaRaster: {}'.format(nFilaRaster, nColumnaRaster))
                                                 valorVariableLeida = 100
                                             elif valorVariableLeida < 0:
                                                 # Trunco los valores negativos a 0
@@ -1563,15 +1518,15 @@ def crearRasterTiff(
                                     if cartoRefMfe.usarVectorRef:
                                         # arrayMFE = (cartoRefMfe.aCeldasLandUseCover)[::-1]).transpose()
                                         arrayMFE = np.flipud(cartoRefMfe.aCeldasLandUseCover.transpose())
-                                        # print(f'---->> {nFilaRaster} {nColumnaRaster} -> shapes: {dictArrayBandaX[nBandasOutput - 1].shape} {cartoRefMfe.aCeldasLandUseCover.shape} {arrayMFE.shape}')
+                                        # myLog.debug(f'->-> {nFilaRaster} {nColumnaRaster} -> shapes: {dictArrayBandaX[nBandasOutput - 1].shape} {cartoRefMfe.aCeldasLandUseCover.shape} {arrayMFE.shape}')
                                         dictArrayBandaX[nBandasOutput - 1][nFilaRaster, nColumnaRaster] = arrayMFE[nFilaRaster, nColumnaRaster]
-                                        # print(f'---->> outputNBand: {nBandasOutput - 1}, nFilaColuna: {nFilaRaster} {nColumnaRaster}, nTipoMasa: {arrayMFE[nFilaRaster, nColumnaRaster]}')
+                                        # myLog.debug(f'->-> outputNBand: {nBandasOutput - 1}, nFilaColuna: {nFilaRaster} {nColumnaRaster}, nTipoMasa: {arrayMFE[nFilaRaster, nColumnaRaster]}')
                                     else:
-                                        print('\nclidraster-> ATENCION: no se ha podido crear el MFE recortado')
+                                        myLog.error('\nclidraster-> ATENCION: no se ha podido crear el MFE recortado')
                                         sys.exit(0)
 
                             # except:
-                            #     print('Error al escribir tif-> shape: {} nFila: {} nFilaRaster: {} col: {} nColRaster: {} valor1: {}'.format(
+                            #     myLog.error('Error al escribir tif-> shape: {} nFila: {} nFilaRaster: {} col: {} nColRaster: {} valor1: {}'.format(
                             #         arrayBanda1.shape, nFila, nFilaRaster, nColumna, nColumnaRaster, valorVariableLeida
                             #         )
                             #     )
@@ -1582,21 +1537,21 @@ def crearRasterTiff(
                               try:
                                 arrayBanda1[nFilaRaster, nColumnaRaster] = valorVariableLeida
                               except:
-                                print('Valores del fichero asc incorrectos:', valorVariableLeida)
+                                myLog.error('Valores del fichero asc incorrectos: {valorVariableLeida}')
                             else:
-                              print('Coordenadas del punto fuera del raster generado (%s)' % (inputAscName1))
+                              myLog.debug('Coordenadas del punto fuera del raster generado (%s)' % (inputAscName1))
                               if nMinX_NombreAsc==nMinX_HeaderAsc and nMaxX_NombreAsc==nMaxX_HeaderAsc and nMinY_NombreAsc==nMinY_HeaderAsc and nMaxY_NombreAsc==nMaxY_HeaderAsc:
-                                print('Fichero asc de entrada - Rango de coordendas (x=%i-%i, y=%i-%i)' %\
+                                myLog.debug('Fichero asc de entrada - Rango de coordendas (x=%i-%i, y=%i-%i)' %\
                                       (nMinX_NombreAsc, nMaxX_NombreAsc, nMinY_NombreAsc, nMaxY_NombreAsc))
                               else:
-                                print('Fichero asc de entrada - Rango de coordendas segun el nombre   (x=%i-%i, y=%i-%i)' %\
+                                myLog.debug('Fichero asc de entrada - Rango de coordendas segun el nombre   (x=%i-%i, y=%i-%i)' %\
                                       (nMinX_NombreAsc, nMaxX_NombreAsc, nMinY_NombreAsc, nMaxY_NombreAsc))
-                                print('Fichero asc de entrada - Rango de coordendas segun su cabecera (x=%i-%i, y=%i-%i)' %\
+                                myLog.debug('Fichero asc de entrada - Rango de coordendas segun su cabecera (x=%i-%i, y=%i-%i)' %\
                                       (nMinX_HeaderAsc, nMaxX_HeaderAsc, nMinY_HeaderAsc, nMaxY_HeaderAsc))
-                              print('Fichero tif de salida  - Rango de coordendas (x=%i-%i, y=%i-%i)' %\
+                              myLog.debug('Fichero tif de salida  - Rango de coordendas (x=%i-%i, y=%i-%i)' %\
                                       (nMinX_tif, nMaxX_tif, nMinY_tif, nMaxY_tif))
-                              print('Fichero asc de entrada - Posicion de la celda: col=%i, raw=%i' % (nColumna, nFila))
-                              print('Fichero tif de salida  - Posicion de la celda: col=%i, raw=%i (dimensiones: col=%i row=%i)' %\
+                              myLog.debug('Fichero asc de entrada - Posicion de la celda: col=%i, raw=%i' % (nColumna, nFila))
+                              myLog.debug('Fichero tif de salida  - Posicion de la celda: col=%i, raw=%i (dimensiones: col=%i row=%i)' %\
                                     (nColumnaRaster, nFilaRaster, arrayBanda1.shape[1], arrayBanda1.shape[0]))
                             '''
                     if saltarFila:
@@ -1615,16 +1570,14 @@ def crearRasterTiff(
                     nMinTipoMasa = min(nMinTipoMasa, nTipoMasa)
                     nMaxTipoMasa = max(nMaxTipoMasa, nTipoMasa)
 
-            if PAR_verbose > 1:
-                print(f'\t\t-> Ok, datos leidos y guardados en el diccionario dictArrayBandaX con {dictArrayBandaX.keys()} bandas.')
+            myLog.debug(f'\t\t-> Ok, datos leidos y guardados en el diccionario dictArrayBandaX con {dictArrayBandaX.keys()} bandas.')
 
             if integrarFicherosAsc:
                 arrayBandaN = arrayBanda1
 
             # ==================================================================
-            if PAR_verbose > 1:
-                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                    print('\t-> clidraster-> Rellenando posibles huecos (interpolando):')
+            if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                myLog.debug('\t-> clidraster-> Rellenando posibles huecos (interpolando):')
             # Relleno los posibles huecos puntuales que puedan quedar debido a la transformacion de coordenadas
             listaDesplXY = [[-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1]]
             nPixelesAcumConValor = 0
@@ -1686,28 +1639,27 @@ def crearRasterTiff(
                 nPixelesAcumNoDataProvisional += nPixelesNoDataProvisional
                 nPixelesAcumInterpolados += nPixelesInterpolados
 
-                if PAR_verbose > 1:
-                    if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
-                        print(f'\t\t-> outputNBand: {outputNBand}')
-                        print(
-                            '\t\t\t-> Num de pixeles recorridos para rellenar huecos: {} x {} = {}'.format(
-                                nMaxFilaAsc - nMinFilaAsc + 1,
-                                nMaxColumnaAsc - nMinColumnaAsc + 1,
-                                (nMaxFilaAsc - nMinFilaAsc + 1) * (nMaxColumnaAsc - nMinColumnaAsc + 1)
-                            )
+                if mostrarNumFicheros == 0 or contadorInFiles < mostrarNumFicheros:
+                    myLog.debug(f'{TB}{TV}{TV}-> outputNBand: {outputNBand}')
+                    myLog.debug(
+                        '\t\t\t-> Num de pixeles recorridos para rellenar huecos: {} x {} = {}'.format(
+                            nMaxFilaAsc - nMinFilaAsc + 1,
+                            nMaxColumnaAsc - nMinColumnaAsc + 1,
+                            (nMaxFilaAsc - nMinFilaAsc + 1) * (nMaxColumnaAsc - nMinColumnaAsc + 1)
                         )
-                        print(
-                            '\t\t\t-> Numero de pixeles con/sin valor asignado -> conValor: {} (acum: {}); sinValor: {} (acum: {})'.format(
-                                nPixelesConValor, nPixelesAcumConValor,
-                                nPixelesNoDataProvisional, nPixelesAcumNoDataProvisional
-                            )
+                    )
+                    myLog.debug(
+                        '\t\t\t-> Numero de pixeles con/sin valor asignado -> conValor: {} (acum: {}); sinValor: {} (acum: {})'.format(
+                            nPixelesConValor, nPixelesAcumConValor,
+                            nPixelesNoDataProvisional, nPixelesAcumNoDataProvisional
                         )
-                        print(
-                            '\t\t\t-> Numero de pixeles sin valor asignado     -> interpolados: {} (acum: {}); sin interpolar: {}'.format(
-                                nPixelesInterpolados, nPixelesAcumInterpolados,
-                                nPixelesNoDataProvisional - nPixelesInterpolados
-                            )
+                    )
+                    myLog.debug(
+                        '\t\t\t-> Numero de pixeles sin valor asignado     -> interpolados: {} (acum: {}); sin interpolar: {}'.format(
+                            nPixelesInterpolados, nPixelesAcumInterpolados,
+                            nPixelesNoDataProvisional - nPixelesInterpolados
                         )
+                    )
 
             rangoX_H30 = (nMaxX_HeaderAsc - nMinX_HeaderAsc)
             # ==================================================================
@@ -1722,8 +1674,7 @@ def crearRasterTiff(
                         if PAR_generarDasoLayers:
                             if not outputNBand in dictArrayBandaX.keys():
                                 continue
-                        if PAR_verbose > 1:
-                            print('\nAsigno valores de %s al raster (not cargarRasterEnMemoria)...' % (inputAscName1),)
+                        myLog.debug('\nAsigno valores de %s al raster (not cargarRasterEnMemoria)...' % (inputAscName1),)
                         # nFilas = dictArrayBandaX[outputNBand].shape[0]
                         # nColumnas = dictArrayBandaX[outputNBand].shape[1]
                         for nFila in range(dictArrayBandaX[outputNBand].shape[0]):
@@ -1732,8 +1683,7 @@ def crearRasterTiff(
                             dictOutputBandX[outputNBand].WriteArray(nxarray, nOffsetX, nOffsetY + nFila)
                         dictOutputBandX[outputNBand].FlushCache()
                 else:
-                    if PAR_verbose > 1:
-                        print('\nAsigno valores de %s al raster (not cargarRasterEnMemoria)...' % (inputAscName1),)
+                    myLog.debug('\nAsigno valores de %s al raster (not cargarRasterEnMemoria)...' % (inputAscName1),)
                     if PAR_ambitoTiffNuevo == 'rasterDest_CyL':
                         # nFilas = outputBandCyL1.shape[0]
                         # nColumnas = outputBandCyL1.shape[1]
@@ -1754,40 +1704,30 @@ def crearRasterTiff(
                             nxarray.shape = (1, -1)
                             outputBandLote1.WriteArray(nxarray, nOffsetX, nOffsetY + nFila)
                         outputBandLote1.FlushCache()
-                if PAR_verbose > 1:
-                    print('ok WriteArray')
+                myLog.debug('ok WriteArray')
 
         # ======================================================================
-        if PAR_verbose > 2:
+        if PAR_verbose == 3:
             for nInputVar in range(PAR_nInputVars):
                 nBanda = nInputVar + 1
                 if not nBanda in dictArrayBandaX.keys():
-                    print(f'\t\t-> No se puede mostrar fragmento de banda {nBanda}.')
+                    myLog.debug(f'{TB}{TV}{TV}-> No se puede mostrar fragmento de banda {nBanda}.')
                     continue
-                print(f'\t\t-> Muestra de fragmento de banda {nBanda} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}) de shape {dictArrayBandaX[1].shape}:')
+                myLog.debug(f'{TB}{TV}{TV}-> Muestra de fragmento de banda {nBanda} ({self_LOCLlistaDasoVarsFileTypes[nInputVar]}) de shape {dictArrayBandaX[1].shape}:')
                 if dictArrayBandaX[nBanda].shape[0] > 25 and dictArrayBandaX[nBanda].shape[1] > 20:
-                    print('[20:25, 10:20]->', dictArrayBandaX[nBanda][20:25, 10:20])
+                    myLog.debug(f'[20:25, 10:20]-> {dictArrayBandaX[nBanda][20:25, 10:20]}')
                 if dictArrayBandaX[nBanda].shape[0] > 25 and dictArrayBandaX[nBanda].shape[1] > 220:
-                    print('[20:25, 210:220]->', dictArrayBandaX[nBanda][20:25, 210:220])
+                    myLog.debug(f'[20:25, 210:220]-> {dictArrayBandaX[nBanda][20:25, 210:220]}')
                 if dictArrayBandaX[nBanda].shape[0] > 25 and dictArrayBandaX[nBanda].shape[1] > 2320:
-                    print('[20:25, 2310:2320]->', dictArrayBandaX[nBanda][20:25, 2310:2320])
-            # if len(dictArrayBandaX) > 7:
-            #     print(f'\t\t-> Muestra de fragmento de banda 7 (TMasa) de shape {dictArrayBandaX[7].shape}:')
-            #     print('[20:25, 10:20]->', dictArrayBandaX[7][20:25, 10:20])
-            #     print('[20:25, 210:220]->', dictArrayBandaX[7][20:25, 210:220])
+                    myLog.debug(f'[20:25, 2310:2320]-> {dictArrayBandaX[nBanda][20:25, 2310:2320]}')
         # ======================================================================
 
         # ======================================================================
         if contadorFicherosIntegrando == 0:
-            print('Ningun fichero asc cumplia condiciones; raster generado sin contenido')
+            myLog.warning('Ningun fichero asc cumplia condiciones; raster generado sin contenido')
         elif cargarRasterEnMemoria:
-            if PAR_verbose > 1:
-                print('\n{:_^80}'.format(''))
-                print(f'clidraster-> Repasando si quedan valores PAR_noDataTiffProvi ({PAR_noDataTiffProvi}) y pasandolos a PAR_noDataMergeTiff ({PAR_noDataMergeTiff})')
-
-            # print('->->->->-', nFilaRaster, nColumnaRaster, dictArrayBandaX[nBandasOutput - 1])
-            # print('PAR_noDataTiffProvi:', PAR_noDataTiffProvi)
-            # print('noDataValueAsc:', noDataValueAsc)
+            myLog.debug('\n{:_^80}'.format(''))
+            myLog.debug(f'clidraster-> Repasando si quedan valores PAR_noDataTiffProvi ({PAR_noDataTiffProvi}) y pasandolos a PAR_noDataMergeTiff ({PAR_noDataMergeTiff})')
 
             if PAR_generarDasoLayers:
                 for outputNBand in range(1, nBandasOutput + 1):
@@ -1814,11 +1754,10 @@ def crearRasterTiff(
                     #             nPixelesConValorNoData += 1
                     #         else:
                     #             nPixelesConValorSiData += 1
-                    if PAR_verbose > 1:
-                        print('\t-> Banda {}:'.format(outputNBand))
-                        print('\t\t-> nPixelesNoDataProvisional:{}'.format(nPixelesNoDataProvisional))
-                        print('\t\t-> nPixelesConValorNoData:   {}'.format(nPixelesConValorNoData))
-                        print('\t\t-> nPixelesConValorSiData:   {}'.format(nPixelesConValorSiData))
+                    myLog.debug('\t-> Banda {}:'.format(outputNBand))
+                    myLog.debug('\t\t-> nPixelesNoDataProvisional:{}'.format(nPixelesNoDataProvisional))
+                    myLog.debug('\t\t-> nPixelesConValorNoData:   {}'.format(nPixelesConValorNoData))
+                    myLog.debug('\t\t-> nPixelesConValorSiData:   {}'.format(nPixelesConValorSiData))
             else:
                 nPixelesNoDataProvisional = np.count_nonzero(arrayBanda1 == PAR_noDataTiffProvi)
                 nPixelesConValorNoData = np.count_nonzero(arrayBanda1 == PAR_noDataMergeTiff)
@@ -1836,18 +1775,16 @@ def crearRasterTiff(
                 #             nPixelesConValorNoData += 1
                 #         else:
                 #             nPixelesConValorSiData += 1
-                if PAR_verbose > 1:
-                    print('\t-> Banda {}:'.format(1))
-                    print('\t\t-> nPixelesNoDataProvisional:{}'.format(nPixelesNoDataProvisional))
-                    print('\t\t-> nPixelesConValorNoData:   {}'.format(nPixelesConValorNoData))
-                    print('\t\t-> nPixelesConValorSiData:   {}'.format(nPixelesConValorSiData))
+                myLog.debug('\t-> Banda {}:'.format(1))
+                myLog.debug('\t\t-> nPixelesNoDataProvisional:{}'.format(nPixelesNoDataProvisional))
+                myLog.debug('\t\t-> nPixelesConValorNoData:   {}'.format(nPixelesConValorNoData))
+                myLog.debug('\t\t-> nPixelesConValorSiData:   {}'.format(nPixelesConValorSiData))
             if PAR_verbose > 1:
-                print('{:=^80}'.format(''))
+                myLog.debug('{:=^80}'.format(''))
 
             # Escritura en el raster creado:
-            if PAR_verbose > 1:
-                print('\n{:_^80}'.format(''))
-                print('clidraster-> Asignando valores del array al raster...')
+            myLog.debug('\n{:_^80}'.format(''))
+            myLog.debug('clidraster-> Asignando valores del array al raster...')
             if PAR_generarDasoLayers:
 
                 for outputNBand in range(1, nBandasOutput + 1):
@@ -1868,13 +1805,13 @@ def crearRasterTiff(
                     dictOutputBandX[outputNBand].FlushCache()
 
                     if (dictArrayBandaX[nBandasOutput - 1]).all() == PAR_noDataMergeTiff:
-                        print('\nclidraster-> ATENCION: no hay cobertura de MFE en la zona analizada (b):')
-                        print(
+                        myLog.error('\nclidraster-> ATENCION: no hay cobertura de MFE en la zona analizada (b):')
+                        myLog.error(
                             '\t-> Rango de coordenadas UTM de la zona analizada: X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
                                 nMinX_tif, nMaxX_tif, nMinY_tif, nMaxY_tif,
                             )
                         )
-                        print(
+                        myLog.error(
                             '\t-> Rango de coordenadas UTM cubiertas por el MFE: X: {:0.2f} - {:0.2f}; Y: {:0.2f} - {:0.2f}'.format(
                                 cartoRefMfe.inputVectorXmin,
                                 cartoRefMfe.inputVectorXmax,
@@ -1882,28 +1819,29 @@ def crearRasterTiff(
                                 cartoRefMfe.inputVectorYmax,
                             )
                         )
-                        print(
+                        myLog.error(
                             '\t-> Fichero MFE: {}/{}'.format(
                                 PAR_cartoMFEpathName,
                                 PAR_cartoMFEfileName,
                             )
                         )
-                        # print(nFilaRaster, nColumnaRaster, 'dictArrayBandaX[MFE]:', dictArrayBandaX[nBandasOutput - 1])
+                        # myLog.error(f'{nFilaRaster} {nColumnaRaster} dictArrayBandaX[MFE]: {dictArrayBandaX[nBandasOutput - 1]}')
                         sys.exit(0)
 
                     arrayMinVariables[nBandasOutput - 2] = (dictArrayBandaX[nBandasOutput - 1][dictArrayBandaX[nBandasOutput - 1] != PAR_noDataMergeTiff]).max()
                     arrayMinVariables[nBandasOutput - 1] = (dictArrayBandaX[nBandasOutput][dictArrayBandaX[nBandasOutput] != PAR_noDataMergeTiff]).min()
-                    if PAR_verbose:
-                        if nInputVar < len(self_LOCLlistaDasoVarsFileTypes):
-                            if nInputVar < len(arrayMinVariables) and nInputVar < len(arrayMaxVariables):
-                                print(
-                                    f'\t-> ok banda {outputNBand} escrita',
-                                    f'(variable {nInputVar}: {self_LOCLlistaDasoVarsFileTypes[nInputVar]};',
-                                    'Rango: {:0.1f} -> {:0.1f})'.format(arrayMinVariables[nInputVar], arrayMaxVariables[nInputVar])
-                                )
-                            else:
-                                print(f'\t-> ok banda {outputNBand} escrita',
-                                      f'(variable {nInputVar}: {self_LOCLlistaDasoVarsFileTypes[nInputVar]}; Rango: sin datos.')
+                    if nInputVar < len(self_LOCLlistaDasoVarsFileTypes):
+                        if nInputVar < len(arrayMinVariables) and nInputVar < len(arrayMaxVariables):
+                            myLog.info(
+                                f'\t-> ok banda {outputNBand} escrita '
+                                f'(variable {nInputVar}: {self_LOCLlistaDasoVarsFileTypes[nInputVar]}; '
+                                'Rango: {:0.1f} -> {:0.1f})'.format(arrayMinVariables[nInputVar], arrayMaxVariables[nInputVar])
+                            )
+                        else:
+                            myLog.info(
+                                f'\t-> ok banda {outputNBand} escrita '
+                                f'(variable {nInputVar}: {self_LOCLlistaDasoVarsFileTypes[nInputVar]}; Rango: sin datos.'
+                            )
 
             else:
                 # Opcion 1: todo de una vez:
@@ -1924,23 +1862,21 @@ def crearRasterTiff(
                     outputBandCyL1.FlushCache()
                 else:
                     outputBandLote1.FlushCache()
-                if PAR_verbose > 1:
-                    print('ok banda escrita.')
-            if PAR_verbose > 1:
-                print('{:=^80}'.format(''))
+                myLog.error('ok banda escrita.')
+            myLog.error('{:=^80}'.format(''))
 
-        # print('\nInfo sobre el raster destino (generadoo actualizado):')
+        # myLog.debug('\nInfo sobre el raster destino (generadoo actualizado):')
         # infoSrcband(outputBandLote1)
-        print('\n{:_^80}'.format(''))
+        myLog.info('\n{:_^80}'.format(''))
         PAR_nInputVarsOk = 0
         for nInputVar in range(PAR_nInputVars):
             if nInputVar in dictAscFileObjet.keys():
                 PAR_nInputVarsOk += 1
-        print('clidraster-> Resumen de bloques y variables leidos para crear el raster con crearTiff<>:')
-        print(f'\t-> Tipos de fichero localizados: {PAR_nInputVarsOk} de {PAR_nInputVars}')
-        print(f'\t-> Se han leido {contadorFicherosIntegrando} bloques de {len(dictAscFileObjet)} tipos de fichero.')
-        print(f'\t-> Raster creado: {self_LOCLoutPathNameRuta}/{self_LOCLoutFileNameWExtLote}')
-        print('{:=^80}'.format(''))
+        myLog.info('clidraster-> Resumen de bloques y variables leidos para crear el raster con crearTiff<>:')
+        myLog.info(f'{TB}-> Se han leido {contadorFicherosIntegrando} bloques de {len(dictAscFileObjet)} tipos de fichero.')
+        myLog.info(f'{TB}-> Tipos de fichero localizados: {PAR_nInputVarsOk} de {PAR_nInputVars}')
+        myLog.info(f'{TB}-> Raster creado: {self_LOCLoutPathNameRuta}/{self_LOCLoutFileNameWExtLote}')
+        myLog.info('{:=^80}'.format(''))
 
         # if PAR_generarDasoLayers and nBandasOutput >= 2:
         #     outputBand2 = outputDataset.GetRasterBand(2)
@@ -1967,7 +1903,7 @@ def crearRasterTiff(
         del outputDatasetIndi
 
         if not PAR_generarDasoLayers:
-            print('\nok AUX_subLoteTiff: {}'.format(miSubLoteTiff))
+            myLog.debug('\nok AUX_subLoteTiff: {}'.format(miSubLoteTiff))
 
     return (
         noDataDasoVarAll,
@@ -2009,9 +1945,8 @@ def leerMFE(
 ):
     tiempo0 = time.time()
 
-    if PAR_verbose:
-        print('\n{:_^80}'.format(''))
-        print('clidraster-> Se va a leer y recortar el MFE')
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.info('clidraster-> Se va a leer y recortar el MFE')
 
     if PAR_cartoMFEfileSoloExt.lower() == '.shp':
         LOCLinputVectorDriverNameMFE = 'ESRI Shapefile'
@@ -2021,23 +1956,22 @@ def leerMFE(
         LOCLinputVectorDriverNameMFE = 'GPKG'
     else:
         LOCLinputVectorDriverNameMFE = ''
-        print(f'clidraster-> No se ha identificado bien el driver de esta extension: {PAR_cartoMFEfileSoloExt} (fichero: {PAR_cartoMFEpathName})')
+        myLog.error(f'clidraster-> No se ha identificado bien el driver de esta extension: {PAR_cartoMFEfileSoloExt} (fichero: {PAR_cartoMFEpathName})')
         sys.exit(0)
 
     miRutaCartoRecortes = miOutputDir
     
     subDirCapaInputVector = ''
 
-    if PAR_verbose > 1:
-        print('Buscando capa MFE para generar un raster con:')
-        print('\t-> xSupIzda:      ', xSupIzda)
-        print('\t-> myLasHead.xmin:', myLasHead.xmin)
-        print('\t-> sHead.xSupIzda:', myLasHead.xSupIzda)
-        print('\t-> ySupIzda:      ', ySupIzda)
-        print('\t-> myLasHead.ymax:', myLasHead.ymax)
-        print('\t-> sHead.ySupIzda:', myLasHead.ySupIzda)
-        print('\t-> nCeldasX:      ', nCeldasX)
-        print('\t-> nCeldasY:      ', nCeldasY)
+    myLog.debug('Buscando capa MFE para generar un raster con:')
+    myLog.debug(f'{TB}{TV}-> xSupIzda:       {xSupIzda}')
+    myLog.debug(f'{TB}{TV}-> myLasHead.xmin: {myLasHead.xmin}')
+    myLog.debug(f'{TB}{TV}-> sHead.xSupIzda: {myLasHead.xSupIzda}')
+    myLog.debug(f'{TB}{TV}-> ySupIzda:       {ySupIzda}')
+    myLog.debug(f'{TB}{TV}-> myLasHead.ymax: {myLasHead.ymax}')
+    myLog.debug(f'{TB}{TV}-> sHead.ySupIzda: {myLasHead.ySupIzda}')
+    myLog.debug(f'{TB}{TV}-> nCeldasX:       {nCeldasX}')
+    myLog.debug(f'{TB}{TV}-> nCeldasY:       {nCeldasY}')
 
     cartoRefUsoSingular = clidcarto.CartoRefVector(
         myLasHead,
@@ -2065,12 +1999,11 @@ def leerMFE(
                 rasterLeidoOk = cartoRefUsoSingular.leerElRasterYaRecortado()
                 cartoRefUsoSingular.usarVectorRef = 1 * rasterLeidoOk
                 if rasterLeidoOk:
-                    if PAR_verbose:
-                        print(
-                            'clidraster-> CartoRef de usos singulares: capa tif recortada ahora leida ok: {}'.format(
-                                rasterLeidoOk
-                            )
+                    myLog.info(
+                        'clidraster-> CartoRef de uso/cobertura: capa recortada ok & recorte leido ok: {}'.format(
+                            rasterLeidoOk
                         )
+                    )
                 else:
                     cartoRefUsoSingular.usarVectorRef = 0
             else:
@@ -2078,23 +2011,22 @@ def leerMFE(
         else:
             cartoRefUsoSingular.usarVectorRef = 0
     else:
-        print(
-            'clidraster-> No se usa cartoRef MFE-> usarVectorRef: {}'.format(
+        myLog.warning(
+            'clidraster-> Avido: no se usa cartoRef MFE-> usarVectorRef: {}'.format(
                 cartoRefUsoSingular.usarVectorRef
             )
         )
-    if PAR_verbose:
-        print(
-            'clidraster-> Asignar celdas con uso singular (cartoRef)?-> usarVectorRef: {}'.format(
-                cartoRefUsoSingular.usarVectorRef
-            )
+    myLog.debug(
+        'clidraster-> Asignar celdas con uso singular (cartoRef)?-> usarVectorRef: {}'.format(
+            cartoRefUsoSingular.usarVectorRef
         )
-#�
+    )
+
     if cartoRefUsoSingular.usarVectorRef:
         cartoRefUsoSingular.asignarUsoSingularArrayCeldas()
     else:
-        print(
-            '\nclidraster-> Revisar la causa por la que no es posible usar la capa singularUse {}.[shp/gpkg]'.format(
+        myLog.warning(
+            '\nclidraster-> Aviso: revisar la causa por la que no es posible usar la capa singularUse {}.[shp/gpkg]'.format(
                 PAR_cartoMFEfileNSinExt
             )
         )
@@ -2120,17 +2052,16 @@ def leerMFE(
     #     miRasterRefCoordenadas = [vectorRefMinX, vectorRefMaxX, vectorRefMinY, vectorRefMaxY]
     # Nota: miRasterRefCoordenadas incluye miRasterRefMinXY (esta ultima sobra)
     tiempo1 = time.time()
-    if PAR_verbose:
-        print(
-            'clidraster-> Tiempo para leer capa vector singularUse y asignarUsoSingularArrayCeldas: {:0.1f} segundos'.format(
-                (tiempo1 - tiempo0)
-            )
+    myLog.info(
+        'clidraster-> Tiempo para leer capa vector singularUse y asignarUsoSingularArrayCeldas: {:0.1f} segundos'.format(
+            (tiempo1 - tiempo0)
         )
-        if cartoRefUsoSingular.usarVectorRef:
-            print('clidraster-> Capa MFE leida ok')
-        else:
-            print('clidraster-> AVISO: tipo de bosque no disponible (ver causa mas arriba)')
-        print('{:=^80}'.format(''))
+    )
+    if cartoRefUsoSingular.usarVectorRef:
+        myLog.info('clidraster-> Capa MFE leida ok')
+    else:
+        myLog.warning('clidraster-> AVISO: tipo de bosque no disponible (ver causa mas arriba)')
+    myLog.info('{:=^80}'.format(''))
 
     return cartoRefUsoSingular
 
@@ -2211,9 +2142,9 @@ def CrearOutputRaster(
     driver = gdal.GetDriverByName(PAR_outRasterDriver)
 
     #   metadata = driver.GetMetadata()
-    #   print(metadata.keys())
+    #   myLog.debug(metadata.keys())
     #   for clave in metadata.keys():
-    #     print(clave, metadata[clave])
+    #     myLog.debug(f'{clave} {metadata[clave]}')
     #   #Algunas de interes:
     #   #DMD_CREATIONDATATYPES Byte UInt16 Int16 UInt32 Int32 Float32 Float64 CInt16 CInt32 CFloat32 CFloat64
     #   #DMD_CREATIONOPTIONLIST (para verlo bien sustituyo "> " por ">\n " (aqui o en notepad++)
@@ -2298,40 +2229,38 @@ def CrearOutputRaster(
     #   print
     #   if metadata.has_key(gdal.DCAP_CREATE) \
     #      and metadata[gdal.DCAP_CREATE] == 'YES':
-    #       print('Driver %s supports Create() method.' % PAR_outRasterDriver)
+    #       myLog.debug('Driver %s supports Create() method.' % PAR_outRasterDriver)
     #   if metadata.has_key(gdal.DCAP_CREATECOPY) \
     #      and metadata[gdal.DCAP_CREATECOPY] == 'YES':
-    #       print('Driver %s supports CreateCopy() method.' % PAR_outRasterDriver)
+    #       myLog.debug('Driver %s supports CreateCopy() method.' % PAR_outRasterDriver)
     #   input('$$$$$')
 
     miOutputFileNameConPath = os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt)
 
-    if LCL_verbose:
-        # print('{:_^80}'.format(''))
-        if generarMetaPixeles:
-            print('\t-> El nuevo raster con metaPixeles del tipo de masa seleccionado:')
-        else:
-            print('\t-> El nuevo raster incluye las variables dasoLidar, el tipo de bosque y el tipo de masa:')
-        print('\t\t{}'.format(miOutputFileNameConPath))
-        print('\t-> PAR_outRasterDriver:    {}'.format(PAR_outRasterDriver))
-        print('\t-> bandas:                 {}'.format(nBandasOutput))
-        print('\t-> PAR_outputNpDatatype:   {}'.format(PAR_outputNpDatatype))
-        print('\t-> PAR_outputGdalDatatype: {}'.format(PAR_outputGdalDatatype))
-        print('\t-> noDataValueDasoVarAsc:  {}'.format(noDataValueDasoVarAsc))
-        print('\t-> PAR_noDataTiffProvi:    {}'.format(PAR_noDataTiffProvi))
-        print('\t-> PAR_noDataMergeTiff:    {}'.format(PAR_noDataMergeTiff))
-        print('\t-> shape (X x Y):          {} x {}'.format(nCeldasX_Destino, nCeldasY_Destino))
-        if LCL_convertirAlt:
-            print('\t-> PAR_noDataMergeTiff:    {}'.format(PAR_noDataMergeTiff))
-        print('\t-> PAR_outputOptions:      {}'.format(PAR_outputOptions))
+    # myLog.debug('{:_^80}'.format(''))
+    if generarMetaPixeles:
+        myLog.debug('\t-> El nuevo raster con metaPixeles del tipo de masa seleccionado:')
+    else:
+        myLog.debug('\t-> El nuevo raster incluye las variables dasoLidar, el tipo de bosque y el tipo de masa:')
+    myLog.debug('\t\t{}'.format(miOutputFileNameConPath))
+    myLog.debug('\t-> PAR_outRasterDriver:    {}'.format(PAR_outRasterDriver))
+    myLog.debug('\t-> bandas:                 {}'.format(nBandasOutput))
+    myLog.debug('\t-> PAR_outputNpDatatype:   {}'.format(PAR_outputNpDatatype))
+    myLog.debug('\t-> PAR_outputGdalDatatype: {}'.format(PAR_outputGdalDatatype))
+    myLog.debug('\t-> noDataValueDasoVarAsc:  {}'.format(noDataValueDasoVarAsc))
+    myLog.debug('\t-> PAR_noDataTiffProvi:    {}'.format(PAR_noDataTiffProvi))
+    myLog.debug('\t-> PAR_noDataMergeTiff:    {}'.format(PAR_noDataMergeTiff))
+    myLog.debug('\t-> shape (X x Y):          {} x {}'.format(nCeldasX_Destino, nCeldasY_Destino))
+    if LCL_convertirAlt:
+        myLog.debug('\t-> PAR_noDataMergeTiff:    {}'.format(PAR_noDataMergeTiff))
+    myLog.debug('\t-> PAR_outputOptions:      {}'.format(PAR_outputOptions))
 
     if os.path.exists(miOutputFileNameConPath):
-        if LCL_verbose:
-            print('\t-> El fichero ya existe; se elimina antes de crearlo de nuevo.')
+        myLog.info('\t-> El fichero ya existe; se elimina antes de crearlo de nuevo.')
         try:
             os.remove(miOutputFileNameConPath)
         except:
-            print(f'\n-> Comprobar si el fichero {miOutputFileNameConPath} esta bloqueado en uso por Qgis u otra aplicacion y ejecutar de nuevo.')
+            myLog.error(f'\n-> Comprobar si el fichero {miOutputFileNameConPath} esta bloqueado en uso por Qgis u otra aplicacion y ejecutar de nuevo.')
             sys.exit(0)
 
     outputDataset = driver.Create(
@@ -2349,9 +2278,8 @@ def CrearOutputRaster(
     # targetSR.SetWellKnownGeogCS( 'EPSG:4258' ) #ETRS89
     targetSR.SetWellKnownGeogCS('EPSG:3042')  # ETRS89 UTM30
     outputDataset.SetProjection(targetSR.ExportToWkt())
-    if LCL_verbose:
-        print('\t-> Sistema de proyeccion del raster creado:', outputDataset.GetProjection())
-        print('\t-> Dimensiones del raster creado: Filas (Y)->', outputDataset.RasterYSize, 'Columnas (X)->', outputDataset.RasterXSize)
+    myLog.debug(f'{TB}{TV}-> Sistema de proyeccion del raster creado: {outputDataset.GetProjection()}')
+    myLog.debug(f'{TB}{TV}-> Dimensiones del raster creado: Filas (Y)-> {outputDataset.RasterYSize} Columnas (X)-> {outputDataset.RasterXSize}')
     if PAR_outputNpDatatype == 1:
         # Accedo a su banda 1
         outputBand1 = outputDataset.GetRasterBand(1)
@@ -2363,12 +2291,11 @@ def CrearOutputRaster(
 
     if PAR_generarDasoLayers:
         # self_LOCLmergedUniCellAllDasoVarsFileNameSinPath => multiDasoLayer
-        if LCL_verbose:
-            print('\t-> Asignando noData para dasoLayers:')
-            print('\t\t-> Asignando propiedad noData:    noDataValueDasoVarAsc = {}'.format(noDataValueDasoVarAsc))
-            # print('\t\t-> Asignando propiedad noData ->     PAR_noDataMergeTiff = {}'.format(PAR_noDataMergeTiff))
-            print('\t\t\t-> Se usa este noData porque hay una variable alturas')
-            print('\t\t-> Pero rellenando provisionalmente: PAR_noDataTiffProvi = {}'.format(PAR_noDataTiffProvi))
+        myLog.debug('\t-> Asignando noData para dasoLayers:')
+        myLog.debug('\t\t-> Asignando propiedad noData:    noDataValueDasoVarAsc = {}'.format(noDataValueDasoVarAsc))
+        # myLog.debug('\t\t-> Asignando propiedad noData ->     PAR_noDataMergeTiff = {}'.format(PAR_noDataMergeTiff))
+        myLog.debug('\t\t\t-> Se usa este noData porque hay una variable alturas')
+        myLog.debug('\t\t-> Pero rellenando provisionalmente: PAR_noDataTiffProvi = {}'.format(PAR_noDataTiffProvi))
         for outputNBand in range(1, nBandasOutput + 1):
             outputBandN = outputDataset.GetRasterBand(outputNBand)
             outputBandN.SetNoDataValue(noDataValueDasoVarAsc)
@@ -2380,13 +2307,12 @@ def CrearOutputRaster(
                 try:
                     outputBandN.WriteArray(nxarray, 0, loteDeFilas * j)
                 except:
-                    print('\t-> (a) Ha ocurrido un problema asignando PAR_noDataTiffProvi ({}):'.format(PAR_noDataTiffProvi), j)
+                    myLog.critical('\t-> clidraster-> Aviso: (a) ha ocurrido un problema asignando PAR_noDataTiffProvi ({}):'.format(PAR_noDataTiffProvi), j)
     elif generarMetaPixeles:
         # outputTipoMasa => tipoMasaLayer
         # outputCluster  => dasoClusterLayer
-        if LCL_verbose:
-            print('\t-> Asignando noData para MetaPixeles:')
-            print('\t\t-> Asignando propiedad noData:      noDataValueDasoVarAsc = {}'.format(noDataValueDasoVarAsc))
+        myLog.debug('\t-> Asignando noData para MetaPixeles:')
+        myLog.debug('\t\t-> Asignando propiedad noData:      noDataValueDasoVarAsc = {}'.format(noDataValueDasoVarAsc))
         for outputNBand in range(1, nBandasOutput + 1):
             outputBandN = outputDataset.GetRasterBand(outputNBand)
             outputBandN.SetNoDataValue(noDataValueDasoVarAsc)
@@ -2398,22 +2324,19 @@ def CrearOutputRaster(
                 try:
                     outputBandN.WriteArray(nxarray, 0, loteDeFilas * j)
                 except:
-                    print('\t-> (a) Ha ocurrido un problema asignando PAR_noDataTiffProvi ({}):'.format(PAR_noDataTiffProvi), j)
+                    myLog.critical('\t-> clidraster-> Aviso: (a) ha ocurrido un problema asignando PAR_noDataTiffProvi ({}):'.format(PAR_noDataTiffProvi), j)
     else:
         if LCL_convertirAlt:
-            if LCL_verbose:
-                print('\t.> Asignando PAR_noDataMergeTiff = {}...'.format(PAR_noDataMergeTiff))
+            myLog.debug('\t.> Asignando PAR_noDataMergeTiff = {}...'.format(PAR_noDataMergeTiff))
             outputBand1.SetNoDataValue(PAR_noDataMergeTiff)
         else:
-            if LCL_verbose:
-                print('\t-> Asignando noDataValueDasoVarAsc = {}...'.format(noDataValueDasoVarAsc))
+            myLog.debug('\t-> Asignando noDataValueDasoVarAsc = {}...'.format(noDataValueDasoVarAsc))
             outputBand1.SetNoDataValue(noDataValueDasoVarAsc)
         loteDeFilas = 1  # i.e. the number of rows to write with each iteration
         # nxarray = np.ones(outputBand1.XSize*loteDeFilas, dtype=np.int16).reshape(outputBand1.XSize,loteDeFilas)
         # nxarray.fill(noDataValueDasoVarAsc)
         # nxarray = np.ones(outputBand1.XSize) * noDataValueDasoVarAsc
-        if LCL_verbose:
-            print('\t\t-> Pero rellenando provisionalmente con PAR_noDataTiffProvi = {}...'.format(PAR_noDataTiffProvi))
+        print('\t\t-> Pero rellenando provisionalmente con PAR_noDataTiffProvi = {}...'.format(PAR_noDataTiffProvi))
         nxarray = np.ones(outputBand1.XSize) * PAR_noDataTiffProvi
         nxarray = nxarray[::-1]
         nxarray.shape = (1, -1)
@@ -2421,9 +2344,8 @@ def CrearOutputRaster(
             try:
                 outputBand1.WriteArray(nxarray, 0, loteDeFilas * j)
             except:
-                print('\t-> (c) Ha ocurrido un problema asignando noDataValueDasoVarAsc ({}):'.format(PAR_noDataTiffProvi), j)
-    # print('\t-> ok')
-    # print('{:=^80}'.format(''))
+                myLog.critical('\t-> clidraster-> Aviso: (c) ha ocurrido un problema asignando noDataValueDasoVarAsc ({}):'.format(PAR_noDataTiffProvi), j)
+    # myLog.debug('{:=^80}'.format(''))
 
     return (outputDataset, outputBand1)
 

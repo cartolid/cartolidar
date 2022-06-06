@@ -18,6 +18,33 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 import sys
 import logging
 
+# Recuperar la captura de errores de importacion en la version beta
+# try:
+if True:
+    from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
+    from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
+    from cartolidar.clidtools.clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
+# except:
+#     from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
+#     from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
+#     from .clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
+
+# from . import clidtwins # Inlcuye DasoLidarSource, mostrarListaDrivers, etc.
+# from . import clidtwcfg # Incluye GLO, que es una variable publica del modulo clidtwcfg
+
+
+# ==============================================================================
+# __all__ = [
+#     'clidtwins',
+#     'clidtwcfg',
+# ]
+# Variables, clases y funciones que se importan con: from clidtwins import *
+__all__ = [
+    'GLO',
+    'DasoLidarSource',
+    'mostrarListaDrivers'
+]
+# ==============================================================================
 __version__ = '0.0a3'
 __updated__ = '2022-06-01'
 # No se importa nada con: from qlidtwins import *
@@ -72,26 +99,3 @@ myLog.debug(f'{TB}-> __name__:     <{__name__}>')
 myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
 # ==============================================================================
-
-# from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
-# from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
-# from cartolidar.clidtools.clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
-
-from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
-from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
-from .clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
-
-# Variables, clases y funciones que se importan con: from clidtwins import *
-__all__ = [
-    'GLO',
-    'DasoLidarSource',
-    'mostrarListaDrivers'
-]
-
-# from . import clidtwins # Inlcuye DasoLidarSource, mostrarListaDrivers, etc.
-# from . import clidtwcfg # Incluye GLO, que es una variable publica del modulo clidtwcfg
-# __all__ = [
-#     'clidtwins',
-#     'clidtwcfg',
-# ]
-
