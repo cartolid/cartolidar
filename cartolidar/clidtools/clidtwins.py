@@ -49,7 +49,7 @@ except:
 #     gdalOk = True
 # except:
 #     gdalOk = False
-#     sys.stderr.write('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo')
+#     sys.stderr.write('clidtwins-> Tampoco se ha podido cargar desde la carpeta osgeo')
 #     sys.exit(0)
 
 # Recuperar la captura de errores de importacion en la version beta
@@ -93,6 +93,7 @@ else:
     __quiet__ = 0
 # ==============================================================================
 # TB = '\t'
+TW = ' ' * 2
 TB = ' ' * 12
 TV = ' ' * 3
 # ==============================================================================
@@ -1417,6 +1418,7 @@ and two more layers for forest type (land cover) and stand type.
             LCL_patronVectrName=None,
             LCL_patronLayerName=None,
             LCL_patronFieldName=None,
+            LCL_tipoDeMasaSelec=None,
         ):
         f"""Analize the dasoLidar Variables included in the created raster file (with one band for every DLV).
         ----------
@@ -1425,6 +1427,8 @@ and two more layers for forest type (land cover) and stand type.
         LCL_patronLayerName : str
             Default: None (optional)
         LCL_patronFieldName : str
+            Default: None (optional)
+        LCL_tipoDeMasaSelec : str
             Default: None (optional)
         """
         #===========================================================================
@@ -1446,13 +1450,13 @@ and two more layers for forest type (land cover) and stand type.
             self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
         else:
             self.LOCLpatronLayerName = LCL_patronLayerName
-        if LCL_patronLayerName is None:
+        if LCL_patronFieldName is None:
             self.LOCLpatronFieldName = GLO.GLBLpatronFieldNamePorDefecto
         else:
-            self.LOCLpatronFieldName = LCL_patronLayerName
+            self.LOCLpatronFieldName = LCL_patronFieldName
+        self.LOCLtipoDeMasaSelec = LCL_tipoDeMasaSelec
 
-
-        #===========================================================================
+        #=======================================================================
         (
             self.outputRangosFileTxtSinPath,
             self.outputRangosFileNpzSinPath,
@@ -1483,6 +1487,7 @@ and two more layers for forest type (land cover) and stand type.
             self_LOCLpatronVectrName=self.LOCLpatronVectrName,
             self_LOCLpatronLayerName=self.LOCLpatronLayerName,
             self_LOCLpatronFieldName=self.LOCLpatronFieldName,
+            self_LOCLtipoDeMasaSelec=self.LOCLtipoDeMasaSelec,
             self_LOCLlistLstDasoVars=self.LOCLlistLstDasoVars,
 
             self_nCeldasX_Destino=self.nCeldasX_Destino,
@@ -1802,7 +1807,7 @@ and two more layers for forest type (land cover) and stand type.
         )
         # myLog.debug('clidtwins-> Matriz de distancias:')
         # myLog.debug(matrizDeDistancias[:5,:5])
-        myLog.info(f'clidtwins-> Resumen del match:')
+        myLog.info(f'clidtwins-> Resumen del match: (TM: {self.LOCLtipoDeMasaSelec})')
         myLog.info(f'{TB}-> tipoBosqueOk:             {tipoBosqueOk}')
         myLog.info(f'{TB}-> nVariablesNoOk:           {nVariablesNoOk}')
         myLog.info(f'{TB}-> matrizDeDistancias.shape: {matrizDeDistancias.shape}') 
@@ -1874,10 +1879,10 @@ and two more layers for forest type (land cover) and stand type.
         else:
             self.LOCLradioClusterPix = LCL_radioClusterPix
 
-        self.outputClusterAllDasoVarsFileNameSinPath = '{}_{}.{}'.format('clusterAllDasoVars', self.idInputDir, self.driverExtension)
-        self.outputClusterTiposDeMasaFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasa', self.idInputDir, self.driverExtension)
-        self.outputClusterDistanciaEuFileNameSinPath = '{}_{}.{}'.format('clusterDistanciaEu', self.idInputDir, self.driverExtension)
-        self.outputClusterFactorProxiFileNameSinPath = '{}_{}.{}'.format('clusterFactorProxi', self.idInputDir, self.driverExtension)
+        self.outputClusterAllDasoVarsFileNameSinPath = '{}_{}_TM{}.{}'.format('clusterAllDasoVars', self.idInputDir, self.LOCLtipoDeMasaSelec, self.driverExtension)
+        self.outputClusterTiposDeMasaFileNameSinPath = '{}_{}_TM{}.{}'.format('clusterTiposDeMasa', self.idInputDir, self.LOCLtipoDeMasaSelec, self.driverExtension)
+        self.outputClusterDistanciaEuFileNameSinPath = '{}_{}_TM{}.{}'.format('clusterDistanciaEu', self.idInputDir, self.LOCLtipoDeMasaSelec, self.driverExtension)
+        self.outputClusterFactorProxiFileNameSinPath = '{}_{}_TM{}.{}'.format('clusterFactorProxi', self.idInputDir, self.LOCLtipoDeMasaSelec, self.driverExtension)
         if self.LOCLverbose:
             myLog.info('\n{:_^80}'.format(''))
             myLog.info('clidtwins-> Ficheros que se generan:')
@@ -3163,7 +3168,7 @@ def obtenerExtensionDeCapaVectorial(
         myLog.error('\nclidtwins-> ATENCION: Gdal no disponible; no se puede leer %s' % (patronVectrNameConPath))
         sys.exit(0)
 
-    myLog.info(f'clidtwins-> Leyendo capa vectorial:')
+    myLog.info(f'clidtwins-> Obteniendo extension de la capa vectorial:')
     myLog.info(f'{TB}-> File {patronVectrNameConPath}')
     if (LOCLvectorFileName.lower()).endswith('.shp'):
         LOCLPatronVectorDriverName = 'ESRI Shapefile'
@@ -3223,12 +3228,131 @@ def obtenerExtensionDeCapaVectorial(
     myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorYmin}')
     myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorYmax}')
 
+    # Cierro la capa
+    patronVectorRefDataSource = None
+
     return (
         patronVectorXmin,
         patronVectorXmax,
         patronVectorYmin,
         patronVectorYmax,
     )
+
+
+# ==============================================================================
+def comprobarTipoMasaDeCapaVectorial(
+        LOCLrutaAscBase,
+        LOCLvectorFileName,
+        LOCLlayerName=None,
+        LOCLpatronFieldName=None,
+        LOCLtipoDeMasaSelec=None,
+        LOCLverbose=False,
+    ):
+    (usarVectorFileParaDelimitarZona, patronVectrNameConPath) = verificarExistencia(
+        LOCLvectorFileName,
+        LOCLrutaAscBase=LOCLrutaAscBase,
+        )
+    if not usarVectorFileParaDelimitarZona:
+        myLog.error(f'\nclidtwins-> ATENCION: verificando tipoDeMasa, no esta disponible el fichero: {patronVectrNameConPath}')
+        return None
+    if not gdalOk:
+        myLog.error('\nclidtwins-> ATENCION: Gdal no disponible; no se puede leer %s' % (patronVectrNameConPath))
+        sys.exit(0)
+    myLog.info(f'clidtwins-> Verificando poligono(s) con tipoDeMasa )patron) seleccionado:')
+    myLog.info(f'{TB}-> File {patronVectrNameConPath}')
+
+    if (LOCLvectorFileName.lower()).endswith('.shp'):
+        LOCLPatronVectorDriverName = 'ESRI Shapefile'
+    elif (LOCLvectorFileName.lower()).endswith('.gpkg'):
+        # Ver mas en https://gdal.org/drivers/vector/gpkg.html
+        # Ver tb https://gdal.org/drivers/raster/gpkg.html#raster-gpkg
+        LOCLPatronVectorDriverName = 'GPKG'
+    else:
+        LOCLPatronVectorDriverName = ''
+        myLog.critical(f'clidtwins-> No se ha identificado bien el driver para este fichero: {patronVectrNameConPath}')
+        sys.exit(0)
+    if LOCLverbose > 1:
+        myLog.debug(f'{TB}{TV}-> Driver: {LOCLPatronVectorDriverName}')
+
+    inputVectorRefOgrDriver = ogr.GetDriverByName(LOCLPatronVectorDriverName)
+    if inputVectorRefOgrDriver is None:
+        myLog.error('\nclidtwins-> ATENCION: el driver {} no esta disponible.'.format(LOCLPatronVectorDriverName))
+        sys.exit(0)
+    try:
+        patronVectorRefDataSource = inputVectorRefOgrDriver.Open(patronVectrNameConPath, 0)  # 0 means read-only. 1 means writeable.
+    except:
+        myLog.error('\nclidtwins-> No se puede abrir {}-> revisar si esta corrupto, faltan ficheros o esta bloqueado'.format(patronVectrNameConPath))
+        sys.exit(0)
+    try:
+        if LOCLlayerName == '' or LOCLlayerName is None or (LOCLvectorFileName.lower()).endswith('.shp'):
+            # or LOCLlayerName == 'None':
+            patronVectorRefLayer = patronVectorRefDataSource.GetLayer()
+        else:
+            # Ver: https://developer.ogc.org/samples/build/python-osgeo-gdal/text/load-data.html#using-the-gdal-ogr-library
+            # Ver tb: https://pcjericks.github.io/py-gdalogr-cookbook/vector_layers.html
+            # Ver tb: https://gdal.org/tutorials/vector_api_tut.html
+            # Para editar los registros de forma rápida usar StartTransaction:
+            #  https://gis.stackexchange.com/questions/277587/why-editing-a-geopackage-table-with-ogr-is-very-slow
+            myLog.info(f'{TB}{TV}-> Layer: {LOCLlayerName}')
+            patronVectorRefLayer = patronVectorRefDataSource.GetLayer(LOCLlayerName)
+    except:
+        myLog.error(
+            '\nclidtwins-> ATENCION: el fichero {} no tiene al layer {} (o da error al intentar leerlo).'.format(
+                patronVectrNameConPath,
+                LOCLlayerName
+            )
+        )
+        myLog.error(f'{TB}-> LOCLlayerName: {LOCLlayerName} {type(LOCLlayerName)}')
+        sys.exit(0)
+    if patronVectorRefLayer is None:
+        myLog.error(
+            '\nclidtwins-> ATENCION: el fichero {} no tiene al layer {} (o no esta accesible).'.format(
+                patronVectrNameConPath,
+                LOCLlayerName
+            )
+        )
+        myLog.error(f'{TB}-> LOCLlayerName: {LOCLlayerName} {type(LOCLlayerName)}')
+        sys.exit(0)
+    # patronVectorRefFeatureCount = patronVectorRefLayer.GetFeatureCount()
+
+    myLog.info(f'{TB}{TV}-> Campo tipoDeMasa: {LOCLpatronFieldName}')
+    featureDefnAll = patronVectorRefLayer.GetLayerDefn()
+    listaCampos = []
+    for nCampo in range(featureDefnAll.GetFieldCount()):
+        listaCampos.append(featureDefnAll.GetFieldDefn(nCampo).GetName())
+    myLog.debug(f'{TW}clidtwins-> listaCampos: {listaCampos}')
+    if LOCLpatronFieldName in listaCampos:
+        tipoDeMasaField = True
+    else:
+        tipoDeMasaField = False
+        myLog.error(f'{TW}clidtwins-> ATENCION: la capa {LOCLvectorFileName} no incluye el campo {LOCLpatronFieldName}')
+        return (False, False, [None])
+
+    listaTM = []
+    nFeature = 0
+    for feature in patronVectorRefLayer:
+        # geom = feature.GetGeometryRef()
+        try:
+            myTM = feature.GetField(LOCLpatronFieldName)
+            nFeature += 1
+        except:
+            myLog.error(f'{TW}clidtwins-> nFeature {nFeature} ERROR')
+            myTM = -1
+        if not myTM in listaTM:
+            listaTM.append(myTM)
+    if LOCLtipoDeMasaSelec is None:
+        tipoDeMasaValue = True
+    else:
+        if LOCLtipoDeMasaSelec in listaTM:
+            tipoDeMasaValue = True
+        else:
+            myLog.error(f'{TW}clidtwins-> ATENCION: la capa {LOCLvectorFileName} (campo {LOCLpatronFieldName}) no incluye el valor {LOCLtipoDeMasaSelec}')
+            tipoDeMasaValue = False
+
+    # Cierro la capa
+    patronVectorRefDataSource = None
+
+    return (tipoDeMasaField, tipoDeMasaValue, listaTM)
 
 
 # ==============================================================================
@@ -3248,6 +3372,7 @@ def recortarRasterTiffPatronDasoLidar(
         self_LOCLpatronVectrName=GLO.GLBLpatronVectrNamePorDefecto,
         self_LOCLpatronLayerName=GLO.GLBLpatronLayerNamePorDefecto,
         self_LOCLpatronFieldName=GLO.GLBLpatronFieldNamePorDefecto,
+        self_LOCLtipoDeMasaSelec=None,
         self_LOCLlistLstDasoVars=GLO.GLBLlistLstDasoVarsPorDefecto,
 
         self_nCeldasX_Destino=0,
@@ -3314,11 +3439,36 @@ def recortarRasterTiffPatronDasoLidar(
         )
         myLog.error(f'{TB}-> Vector file con el perimetro de referencia (patron):  {patronVectrNameConPath}')
         sys.exit(0)
+    
     #===========================================================================
+    if self_LOCLtipoDeMasaSelec is None:
+        tipoDeMasaSeleccionado = 'True'
+    else:
+        tipoDeMasaSelecOk = comprobarTipoMasaDeCapaVectorial(
+            self_LOCLrutaAscRaizBase,
+            self_LOCLpatronVectrName,
+            LOCLlayerName=self_LOCLpatronLayerName,
+            LOCLpatronFieldName=self_LOCLpatronFieldName,
+            LOCLtipoDeMasaSelec=self_LOCLtipoDeMasaSelec,
+            LOCLverbose=False,
+        )
+        if tipoDeMasaSelecOk is None:
+            myLog.error('\nclidtwins-> AVISO: no esta disponible el fichero {}'.format(self_LOCLpatronVectrName))
+            myLog.error(f'{TB}-> Ruta base: {self_LOCLrutaAscRaizBase}')
+            sys.exit(0)
+        tipoDeMasaFieldOk = tipoDeMasaSelecOk[0]
+        tipoDeMasaValueOk = tipoDeMasaSelecOk[1]
+        if not tipoDeMasaFieldOk:
+            self_LOCLtipoDeMasaSelec = None
+        elif not tipoDeMasaValueOk:
+            self_LOCLtipoDeMasaSelec = None
+        else:
+            tipoDeMasaSeleccionado = f'{self_LOCLpatronFieldName}={self_LOCLtipoDeMasaSelec}'
+    # ==========================================================================
 
     # ==========================================================================
     mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
-    outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global.', 'Patron.')
+    outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global.', f'Patron_TM{self_LOCLtipoDeMasaSelec}.')
     # myLog.info('\n{:_^80}'.format(''))
     myLog.info(f'clidtwins-> Abriendo raster creado mergedUniCellAllDasoVars:\n{TB}{mergedUniCellAllDasoVarsFileNameConPath}')
     rasterDatasetAll = gdal.Open(mergedUniCellAllDasoVarsFileNameConPath, gdalconst.GA_ReadOnly)
@@ -3329,17 +3479,22 @@ def recortarRasterTiffPatronDasoLidar(
     LOCLoutputRangosFileNpzSinPath = self_LOCLvarsTxtFileName.replace('.txt', '.npz')
     LOCLdictHistProb01 = {}
 
+
     # outputBand1 = rasterDatasetAll.GetRasterBand(1)
     # arrayBanda1 = outputBand1.ReadAsArray().astype(outputNpDatatypeAll)
     myLog.info(f'clidtwins-> Recortando el raster con poligono de referencia (patron):\n'
           f'{TB}{patronVectrNameConPath}')
-    # Ver: https://gdal.org/python/osgeo.gdal-module.html
+    # Ver:
+    #  https://gdal.org/python/
+    #  https://gdal.org/python/osgeo.gdal-module.html
+    #  https://gdal.org/python/osgeo.gdal-pysrc.html#Warp
     try:
         if self_LOCLpatronLayerName == '' or self_LOCLpatronLayerName is None:
             rasterDatasetClip = gdal.Warp(
                 outputRasterNameClip,
                 rasterDatasetAll,
                 cutlineDSName=patronVectrNameConPath,
+                cutlineWhere=tipoDeMasaSeleccionado,
                 cropToCutline=True,
                 # dstNodata=np.nan,
                 dstNodata=noDataDasoVarAll,
@@ -3351,6 +3506,7 @@ def recortarRasterTiffPatronDasoLidar(
                 rasterDatasetAll,
                 cutlineDSName=patronVectrNameConPath,
                 cutlineLayer=self_LOCLpatronLayerName,
+                cutlineWhere=tipoDeMasaSeleccionado,
                 cropToCutline=True,
                 # dstNodata=np.nan,
                 dstNodata=noDataDasoVarAll,

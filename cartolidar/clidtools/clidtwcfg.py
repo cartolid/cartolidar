@@ -544,7 +544,7 @@ def leerConfigDictPorDefecto():
                                           'dasoLidar', 'str',
                                           'Nombre del layer cuya semejanza con el de entrada se chequea con dasoLidar (solo si el dataset es gpkg; para shp layer=capa=dataset).'],
 
-        'GLBLpatronLayerFieldPorDefecto': [r'fieldPatron',
+        'GLBLpatronFieldNamePorDefecto': [r'TM',
                                           'dasoLidar', 'str',
                                           'Nombre del campo con el identificador del tipo de masa de los poligonos de referencia (patron) para caracterizacion dasoLidar.'],
     

@@ -34,6 +34,7 @@ if True:
     from cartolidar.clidtools import clidtwcfg
     from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools.clidtwins import DasoLidarSource
+    from cartolidar.clidtools.clidtwins import comprobarTipoMasaDeCapaVectorial
 # except ModuleNotFoundError:
 #     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
 #     sys.stderr.write('\t-> Se importan paquetes de cartolidar desde qlidtwins del directorio local {os.getcwd()}/clidtools.')
@@ -420,7 +421,7 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
     listaMainArgs = (
         'extraArguments', 'mainAction',
         'rutaAscRaizBase', 'rutaCompletaMFE', 'cartoMFEcampoSp',
-        'patronVectrName', 'patronLayerName',
+        'patronVectrName', 'patronLayerName', 'patronFieldName',
         'testeoVectrName', 'testeoLayerName',
     )
     listaExtraArgs = (
@@ -517,6 +518,10 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
                             dest='patronLayerName',
                             help='Nombre del layer del gpkg (en su caso) de referencia (patron) para caracterizacion dasoLidar. Default: %(default)s',
                             default = GLO.GLBLpatronLayerNamePorDefecto,)
+        parser.add_argument('-c',  # '--patronField',
+                            dest='patronFieldName',
+                            help='Nombre del campo de la capa de referencia (patron) con el tipo de masa para caracterizacion dasoLidar. Default: %(default)s',
+                            default = GLO.GLBLpatronFieldNamePorDefecto,)
         parser.add_argument('-t',  # '--testeo',
                             dest='testeoVectrName',
                             help='Nombre del poligono de contraste (testeo) para verificar su analogia con el patron dasoLidar. Default: %(default)s',
@@ -800,6 +805,8 @@ def saveArgs(args: argparse.Namespace) -> str:
                 argsFileControl.write(f'-p={args.patronVectrName}\n')
             if 'patronLayerName' in dir(args):
                 argsFileControl.write(f'-l={args.patronLayerName}\n')
+            if 'patronFieldName' in dir(args):
+                argsFileControl.write(f'-l={args.patronFieldName}\n')
             if 'testeoVectrName' in dir(args):
                 argsFileControl.write(f'-t={args.testeoVectrName}\n')
             if 'testeoLayerName' in dir(args):
@@ -883,6 +890,11 @@ def creaConfigDict(
         cfgDict['patronLayerName'] = None
     else:
         cfgDict['patronLayerName'] = args.patronLayerName
+    if args.patronFieldName == 'None':
+        cfgDict['patronFieldName'] = None
+    else:
+        cfgDict['patronFieldName'] = args.patronFieldName
+
     cfgDict['testeoVectrName'] = os.path.abspath(args.testeoVectrName)
     if args.testeoLayerName == 'None':
         cfgDict['testeoLayerName'] = None
@@ -1040,6 +1052,8 @@ def mostrarConfiguracion(cfgDict):
     myLog.info(f'{TB}{TV}patronVectrName: {cfgDict["patronVectrName"]}')
     if type(cfgDict['patronLayerName']) == str and cfgDict['patronLayerName'] != '': 
         myLog.info(f'{TB}{TV}patronLayerName: {cfgDict["patronLayerName"]}')
+    if type(cfgDict['patronFieldName']) == str and cfgDict['patronFieldName'] != '': 
+        myLog.info(f'{TB}{TV}patronFieldName: {cfgDict["patronFieldName"]}')
     myLog.info(f'{TB}{TV}testeoVectrName: {cfgDict["testeoVectrName"]}')
     if type(cfgDict['testeoLayerName']) == str and cfgDict['testeoLayerName'] != '':
         myLog.info(f'{TB}{TV}testeoLayerName: {cfgDict["testeoLayerName"]}')
@@ -1200,47 +1214,6 @@ def clidtwinsUseCase(
     #    myDasolidar.LOCLoutFileNameWExt_mergedUniCellAllDasoVars
     myLog.debug('{:=^80}'.format(''))
 
-    myLog.info('\n{:_^80}'.format(''))
-    myLog.debug('qlidtwins-> Ejecutando analyzeMultiDasoLayerRasterFile...')
-    myDasolidar.analyzeMultiDasoLayerRasterFile(
-        LCL_patronVectrName=cfgDict['patronVectrName'],
-        LCL_patronLayerName=cfgDict['patronLayerName'],
-    )
-    # Resultados a testear:
-    # -> Tipos de bosque mas frecuentes en zona patron:
-    #    myDasolidar.pctjTipoBosquePatronMasFrecuente1,
-    #    myDasolidar.codeTipoBosquePatronMasFrecuente1,
-    #    myDasolidar.pctjTipoBosquePatronMasFrecuente2,
-    #    myDasolidar.codeTipoBosquePatronMasFrecuente2,
-    # -> Que los rangos son correctos:
-    #    myDasolidar.dictHistProb01
-    # -> Que se ha creado el txt con los rangos:
-    #    myDasolidar.LOCLoutPathNameRuta
-    #    myDasolidar.outputRangosFileTxtSinPath
-    #    myDasolidar.outputRangosFileNpzSinPath,
-    myLog.debug('qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
-    myLog.debug('qlidtwins-> tests-> Verifica los tipos de bosque mas frecuentes en zona patron:')
-    myLog.debug(f'pctjTipoBosquePatronMasFrecuente1: {myDasolidar.pctjTipoBosquePatronMasFrecuente1}')
-    myLog.debug(f'codeTipoBosquePatronMasFrecuente1: {myDasolidar.codeTipoBosquePatronMasFrecuente1}')
-    myLog.debug(f'pctjTipoBosquePatronMasFrecuente2: {myDasolidar.pctjTipoBosquePatronMasFrecuente2}')
-    myLog.debug(f'codeTipoBosquePatronMasFrecuente2: {myDasolidar.codeTipoBosquePatronMasFrecuente2}')
-    myLog.debug(f'qlidtwins-> tests-> Verifica que los rangos son correctos:')
-    myLog.debug(f'0_Alt95_ref: {myDasolidar.dictHistProb01["0_Alt95_ref"]}')
-    myLog.debug(f'0_Alt95_min: {myDasolidar.dictHistProb01["0_Alt95_min"]}')
-    myLog.debug(f'0_Alt95_max: {myDasolidar.dictHistProb01["0_Alt95_max"]}')
-    myLog.debug(f'1_Fcc3m_ref: {myDasolidar.dictHistProb01["1_Fcc3m_ref"]}')
-    myLog.debug(f'1_Fcc3m_min: {myDasolidar.dictHistProb01["1_Fcc3m_min"]}')
-    myLog.debug(f'1_Fcc3m_max: {myDasolidar.dictHistProb01["1_Fcc3m_max"]}')
-    myLog.debug(f'2_CobMt_ref: {myDasolidar.dictHistProb01["2_CobMt_ref"]}')
-    myLog.debug(f'2_CobMt_min: {myDasolidar.dictHistProb01["2_CobMt_min"]}')
-    myLog.debug(f'2_CobMt_max: {myDasolidar.dictHistProb01["2_CobMt_max"]}')
-    myLog.debug(f'qlidtwins-> tests-> Verifica que se ha creado el txt con los rangos:')
-    myLog.debug(myDasolidar.LOCLoutPathNameRuta)
-    myLog.debug(myDasolidar.outputRangosFileTxtSinPath)
-    myLog.debug(myDasolidar.outputRangosFileNpzSinPath)
-
-    myLog.info('{:=^80}'.format(''))
-
     accionesPrincipales = [
         '0. Ninguna accion.',
         '1. qlidtwins - chequearCompatibilidadConTesteoVector: verificar analogia con un determinado patron dasoLidar.',
@@ -1264,60 +1237,120 @@ def clidtwinsUseCase(
         cfgDict['mainAction'] = nAccionElegida
         myLog.info(f'{TB}-> Ejecutando: {accionesPrincipales[cfgDict["mainAction"] - 1]}')
 
-    if cfgDict['mainAction'] == 0:
-        # No se ejecuta ninguna accion (solo para testing)
-        return myDasolidar
-    elif cfgDict['mainAction'] == 1:
-        myLog.debug('\n{:_^80}'.format(''))
-        myLog.debug('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
-        myDasolidar.chequearCompatibilidadConTesteoVector(
-            LCL_testeoVectrName=cfgDict['testeoVectrName'],
-            LCL_testeoLayerName=cfgDict['testeoLayerName'],
-            )
-        # Resultados a testear:
-        #     myDasolidar.tipoBosqueOk,
-        #     myDasolidar.nVariablesNoOk,
-        #     myDasolidar.distanciaEuclideaMedia,
-        #     myDasolidar.pctjPorcentajeDeProximidad,
-        #     myDasolidar.matrizDeDistancias,
-        myLog.debug('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
-        myLog.debug(myDasolidar.tipoBosqueOk)
-        myLog.debug(myDasolidar.nVariablesNoOk)
-        myLog.debug(myDasolidar.distanciaEuclideaMedia)
-        myLog.debug(myDasolidar.pctjPorcentajeDeProximidad)
-        myLog.debug(myDasolidar.matrizDeDistancias)
+    myLog.info('\n{:_^80}'.format(''))
+    myLog.debug('qlidtwins-> Ejecutando analyzeMultiDasoLayerRasterFile...')
 
-    elif cfgDict['mainAction'] == 2:
-        myLog.debug('\n{:_^80}'.format(''))
-        myLog.debug('qlidtwins-> Ejecutando generarRasterCluster...')
-        myDasolidar.generarRasterCluster(
-            LCL_radioClusterPix=cfgDict['radioClusterPix'],
+    tipoDeMasaSelecOk = comprobarTipoMasaDeCapaVectorial(
+        cfgDict['rutaAscRaizBase'],  # self.LOCLrutaAscRaizBase,
+        cfgDict['patronVectrName'],  # self.LOCLpatronVectrName,
+        LOCLlayerName=cfgDict['patronLayerName'],  # self.LOCLpatronLayerName,
+        LOCLpatronFieldName=cfgDict['patronFieldName'],  # self.LOCLpatronFieldName,
+        LOCLtipoDeMasaSelec=None,
+        LOCLverbose=False,
+    )
+    if tipoDeMasaSelecOk is None:
+        myLog.error(f'\nclidtwins-> AVISO: no esta disponible el fichero: {cfgDict["patronVectrName"]}')
+        myLog.error(f'{TB}-> Ruta base: { cfgDict["rutaAscRaizBase"]}')
+        sys.exit(0)
+    # tipoDeMasaFieldOk = tipoDeMasaSelecOk[0]
+    # tipoDeMasaValueOk = tipoDeMasaSelecOk[1]
+    listaTM = tipoDeMasaSelecOk[2]
+    for LCL_tipoDeMasaSelec in listaTM:
+        myDasolidar.analyzeMultiDasoLayerRasterFile(
+            LCL_patronVectrName=cfgDict['patronVectrName'],
+            LCL_patronLayerName=cfgDict['patronLayerName'],
+            LCL_patronFieldName=cfgDict['patronFieldName'],
+            LCL_tipoDeMasaSelec=LCL_tipoDeMasaSelec,
         )
         # Resultados a testear:
-        #     myDasolidar.pctjTipoBosquePatronMasFrecuente1,
-        #     myDasolidar.codeTipoBosquePatronMasFrecuente1,
-        #     myDasolidar.pctjTipoBosquePatronMasFrecuente2,
-        #     myDasolidar.codeTipoBosquePatronMasFrecuente2,
-        #
-        #     myDasolidar.LOCLoutPathNameRuta,
-        #     myDasolidar.outputClusterAllDasoVarsFileNameSinPath,
-        #     myDasolidar.outputClusterTiposDeMasaFileNameSinPath,
-        #     myDasolidar.outputClusterFactorProxiFileNameSinPath,
-        #     myDasolidar.outputClusterDistanciaEuFileNameSinPath,
-        myLog.debug('qlidtwins-> tests-> generarRasterCluster')
-        myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
-        myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente1)
-        myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
-        myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente2)
-        #
+        # -> Tipos de bosque mas frecuentes en zona patron:
+        #    myDasolidar.pctjTipoBosquePatronMasFrecuente1,
+        #    myDasolidar.codeTipoBosquePatronMasFrecuente1,
+        #    myDasolidar.pctjTipoBosquePatronMasFrecuente2,
+        #    myDasolidar.codeTipoBosquePatronMasFrecuente2,
+        # -> Que los rangos son correctos:
+        #    myDasolidar.dictHistProb01
+        # -> Que se ha creado el txt con los rangos:
+        #    myDasolidar.LOCLoutPathNameRuta
+        #    myDasolidar.outputRangosFileTxtSinPath
+        #    myDasolidar.outputRangosFileNpzSinPath,
+        myLog.debug('qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
+        myLog.debug('qlidtwins-> tests-> Verifica los tipos de bosque mas frecuentes en zona patron:')
+        myLog.debug(f'pctjTipoBosquePatronMasFrecuente1: {myDasolidar.pctjTipoBosquePatronMasFrecuente1}')
+        myLog.debug(f'codeTipoBosquePatronMasFrecuente1: {myDasolidar.codeTipoBosquePatronMasFrecuente1}')
+        myLog.debug(f'pctjTipoBosquePatronMasFrecuente2: {myDasolidar.pctjTipoBosquePatronMasFrecuente2}')
+        myLog.debug(f'codeTipoBosquePatronMasFrecuente2: {myDasolidar.codeTipoBosquePatronMasFrecuente2}')
+        myLog.debug(f'qlidtwins-> tests-> Verifica que los rangos son correctos:')
+        myLog.debug(f'0_Alt95_ref: {myDasolidar.dictHistProb01["0_Alt95_ref"]}')
+        myLog.debug(f'0_Alt95_min: {myDasolidar.dictHistProb01["0_Alt95_min"]}')
+        myLog.debug(f'0_Alt95_max: {myDasolidar.dictHistProb01["0_Alt95_max"]}')
+        myLog.debug(f'1_Fcc3m_ref: {myDasolidar.dictHistProb01["1_Fcc3m_ref"]}')
+        myLog.debug(f'1_Fcc3m_min: {myDasolidar.dictHistProb01["1_Fcc3m_min"]}')
+        myLog.debug(f'1_Fcc3m_max: {myDasolidar.dictHistProb01["1_Fcc3m_max"]}')
+        myLog.debug(f'2_CobMt_ref: {myDasolidar.dictHistProb01["2_CobMt_ref"]}')
+        myLog.debug(f'2_CobMt_min: {myDasolidar.dictHistProb01["2_CobMt_min"]}')
+        myLog.debug(f'2_CobMt_max: {myDasolidar.dictHistProb01["2_CobMt_max"]}')
+        myLog.debug(f'qlidtwins-> tests-> Verifica que se ha creado el txt con los rangos:')
         myLog.debug(myDasolidar.LOCLoutPathNameRuta)
-        myLog.debug(myDasolidar.outputClusterAllDasoVarsFileNameSinPath)
-        myLog.debug(myDasolidar.outputClusterTiposDeMasaFileNameSinPath)
-        myLog.debug(myDasolidar.outputClusterFactorProxiFileNameSinPath)
-        myLog.debug(myDasolidar.outputClusterDistanciaEuFileNameSinPath)
+        myLog.debug(myDasolidar.outputRangosFileTxtSinPath)
+        myLog.debug(myDasolidar.outputRangosFileNpzSinPath)
+    
+        myLog.info('{:=^80}'.format(''))
 
-    else:
-        return None
+        if cfgDict['mainAction'] == 0:
+            # No se ejecuta ninguna accion (solo para testing)
+            return myDasolidar
+        elif cfgDict['mainAction'] == 1:
+            myLog.debug('\n{:_^80}'.format(''))
+            myLog.debug('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
+            myDasolidar.chequearCompatibilidadConTesteoVector(
+                LCL_testeoVectrName=cfgDict['testeoVectrName'],
+                LCL_testeoLayerName=cfgDict['testeoLayerName'],
+                )
+            # Resultados a testear:
+            #     myDasolidar.tipoBosqueOk,
+            #     myDasolidar.nVariablesNoOk,
+            #     myDasolidar.distanciaEuclideaMedia,
+            #     myDasolidar.pctjPorcentajeDeProximidad,
+            #     myDasolidar.matrizDeDistancias,
+            myLog.debug('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
+            myLog.debug(myDasolidar.tipoBosqueOk)
+            myLog.debug(myDasolidar.nVariablesNoOk)
+            myLog.debug(myDasolidar.distanciaEuclideaMedia)
+            myLog.debug(myDasolidar.pctjPorcentajeDeProximidad)
+            myLog.debug(myDasolidar.matrizDeDistancias)
+    
+        elif cfgDict['mainAction'] == 2:
+            myLog.debug('\n{:_^80}'.format(''))
+            myLog.debug('qlidtwins-> Ejecutando generarRasterCluster...')
+            myDasolidar.generarRasterCluster(
+                LCL_radioClusterPix=cfgDict['radioClusterPix'],
+            )
+            # Resultados a testear:
+            #     myDasolidar.pctjTipoBosquePatronMasFrecuente1,
+            #     myDasolidar.codeTipoBosquePatronMasFrecuente1,
+            #     myDasolidar.pctjTipoBosquePatronMasFrecuente2,
+            #     myDasolidar.codeTipoBosquePatronMasFrecuente2,
+            #
+            #     myDasolidar.LOCLoutPathNameRuta,
+            #     myDasolidar.outputClusterAllDasoVarsFileNameSinPath,
+            #     myDasolidar.outputClusterTiposDeMasaFileNameSinPath,
+            #     myDasolidar.outputClusterFactorProxiFileNameSinPath,
+            #     myDasolidar.outputClusterDistanciaEuFileNameSinPath,
+            myLog.debug('qlidtwins-> tests-> generarRasterCluster')
+            myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
+            myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente1)
+            myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
+            myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente2)
+            #
+            myLog.debug(myDasolidar.LOCLoutPathNameRuta)
+            myLog.debug(myDasolidar.outputClusterAllDasoVarsFileNameSinPath)
+            myLog.debug(myDasolidar.outputClusterTiposDeMasaFileNameSinPath)
+            myLog.debug(myDasolidar.outputClusterFactorProxiFileNameSinPath)
+            myLog.debug(myDasolidar.outputClusterDistanciaEuFileNameSinPath)
+    
+        else:
+            return None
 
     myLog.debug('{:=^80}'.format(''))
     myLog.info('\nqlidtwins-> Fin.')
