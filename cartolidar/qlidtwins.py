@@ -205,6 +205,7 @@ logging.basicConfig(
 # Este logger solo actua para este modulo:
 # https://docs.python.org/3/library/logging.handlers.html#filehandler
 fileLog = logging.FileHandler('qlidtwins.log', mode='w')
+# fileLog.terminator = ''
 fileLog.set_name(thisModule)
 fileLog.setLevel(logging.DEBUG)
 fileLog.setFormatter(formatterFile)
@@ -212,6 +213,8 @@ fileLog.addFilter(myFilter)
 
 # https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler
 consLog = logging.StreamHandler()
+# https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler.terminator
+# consLog.terminator = ''  # Sustituye al valor por defecto que es '\n'
 if __verbose__ == 3:
     consLog.setLevel(logging.DEBUG)
 elif __verbose__ == 2:
@@ -1240,7 +1243,8 @@ def clidtwinsUseCase(
     myLog.info('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando analyzeMultiDasoLayerRasterFile...')
 
-    tipoDeMasaSelecOk = comprobarTipoMasaDeCapaVectorial(
+    # tipoDeMasaSelecOk = comprobarTipoMasaDeCapaVectorial(
+    (tipoDeMasaField, tipoDeMasaValue, listaTM) = comprobarTipoMasaDeCapaVectorial(
         cfgDict['rutaAscRaizBase'],  # self.LOCLrutaAscRaizBase,
         cfgDict['patronVectrName'],  # self.LOCLpatronVectrName,
         LOCLlayerName=cfgDict['patronLayerName'],  # self.LOCLpatronLayerName,
@@ -1248,14 +1252,17 @@ def clidtwinsUseCase(
         LOCLtipoDeMasaSelec=None,
         LOCLverbose=False,
     )
-    if tipoDeMasaSelecOk is None:
+    if tipoDeMasaField is None:
         myLog.error(f'\nclidtwins-> AVISO: no esta disponible el fichero: {cfgDict["patronVectrName"]}')
         myLog.error(f'{TB}-> Ruta base: { cfgDict["rutaAscRaizBase"]}')
         sys.exit(0)
     # tipoDeMasaFieldOk = tipoDeMasaSelecOk[0]
     # tipoDeMasaValueOk = tipoDeMasaSelecOk[1]
-    listaTM = tipoDeMasaSelecOk[2]
+    # listaTM = [None]
+    # listaTM = listaTM[1:]
+    print(f'qlidtwins-> listaTM: {listaTM}')
     for LCL_tipoDeMasaSelec in listaTM:
+        print(f'qlidtwins-> LCL_tipoDeMasaSelec: {LCL_tipoDeMasaSelec}')
         myDasolidar.analyzeMultiDasoLayerRasterFile(
             LCL_patronVectrName=cfgDict['patronVectrName'],
             LCL_patronLayerName=cfgDict['patronLayerName'],
@@ -1294,7 +1301,6 @@ def clidtwinsUseCase(
         myLog.debug(myDasolidar.LOCLoutPathNameRuta)
         myLog.debug(myDasolidar.outputRangosFileTxtSinPath)
         myLog.debug(myDasolidar.outputRangosFileNpzSinPath)
-    
         myLog.info('{:=^80}'.format(''))
 
         if cfgDict['mainAction'] == 0:
@@ -1303,10 +1309,12 @@ def clidtwinsUseCase(
         elif cfgDict['mainAction'] == 1:
             myLog.debug('\n{:_^80}'.format(''))
             myLog.debug('qlidtwins-> Ejecutando chequearCompatibilidadConTesteoShape...')
-            myDasolidar.chequearCompatibilidadConTesteoVector(
+            testeoVectorOk = myDasolidar.chequearCompatibilidadConTesteoVector(
                 LCL_testeoVectrName=cfgDict['testeoVectrName'],
                 LCL_testeoLayerName=cfgDict['testeoLayerName'],
                 )
+            if not testeoVectorOk:
+                return myDasolidar
             # Resultados a testear:
             #     myDasolidar.tipoBosqueOk,
             #     myDasolidar.nVariablesNoOk,
@@ -1319,13 +1327,16 @@ def clidtwinsUseCase(
             myLog.debug(myDasolidar.distanciaEuclideaMedia)
             myLog.debug(myDasolidar.pctjPorcentajeDeProximidad)
             myLog.debug(myDasolidar.matrizDeDistancias)
-    
+            myLog.debug('{:=^80}'.format(''))
+
         elif cfgDict['mainAction'] == 2:
             myLog.debug('\n{:_^80}'.format(''))
             myLog.debug('qlidtwins-> Ejecutando generarRasterCluster...')
-            myDasolidar.generarRasterCluster(
+            rasterClusterOk = myDasolidar.generarRasterCluster(
                 LCL_radioClusterPix=cfgDict['radioClusterPix'],
             )
+            if not rasterClusterOk:
+                return myDasolidar
             # Resultados a testear:
             #     myDasolidar.pctjTipoBosquePatronMasFrecuente1,
             #     myDasolidar.codeTipoBosquePatronMasFrecuente1,
@@ -1348,11 +1359,15 @@ def clidtwinsUseCase(
             myLog.debug(myDasolidar.outputClusterTiposDeMasaFileNameSinPath)
             myLog.debug(myDasolidar.outputClusterFactorProxiFileNameSinPath)
             myLog.debug(myDasolidar.outputClusterDistanciaEuFileNameSinPath)
+            myLog.debug('{:=^80}'.format(''))
     
         else:
             return None
 
-    myLog.debug('{:=^80}'.format(''))
+    # Se identifica el TM mas ajustado para cada pixel, dentro de unos minimos 
+    for LCL_tipoDeMasaSelec in listaTM:
+        pass
+
     myLog.info('\nqlidtwins-> Fin.')
     return myDasolidar
 

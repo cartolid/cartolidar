@@ -219,6 +219,14 @@ def crearRasterTiff(
 
     if PAR_ambitoTiffNuevo is None:
         PAR_ambitoTiffNuevo = 'loteAsc'
+    if PAR_ambitoTiffNuevo == 'FicherosTiffIndividuales' or PAR_ambitoTiffNuevo == 'ConvertirSoloUnFicheroASC':
+        idAmbitoTif = 'Indi'
+    elif PAR_ambitoTiffNuevo == 'rasterDest_CyL' or PAR_ambitoTiffNuevo == 'rasterRefe_CyL' or PAR_ambitoTiffNuevo[:3] == 'CyL':
+        idAmbitoTif = 'CyL'
+    elif PAR_ambitoTiffNuevo == 'loteAsc':
+        idAmbitoTif = 'Lote'
+    else:
+        idAmbitoTif = 'Lote'
 
     if self_LOCLoutFileNameWExt is None:
         if PAR_outRasterDriver == 'GTiff':
@@ -233,13 +241,17 @@ def crearRasterTiff(
             LCL_driverExtension = 'H5'
         else:
             LCL_driverExtension = 'xxx'
-        self_LOCLoutFileNameWExtLote = '{}_{}_GlobalLote.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
-        self_LOCLoutFileNameWExtCyL = '{}_{}_GlobalCyL.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
-        self_LOCLoutFileNameWExtIndi = '{}_{}_GlobalIndi.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
-    else:
-        self_LOCLoutFileNameWExtLote = self_LOCLoutFileNameWExt.replace('.', 'Lote.')
-        self_LOCLoutFileNameWExtCyL = self_LOCLoutFileNameWExt.replace('.', 'CyL.')
-        self_LOCLoutFileNameWExtIndi = self_LOCLoutFileNameWExt.replace('.', 'Indi.')
+
+        LCL_idInputDir = os.path.basename(self_LOCLrutaAscRaizBase)
+
+        self_LOCLoutFileNameWExt = '{}_{}_Global{}.{}'.format('uniCellAllDasoVars', LCL_idInputDir, idAmbitoTif, LCL_driverExtension)
+        # self_LOCLoutFileNameWExtLote = '{}_{}_GlobalLote.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
+        # self_LOCLoutFileNameWExtCyL = '{}_{}_GlobalCyL.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
+        # self_LOCLoutFileNameWExtIndi = '{}_{}_GlobalIndi.{}'.format('uniCellAllDasoVars', 'local', LCL_driverExtension)
+    # else:
+    #     # self_LOCLoutFileNameWExtLote = self_LOCLoutFileNameWExt.replace('.', 'Lote.')
+    #     # self_LOCLoutFileNameWExtCyL = self_LOCLoutFileNameWExt.replace('.', 'CyL.')
+    #     # self_LOCLoutFileNameWExtIndi = self_LOCLoutFileNameWExt.replace('.', 'Indi.')
 
     # ==========================================================================
     if self_LOCLlistaDasoVarsFileTypes is None:
@@ -765,15 +777,18 @@ def crearRasterTiff(
         # nTipoOutput == 6 or nTipoOutput == 7:
         # Integrar los ficheros asc en un tif creado previamente
         # or Integrar los ficheros asc en un tif igual a uno de referencia (mismas dimensiones y resolucion)
-        if rasterQueSeUsaComoDeferencia and os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL)):
+        # if rasterQueSeUsaComoDeferencia and os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL)):
+        if rasterQueSeUsaComoDeferencia and os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt)):
             # Si he establecido rasterQueSeUsaComoDeferencia or rasterEnElQueSeEscribe
             #  prevalecen las propiedades del raster de referencia o destino sobre los de los asc
             if rasterQueSeUsaComoDeferencia:
                 # Abro la capa raster de referencia y extraigo informacion general
                 inputRaster = gdal.Open(rasterQueSeUsaComoDeferencia)
-            elif os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL)):
+            # elif os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL)):
+            elif os.path.exists(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt)):
                 # Abro la capa raster de destino y extraigo informacion general
-                inputRaster = gdal.Open(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL))
+                # inputRaster = gdal.Open(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExtCyL))
+                inputRaster = gdal.Open(os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt))
             # bandCount = inputRaster.RasterCount
             rasterXSize = inputRaster.RasterXSize
             rasterYSize = inputRaster.RasterYSize
@@ -931,10 +946,12 @@ def crearRasterTiff(
                 myLog.critical('\t-> Revisar codigo')
         else:
             myLog.info('\n{:_^80}'.format(''))
-            myLog.info(f'clidraster-> Creando fichero raster: {self_LOCLoutFileNameWExtLote}')
+            # myLog.info(f'clidraster-> Creando fichero raster: {self_LOCLoutFileNameWExtLote}')
+            myLog.info(f'clidraster-> Creando fichero raster: {self_LOCLoutFileNameWExt}')
             outputDatasetLote, outputBandLote1 = CrearOutputRaster(
                 self_LOCLoutPathNameRuta,
-                self_LOCLoutFileNameWExtLote,
+                # self_LOCLoutFileNameWExtLote,
+                self_LOCLoutFileNameWExt,
                 nMinX_tif,
                 nMaxY_tif,
                 nCeldasX_Destino,
@@ -955,7 +972,7 @@ def crearRasterTiff(
             )
 
             # myLog.info('{:_^80}'.format(''))
-            # myLog.info(f'clidraster-> Raster en el que se va a grabar la informacion de los grid de entrada: {self_LOCLoutFileNameWExtLote}')
+            # myLog.info(f'clidraster-> Raster en el que se va a grabar la informacion de los grid de entrada: {self_LOCLoutFileNameWExt}')
 
         # ======================================================================
         if PAR_generarDasoLayers:
@@ -1285,10 +1302,12 @@ def crearRasterTiff(
                 myLog.debug(f'\tnCeldasX_Destino, nCeldasY_Destino: {nCeldasX_Destino} {nCeldasY_Destino}')
                 # PAR_outputGdalDatatype = gdal.GDT_Float32  # Alternativas: gdal.GDT_Int32, gdal.GDT_Float32, gdal.GDT_Byte
                 myLog.debug('\n{:_^80}'.format(''))
-                myLog.debug(f'clidraster-> crearTiff-> Creando raster: {self_LOCLoutFileNameWExtIndi}')
+                # myLog.debug(f'clidraster-> crearTiff-> Creando raster: {self_LOCLoutFileNameWExtIndi}')
+                myLog.debug(f'clidraster-> crearTiff-> Creando raster: {self_LOCLoutFileNameWExt}')
                 outputDatasetIndi, outputBandIndi1 = CrearOutputRaster(
                     self_LOCLoutPathNameRuta,
-                    self_LOCLoutFileNameWExtIndi,
+                    # self_LOCLoutFileNameWExtIndi,
+                    self_LOCLoutFileNameWExt,
                     nMinX_tif,
                     nMaxY_tif,
                     nCeldasX_Destino,
@@ -1875,7 +1894,8 @@ def crearRasterTiff(
         myLog.info('clidraster-> Resumen de bloques y variables leidos para crear el raster con crearTiff<>:')
         myLog.info(f'{TB}-> Se han leido {contadorFicherosIntegrando} bloques de {len(dictAscFileObjet)} tipos de fichero.')
         myLog.info(f'{TB}-> Tipos de fichero localizados: {PAR_nInputVarsOk} de {PAR_nInputVars}')
-        myLog.info(f'{TB}-> Raster creado: {self_LOCLoutPathNameRuta}/{self_LOCLoutFileNameWExtLote}')
+        # myLog.info(f'{TB}-> Raster creado: {self_LOCLoutPathNameRuta}/{self_LOCLoutFileNameWExtLote}')
+        myLog.info(f'{TB}-> Raster creado: {self_LOCLoutPathNameRuta}/{self_LOCLoutFileNameWExt}')
         myLog.info('{:=^80}'.format(''))
 
         # if PAR_generarDasoLayers and nBandasOutput >= 2:

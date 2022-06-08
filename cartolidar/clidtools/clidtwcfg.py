@@ -575,7 +575,7 @@ def leerConfigDictPorDefecto():
 
         'GLBLlistaDasoVarsFileTypes': [
             # 'CeldasAlt95SobreMdk,FccRptoAmdk_PrimeRets_MasDe0500,FccRptoAmdk_PrimeRets_MasDe0300,FccRptoAmdk_PrimeRets_0025_0150,FccRptoAmdk_TodosRets_200cm_50%HD,MFE25,TMasa',
-            'alt95,fcc3m,cob05_200cm,MFE25,TMasa',
+            'alt95,fcc3m,cob050_200cm,MFE25,TMasa',
             'dasoLidar', 'list_str',
             'Lista de tipos de fichero para el dasoLidar'
         ],
