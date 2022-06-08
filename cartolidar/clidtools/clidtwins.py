@@ -104,8 +104,10 @@ TRNS_saltarPixelsSinTipoBosque = True
 MINIMO_PIXELS_POR_CLUSTER = 5
 SCIPY_METHODS = (
     ("Euclidean", distance_hist.euclidean),
-    ("Manhattan", distance_hist.cityblock),
-    ("Chebysev", distance_hist.chebyshev))
+    # ("Manhattan", distance_hist.cityblock),
+    # ("Chebysev", distance_hist.chebyshev)
+)
+nScipyMethods = len(SCIPY_METHODS)
 # ==============================================================================
 
 # ==============================================================================
@@ -218,7 +220,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             self.GLBLnoDataTiffFiles = GLO.GLBLnoDataTiffFilesPorDefecto  # p.ej.: -9999
             self.GLBLnoDataTipoDMasa = GLO.GLBLnoDataTipoDMasaPorDefecto  # p.ej.: 255
             self.GLBLumbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto  # p.ej.: 20
-        self.GLBLnoDataDistancia = self.GLBLnoDataTiffFiles
+        self.GLBLnoDataDistancia = 9999
 
         # Se inician estos atributos por si no se ejecuta el metodo setRangeUTM<>
         self.LOCLmarcoCoordMiniX = 0
@@ -2158,53 +2160,55 @@ and two more layers for forest type (land cover) and stand type.
         for nInputVar in range(self.nInputVars + 1):
             outputBandaDistanciaScipyMethod1[nInputVar] = outputDatasetClusterDistanciaScipyMethod1.GetRasterBand(nInputVar + 1)
 
-        myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod2 {self.outputClusterDistScipyM2FileNameSinPath}')
-        outputDatasetClusterDistanciaScipyMethod2, outputBandaDistanciaScipyMethod2Var0 = clidraster.CrearOutputRaster(
-            self.LOCLoutPathNameRuta,
-            self.outputClusterDistScipyM2FileNameSinPath,
-            self.nMinX_tif,
-            self.nMaxY_tif,
-            self.nCeldasX_Destino,
-            self.nCeldasY_Destino,
-            self.metrosPixelX_Destino,
-            self.metrosPixelY_Destino,
-            self.LOCLoutRasterDriver,
-            self.outputOptions,
-            self.nInputVars + 1,
-            self.outputGdalDatatypeFloatX,
-            self.outputNpDatatypeFloatX,
-            self.GLBLnoDataDistancia,
-            self.GLBLnoDataDistancia,
-            self.GLBLnoDataDistancia,
-            generarMetaPixeles=True,
-        )
-        outputBandaDistanciaScipyMethod2 = {}
-        for nInputVar in range(self.nInputVars + 1):
-            outputBandaDistanciaScipyMethod2[nInputVar] = outputDatasetClusterDistanciaScipyMethod2.GetRasterBand(nInputVar + 1)
+        if nScipyMethods >= 2:
+            myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod2 {self.outputClusterDistScipyM2FileNameSinPath}')
+            outputDatasetClusterDistanciaScipyMethod2, outputBandaDistanciaScipyMethod2Var0 = clidraster.CrearOutputRaster(
+                self.LOCLoutPathNameRuta,
+                self.outputClusterDistScipyM2FileNameSinPath,
+                self.nMinX_tif,
+                self.nMaxY_tif,
+                self.nCeldasX_Destino,
+                self.nCeldasY_Destino,
+                self.metrosPixelX_Destino,
+                self.metrosPixelY_Destino,
+                self.LOCLoutRasterDriver,
+                self.outputOptions,
+                self.nInputVars + 1,
+                self.outputGdalDatatypeFloatX,
+                self.outputNpDatatypeFloatX,
+                self.GLBLnoDataDistancia,
+                self.GLBLnoDataDistancia,
+                self.GLBLnoDataDistancia,
+                generarMetaPixeles=True,
+            )
+            outputBandaDistanciaScipyMethod2 = {}
+            for nInputVar in range(self.nInputVars + 1):
+                outputBandaDistanciaScipyMethod2[nInputVar] = outputDatasetClusterDistanciaScipyMethod2.GetRasterBand(nInputVar + 1)
 
-        myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod3 {self.outputClusterDistScipyM3FileNameSinPath}')
-        outputDatasetClusterDistanciaScipyMethod3, outputBandaDistanciaScipyMethod3Var0 = clidraster.CrearOutputRaster(
-            self.LOCLoutPathNameRuta,
-            self.outputClusterDistScipyM3FileNameSinPath,
-            self.nMinX_tif,
-            self.nMaxY_tif,
-            self.nCeldasX_Destino,
-            self.nCeldasY_Destino,
-            self.metrosPixelX_Destino,
-            self.metrosPixelY_Destino,
-            self.LOCLoutRasterDriver,
-            self.outputOptions,
-            self.nInputVars + 1,
-            self.outputGdalDatatypeFloatX,
-            self.outputNpDatatypeFloatX,
-            self.GLBLnoDataDistancia,
-            self.GLBLnoDataDistancia,
-            self.GLBLnoDataDistancia,
-            generarMetaPixeles=True,
-        )
-        outputBandaDistanciaScipyMethod3 = {}
-        for nInputVar in range(self.nInputVars + 1):
-            outputBandaDistanciaScipyMethod3[nInputVar] = outputDatasetClusterDistanciaScipyMethod3.GetRasterBand(nInputVar + 1)
+        if nScipyMethods >= 3:
+            myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod3 {self.outputClusterDistScipyM3FileNameSinPath}')
+            outputDatasetClusterDistanciaScipyMethod3, outputBandaDistanciaScipyMethod3Var0 = clidraster.CrearOutputRaster(
+                self.LOCLoutPathNameRuta,
+                self.outputClusterDistScipyM3FileNameSinPath,
+                self.nMinX_tif,
+                self.nMaxY_tif,
+                self.nCeldasX_Destino,
+                self.nCeldasY_Destino,
+                self.metrosPixelX_Destino,
+                self.metrosPixelY_Destino,
+                self.LOCLoutRasterDriver,
+                self.outputOptions,
+                self.nInputVars + 1,
+                self.outputGdalDatatypeFloatX,
+                self.outputNpDatatypeFloatX,
+                self.GLBLnoDataDistancia,
+                self.GLBLnoDataDistancia,
+                self.GLBLnoDataDistancia,
+                generarMetaPixeles=True,
+            )
+            outputBandaDistanciaScipyMethod3 = {}
+            for nInputVar in range(self.nInputVars + 1):
+                outputBandaDistanciaScipyMethod3[nInputVar] = outputDatasetClusterDistanciaScipyMethod3.GetRasterBand(nInputVar + 1)
 
         if self.LOCLverbose:
             myLog.info('{:=^80}'.format(''))
@@ -2612,7 +2616,6 @@ and two more layers for forest type (land cover) and stand type.
         outputBandaTipoMasa = guardarArrayEnBandaDataset(
             arrayBandaTipoMasa, outputBandaTipoMasa
         )
-
         # Sustituyo el valor noData por el maximo valor de distancia acumulada
         arrayDistanciaScipy[arrayDistanciaScipy == self.GLBLnoDataDistancia] = int(self.maxDistanciaScipySuma) + 1
         for nInputVar in range(self.nInputVars):
@@ -2620,23 +2623,27 @@ and two more layers for forest type (land cover) and stand type.
             outputBandaDistanciaScipyMethod1[nInputVar] = guardarArrayEnBandaDataset(
                 arrayDistanciaScipy[nInputVar, 0], outputBandaDistanciaScipyMethod1[nInputVar]
             )
-            outputBandaDistanciaScipyMethod2[nInputVar] = guardarArrayEnBandaDataset(
-                arrayDistanciaScipy[nInputVar, 1], outputBandaDistanciaScipyMethod2[nInputVar]
-            )
-            outputBandaDistanciaScipyMethod3[nInputVar] = guardarArrayEnBandaDataset(
-                arrayDistanciaScipy[nInputVar, 2], outputBandaDistanciaScipyMethod3[nInputVar]
-            )
+            if nScipyMethods >= 2:
+                outputBandaDistanciaScipyMethod2[nInputVar] = guardarArrayEnBandaDataset(
+                    arrayDistanciaScipy[nInputVar, 1], outputBandaDistanciaScipyMethod2[nInputVar]
+                )
+            if nScipyMethods >= 3:
+                outputBandaDistanciaScipyMethod3[nInputVar] = guardarArrayEnBandaDataset(
+                    arrayDistanciaScipy[nInputVar, 2], outputBandaDistanciaScipyMethod3[nInputVar]
+                )
 
         try:
             outputBandaDistanciaScipyMethod1[self.nInputVars] = guardarArrayEnBandaDataset(
                 arrayDistanciaScipy[-1, 0], outputBandaDistanciaScipyMethod1[self.nInputVars]
             )
-            outputBandaDistanciaScipyMethod2[self.nInputVars] = guardarArrayEnBandaDataset(
-                arrayDistanciaScipy[-1, 1], outputBandaDistanciaScipyMethod2[self.nInputVars]
-            )
-            outputBandaDistanciaScipyMethod3[self.nInputVars] = guardarArrayEnBandaDataset(
-                arrayDistanciaScipy[-1, 2], outputBandaDistanciaScipyMethod3[self.nInputVars]
-            )
+            if nScipyMethods >= 2:
+                outputBandaDistanciaScipyMethod2[self.nInputVars] = guardarArrayEnBandaDataset(
+                    arrayDistanciaScipy[-1, 1], outputBandaDistanciaScipyMethod2[self.nInputVars]
+                )
+            if nScipyMethods >= 3:
+                outputBandaDistanciaScipyMethod3[self.nInputVars] = guardarArrayEnBandaDataset(
+                    arrayDistanciaScipy[-1, 2], outputBandaDistanciaScipyMethod3[self.nInputVars]
+                )
         except:
             print(f'clidtwins-> ATENCION: revisar dimensiones {type(arrayDistanciaScipy)} {type(outputBandaDistanciaScipyMethod3)}, {type(outputBandaDistanciaScipyMethod3[self.nInputVars])}')
             print(f'{TB}arrayDistanciaScipy.shape: {arrayDistanciaScipy.shape}')
@@ -2669,6 +2676,195 @@ and two more layers for forest type (land cover) and stand type.
         #     self.outputClusterDistanciaEuFileNameSinPath,
         #     self.outputClusterFactorProxiFileNameSinPath,
         # )
+
+    # ==========================================================================
+    def asignarTipoDeMasa(
+            self,
+            LCL_listaTM=None
+        ):
+        if LCL_listaTM is None:
+            self.LOCLlistaTM = [None]
+        else:
+            self.LOCLlistaTM = LCL_listaTM
+        outputClusterDistScipyM1FileNameSinPath = {}
+        outputClusterDistScipyM2FileNameSinPath = {}
+        outputClusterDistScipyM3FileNameSinPath = {}
+        arrayClusterDistScipyM1 = {}
+        arrayClusterDistScipyM2 = {}
+        arrayClusterDistScipyM3 = {}
+        for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
+            if LCL_tipoDeMasaSelec is None:
+                idTipoDeMasaSelec = ''
+            else:
+                idTipoDeMasaSelec = f'_TM{LCL_tipoDeMasaSelec}'
+            outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM1', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+            outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM2', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+            outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM3', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+
+            myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M1: {outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec]}')
+            outputClusterDistScipyM1FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec])
+            if os.path.exists(outputClusterDistScipyM1FileNameConPath):
+                try:
+                    rasterDatasetClusterDistScipyM1 = gdal.Open(outputClusterDistScipyM1FileNameConPath, gdalconst.GA_ReadOnly)
+                    nBandasRasterOutput = rasterDatasetClusterDistScipyM1.RasterCount
+                    lastBandClusterDistScipyM1 = rasterDatasetClusterDistScipyM1.GetRasterBand(nBandasRasterOutput)
+                    arrayClusterDistScipyM1[LCL_tipoDeMasaSelec] = lastBandClusterDistScipyM1.ReadAsArray().astype(self.outputNpDatatypeAll)
+                    disponibleClusterDistScipyM1 = True
+                except:
+                    myLog.error(f'clidtwins-> ATENCION: error al leer {outputClusterDistScipyM1FileNameConPath}')
+                    myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
+                    disponibleClusterDistScipyM1 = False
+                    # sys.exit(0)
+            else:
+                myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M1: {outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec]}')
+                disponibleClusterDistScipyM1 = False
+            myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M2: {outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec]}')
+            outputClusterDistScipyM2FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec])
+            if os.path.exists(outputClusterDistScipyM2FileNameConPath):
+                try:
+                    rasterDatasetClusterDistScipyM2 = gdal.Open(outputClusterDistScipyM2FileNameConPath, gdalconst.GA_ReadOnly)
+                    nBandasRasterOutput = rasterDatasetClusterDistScipyM2.RasterCount
+                    lastBandClusterDistScipyM2 = rasterDatasetClusterDistScipyM2.GetRasterBand(nBandasRasterOutput)
+                    arrayClusterDistScipyM2[LCL_tipoDeMasaSelec] = lastBandClusterDistScipyM2.ReadAsArray().astype(self.outputNpDatatypeAll)
+                    disponibleClusterDistScipyM2 = True
+                except:
+                    myLog.error(f'clidtwins-> ATENCION: error al leer {outputClusterDistScipyM2FileNameConPath}')
+                    myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
+                    disponibleClusterDistScipyM2 = False
+                    # sys.exit(0)
+            else:
+                myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M2: {outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec]}')
+                disponibleClusterDistScipyM2 = False
+            myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M3: {outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec]}')
+            outputClusterDistScipyM3FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec])
+            if os.path.exists(outputClusterDistScipyM3FileNameConPath):
+                try:
+                    rasterDatasetClusterDistScipyM3 = gdal.Open(outputClusterDistScipyM3FileNameConPath, gdalconst.GA_ReadOnly)
+                    nBandasRasterOutput = rasterDatasetClusterDistScipyM3.RasterCount
+                    lastBandClusterDistScipyM3 = rasterDatasetClusterDistScipyM3.GetRasterBand(nBandasRasterOutput)
+                    arrayClusterDistScipyM3[LCL_tipoDeMasaSelec] = lastBandClusterDistScipyM3.ReadAsArray().astype(self.outputNpDatatypeAll)
+                    disponibleClusterDistScipyM3 = True
+                except:
+                    myLog.error(f'clidtwins-> ATENCION: error al leer {outputClusterDistScipyM3FileNameConPath}')
+                    myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
+                    disponibleClusterDistScipyM3 = False
+                    # sys.exit(0)
+            else:
+                myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M3: {outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec]}')
+                disponibleClusterDistScipyM3 = False
+
+            if disponibleClusterDistScipyM1:
+                nDistRows, nDistCols = arrayClusterDistScipyM1[LCL_tipoDeMasaSelec].shape
+                if (
+                    (
+                        disponibleClusterDistScipyM2 and (
+                            nDistRows != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]
+                            or nDistCols != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]
+                        )
+                    ) or (
+                        disponibleClusterDistScipyM3 and (
+                            nDistRows != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
+                            or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
+                        )
+                    )
+                ):
+                    myLog.error(f'clidtwins-> ATENCION: reviser dimensiones de los rasters con distancias scipy')
+                    sys.exit(0)
+            elif disponibleClusterDistScipyM2:
+                nDistRows, nDistCols = arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape
+                if (
+                    disponibleClusterDistScipyM3 and (
+                        nDistRows != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
+                        or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
+                    )
+                ):
+                    myLog.error(f'clidtwins-> ATENCION: reviser dimensiones de los rasters con distancias scipy')
+                    sys.exit(0)
+            elif disponibleClusterDistScipyM3:
+                nDistRows, nDistCols = arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape
+            else:
+                myLog.error(f'clidtwins-> ATENCION: no hay rasters disponibles con distancias scipy')
+                return
+
+        # myLog.info('\n{:_^80}'.format(''))
+        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima {self.outputClusterTiposDeMasaFileNameSinPath}')
+        myLog.info(f'{TB}nDistRows: {nDistRows} = {self.nCeldasY_Destino}')
+        myLog.info(f'{TB}nDistCols: {nDistCols} = {self.nCeldasX_Destino}')
+        nScipyMethods = len(SCIPY_METHODS)
+        datasetTipoMasaScipy, bandaTipoMasaScipyM1 = clidraster.CrearOutputRaster(
+            self.LOCLoutPathNameRuta,
+            self.outputClusterTiposDeMasaFileNameSinPath,
+            self.nMinX_tif,
+            self.nMaxY_tif,
+            self.nCeldasX_Destino,
+            self.nCeldasY_Destino,
+            self.metrosPixelX_Destino,
+            self.metrosPixelY_Destino,
+            self.LOCLoutRasterDriver,
+            self.outputOptions,
+            nScipyMethods,
+            self.outputGdalDatatypeTipoMasa,
+            self.outputNpDatatypeTipoMasa,
+            self.GLBLnoDataTipoDMasa,
+            self.GLBLnoDataTipoDMasa,
+            self.GLBLnoDataTiffFiles,
+            generarMetaPixeles=True,
+        )
+        bandaTipoMasaScipyM2 = datasetTipoMasaScipy.GetRasterBand(2)
+        bandaTipoMasaScipyM3 = datasetTipoMasaScipy.GetRasterBand(3)
+
+        if disponibleClusterDistScipyM1:
+            arrayTipoMasaScipyM1 = bandaTipoMasaScipyM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            for nDistRow in nDistRows:
+                for nDistCol in nDistCols:
+                    distanciaMinimaM1 = 9999
+                    for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
+                        distanciaMinimaM1 = min(
+                            distanciaMinimaM1,
+                            arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                    )
+                    for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
+                        if arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM1:
+                            arrayTipoMasaScipyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+
+        if disponibleClusterDistScipyM2:
+            arrayTipoMasaScipyM2 = bandaTipoMasaScipyM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            for nDistRow in nDistRows:
+                for nDistCol in nDistCols:
+                    distanciaMinimaM2 = 9999
+                    for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
+                        distanciaMinimaM2 = min(
+                            distanciaMinimaM2,
+                            arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                    )
+                    for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
+                        if arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM2:
+                            arrayTipoMasaScipyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+
+        if disponibleClusterDistScipyM3:
+            arrayTipoMasaScipyM3 = bandaTipoMasaScipyM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            for nDistRow in nDistRows:
+                for nDistCol in nDistCols:
+                    distanciaMinimaM3 = 9999
+                    for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
+                        distanciaMinimaM3 = min(
+                            distanciaMinimaM3,
+                            arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                    )
+                    for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
+                        if arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM3:
+                            arrayTipoMasaScipyM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+
+        bandaTipoMasaScipyM1 = guardarArrayEnBandaDataset(
+            arrayTipoMasaScipyM1, bandaTipoMasaScipyM1
+        )
+        bandaTipoMasaScipyM2 = guardarArrayEnBandaDataset(
+            arrayTipoMasaScipyM2, bandaTipoMasaScipyM2
+        )
+        bandaTipoMasaScipyM3 = guardarArrayEnBandaDataset(
+            arrayTipoMasaScipyM3, bandaTipoMasaScipyM3
+        )
+
 
 
 # ==============================================================================
