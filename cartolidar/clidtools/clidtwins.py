@@ -2788,7 +2788,11 @@ and two more layers for forest type (land cover) and stand type.
                         )
                     )
                 ):
-                    myLog.error(f'clidtwins-> ATENCION: reviser dimensiones de los rasters con distancias scipy')
+                    myLog.error(f'clidtwins-> ATENCION: revisar dimensiones de los rasters con distancias scipy')
+                    myLog.error(f'{TB}{nDistRows} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]}')
+                    myLog.error(f'{TB}{nDistCols} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[1]}')
+                    myLog.error(f'{TB}{nDistRows} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]}')
+                    myLog.error(f'{TB}{nDistCols} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]}')
                     sys.exit(0)
             elif disponibleClusterDistScipyM2 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape
@@ -2798,7 +2802,9 @@ and two more layers for forest type (land cover) and stand type.
                         or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
                     )
                 ):
-                    myLog.error(f'clidtwins-> ATENCION: reviser dimensiones de los rasters con distancias scipy')
+                    myLog.error(f'clidtwins-> ATENCION: revisar dimensiones de los rasters con distancias scipy')
+                    myLog.error(f'{TB}{nDistRows} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]}')
+                    myLog.error(f'{TB}{nDistCols} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]}')
                     sys.exit(0)
             elif disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape
