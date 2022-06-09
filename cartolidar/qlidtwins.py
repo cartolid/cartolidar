@@ -1269,6 +1269,11 @@ def clidtwinsUseCase(
             LCL_patronFieldName=cfgDict['patronFieldName'],
             LCL_tipoDeMasaSelec=LCL_tipoDeMasaSelec,
         )
+        if myDasolidar.rasterDatasetAll is None:
+            myLog.warning(f'{TB}Se pasa directamente el siguiente Tipo de Masa.')
+            myLog.warning('')
+            continue
+
         # Resultados a testear:
         # -> Tipos de bosque mas frecuentes en zona patron:
         #    myDasolidar.pctjTipoBosquePatronMasFrecuente1,
@@ -1367,7 +1372,7 @@ def clidtwinsUseCase(
     # Se identifica el TM mas ajustado para cada pixel, dentro de unos minimos 
     myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando asignarTipoDeMasa...')
-    myDasolidar.asignarTipoDeMasa(listaTM)
+    myDasolidar.asignarTipoDeMasaConDistanciaMinima(listaTM)
     myLog.debug('{:=^80}'.format(''))
 
 

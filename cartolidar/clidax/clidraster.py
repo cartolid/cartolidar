@@ -2259,9 +2259,9 @@ def CrearOutputRaster(
 
     # myLog.debug('{:_^80}'.format(''))
     if generarMetaPixeles:
-        myLog.debug('\t-> El nuevo raster con metaPixeles del tipo de masa seleccionado:')
+        myLog.debug('clidraster-> Creando nuevo raster con metaPixeles para el tipo de masa seleccionado:')
     else:
-        myLog.debug('\t-> El nuevo raster incluye las variables dasoLidar, el tipo de bosque y el tipo de masa:')
+        myLog.debug('clidraster-> Creando nuevo raster con las variables dasoLidar, el tipo de bosque y el tipo de masa:')
     myLog.debug('\t\t{}'.format(miOutputFileNameConPath))
     myLog.debug('\t-> PAR_outRasterDriver:    {}'.format(PAR_outRasterDriver))
     myLog.debug('\t-> bandas:                 {}'.format(nBandasOutput))

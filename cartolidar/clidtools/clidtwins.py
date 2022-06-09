@@ -99,12 +99,12 @@ TB = ' ' * 12
 TV = ' ' * 3
 # ==============================================================================
 TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
-TRNS_reducirConsumoRAM = True
+TRNS_reducirConsumoRAM = False
 TRNS_saltarPixelsSinTipoBosque = True
 MINIMO_PIXELS_POR_CLUSTER = 5
 SCIPY_METHODS = (
     ("Euclidean", distance_hist.euclidean),
-    # ("Manhattan", distance_hist.cityblock),
+    ("Manhattan", distance_hist.cityblock),
     # ("Chebysev", distance_hist.chebyshev)
 )
 nScipyMethods = len(SCIPY_METHODS)
@@ -1483,7 +1483,7 @@ and two more layers for forest type (land cover) and stand type.
             self.outputRangosFileNpzSinPath,
             self.nBandasRasterOutput,
             self.rasterDatasetAll,
-            self.listaCeldasConDasoVarsPatron,
+            self.listaCeldasConDasoVarsOkPatron,
             self.dictHistProb01,
             self.myNBins,
             self.myRange,
@@ -1521,6 +1521,9 @@ and two more layers for forest type (land cover) and stand type.
             self_LOCLverbose=self.LOCLverbose,
         )
         # ======================================================================
+        if self.rasterDatasetAll is None:
+            return
+
         if self.nBandasRasterOutput != self.nBandasPrevistasOutput:
             myLog.error('clidtwins-> ATENCION: la capa creada con las dasoVars en la zona de referencia (patron) no niene el numero previsto de bandas')
             myLog.error(f'{TB}-> Numero de bandas en la capa creada {self.nBandasRasterOutput}; numero previsto: {self.nBandasPrevistasOutput}')
@@ -1580,7 +1583,7 @@ and two more layers for forest type (land cover) and stand type.
         # self.nBandasPrevistasOutput,
         # self.nInputVars,
         # self.nFicherosDisponiblesPorTipoVariable,
-        # self.listaCeldasConDasoVarsPatron,
+        # self.listaCeldasConDasoVarsOkPatron,
         # self.dictHistProb01,
         # self.myNBins,
         # self.myRange,
@@ -1687,11 +1690,16 @@ and two more layers for forest type (land cover) and stand type.
             myLog.debug(f'Numero de puntos Testeo con dasoVars ok (banda {nBanda}): {len(ma.compressed(arrayBandaXClipMasked))}')
 
             listaCeldasConDasoVarsTesteo[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
-            celdasConValorSiData = arrayBandaXClip[(arrayBandaXPesoTesteo != 0) & (arrayBandaXClip != self.noDataDasoVarAll)]
+            celdasConValorSiData = arrayBandaXClip[
+                (arrayBandaXPesoTesteo != 0)
+                & (arrayBandaXClip != self.noDataDasoVarAll)
+                & (arrayBandaXClip >= self.myRange[nBanda][0])
+                & (arrayBandaXClip < self.myRange[nBanda][1])
+            ]
             if (
-                np.count_nonzero(celdasConValorSiData) > 0
-                and self.myNBins[nBanda] > 0
-                and self.myRange[nBanda][1] - self.myRange[nBanda][0] > 0
+                (np.count_nonzero(celdasConValorSiData) > 0)
+                & (self.myNBins[nBanda] > 0)
+                & (self.myRange[nBanda][1] - self.myRange[nBanda][0] > 0)
             ):
                 histNumberTesteo = np.histogram(
                     arrayBandaXClip,
@@ -1849,7 +1857,7 @@ and two more layers for forest type (land cover) and stand type.
                     if nTramosFueraDeRango >= 1:
                         nVariablesNoOk += 1
 
-        matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsPatron, listaCeldasConDasoVarsTesteo)
+        matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsOkPatron, listaCeldasConDasoVarsTesteo)
         distanciaEuclideaMedia = np.average(matrizDeDistancias)
         pctjPorcentajeDeProximidad = 100 * (
             np.count_nonzero(matrizDeDistancias < self.GLBLumbralMatriDist)
@@ -1908,7 +1916,7 @@ and two more layers for forest type (land cover) and stand type.
         # self.GLBLnoDataTipoDMasa,
         # self.GLBLnoDataTiffFiles,
         # self.nBandasPrevistasOutput,
-        # self.listaCeldasConDasoVarsPatron,
+        # self.listaCeldasConDasoVarsOkPatron,
         # self.myNBins,
         # self.myRange,
         # self.pctjTipoBosquePatronMasFrecuente1,
@@ -1942,8 +1950,8 @@ and two more layers for forest type (land cover) and stand type.
             self.LOCLradioClusterPix = LCL_radioClusterPix
         ladoCluster = (self.LOCLradioClusterPix * 2) + 1
         # ======================================================================
-        self.maxDistanciaScipyMono = 0
-        self.maxDistanciaScipySuma = 0
+        self.maxDistanciaScipyMono = 0.0
+        self.maxDistanciaScipySuma = 0.0
 
         if self.LOCLtipoDeMasaSelec is None:
             idTipoDeMasaSelec = ''
@@ -2397,8 +2405,8 @@ and two more layers for forest type (land cover) and stand type.
                 clusterCompleto = clusterRelleno[2]
                 localClusterArrayMultiBandaDasoVars = clusterRelleno[3]
                 localSubClusterArrayMultiBandaDasoVars = clusterRelleno[4]
-                listaCeldasConDasoVarsCluster = clusterRelleno[5]
-                listaCeldasConDasoVarsSubCluster = clusterRelleno[6]
+                listaCeldasConDasoVarsOkCluster = clusterRelleno[5]
+                listaCeldasConDasoVarsOkSubCluster = clusterRelleno[6]
                 arrayBandaXMaskCluster = clusterRelleno[7]
                 arrayBandaXMaskSubCluster = clusterRelleno[8]
 
@@ -2476,8 +2484,8 @@ and two more layers for forest type (land cover) and stand type.
                         clusterCompleto,
                         localClusterArrayMultiBandaDasoVars,
                         localSubClusterArrayMultiBandaDasoVars,
-                        listaCeldasConDasoVarsCluster,
-                        listaCeldasConDasoVarsSubCluster,
+                        listaCeldasConDasoVarsOkCluster,
+                        listaCeldasConDasoVarsOkSubCluster,
                         arrayBandaXMaskCluster,
                         arrayBandaXMaskSubCluster,
                         localClusterArrayRound,
@@ -2535,17 +2543,27 @@ and two more layers for forest type (land cover) and stand type.
                             arrayDistanciaScipy[nInputVar, numMethod, nRowRaster, nColRaster] = distanciaEntreHistogramas
                             self.maxDistanciaScipyMono = max(arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster], self.maxDistanciaScipyMono)
                             # La ultma banda (extra) tiene la suma ponderada de las distancias
+                            # if mostrarPixelClusterMatch:
+                            #     myLog.debug(
+                            #         f'clidtwins-> sumando distancias-> nBanda: {nBanda}; '
+                            #         f'M{numMethod} ({methodName}): {distanciaEntreHistogramas} * {ponderacionDeLaVariable} '
+                            #         f'suma: {arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster]} '
+                            #         f'noData: {self.GLBLnoDataDistancia}'
+                            #     )
                             if arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] == self.GLBLnoDataDistancia:
                                 arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] = distanciaEntreHistogramas * ponderacionDeLaVariable
                             else:
                                 arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] += distanciaEntreHistogramas * ponderacionDeLaVariable
                                 self.maxDistanciaScipySuma = max(arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster], self.maxDistanciaScipySuma)
-                            if mostrarPixelClusterMatch:
-                                myLog.debug(f'{TB}{TV}clidtwins-> nBanda: {nBanda} {methodName}: {distanciaEntreHistogramas}')
+                            # if mostrarPixelClusterMatch:
+                            #     myLog.debug(
+                            #         f'suma: {arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster]} '
+                            #         f'maxDist: {self.maxDistanciaScipySuma} '
+                            #     )
 
                 # ==================================================================
                 if clusterCompleto:
-                    matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsPatron[:, :self.nInputVars], listaCeldasConDasoVarsCluster[:, :self.nInputVars])
+                    matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsOkPatron[:, :self.nInputVars], listaCeldasConDasoVarsOkCluster[:, :self.nInputVars])
                     distanciaEuclideaMedia = np.average(matrizDeDistancias)
                     if mostrarPixelClusterMatch:
                         myLog.debug(f'Numero de puntos Cluster con dasoVars ok: {len(ma.compressed(localClusterArrayMultiBandaDasoVarsMasked))}')
@@ -2553,7 +2571,7 @@ and two more layers for forest type (land cover) and stand type.
                         # myLog.debug('clidtwins-> Matriz de distancias:')
                         # myLog.debug(matrizDeDistancias[:5,:5])
                 else:
-                    matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsPatron[:, :self.nInputVars], listaCeldasConDasoVarsSubCluster[:, :self.nInputVars])
+                    matrizDeDistancias = distance_matrix(self.listaCeldasConDasoVarsOkPatron[:, :self.nInputVars], listaCeldasConDasoVarsOkSubCluster[:, :self.nInputVars])
                     distanciaEuclideaMedia = np.average(matrizDeDistancias)
                     if mostrarPixelClusterMatch:
                         myLog.debug(f'Numero de puntos subCluster con dasoVars ok: {len(ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked))}')
@@ -2570,20 +2588,20 @@ and two more layers for forest type (land cover) and stand type.
                         f'nVariablesNoOk: {nVariablesNoOk}. '
                         f'Match: {tipoMasaOk}')
                     if self.LOCLverbose == 3:
-                        if not listaCeldasConDasoVarsSubCluster is None:
-                            myLog.debug(f'listaCeldasConDasoVarsSubCluster (shape (nCeldasClusterOk, nBandas): {listaCeldasConDasoVarsSubCluster.shape}):')
+                        if not listaCeldasConDasoVarsOkSubCluster is None:
+                            myLog.debug(f'listaCeldasConDasoVarsOkSubCluster (shape (nCeldasClusterOk, nBandas): {listaCeldasConDasoVarsOkSubCluster.shape}):')
                         else:
-                            myLog.debug(f'listaCeldasConDasoVarsSubCluster:')
-                        myLog.debug(listaCeldasConDasoVarsSubCluster)
+                            myLog.debug(f'listaCeldasConDasoVarsOkSubCluster:')
+                        myLog.debug(listaCeldasConDasoVarsOkSubCluster)
 
-                        if not listaCeldasConDasoVarsCluster is None:
-                            myLog.debug(f'listaCeldasConDasoVarsCluster (shape: {listaCeldasConDasoVarsCluster.shape}):')
+                        if not listaCeldasConDasoVarsOkCluster is None:
+                            myLog.debug(f'listaCeldasConDasoVarsOkCluster (shape: {listaCeldasConDasoVarsOkCluster.shape}):')
                         else:
-                            myLog.debug(f'listaCeldasConDasoVarsCluster:')
-                        myLog.debug(listaCeldasConDasoVarsCluster)
+                            myLog.debug(f'listaCeldasConDasoVarsOkCluster:')
+                        myLog.debug(listaCeldasConDasoVarsOkCluster)
 
-                        myLog.debug(f'listaCeldasConDasoVarsPatron (shape (nCeldasPatron, nBandas): {self.listaCeldasConDasoVarsPatron.shape}):')
-                        myLog.debug(self.listaCeldasConDasoVarsPatron)
+                        myLog.debug(f'listaCeldasConDasoVarsOkPatron (shape (nCeldasPatron, nBandas): {self.listaCeldasConDasoVarsOkPatron.shape}):')
+                        myLog.debug(self.listaCeldasConDasoVarsOkPatron)
                         myLog.debug(f'matrizDeDistancias (shape: (nCeldasPatron, nCeldasClusterOk): {matrizDeDistancias.shape}):')
                         myLog.debug(matrizDeDistancias)
 
@@ -2617,6 +2635,7 @@ and two more layers for forest type (land cover) and stand type.
             arrayBandaTipoMasa, outputBandaTipoMasa
         )
         # Sustituyo el valor noData por el maximo valor de distancia acumulada
+        myLog.debug(f'clidtwins-> Convirtiendo noData ({self.GLBLnoDataDistancia}) al valor de la mistancia maxima ({int(self.maxDistanciaScipySuma) + 1}).')
         arrayDistanciaScipy[arrayDistanciaScipy == self.GLBLnoDataDistancia] = int(self.maxDistanciaScipySuma) + 1
         for nInputVar in range(self.nInputVars):
             # for numMethod, (methodName, method) in enumerate(SCIPY_METHODS):
@@ -2678,7 +2697,7 @@ and two more layers for forest type (land cover) and stand type.
         # )
 
     # ==========================================================================
-    def asignarTipoDeMasa(
+    def asignarTipoDeMasaConDistanciaMinima(
             self,
             LCL_listaTM=None
         ):
@@ -2692,6 +2711,9 @@ and two more layers for forest type (land cover) and stand type.
         arrayClusterDistScipyM1 = {}
         arrayClusterDistScipyM2 = {}
         arrayClusterDistScipyM3 = {}
+        disponibleClusterDistScipyM1 = False
+        disponibleClusterDistScipyM2 = False
+        disponibleClusterDistScipyM3 = False
         for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
             if LCL_tipoDeMasaSelec is None:
                 idTipoDeMasaSelec = ''
@@ -2700,7 +2722,6 @@ and two more layers for forest type (land cover) and stand type.
             outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM1', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
             outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM2', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
             outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM3', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
-
             myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M1: {outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec]}')
             outputClusterDistScipyM1FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec])
             if os.path.exists(outputClusterDistScipyM1FileNameConPath):
@@ -2710,14 +2731,14 @@ and two more layers for forest type (land cover) and stand type.
                     lastBandClusterDistScipyM1 = rasterDatasetClusterDistScipyM1.GetRasterBand(nBandasRasterOutput)
                     arrayClusterDistScipyM1[LCL_tipoDeMasaSelec] = lastBandClusterDistScipyM1.ReadAsArray().astype(self.outputNpDatatypeAll)
                     disponibleClusterDistScipyM1 = True
+                    myLog.debug(f'{TB}-> Raster M1 - TM {LCL_tipoDeMasaSelec} leido ok')
                 except:
-                    myLog.error(f'clidtwins-> ATENCION: error al leer {outputClusterDistScipyM1FileNameConPath}')
+                    myLog.error(f'{TB}-> ATENCION: error al leer {outputClusterDistScipyM1FileNameConPath}')
                     myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
-                    disponibleClusterDistScipyM1 = False
                     # sys.exit(0)
             else:
-                myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M1: {outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec]}')
-                disponibleClusterDistScipyM1 = False
+                myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M1 - TM{LCL_tipoDeMasaSelec}')
+
             myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M2: {outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec]}')
             outputClusterDistScipyM2FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec])
             if os.path.exists(outputClusterDistScipyM2FileNameConPath):
@@ -2727,14 +2748,14 @@ and two more layers for forest type (land cover) and stand type.
                     lastBandClusterDistScipyM2 = rasterDatasetClusterDistScipyM2.GetRasterBand(nBandasRasterOutput)
                     arrayClusterDistScipyM2[LCL_tipoDeMasaSelec] = lastBandClusterDistScipyM2.ReadAsArray().astype(self.outputNpDatatypeAll)
                     disponibleClusterDistScipyM2 = True
+                    myLog.debug(f'{TB}-> Raster M2 - TM {LCL_tipoDeMasaSelec} leido ok')
                 except:
-                    myLog.error(f'clidtwins-> ATENCION: error al leer {outputClusterDistScipyM2FileNameConPath}')
+                    myLog.error(f'{TB}-> ATENCION: error al leer {outputClusterDistScipyM2FileNameConPath}')
                     myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
-                    disponibleClusterDistScipyM2 = False
                     # sys.exit(0)
             else:
-                myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M2: {outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec]}')
-                disponibleClusterDistScipyM2 = False
+                myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M2 - TM{LCL_tipoDeMasaSelec}')
+
             myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M3: {outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec]}')
             outputClusterDistScipyM3FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec])
             if os.path.exists(outputClusterDistScipyM3FileNameConPath):
@@ -2744,25 +2765,24 @@ and two more layers for forest type (land cover) and stand type.
                     lastBandClusterDistScipyM3 = rasterDatasetClusterDistScipyM3.GetRasterBand(nBandasRasterOutput)
                     arrayClusterDistScipyM3[LCL_tipoDeMasaSelec] = lastBandClusterDistScipyM3.ReadAsArray().astype(self.outputNpDatatypeAll)
                     disponibleClusterDistScipyM3 = True
+                    myLog.debug(f'{TB}-> Raster M3 - TM {LCL_tipoDeMasaSelec} leido ok')
                 except:
-                    myLog.error(f'clidtwins-> ATENCION: error al leer {outputClusterDistScipyM3FileNameConPath}')
+                    myLog.error(f'{TB}-> ATENCION: error al leer {outputClusterDistScipyM3FileNameConPath}')
                     myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
-                    disponibleClusterDistScipyM3 = False
                     # sys.exit(0)
             else:
-                myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M3: {outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec]}')
-                disponibleClusterDistScipyM3 = False
+                myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M3 - TM{LCL_tipoDeMasaSelec}')
 
-            if disponibleClusterDistScipyM1:
+            if disponibleClusterDistScipyM1 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM1[LCL_tipoDeMasaSelec].shape
                 if (
                     (
-                        disponibleClusterDistScipyM2 and (
+                        disponibleClusterDistScipyM2 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys() and (
                             nDistRows != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]
                             or nDistCols != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]
                         )
                     ) or (
-                        disponibleClusterDistScipyM3 and (
+                        disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys() (
                             nDistRows != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
                             or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
                         )
@@ -2770,30 +2790,32 @@ and two more layers for forest type (land cover) and stand type.
                 ):
                     myLog.error(f'clidtwins-> ATENCION: reviser dimensiones de los rasters con distancias scipy')
                     sys.exit(0)
-            elif disponibleClusterDistScipyM2:
+            elif disponibleClusterDistScipyM2 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape
                 if (
-                    disponibleClusterDistScipyM3 and (
+                    disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys() (
                         nDistRows != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
                         or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
                     )
                 ):
                     myLog.error(f'clidtwins-> ATENCION: reviser dimensiones de los rasters con distancias scipy')
                     sys.exit(0)
-            elif disponibleClusterDistScipyM3:
+            elif disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape
             else:
-                myLog.error(f'clidtwins-> ATENCION: no hay rasters disponibles con distancias scipy')
-                return
+                myLog.error(f'clidtwins-> ATENCION: no hay rasters disponibles con distancias scipy para el TM{LCL_tipoDeMasaSelec}')
+                continue
 
+        # Se genera un raster con el Tipo de Masa de minima distancia en cada pixel, para cada metodo Scipy
+        self.outputTiposDeMasaDistanciaMinimaFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasaDistMinima', self.idInputDir, self.driverExtension)
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima {self.outputClusterTiposDeMasaFileNameSinPath}')
+        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima {self.outputTiposDeMasaDistanciaMinimaFileNameSinPath}')
         myLog.info(f'{TB}nDistRows: {nDistRows} = {self.nCeldasY_Destino}')
         myLog.info(f'{TB}nDistCols: {nDistCols} = {self.nCeldasX_Destino}')
         nScipyMethods = len(SCIPY_METHODS)
         datasetTipoMasaScipy, bandaTipoMasaScipyM1 = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
-            self.outputClusterTiposDeMasaFileNameSinPath,
+            self.outputTiposDeMasaDistanciaMinimaFileNameSinPath,
             self.nMinX_tif,
             self.nMaxY_tif,
             self.nCeldasX_Destino,
@@ -2810,60 +2832,98 @@ and two more layers for forest type (land cover) and stand type.
             self.GLBLnoDataTiffFiles,
             generarMetaPixeles=True,
         )
-        bandaTipoMasaScipyM2 = datasetTipoMasaScipy.GetRasterBand(2)
-        bandaTipoMasaScipyM3 = datasetTipoMasaScipy.GetRasterBand(3)
+        if nScipyMethods >= 2 and disponibleClusterDistScipyM2:
+            bandaTipoMasaScipyM2 = datasetTipoMasaScipy.GetRasterBand(2)
+        if nScipyMethods >= 3 and disponibleClusterDistScipyM3:
+            bandaTipoMasaScipyM3 = datasetTipoMasaScipy.GetRasterBand(3)
 
         if disponibleClusterDistScipyM1:
+            myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M1')
             arrayTipoMasaScipyM1 = bandaTipoMasaScipyM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
-            for nDistRow in nDistRows:
-                for nDistCol in nDistCols:
-                    distanciaMinimaM1 = 9999
+            for nDistRow in range(nDistRows):
+                for nDistCol in range(nDistCols):
+                    distanciaMinimaM1 = 99999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
-                        distanciaMinimaM1 = min(
-                            distanciaMinimaM1,
-                            arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
-                    )
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
+                            # if nDistRow == nDistCol:
+                            #     print(
+                            #         nDistRow,
+                            #         distanciaMinimaM1,
+                            #         arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                            #     )
+                            distanciaMinimaM1 = min(
+                                distanciaMinimaM1,
+                                arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                            )
+                        # else:
+                        #     if nDistRow == nDistCol:
+                        #         print(
+                        #             nDistRow,
+                        #             distanciaMinimaM1,
+                        #             '-------',
+                        #         )
+
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
-                        if arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM1:
-                            arrayTipoMasaScipyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
+                            if arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM1:
+                                arrayTipoMasaScipyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                    # if nDistRow == nDistCol:
+                    #     print(
+                    #         nDistRow,
+                    #         distanciaMinimaM1,
+                    #         '->', arrayTipoMasaScipyM1[nDistRow, nDistCol]
+                    #     )
 
         if disponibleClusterDistScipyM2:
+            myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M2')
             arrayTipoMasaScipyM2 = bandaTipoMasaScipyM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
-            for nDistRow in nDistRows:
-                for nDistCol in nDistCols:
+            for nDistRow in range(nDistRows):
+                for nDistCol in range(nDistCols):
                     distanciaMinimaM2 = 9999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
-                        distanciaMinimaM2 = min(
-                            distanciaMinimaM2,
-                            arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
-                    )
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
+                            distanciaMinimaM2 = min(
+                                distanciaMinimaM2,
+                                arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                            )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
-                        if arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM2:
-                            arrayTipoMasaScipyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
+                            if arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM2:
+                                arrayTipoMasaScipyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM3:
+            myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M3')
             arrayTipoMasaScipyM3 = bandaTipoMasaScipyM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
-            for nDistRow in nDistRows:
-                for nDistCol in nDistCols:
+            for nDistRow in range(nDistRows):
+                for nDistCol in range(nDistCols):
                     distanciaMinimaM3 = 9999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
-                        distanciaMinimaM3 = min(
-                            distanciaMinimaM3,
-                            arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
-                    )
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
+                            distanciaMinimaM3 = min(
+                                distanciaMinimaM3,
+                                arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                            )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
-                        if arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM3:
-                            arrayTipoMasaScipyM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
+                            if arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM3:
+                                arrayTipoMasaScipyM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
-        bandaTipoMasaScipyM1 = guardarArrayEnBandaDataset(
-            arrayTipoMasaScipyM1, bandaTipoMasaScipyM1
-        )
-        bandaTipoMasaScipyM2 = guardarArrayEnBandaDataset(
-            arrayTipoMasaScipyM2, bandaTipoMasaScipyM2
-        )
-        bandaTipoMasaScipyM3 = guardarArrayEnBandaDataset(
-            arrayTipoMasaScipyM3, bandaTipoMasaScipyM3
-        )
+        if disponibleClusterDistScipyM1:
+            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M1')
+            print('->->->arrayTipoMasaScipyM1:', arrayTipoMasaScipyM1[:5, :10])
+            bandaTipoMasaScipyM1 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyM1, bandaTipoMasaScipyM1
+            )
+        if disponibleClusterDistScipyM2:
+            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
+            bandaTipoMasaScipyM2 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyM2, bandaTipoMasaScipyM2
+            )
+        if disponibleClusterDistScipyM3:
+            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M3')
+            bandaTipoMasaScipyM3 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyM3, bandaTipoMasaScipyM3
+            )
 
 
 
@@ -2900,8 +2960,8 @@ def rellenarLocalCluster(
     ladoCluster = (self_LOCLradioClusterPix * 2) + 1
     coordY = (arrayBandaXinputMonoPixelAll[0]).shape[0] - nRowRaster
     coordX = nColRaster
-    listaCeldasConDasoVarsCluster = None
-    listaCeldasConDasoVarsSubCluster = None
+    listaCeldasConDasoVarsOkCluster = None
+    listaCeldasConDasoVarsOkSubCluster = None
     arrayBandaXMaskCluster = None
     arrayBandaXMaskSubCluster = None
 
@@ -2957,12 +3017,13 @@ def rellenarLocalCluster(
     # ==================================================================
     # Tengo que recorrer todas las bandas para enmascarar las celdas con alguna banda noData
     # Empiezo contando el numero de celdas con valor valido en todas las bandas
-    # Una vez contadas (nCeldasConDasoVarsOk) creo el array listaCeldasConDasoVarsCluster
+    # Una vez contadas (nCeldasConDasoVarsOk) creo el array listaCeldasConDasoVarsOkCluster
     if clusterCompleto:
-        # Para contar el numero de celdas con valor distinto de noData en alguna banda,
+        # Para contar el numero de celdas con valores distintos de noData en todas las bandas,
         # se parte de un array con todos los valores cero (arrayBandaXMaskCluster),
-        # se ponen a 1 las celdas con algun valor noData y, despues de recorrer 
+        # se ponen a 1 las celdas con ALGUN valor noData y, despues de recorrer 
         # todas las bandas, se cuenta el numero de celdas igual a cero.
+        # Con eso, se crea un array que va a contener la lista de celdas con valor ok
         arrayBandaXMaskCluster = np.zeros((ladoCluster ** 2), dtype=np.uint8).reshape(ladoCluster, ladoCluster)
         # Recorro todas las bandas para verificar en cada celda si hay valores validos en todas las bandas
         # Calculo arrayBandaXMaskCluster y con ella enmascaro los noData al calcular el histograma de cada banda
@@ -2977,9 +3038,7 @@ def rellenarLocalCluster(
             if (localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll).all():
                 localClusterOk = False
                 return (
-                    (
-                        localClusterOk,
-                    ),
+                    localClusterOk,
                     contadorAvisosCluster,
                 )
                 # continue
@@ -2995,9 +3054,7 @@ def rellenarLocalCluster(
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
-                (
-                    localClusterOk,
-                ),
+                localClusterOk,
                 contadorAvisosCluster,
             )
             # continue
@@ -3012,15 +3069,13 @@ def rellenarLocalCluster(
 
             localClusterOk = False
             return (
-                (
-                    localClusterOk,
-                ),
+                localClusterOk,
                 contadorAvisosCluster,
             )
             # continue
 
         nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskCluster == 0)
-        listaCeldasConDasoVarsCluster = np.zeros(nCeldasConDasoVarsOk * self_nBandasRasterOutput, dtype=self_outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, self_nBandasRasterOutput)
+        listaCeldasConDasoVarsOkCluster = np.zeros(nCeldasConDasoVarsOk * self_nBandasRasterOutput, dtype=self_outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, self_nBandasRasterOutput)
     else:
         localSubClusterArrayMultiBandaDasoVars = np.zeros(
             (self_nBandasRasterOutput)
@@ -3081,9 +3136,7 @@ def rellenarLocalCluster(
             if (localSubClusterArrayMultiBandaDasoVars == self_noDataDasoVarAll).all():
                 localClusterOk = False
                 return (
-                    (
-                        localClusterOk,
-                    ),
+                    localClusterOk,
                     contadorAvisosCluster,
                 )
                 # continue
@@ -3102,9 +3155,7 @@ def rellenarLocalCluster(
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
-                (
-                    localClusterOk,
-                ),
+                localClusterOk,
                 contadorAvisosCluster,
             )
             # continue
@@ -3118,15 +3169,13 @@ def rellenarLocalCluster(
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
-                (
-                    localClusterOk,
-                ),
+                localClusterOk,
                 contadorAvisosCluster,
             )
             # continue
 
         nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskSubCluster == 0)
-        listaCeldasConDasoVarsSubCluster = np.zeros(nCeldasConDasoVarsOk * self_nBandasRasterOutput, dtype=self_outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, self_nBandasRasterOutput)
+        listaCeldasConDasoVarsOkSubCluster = np.zeros(nCeldasConDasoVarsOk * self_nBandasRasterOutput, dtype=self_outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, self_nBandasRasterOutput)
     # ==============================================================
 
     if mostrarPixelClusterMatch:
@@ -3142,8 +3191,8 @@ def rellenarLocalCluster(
         clusterCompleto,
         localClusterArrayMultiBandaDasoVars,
         localSubClusterArrayMultiBandaDasoVars,
-        listaCeldasConDasoVarsCluster,
-        listaCeldasConDasoVarsSubCluster,
+        listaCeldasConDasoVarsOkCluster,
+        listaCeldasConDasoVarsOkSubCluster,
         arrayBandaXMaskCluster,
         arrayBandaXMaskSubCluster,
     )
@@ -3157,8 +3206,8 @@ def calculaHistogramas(
         clusterCompleto,
         localClusterArrayMultiBandaDasoVars,
         localSubClusterArrayMultiBandaDasoVars,
-        listaCeldasConDasoVarsCluster,
-        listaCeldasConDasoVarsSubCluster,
+        listaCeldasConDasoVarsOkCluster,
+        listaCeldasConDasoVarsOkSubCluster,
         arrayBandaXMaskCluster,
         arrayBandaXMaskSubCluster,
         localClusterArrayRound,
@@ -3189,7 +3238,7 @@ def calculaHistogramas(
             mask=arrayBandaXMaskCluster,
             dtype=self_outputNpDatatypeAll
         )
-        listaCeldasConDasoVarsCluster[:, nInputVar] = ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)
+        listaCeldasConDasoVarsOkCluster[:, nInputVar] = ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)
     
         # Utilizo el mismo localClusterArrayRound para todos los clusters porque tienen las mismas dimensiones
 
@@ -3204,11 +3253,16 @@ def calculaHistogramas(
         #     myLog.debug(f'Masked: {localClusterArrayMultiBandaDasoVarsMasked}')
         #     myLog.debug(f'Valores ok: {np.count_nonzero(localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)}')
 
-        celdasConValorSiData = localClusterArrayMultiBandaDasoVars[nBanda-1][(localClusterArrayRound != 0) & (localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)]
+        celdasConValorSiData = localClusterArrayMultiBandaDasoVars[nBanda-1][
+            (localClusterArrayRound != 0)
+            & (localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)
+            & (localClusterArrayMultiBandaDasoVars[nBanda-1] >= self_myRange[nBanda][0])
+            & (localClusterArrayMultiBandaDasoVars[nBanda-1] < self_myRange[nBanda][1])
+        ]
         if (
-            np.count_nonzero(celdasConValorSiData) > 0
-            and self_myNBins[nBanda] > 0
-            and self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0
+            (np.count_nonzero(celdasConValorSiData) > 0)
+            & (self_myNBins[nBanda] > 0)
+            & (self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0)
         ):
             # if np.count_nonzero(celdasConValorSiData) == 0:
             #     myLog.debug(f'\nclidtwins-> ------------> ATENCION: celda sin datos.')
@@ -3258,7 +3312,7 @@ def calculaHistogramas(
             mask=arrayBandaXMaskSubCluster,
             dtype=self_outputNpDatatypeAll
             )
-        listaCeldasConDasoVarsSubCluster[:, nInputVar] = ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked)
+        listaCeldasConDasoVarsOkSubCluster[:, nInputVar] = ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked)
 
         # myLog.debug(localSubClusterArrayMultiBandaDasoVars[nBanda-1])
 
@@ -3286,8 +3340,17 @@ def calculaHistogramas(
         #     myLog.debug(f'Masked: {localSubClusterArrayMultiBandaDasoVarsMasked}')
         #     myLog.debug(f'Valores ok: {np.count_nonzero(localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)}')
         try:
-            celdasConValorSiData = localSubClusterArrayMultiBandaDasoVars[nBanda-1][(arrayRoundSubCluster != 0) & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)]
-            if np.count_nonzero(celdasConValorSiData) > 0:
+            celdasConValorSiData = localSubClusterArrayMultiBandaDasoVars[nBanda-1][
+                (arrayRoundSubCluster != 0)
+                & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)
+                & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] >= self_myRange[nBanda][0])
+                & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] < self_myRange[nBanda][1])
+            ]
+            if (
+                (np.count_nonzero(celdasConValorSiData) > 0)
+                & (self_myNBins[nBanda] > 0)
+                & (self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0)
+            ):
                 histNumberCluster = np.histogram(
                     localSubClusterArrayMultiBandaDasoVars[nBanda-1],
                     bins=self_myNBins[nBanda],
@@ -3961,25 +4024,48 @@ def recortarRasterTiffPatronDasoLidar(
         myLog.error(f'{TB}Revisar si la capa vectorial de recorte es correcta, no esta bloqueada (y tiene un poligono) {patronVectrNameConPath}')
         sys.exit(0)
 
-
-    myLog.info(f'clidtwins-> Abriendo raster recortado: {outputRasterNameClip}')
-    rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
+    # Para contar el numero de celdas con valores distintos de noData en todas las bandas,
+    # se parte de un array con todos los valores cero (arrayBandaXMaskClip),
+    # se ponen a 1 las celdas con ALGUN valor noData y, despues de recorrer 
+    # todas las bandas, se cuenta el numero de celdas igual a cero.
+    # Con eso, se crea un array que va a contener la lista de celdas con valor ok
+    myLog.info(f'clidtwins-> Leyendo raster recortado para crear mascara de noData: {outputRasterNameClip}')
+    # rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
     nBandasRasterOutput = rasterDatasetClip.RasterCount
-
     outputBand1Clip = rasterDatasetClip.GetRasterBand(1)
-    arrayBanda1Clip = outputBand1Clip.ReadAsArray().astype(outputNpDatatypeAll)
-    # Mascara con ceros en celdas con alguna variable noData
+    # arrayBanda1Clip = outputBand1Clip.ReadAsArray().astype(outputNpDatatypeAll)
+    arrayBanda1Clip = outputBand1Clip.ReadAsArray()
     arrayBandaXMaskClip = np.full_like(arrayBanda1Clip, 0, dtype=np.uint8)
     for nBanda in range(1, nBandasRasterOutput + 1):
         outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
-        arrayBandaXClip = outputBandXClip.ReadAsArray().astype(outputNpDatatypeAll)
+        # arrayBandaXClip = outputBandXClip.ReadAsArray().astype(outputNpDatatypeAll)
+        arrayBandaXClip = outputBandXClip.ReadAsArray()
         arrayBandaXMaskClip[arrayBandaXClip == noDataDasoVarAll] = 1
         # if self_LOCLverbose:
         #     myLog.debug(f'{TB}Leyendo banda {nBanda} de {nBandasRasterOutput}')
 
     nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskClip == 0)
-    listaCeldasConDasoVarsPatron = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
-    myLog.info(f'{TB}Numero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk}')
+    listaCeldasConDasoVarsOkPatron = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
+    myLog.info(f'{TB}Numero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk} (valor != noDataDasoVarAll: {noDataDasoVarAll})')
+    if nCeldasConDasoVarsOk == 0:
+        myLog.warning('')
+        myLog.warning(f'clidtwins-> ATENCION: no hay info de DLVs para la(s) zona(s) de referencia (patron): faltan ficheros asc para esa zona')
+        myLog.warning(f'{TB}-> Se ignora el Tipo de masa {self_LOCLtipoDeMasaSelec}')
+        return (
+            None,  # LOCLoutputRangosFileTxtSinPath,
+            None,  # LOCLoutputRangosFileNpzSinPath,
+            None,  # nBandasRasterOutput,
+            None,  # rasterDatasetAll,
+            None,  # listaCeldasConDasoVarsOkPatron,
+            None,  # LOCLdictHistProb01,
+            None,  # myNBins,
+            None,  # myRange,
+            None,  # pctjTipoBosquePatronMasFrecuente1,
+            None,  # codeTipoBosquePatronMasFrecuente1,
+            None,  # pctjTipoBosquePatronMasFrecuente2,
+            None,  # codeTipoBosquePatronMasFrecuente2,
+            None,  # histProb01PatronBosque,
+        )
 
     # if nBandasRasterOutput != nBandasPrevistasOutput:
     #     myLog.warning(f'\nAVISO: el numero de bandas del raster generado ({nBandasRasterOutput}) no es igual al previsto ({nBandasPrevistasOutput}), es decir num. de variables + 2 (num variables: {nInputVars})')
@@ -4023,7 +4109,8 @@ def recortarRasterTiffPatronDasoLidar(
                 myLog.warning(f'{TB}AVISO: La banda {nBanda} (variable {nInputVar}) no cuenta con fichero para todos los bloques ({nFicherosDisponiblesPorTipoVariable[nInputVar]} de {nFicherosDisponiblesPorTipoVariable[0]})')
                 continue
         outputBandXClip = rasterDatasetClip.GetRasterBand(nBanda)
-        arrayBandaXClip = outputBandXClip.ReadAsArray().astype(outputNpDatatypeAll)
+        # arrayBandaXClip = outputBandXClip.ReadAsArray().astype(outputNpDatatypeAll)
+        arrayBandaXClip = outputBandXClip.ReadAsArray()
 
         # myLog.debug(f'\nFragmento de banda {nBanda} ({outputNpDatatypeAll}):')
         # myLog.debug(arrayBandaXClip[20:25, 10:20])
@@ -4035,8 +4122,11 @@ def recortarRasterTiffPatronDasoLidar(
             mask=arrayBandaXMaskClip,
             dtype=outputNpDatatypeAll
             )
-        myLog.debug(f'{TB}Banda {nBanda}: numero de puntos patron con dasoVars ok: {len(ma.compressed(arrayBandaXClipMasked))}')
-        listaCeldasConDasoVarsPatron[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
+        myLog.debug(f'{TB}Banda {nBanda}: numero de puntos patron con dasoVars ok: {len(ma.compressed(arrayBandaXClipMasked))}; arrayBandaXClip.shape: {arrayBandaXClip.shape}')
+        myLog.debug(f'----------------------------------outputNpDatatypeAll: {outputNpDatatypeAll}; noDataDasoVarAll: {noDataDasoVarAll}')
+        myLog.debug(f'----------------------------------Algunos valores arrayBandaXClip: {arrayBandaXClip[0][:5]}')
+        myLog.debug(f'----------------------------------Algunos valores arrayBandaXClipMasked: {ma.compressed(arrayBandaXClipMasked)[:5]}')
+        listaCeldasConDasoVarsOkPatron[:, nInputVar] = ma.compressed(arrayBandaXClipMasked)
 
         # histNumberPatron = [np.zeros(myNBins[nBanda]), None]
         # histProbabPatron = [np.zeros(myNBins[nBanda]), None]
@@ -4046,11 +4136,15 @@ def recortarRasterTiffPatronDasoLidar(
         # pctjTipoBosquePatronMasFrecuente1 = 0
         # pctjTipoBosquePatronMasFrecuente2 = 0
 
-        celdasConValorSiData = arrayBandaXClip[(arrayBandaXClip != noDataDasoVarAll)]
+        celdasConValorSiData = arrayBandaXClip[
+            (arrayBandaXClip != noDataDasoVarAll)
+            & (arrayBandaXClip >= myRange[nBanda][0])
+            & (arrayBandaXClip < myRange[nBanda][1])
+        ]
         if (
-            np.count_nonzero(celdasConValorSiData) > 0
-            and myNBins[nBanda] > 0
-            and myRange[nBanda][1] - myRange[nBanda][0] > 0
+            (np.count_nonzero(celdasConValorSiData) > 0)
+            & (myNBins[nBanda] > 0)
+            & (myRange[nBanda][1] - myRange[nBanda][0] > 0)
         ):
             histNumberPatron = np.histogram(
                 arrayBandaXClip,
@@ -4063,12 +4157,15 @@ def recortarRasterTiffPatronDasoLidar(
                 range=myRange[nBanda],
                 density=True
             )
+            histogramaDisponible = True
         else:
             myLog.debug(f'clidtwins-> (d) Revisar myNBins {myNBins[nBanda]} y myRange {myRange[nBanda]} para banda {nBanda} con sumaValores: {arrayBandaXClip.sum()}')
-            myLog.debug(f'{TB}Se crean histogramas con {myNBins} clases nulas')
+            myLog.debug(f'{TB}Se crea histograma con {myNBins[nBanda]} clases nulas')
             histNumberPatron = [np.zeros(myNBins[nBanda]), None]
             histProbabPatron = [np.zeros(myNBins[nBanda]), None]
-    
+            histogramaDisponible = False
+            continue
+
         # myLog.debug(f'\nhistProbabPatron[0]: {type(histProbabPatron[0])}')
         histProb01PatronBandaX = np.array(histProbabPatron[0]) * ((myRange[nBanda][1] - myRange[nBanda][0]) / myNBins[nBanda])
 
@@ -4124,7 +4221,19 @@ def recortarRasterTiffPatronDasoLidar(
             codeTipoBosquePatronMasFrecuente1 = (histNumberPatron[0]).argmax(axis=0)
             arrayPosicionTipoBosquePatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoBosquePatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
-            myLog.debug(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))} %')
+            try:
+                myLog.debug(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))} %')
+            except:
+                print('histogramaDisponible:', histogramaDisponible)
+                print('arrayBandaXClip:', arrayBandaXClip)
+                print('myRange[nBanda][1]:', myRange[nBanda][1])
+                print('celdasConValorSiData:', celdasConValorSiData)
+                print('np.count_nonzero(celdasConValorSiData):', np.count_nonzero(celdasConValorSiData))
+                print('arrayBandaXClip < myRange[nBanda][1]):', arrayBandaXClip < myRange[nBanda][1])
+                print('codeTipoBosquePatronMasFrecuente1:', codeTipoBosquePatronMasFrecuente1)
+                print('histProb01PatronBandaX:', histProb01PatronBandaX)
+                print('histNumberPatron:', histNumberPatron[0])
+                print('histProbabPatron[0]:', histProbabPatron[0])
             # myLog.debug(f'{TB}-> {arrayPosicionTipoBosquePatron1}')
             for contadorTB1, numPosicionTipoBosquePatron1 in enumerate(arrayPosicionTipoBosquePatron1[0]):
                 # myLog.debug(f'{TB}-> {numPosicionTipoBosquePatron1}')
@@ -4381,7 +4490,7 @@ def recortarRasterTiffPatronDasoLidar(
         LOCLoutputRangosFileNpzSinPath,
         nBandasRasterOutput,
         rasterDatasetAll,
-        listaCeldasConDasoVarsPatron,
+        listaCeldasConDasoVarsOkPatron,
         LOCLdictHistProb01,
         myNBins,
         myRange,
