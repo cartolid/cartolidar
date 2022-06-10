@@ -21,31 +21,33 @@ Lidar PNOA: https://pnoa.ign.es/el-proyecto-pnoa-lidar
 Introduction
 ------------
 
-CartoLidar is a collection of tools to process lidar files "las" and "laz" and
-generate other products aimed to forestry and natural environment management.
+CartoLidar is a collection of tools to process lidar files ("las" and "laz") and 
+generate other products related to forestry and natural environment management.
 
 This project is in alpha version and includes only the "clidtwins" tool.
 
-"clidtwins" searchs for similar areas to a reference one in terms of dasoLidar Variables (DLVs)
+"clidtwins" searchs for similar areas to a reference one in terms of dasoLidar variables (DLVs)
 
 DLV: Lidar variables that describe or characterize forest or land cover structure.
 
-> CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar
-> (las y laz) para clasificar los puntos y generar ficheros ráster con DEM y DLVs.
+> CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar 
+> ("las" y "laz") para clasificar los puntos y generar ficheros ráster con DEM y DLVs.
 > 
 > DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
 > 
-> DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos
+> DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos 
 > aspectos de la estructura de una formación arbolada, arbustiva o de matorral.
 > 
-> CartoLidar también proporciona herramientas adicionales para generar otros
-> productos de utilidad en selvicultura y otras areas de gestión del medio
+> CartoLidar también incluye herramientas adicionales para generar otros 
+> productos de utilidad en selvicultura y otras areas de gestión del medio 
 > natural a partir de los ficheros ráster con las DLVs. 
 > 
-> El proyecto está en fase alpha e incluye únicamente la herramienta "clidtwins".
+> El proyecto está en fase alpha e incluye únicamente la herramienta adicional "clidtwins". 
+> Las herramientas de procesado de ficheros Lidar (clasificación de puntos, generación de DEM y DLVs)) 
+> se incorporará a github a partir del cuarto trimestre de 2022.
 > 
-> clidtwins está destinada a buscar zonas similares a una(s) de referencia en
-> términos de determinadas variables dasoLidar (DLVs).
+> La herraienta clidtwins está destinada a buscar zonas similares a una(s) 
+> de referencia en términos de determinadas variables dasoLidar (DLVs).
 
 
 \+ info: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
@@ -55,7 +57,7 @@ DLV: Lidar variables that describe or characterize forest or land cover structur
 Install
 --------
 
-1. Install official version from [pypi - cartolidar](https://pypi.org/project/cartolidar/):
+1. Official version from [pypi - cartolidar](https://pypi.org/project/cartolidar/):
 ```
 pip install cartolidar
 ```
@@ -64,9 +66,9 @@ or (in case you are working through a proxy server):
 pip install cartolidar --proxy https://user:password@proxyserver:port
 ```
 
-2. Download development version from [github - cartolidar](https://github.com/cartolid/cartolidar)
+2. Development version from [github - cartolidar](https://github.com/cartolid/cartolidar):
 
-From github you can download the zip version, uncompress it somewhere, i.e.:
+You can download the zip version, uncompress it somewhere, i.e.:
 ```
 C:\users\yourUser\Downloads\cartolidar-main\
 ```
@@ -101,8 +103,9 @@ This alpha version includes only qlidtwins tools, wich make use of clidtwins pac
 >
 >Inicialmente solo está disponible la herramienta qlidtwins que utliza el paquete clidtwins.
 
-[options_1] are cartolidar general opcions:
+[options] 
 <pre>
+cartolidar general options:
         -h, --help     show this help message and exit
         -V, --version  show program's version number and exit
         -v, --verbose  set verbosity level [default: False]
@@ -252,12 +255,22 @@ myDasolidar.generarRasterCluster()
 ```
 
 
+
+7. After carrying out steps 5 and 6 for several reference ones (example 1, 2, 3):
+```
+listaTM = [1, 2, 3]
+myDasolidar.asignarTipoDeMasaConDistanciaMinima(listaTM)
+```
+
+
 to be continued...
 
 <!-- This content will not appear in the rendered Markdown -->
 
 
 [Ayuda Markdown de github](https://guides.github.com/features/mastering-markdown/)
+[Ayuda Markdown de github](https://docs.github.com/es/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
 [Ayuda Markdown de markdownguide](https://www.markdownguide.org/getting-started)
+
 
 [![Actions Status](https://github.com/cartolidar/cartolidar/workflows/Tests/badge.svg)](https://github.com/cartolidar/cartolidar/actions?query=workflow%3ATests)
