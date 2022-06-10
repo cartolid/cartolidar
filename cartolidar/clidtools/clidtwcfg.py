@@ -495,7 +495,7 @@ def leerConfigDictPorDefecto():
         'GLBLmenuInteractivoPorDefecto': [0,
                                           'general', 'bool',
                                           'Preguntar en tiempo de ejecucion para confirmar opciones'],
-        'GLBLnivelSubdirExplPorDefecto': [1,
+        'GLBLnivelSubdirExplPorDefecto': [0,
                                           'general', 'bool',
                                           'Explorar subdirectorios de rutaAscRaizBase'],
         'GLBLrasterPixelSizePorDefecto': [10,

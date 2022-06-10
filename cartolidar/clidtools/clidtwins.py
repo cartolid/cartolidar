@@ -98,7 +98,7 @@ TW = ' ' * 2
 TB = ' ' * 12
 TV = ' ' * 3
 # ==============================================================================
-TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
+TRNS_buscarBloquesSoloDentroDelMarcoUTM = True
 TRNS_reducirConsumoRAM = False
 TRNS_saltarPixelsSinTipoBosque = True
 MINIMO_PIXELS_POR_CLUSTER = 5
@@ -224,6 +224,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
         self.GLBLnoDataDistancia = 9999
 
         # Se inician estos atributos por si no se ejecuta el metodo setRangeUTM<>
+        self.LOCLrutaAscRaizBase = None 
         self.LOCLmarcoCoordMiniX = 0
         self.LOCLmarcoCoordMaxiX = 0
         self.LOCLmarcoCoordMiniY = 0
@@ -251,7 +252,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             LCL_testeoLayerName=None,  # opcional
             LCL_verbose=None,
         ):
-        """Method for seting UTM range for analysis area
+        f"""Method for seting UTM range for analysis area
         Attributes
         ----------
         LCL_marcoCoordMiniX : int
@@ -263,9 +264,9 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
         LCL_marcoCoordMaxiY : int
             Default: None
         LCL_marcoPatronTest = bool
-            Default: parameter GLBLmarcoPatronTestPorDefecto from cfg file or clidtwcfg.py module
+            Default: None -> {GLO.GLBLmarcoPatronTestPorDefecto} from cfg file or clidtwcfg.py module
         LCL_rutaAscRaizBase : str
-            Default: None (optional)
+            Default: None -> {GLO.GLBLrutaAscRaizBasePorDefecto} (optional)
         LCL_patronVectrName : str
             Default: None (optional)
         LCL_patronLayerName : str
@@ -328,28 +329,41 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             self.LOCLmarcoCoordMaxiY = 0
             self.LOCLmarcoLibreMaxiY = True
 
+        # if LCL_rutaAscRaizBase is None:
+        #     self.LOCLrutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
+        # else:
+        #     self.LOCLrutaAscRaizBase = os.path.abspath(LCL_rutaAscRaizBase)
+        self.verificarRutaAscRaiz(
+            LCL_rutaAscRaizBase=LCL_rutaAscRaizBase,
+        )
+
+        if LCL_patronVectrName is None:
+            self.LOCLpatronVectrName = os.path.abspath(GLO.GLBLpatronVectrNamePorDefecto)
+        else:
+            self.LOCLpatronVectrName = os.path.abspath(LCL_patronVectrName)
+        if LCL_patronLayerName is None:
+            self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
+        else:
+            self.LOCLpatronLayerName = LCL_patronLayerName
+        if LCL_testeoVectrName is None:
+            self.LOCLtesteoVectrName = os.path.abspath(GLO.GLBLtesteoVectrNamePorDefecto)
+        else:
+            self.LOCLtesteoVectrName = os.path.abspath(LCL_testeoVectrName)
+        if LCL_testeoLayerName is None:
+            self.LOCLtesteoLayerName = GLO.GLBLtesteoLayerNamePorDefecto
+        else:
+            self.LOCLtesteoLayerName = LCL_testeoLayerName
+
         myLog.info('\n{:_^80}'.format(''))
         if self.GLBLmarcoPatronTest:
-            if LCL_rutaAscRaizBase is None:
-                self.LOCLrutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
-            else:
-                self.LOCLrutaAscRaizBase = os.path.abspath(LCL_rutaAscRaizBase)
-            if LCL_patronVectrName is None:
-                self.LOCLpatronVectrName = os.path.abspath(GLO.GLBLpatronVectrNamePorDefecto)
-            else:
-                self.LOCLpatronVectrName = os.path.abspath(LCL_patronVectrName)
-            if LCL_patronLayerName is None:
-                self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
-            else:
-                self.LOCLpatronLayerName = LCL_patronLayerName
-            if LCL_testeoVectrName is None:
-                self.LOCLtesteoVectrName = os.path.abspath(GLO.GLBLtesteoVectrNamePorDefecto)
-            else:
-                self.LOCLtesteoVectrName = os.path.abspath(LCL_testeoVectrName)
-            if LCL_testeoLayerName is None:
-                self.LOCLtesteoLayerName = GLO.GLBLtesteoLayerNamePorDefecto
-            else:
-                self.LOCLtesteoLayerName = LCL_testeoLayerName
+            if (
+                self.LOCLmarcoCoordMiniX != 0
+                and self.LOCLmarcoCoordMaxiX != 0
+                and self.LOCLmarcoCoordMiniY != 0
+                and self.LOCLmarcoCoordMaxiY != 0
+            ):
+                myLog.warning('\nclidtwins-> AVISO: Se ha proporcionado rango de coordenadas y GLBLmarcoPatronTest = True')
+                myLog.warning('{TB}-> Se adopta la envolvente del rango y los ficheros de referencia y test.')
 
             # if hasattr(self, 'LOCLpatronVectrName') and hasattr(self, 'LOCLpatronLayerName'):
             #     (usarVectorFileParaDelimitarZona, patronVectrNameConPath) = verificarExistencia(self.LOCLpatronVectrName)
@@ -366,10 +380,26 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 LOCLverbose=self.LOCLverbose,
             )
             if not envolventePatron is None:
-                self.LOCLmarcoCoordMiniX = envolventePatron[0]
-                self.LOCLmarcoCoordMaxiX = envolventePatron[1]
-                self.LOCLmarcoCoordMiniY = envolventePatron[2]
-                self.LOCLmarcoCoordMaxiY = envolventePatron[3]
+                if self.LOCLmarcoCoordMiniX != 0:
+                    self.LOCLmarcoCoordMiniX = min(
+                        self.LOCLmarcoCoordMiniX,
+                        envolventePatron[0]
+                    )
+                if self.LOCLmarcoCoordMaxiX != 0:
+                    self.LOCLmarcoCoordMaxiX = max(
+                        self.LOCLmarcoCoordMaxiX,
+                        envolventePatron[1]
+                    )
+                if self.LOCLmarcoCoordMiniY != 0:
+                    self.LOCLmarcoCoordMiniY = min(
+                        self.LOCLmarcoCoordMiniY,
+                        envolventePatron[2]
+                    )
+                if self.LOCLmarcoCoordMaxiY != 0:
+                    self.LOCLmarcoCoordMaxiY = max(
+                        self.LOCLmarcoCoordMaxiY,
+                        envolventePatron[3]
+                    )
                 self.usarVectorFileParaDelimitarZona = True
             else:
                 myLog.warning('\nclidtwins-> AVISO: identificando rango de coordenadas-> no esta disponible el fichero: {}'.format(self.LOCLpatronVectrName))
@@ -382,10 +412,22 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 LOCLverbose=self.LOCLverbose,
             )
             if not envolventeTesteo is None:
-                self.LOCLmarcoCoordMiniX = min(self.LOCLmarcoCoordMiniX, envolventeTesteo[0])
-                self.LOCLmarcoCoordMaxiX = max(self.LOCLmarcoCoordMaxiX, envolventeTesteo[1])
-                self.LOCLmarcoCoordMiniY = min(self.LOCLmarcoCoordMiniY, envolventeTesteo[2])
-                self.LOCLmarcoCoordMaxiY = max(self.LOCLmarcoCoordMaxiY, envolventeTesteo[3])
+                self.LOCLmarcoCoordMiniX = min(
+                    self.LOCLmarcoCoordMiniX,
+                    envolventeTesteo[0]
+                )
+                self.LOCLmarcoCoordMaxiX = max(
+                    self.LOCLmarcoCoordMaxiX,
+                    envolventeTesteo[1]
+                )
+                self.LOCLmarcoCoordMiniY = min(
+                    self.LOCLmarcoCoordMiniY,
+                    envolventeTesteo[2]
+                )
+                self.LOCLmarcoCoordMaxiY = max(
+                    self.LOCLmarcoCoordMaxiY,
+                    envolventeTesteo[3]
+                )
                 self.usarVectorFileParaDelimitarZona = True
 
             if envolventeTesteo is None:
@@ -423,11 +465,11 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             LCL_nPatronDasoVars=None,  # optional
 
             LCL_rutaAscRaizBase=None,  # opcional
-            LCL_nivelSubdirExpl=0,  # opcional
+            LCL_nivelSubdirExpl=None,  # opcional
             LCL_outputSubdirNew=None,  # opcional
             LCL_verbose=None,
         ):
-        """Search asc files with dasoLidar variables
+        f"""Search asc files with dasoLidar variables
         Attributes
         ----------
         LCL_listLstDasoVars : list
@@ -442,17 +484,19 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             Default: None (optional)
 
         LCL_rutaAscRaizBase : str
-            Default: None,
-        LCL_nivelSubdirExpl : str
-            Default: 0 (optional)
+            Default: None -> {GLO.GLBLrutaAscRaizBasePorDefecto}
+        LCL_nivelSubdirExpl : int
+            Default: None -> {GLO.GLBLnivelSubdirExplPorDefecto} (optional)
         LCL_outputSubdirNew : str
-            Default: None (optional)
+            Default: None -> {GLO.GLBLoutputSubdirNewPorDefecto} (optional)
         """
 
         if not LCL_verbose is None:
             self.LOCLverbose = LCL_verbose
 
-        self.idInputDir = os.path.basename(self.LOCLrutaAscRaizBase)
+        # if hasattr(self, 'LOCLpatronVectrName') and hasattr(self, 'LOCLpatronLayerName'):
+        #     myLog.warning('\nclidtwins-> AVISO: Se ha proporcionado rango de coordenadas y GLBLmarcoPatronTest = True')
+        #     myLog.warning('{TB}-> Se adopta la envolvente del rango y los ficheros de referencia y test.')
 
         # ======================================================================
         self.verificarlistaDasoVars(
@@ -462,21 +506,29 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             LCL_trasferDasoVars=LCL_trasferDasoVars,
             LCL_nPatronDasoVars=LCL_nPatronDasoVars,
         )
+        # if LCL_rutaAscRaizBase is None:
+        #     self.LOCLrutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
+        # else:
+        #     self.LOCLrutaAscRaizBase = os.path.abspath(LCL_rutaAscRaizBase)
         self.verificarRutaAscRaiz(
             LCL_rutaAscRaizBase=LCL_rutaAscRaizBase,
-            LCL_nivelSubdirExpl=LCL_nivelSubdirExpl,
-            LCL_outputSubdirNew=LCL_outputSubdirNew,
         )
-        self.verificarMarcoCoord()
-        # ======================================================================
 
-        # ======================================================================
-        self.LOCLnivelSubdirExpl = LCL_nivelSubdirExpl
+        if LCL_nivelSubdirExpl is None or not type(LCL_nivelSubdirExpl) == int:
+            self.LOCLnivelSubdirExpl = GLO.GLBLnivelSubdirExplPorDefecto
+        else:
+            self.LOCLnivelSubdirExpl = LCL_nivelSubdirExpl
         if LCL_outputSubdirNew is None:
             self.LOCLoutputSubdirNew = GLO.GLBLoutputSubdirNewPorDefecto
         else:
             self.LOCLoutputSubdirNew = LCL_outputSubdirNew
 
+        # ======================================================================
+        self.idInputDir = os.path.basename(self.LOCLrutaAscRaizBase)
+        self.verificarMarcoCoord()
+        # ======================================================================
+
+        # ======================================================================
         myLog.info('\n{:_^80}'.format(''))
         myLog.info('clidtwins-> Explorando directorios...')
         myLog.info(f'{TB}-> Directorio raiz para los ficheros dasolidar (asc):')
@@ -656,6 +708,19 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             # Mas adelante se ordenan y cuadran para que sean listas paralelas
             self.inFilesListAllTypes.append(infilesX)
         # ======================================================================
+
+        if self.LOCLverbose == 3:
+            myLog.info(f'clidtwins-> Resumen de ficheros encontrados:')
+            for nInputVar, filenamesSeleccionadosX in enumerate(self.inFilesListAllTypes):
+                if len(self.LOCLlistaDasoVarsFileTypes) > nInputVar:
+                    myLog.info(f'{TB}-> Ficheros tipo {self.LOCLlistaDasoVarsFileTypes[nInputVar]}:')
+                else:
+                    myLog.info(f'{TB}-> Ficheros sin tipo asigando (ATENCION: revisar):')
+                myLog.info(f'{TB}{TV}-> Encontrados: {len(filenamesSeleccionadosX)} ficheros.')
+                myLog.info(f'{TB}{TV}-> Primeros {min(len(filenamesSeleccionadosX), 5)} ficheros:')
+                for nFile, pathAndfilename in enumerate(filenamesSeleccionadosX[:5]):
+                    myLog.info(f'{TB}{TV}{TV} {nFile} {pathAndfilename}')
+
 
         # Despues de buscar todos los ficheros disponibles de cada tipo (cada variable)
         # Elimino los ficheros de bloques que no tengan todos los tipos (todas las variables)
@@ -1080,8 +1145,6 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
     def verificarRutaAscRaiz(
             self,
             LCL_rutaAscRaizBase=None,  # opcional
-            LCL_nivelSubdirExpl=0,  # opcional
-            LCL_outputSubdirNew=None,  # opcional
         ):
         # ======================================================================
         # Si no se ha especificado LCL_rutaAscRaizBase, se elige una que exista:
@@ -1096,6 +1159,9 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             LCL_rutaAscRaizBase = None
 
         if LCL_rutaAscRaizBase is None:
+            if hasattr(self, 'LOCLrutaAscRaizBase') and not self.LOCLrutaAscRaizBase is None:
+                # Ya hay un valor asignado a self.LOCLrutaAscRaizBase, probablemente en setRangeUTM<>
+                return
             myLog.debug('\n{:_^80}'.format(''))
             myLog.warning(f'clidtwins-> AVISO: no se ha indicado ruta para los ficheros asc con las variables dasoLidar de entrada.')
             myLog.warning(f'{TB}Ruta: {LCL_rutaAscRaizBase}')
