@@ -4,6 +4,7 @@
 """
 
 import os
+import sys
 
 import setuptools
 # from setuptools import find_packages
@@ -14,7 +15,7 @@ import setuptools
 # Ver https://github.com/pypa/sampleproject
 
 packages=setuptools.find_packages()
-print('packages encontrados:', packages)
+print('\npackages encontrados:', packages)
 
 # Ver https://docs.python.org/3/distutils/setupscript.html
 
@@ -26,7 +27,10 @@ print('packages encontrados:', packages)
 # sys.path.append(os.path.dirname(__file__))
 # import versioneer
 
+rutaTrabajo = sys.prefix
 HERE = os.path.abspath(os.path.dirname(__file__))
+print('rutaTrabajo:', rutaTrabajo)
+print('HERE:       ', HERE)
 
 with open(os.path.join(HERE, 'README.md')) as fid:
     README = fid.read()
@@ -50,11 +54,15 @@ INSTALL_REQUIRES = [
 ]
 
 datapath1 = os.path.abspath('data')
+datapath2 = os.path.abspath('data/asc')
+datapath3 = os.path.abspath('data/mfe')
 # print('Elementos en {}:\n\t{}'.format(HERE, os.listdir(HERE)))
 # print('Elementos en {}:\n\t{}'.format(os.path.join(HERE, 'cartolidar'), os.listdir(os.path.join(HERE, 'cartolidar'))))
 # print('Elementos en {}:\n\t{}'.format(os.path.abspath('cartolidar'), os.listdir('cartolidar')))
 # print('NO se buscan los data_files en:', os.path.join(HERE, 'data'))
-print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath1, os.listdir(datapath1)))
+print('\nSI se buscan los data_files en: {}:\n\t {}'.format(datapath1, os.listdir(datapath1)))
+print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath2, os.listdir(datapath2)))
+print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath3, os.listdir(datapath3)))
 
 # No creo directorio data dentro de la ruta del proyecto:
 # datapath2 = os.path.join('cartolidar', 'data')
@@ -69,13 +77,37 @@ print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath1, os.listdir(
 # get all data dirs in the datasets module
 data_files = []
 for item in os.listdir(datapath1):
+    # print('item1:', os.path.abspath(os.path.join(datapath1, item)), os.path.isdir(os.path.join(datapath1, item)))
     if not item.startswith('__'):
-        if os.path.isdir(os.path.join('data', item)):
-            data_files.append(os.path.join('data', item, '*'))
+        if os.path.isdir(os.path.join(datapath1, item)):
+            data_files.append(os.path.join(datapath1, item, '*.*'))
+            # print('\t->', os.path.join(datapath1, item, '*.*'))
         elif item.endswith('.zip'):
-            data_files.append(os.path.join('data', item))
-# data_files.append('tests/data/*')
+            data_files.append(os.path.join(datapath1, item))
+            # print('\t->', os.path.join(datapath1, item))
+# print('data_files1:', data_files)
+for item in os.listdir(datapath2):
+    # print('item2:', os.path.abspath(os.path.join(datapath2, item)), os.path.isdir(os.path.join(datapath2, item)))
+    if not item.startswith('__'):
+        if os.path.isdir(os.path.join(datapath2, item)):
+            data_files.append(os.path.join(datapath2, item, '*.*'))
+            # print('\t->', os.path.join(datapath2, item, '*.*'))
+        elif item.endswith('.zip'):
+            data_files.append(os.path.join(datapath2, item))
+            # print('\t->', os.path.join(datapath2, item))
+# print('data_files2:', data_files)
+for item in os.listdir(datapath3):
+    # print('item3:', os.path.abspath(os.path.join(datapath3, item)), os.path.isdir(os.path.join(datapath3, item)))
+    if not item.startswith('__'):
+        if os.path.isdir(os.path.join(datapath3, item)):
+            data_files.append(os.path.join(datapath3, item, '*.*'))
+            # print('\t->', os.path.join(datapath3, item, '*.*'))
+        elif item.endswith('.zip'):
+            data_files.append(os.path.join(datapath3, item))
+            # print('\t->', os.path.join(datapath3, item))
+print('data_files3:', data_files)
 
+# data_files.append('tests/data/*')
 
 setuptools.setup(
     name='cartolidar',
@@ -125,8 +157,8 @@ setuptools.setup(
     install_requires=INSTALL_REQUIRES,
 
 	# Para ficheros adicionales ver: http://docs.python.org/distutils/setupscript.html#installing-additional-files
-    # package_data={"": data_files},
-    # include_package_data=True,
+    package_data={"": data_files},
+    include_package_data=True,
 
 	# Para entry_points ver:
 	#	https://setuptools.pypa.io/en/latest/userguide/entry_point.html#dynamic-discovery-of-services-and-plugins

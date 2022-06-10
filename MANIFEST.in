@@ -2,6 +2,7 @@ include cartolidar/*.py
 include cartolidar/clidtools/*.py
 include cartolidar/clidax/*.py
 include cartolidar/data/*.*
+include cartolidar/data/ref/*.*
 include data/*.*
 global-exclude *.back
 global-exclude *.txt

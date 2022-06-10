@@ -22,6 +22,7 @@ import warnings
 import pathlib
 import logging
 from operator import itemgetter, attrgetter
+from configparser import RawConfigParser
 # import random
 
 import numpy as np
@@ -30,7 +31,6 @@ from scipy.spatial import distance_matrix
 from scipy.spatial import distance as distance_hist
 # from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
-from configparser import RawConfigParser
 
 try:
     import psutil
