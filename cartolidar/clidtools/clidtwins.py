@@ -102,10 +102,11 @@ TRNS_buscarBloquesSoloDentroDelMarcoUTM = False
 TRNS_reducirConsumoRAM = False
 TRNS_saltarPixelsSinTipoBosque = True
 MINIMO_PIXELS_POR_CLUSTER = 5
+TRNS_tipoBoscCompatible = 5
 SCIPY_METHODS = (
     ("Euclidean", distance_hist.euclidean),
     ("Manhattan", distance_hist.cityblock),
-    # ("Chebysev", distance_hist.chebyshev)
+    ("Chebysev", distance_hist.chebyshev)
 )
 nScipyMethods = len(SCIPY_METHODS)
 # ==============================================================================
@@ -1899,7 +1900,8 @@ and two more layers for forest type (land cover) and stand type.
         # self.outputNpDatatypeAll,
         # self.LOCLoutPathNameRuta,
         # self.outputClusterAllDasoVarsFileNameSinPath,
-        # self.outputClusterTiposDeMasaFileNameSinPath,
+        # self.outputClusterTipoBoscProFileNameSinPath,
+        # self.outputClusterTipoMasaParFileNameSinPath,
         # self.outputClusterFactorProxiFileNameSinPath,
         # self.outputClusterDistanciaEuFileNameSinPath,
         # self.LOCLrasterPixelSize,
@@ -1959,7 +1961,8 @@ and two more layers for forest type (land cover) and stand type.
             idTipoDeMasaSelec = f'_TM{self.LOCLtipoDeMasaSelec}'
         # ======================================================================
         self.outputClusterAllDasoVarsFileNameSinPath = '{}_{}{}.{}'.format('clusterAllDasoVars', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
-        self.outputClusterTiposDeMasaFileNameSinPath = '{}_{}{}.{}'.format('clusterTiposDeMasa', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        self.outputClusterTipoBoscProFileNameSinPath = '{}_{}{}.{}'.format('clusterTipoBoscPro', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        self.outputClusterTipoMasaParFileNameSinPath = '{}_{}{}.{}'.format('clusterTipoMasaPar', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
         self.outputClusterDistanciaEuFileNameSinPath = '{}_{}{}.{}'.format('clusterDistanciaEu', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
         self.outputClusterFactorProxiFileNameSinPath = '{}_{}{}.{}'.format('clusterFactorProxi', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
         self.outputClusterDistScipyM1FileNameSinPath = '{}_{}{}.{}'.format('clusterDistScipyM1', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
@@ -1970,8 +1973,11 @@ and two more layers for forest type (land cover) and stand type.
         myLog.info(f'{TB}-> Fichero multibanda* con las variables dasoLidar clusterizadas (radio de {self.LOCLradioClusterPix} pixeles):')
         myLog.info(f'{TB}{TV}{self.outputClusterAllDasoVarsFileNameSinPath}')
         myLog.info(f'{TB}{TV}* Con todas las variables dasoLidar (una en cada banda) y dos bandas adicionales con tipo de bosque y tipo de masa.')
+
+        myLog.info(f'{TB}-> Fichero monoBanda con presencia del tipo de bosque patron:')
+        myLog.info(f'{TB}{TV}{self.outputClusterTipoBoscProFileNameSinPath}')
         myLog.info(f'{TB}-> Fichero monoBanda con presencia del tipo de masa patron:')
-        myLog.info(f'{TB}{TV}{self.outputClusterTiposDeMasaFileNameSinPath}')
+        myLog.info(f'{TB}{TV}{self.outputClusterTipoMasaParFileNameSinPath}')
         myLog.info(f'{TB}{TV}* Segunda banda: MFE')
         myLog.info(f'{TB}-> Fichero biBanda con la distancia euclidea al patron y proximidad a especie principal clusterizados:')
         myLog.info(f'{TB}{TV}{self.outputClusterDistanciaEuFileNameSinPath}')
@@ -2036,19 +2042,46 @@ and two more layers for forest type (land cover) and stand type.
 
         # ======================================================================
         # Creacion de los raster (vacios), que albergaran:
+        # 0. Monolayer con tipo de bosque similar al de referencia (patron)
         # 1. Monolayer con tipo de masa similar al de referencia (patron)
         # 2. Bilayer con DistanciaEu y MFE
         # 3. Bilayer con factorProxi y MFE
         # 4. MultiLayer clusterAllDasoVars
         # Los pixeles de estos raster integran el cluster correspondiente 
+
+        # ======================================================================
+        # 0. MonoLayer con presencia de tipo de masa similar al de referencia (patron)
+        # ======================================================================
+        # myLog.info('\n{:_^80}'.format(''))
+        myLog.info(f'clidtwins-> Creando fichero para el layer tipoBosque {self.outputClusterTipoBoscProFileNameSinPath}')
+        outputDatasetTipoBosc, outputBandaTipoBosc = clidraster.CrearOutputRaster(
+            self.LOCLoutPathNameRuta,
+            self.outputClusterTipoBoscProFileNameSinPath,
+            self.nMinX_tif,
+            self.nMaxY_tif,
+            self.nCeldasX_Destino,
+            self.nCeldasY_Destino,
+            self.metrosPixelX_Destino,
+            self.metrosPixelY_Destino,
+            self.LOCLoutRasterDriver,
+            self.outputOptions,
+            nBandasOutputMonoBanda,
+            self.outputGdalDatatypeTipoMasa,
+            self.outputNpDatatypeTipoMasa,
+            self.GLBLnoDataTipoDMasa,
+            self.GLBLnoDataTipoDMasa,
+            self.GLBLnoDataTiffFiles,
+            generarMetaPixeles=True,
+        )
+
         # ======================================================================
         # 1. MonoLayer con presencia de tipo de masa similar al de referencia (patron)
         # ======================================================================
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa {self.outputClusterTiposDeMasaFileNameSinPath}')
+        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa {self.outputClusterTipoMasaParFileNameSinPath}')
         outputDatasetTipoMasa, outputBandaTipoMasa = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
-            self.outputClusterTiposDeMasaFileNameSinPath,
+            self.outputClusterTipoMasaParFileNameSinPath,
             self.nMinX_tif,
             self.nMaxY_tif,
             self.nCeldasX_Destino,
@@ -2268,12 +2301,15 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
 
         # ======================================================================
+        arrayBandaTipoBosc = outputBandaTipoBosc.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
         arrayBandaTipoMasa = outputBandaTipoMasa.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
         arrayBandaDistanciaEuclideaMedia = outputBandaDistanciaEuclideaMedia.ReadAsArray().astype(self.outputNpDatatypeFloatX)
         arrayBandaPorcentajeDeProximidad = outputBandaPorcentajeDeProximidad.ReadAsArray().astype(self.outputNpDatatypeFloatX)
         arrayBandaClusterDasoVarBanda1 = outputBandaClusterDasoVarBanda1.ReadAsArray().astype(self.outputNpDatatypeAll)
         # ======================================================================
-
+        arrayDistanciaEuclideaMedia = np.full_like(arrayBandaTipoMasa, self.GLBLnoDataTiffFiles, dtype=self.outputNpDatatypeFloatX)
+        arrayPctjPorcentajeDeProximidad = np.full_like(arrayBandaTipoMasa, self.GLBLnoDataTiffFiles, dtype=self.outputNpDatatypeFloatX)
+        # ======================================================================
         arrayDistanciaScipy = np.zeros(
             (self.nInputVars + 1) * len(SCIPY_METHODS) * arrayBandaTipoMasa.shape[0] * arrayBandaTipoMasa.shape[1],
             dtype=self.outputNpDatatypeFloatX
@@ -2290,10 +2326,6 @@ and two more layers for forest type (land cover) and stand type.
 
         # Convertir esto a uint8 (los arrays y el rasterDataset)
         # ======================================================================
-        arrayProximidadInterEspecies = np.full_like(arrayBandaTipoMasa, self.GLBLnoDataTiffFiles, dtype=self.outputNpDatatypeFloatX)
-        arrayDistanciaEuclideaMedia = np.full_like(arrayBandaTipoMasa, self.GLBLnoDataTiffFiles, dtype=self.outputNpDatatypeFloatX)
-        arrayPctjPorcentajeDeProximidad = np.full_like(arrayBandaTipoMasa, self.GLBLnoDataTiffFiles, dtype=self.outputNpDatatypeFloatX)
-        # ======================================================================
 
         # ======================================================================
         dictDtSetMultiBandaClusterDasoVars = {}
@@ -2307,9 +2339,14 @@ and two more layers for forest type (land cover) and stand type.
         myLog.debug(f'clidtwins-> Dimensiones de los raster creados (pixeles): {arrayBandaTipoMasa.shape}')
         myLog.debug(f'-> Tipo de dato de los rasters creados:')
         myLog.debug(
+            f'{TB}-> Raster mono-banda con el tipo de bosque:       '
+            f'{type(arrayBandaTipoBosc)}, dtype: {arrayBandaTipoBosc.dtype} '
+            f'-> {self.outputClusterTipoBoscProFileNameSinPath}'
+        )
+        myLog.debug(
             f'{TB}-> Raster mono-banda con el tipo de masa:         '
             f'{type(arrayBandaTipoMasa)}, dtype: {arrayBandaTipoMasa.dtype} '
-            f'-> {self.outputClusterTiposDeMasaFileNameSinPath}'
+            f'-> {self.outputClusterTipoMasaParFileNameSinPath}'
         )
         myLog.debug(
             f'{TB}-> Raster bi-banda con la DistanciaEuclideaMedia: '
@@ -2348,7 +2385,7 @@ and two more layers for forest type (land cover) and stand type.
         contadorAvisosCluster = 0
         myLog.info('\n{:_^80}'.format(''))
         myLog.info(f'clidtwins-> Recorriendo raster multibanda (nBandas: {self.nBandasRasterOutput}; ladoCluster: {ladoCluster})')
-        myLog.info(f'{TB}para calcular clusterVars, tipoDeMasa y dos parametros de proximidad.')
+        myLog.info(f'{TB}para calcular clusterVars, tipoDeMasa, tipoDeBosque y dos parametros de proximidad.')
         for nRowRaster in range(arrayBandaTipoMasa.shape[0]):
             if self.LOCLverbose:
                 if nRowRaster % (arrayBandaTipoMasa.shape[0] / 10) == 0:
@@ -2579,7 +2616,7 @@ and two more layers for forest type (land cover) and stand type.
                         # myLog.debug('clidtwins-> Matriz de distancias:')
                         # myLog.debug(matrizDeDistancias[:5,:5])
                 # ==================================================================
-                tipoMasaOk = tipoBosqueOk >= 5 and nVariablesNoOk <= 1
+                tipoMasaOk = tipoBosqueOk >= TRNS_tipoBoscCompatible and nVariablesNoOk <= 1
                 if mostrarPixelClusterMatch:
                     myLog.debug(
                         f'nRowColRaster: {nRowRaster} {nColRaster}; '
@@ -2605,8 +2642,8 @@ and two more layers for forest type (land cover) and stand type.
                         myLog.debug(f'matrizDeDistancias (shape: (nCeldasPatron, nCeldasClusterOk): {matrizDeDistancias.shape}):')
                         myLog.debug(matrizDeDistancias)
 
+                arrayBandaTipoBosc[nRowRaster, nColRaster] = tipoBosqueOk
                 arrayBandaTipoMasa[nRowRaster, nColRaster] = tipoMasaOk
-                arrayProximidadInterEspecies[nRowRaster, nColRaster] = tipoBosqueOk
                 arrayDistanciaEuclideaMedia[nRowRaster, nColRaster] = distanciaEuclideaMedia
                 if np.ma.count(matrizDeDistancias) != 0:
                     arrayPctjPorcentajeDeProximidad[nRowRaster, nColRaster] = 100 * (
@@ -2631,10 +2668,34 @@ and two more layers for forest type (land cover) and stand type.
         # myLog.debug(dir(arrayBandaTipoMasa))
         # myLog.debug(f'arrayBandaTipoMasa.shape: {arrayBandaTipoMasa.shape}')
 
+        outputBandaTipoBosc = guardarArrayEnBandaDataset(
+            arrayBandaTipoBosc, outputBandaTipoBosc
+        )
+
         outputBandaTipoMasa = guardarArrayEnBandaDataset(
             arrayBandaTipoMasa, outputBandaTipoMasa
         )
-        # Sustituyo el valor noData por el maximo valor de distancia acumulada
+
+        outputBandaProximidadInterEspecies1 = guardarArrayEnBandaDataset(
+            arrayBandaTipoBosc, outputBandaProximidadInterEspecies1
+        )
+        outputBandaProximidadInterEspecies2 = guardarArrayEnBandaDataset(
+            arrayBandaTipoBosc, outputBandaProximidadInterEspecies2
+        )
+        outputBandaDistanciaEuclideaMedia = guardarArrayEnBandaDataset(
+            arrayDistanciaEuclideaMedia, outputBandaDistanciaEuclideaMedia
+        )
+        outputBandaPorcentajeDeProximidad = guardarArrayEnBandaDataset(
+            arrayPctjPorcentajeDeProximidad, outputBandaPorcentajeDeProximidad
+        )
+        for outputNBand in range(1, self.nBandasPrevistasOutput + 1):
+            dictDtSetMultiBandaClusterDasoVarsNBand = guardarArrayEnBandaDataset(
+                dictArrayMultiBandaClusterDasoVars[outputNBand],
+                dictDtSetMultiBandaClusterDasoVars[outputNBand]
+            )
+            dictDtSetMultiBandaClusterDasoVars[outputNBand] = dictDtSetMultiBandaClusterDasoVarsNBand
+
+        # Distancas Scipy: sustituyo el valor noData por el maximo valor de distancia acumulada
         myLog.debug(f'clidtwins-> Convirtiendo noData ({self.GLBLnoDataDistancia}) al valor de la mistancia maxima ({int(self.maxDistanciaScipySuma) + 1}).')
         arrayDistanciaScipy[arrayDistanciaScipy == self.GLBLnoDataDistancia] = int(self.maxDistanciaScipySuma) + 1
         for nInputVar in range(self.nInputVars):
@@ -2668,30 +2729,12 @@ and two more layers for forest type (land cover) and stand type.
             print(f'{TB}arrayDistanciaScipy.shape: {arrayDistanciaScipy.shape}')
             print(f'{TB}outputBandaDistanciaScipyMethod3[self.nInputVars].shape: {outputBandaDistanciaScipyMethod3[self.nInputVars].shape}')
 
-        outputBandaProximidadInterEspecies1 = guardarArrayEnBandaDataset(
-            arrayProximidadInterEspecies, outputBandaProximidadInterEspecies1
-        )
-        outputBandaProximidadInterEspecies2 = guardarArrayEnBandaDataset(
-            arrayProximidadInterEspecies, outputBandaProximidadInterEspecies2
-        )
-        outputBandaDistanciaEuclideaMedia = guardarArrayEnBandaDataset(
-            arrayDistanciaEuclideaMedia, outputBandaDistanciaEuclideaMedia
-        )
-        outputBandaPorcentajeDeProximidad = guardarArrayEnBandaDataset(
-            arrayPctjPorcentajeDeProximidad, outputBandaPorcentajeDeProximidad
-        )
-        for outputNBand in range(1, self.nBandasPrevistasOutput + 1):
-            dictDtSetMultiBandaClusterDasoVarsNBand = guardarArrayEnBandaDataset(
-                dictArrayMultiBandaClusterDasoVars[outputNBand],
-                dictDtSetMultiBandaClusterDasoVars[outputNBand]
-            )
-            dictDtSetMultiBandaClusterDasoVars[outputNBand] = dictDtSetMultiBandaClusterDasoVarsNBand
-
         return True
         # return (
         #     self.LOCLoutPathNameRuta,
         #     self.outputClusterAllDasoVarsFileNameSinPath,
-        #     self.outputClusterTiposDeMasaFileNameSinPath,
+        #     self.outputClusterTipoBoscProFileNameSinPath,
+        #     self.outputClusterTipoMasaParFileNameSinPath,
         #     self.outputClusterDistanciaEuFileNameSinPath,
         #     self.outputClusterFactorProxiFileNameSinPath,
         # )
@@ -2705,9 +2748,11 @@ and two more layers for forest type (land cover) and stand type.
             self.LOCLlistaTM = [None]
         else:
             self.LOCLlistaTM = LCL_listaTM
+        outputClusterTipoBoscProFileNameSinPath = {}
         outputClusterDistScipyM1FileNameSinPath = {}
         outputClusterDistScipyM2FileNameSinPath = {}
         outputClusterDistScipyM3FileNameSinPath = {}
+        arrayClusterTipoBoscPro = {}
         arrayClusterDistScipyM1 = {}
         arrayClusterDistScipyM2 = {}
         arrayClusterDistScipyM3 = {}
@@ -2719,9 +2764,28 @@ and two more layers for forest type (land cover) and stand type.
                 idTipoDeMasaSelec = ''
             else:
                 idTipoDeMasaSelec = f'_TM{LCL_tipoDeMasaSelec}'
+            outputClusterTipoBoscProFileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterTipoBoscPro', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
             outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM1', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
             outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM2', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
             outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec] = '{}_{}{}.{}'.format('clusterDistScipyM3', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+
+            myLog.info(f'clidtwins-> Abriendo raster con factor de proximidad al tipo de bosque de referencia (0-10): {outputClusterTipoBoscProFileNameSinPath[LCL_tipoDeMasaSelec]}')
+            outputClusterTipoBoscProFileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterTipoBoscProFileNameSinPath[LCL_tipoDeMasaSelec])
+            if os.path.exists(outputClusterTipoBoscProFileNameConPath):
+                try:
+                    rasterDatasetClusterTipoBoscPro = gdal.Open(outputClusterTipoBoscProFileNameConPath, gdalconst.GA_ReadOnly)
+                    # nBandasRasterOutput = rasterDatasetClusterTipoBoscPro.RasterCount
+                    lastBandClusterTipoBoscPro = rasterDatasetClusterTipoBoscPro.GetRasterBand(1)
+                    arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec] = lastBandClusterTipoBoscPro.ReadAsArray().astype(self.outputNpDatatypeAll)
+                    disponibleClusterTipoBoscPro = True
+                    myLog.debug(f'{TB}-> Raster M1 - TM {LCL_tipoDeMasaSelec} leido ok')
+                except:
+                    myLog.error(f'{TB}-> ATENCION: error al leer {outputClusterTipoBoscProFileNameConPath}')
+                    myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
+                    # sys.exit(0)
+            else:
+                myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M1 - TM{LCL_tipoDeMasaSelec}')
+
             myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M1: {outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec]}')
             outputClusterDistScipyM1FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec])
             if os.path.exists(outputClusterDistScipyM1FileNameConPath):
@@ -2773,38 +2837,73 @@ and two more layers for forest type (land cover) and stand type.
             else:
                 myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M3 - TM{LCL_tipoDeMasaSelec}')
 
-            if disponibleClusterDistScipyM1 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys():
+            if disponibleClusterTipoBoscPro and LCL_tipoDeMasaSelec in arrayClusterTipoBoscPro.keys():
+                nDistRows, nDistCols = arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec].shape
+                if (
+                    (
+                        disponibleClusterDistScipyM1 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys() and (
+                            nDistRows != arrayClusterDistScipyM1[LCL_tipoDeMasaSelec].shape[0]
+                            or nDistCols != arrayClusterDistScipyM1[LCL_tipoDeMasaSelec].shape[1]
+                        )
+                    ) or (
+                    (
+                        disponibleClusterDistScipyM2 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys() and (
+                            nDistRows != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]
+                            or nDistCols != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[1]
+                        )
+                    )
+                    ) or (
+                        disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys() and (
+                            nDistRows != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
+                            or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]
+                        )
+                    )
+                ):
+                    myLog.error(f'clidtwins-> ATENCION: revisar dimensiones de los rasters con distancias scipy')
+                    if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys():
+                        myLog.error(f'{TB}M1 rows: {nDistRows} != {arrayClusterDistScipyM1[LCL_tipoDeMasaSelec].shape[0]}')
+                        myLog.error(f'{TB}M1 cols: {nDistCols} != {arrayClusterDistScipyM1[LCL_tipoDeMasaSelec].shape[1]}')
+                    if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys():
+                        myLog.error(f'{TB}M2 rows: {nDistRows} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]}')
+                        myLog.error(f'{TB}M2 cols: {nDistCols} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[1]}')
+                    if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys():
+                        myLog.error(f'{TB}M3 rows: {nDistRows} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]}')
+                        myLog.error(f'{TB}M3 cols: {nDistCols} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]}')
+                    sys.exit(0)
+            elif disponibleClusterDistScipyM1 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM1[LCL_tipoDeMasaSelec].shape
                 if (
                     (
                         disponibleClusterDistScipyM2 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys() and (
                             nDistRows != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]
-                            or nDistCols != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]
+                            or nDistCols != arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[1]
                         )
                     ) or (
-                        disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys() (
+                        disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys() and (
                             nDistRows != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
-                            or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
+                            or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]
                         )
                     )
                 ):
                     myLog.error(f'clidtwins-> ATENCION: revisar dimensiones de los rasters con distancias scipy')
-                    myLog.error(f'{TB}{nDistRows} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]}')
-                    myLog.error(f'{TB}{nDistCols} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[1]}')
-                    myLog.error(f'{TB}{nDistRows} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]}')
-                    myLog.error(f'{TB}{nDistCols} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]}')
+                    if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys():
+                        myLog.error(f'{TB}M2 rows: {nDistRows} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[0]}')
+                        myLog.error(f'{TB}M2 cols: {nDistCols} != {arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape[1]}')
+                    if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys():
+                        myLog.error(f'{TB}M3 rows: {nDistRows} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]}')
+                        myLog.error(f'{TB}M3 cols: {nDistCols} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]}')
                     sys.exit(0)
             elif disponibleClusterDistScipyM2 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM2[LCL_tipoDeMasaSelec].shape
                 if (
-                    disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys() (
+                    disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys() and (
                         nDistRows != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
-                        or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]
+                        or nDistCols != arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]
                     )
                 ):
                     myLog.error(f'clidtwins-> ATENCION: revisar dimensiones de los rasters con distancias scipy')
-                    myLog.error(f'{TB}{nDistRows} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]}')
-                    myLog.error(f'{TB}{nDistCols} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]}')
+                    myLog.error(f'{TB}M3_ rows: {nDistRows} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[0]}')
+                    myLog.error(f'{TB}M3_ cols: {nDistCols} != {arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape[1]}')
                     sys.exit(0)
             elif disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape
@@ -2812,16 +2911,21 @@ and two more layers for forest type (land cover) and stand type.
                 myLog.error(f'clidtwins-> ATENCION: no hay rasters disponibles con distancias scipy para el TM{LCL_tipoDeMasaSelec}')
                 continue
 
+        # myLog.info(f'clidtwins-> Dimensiones de los raster origen y destino compatibles '
+        #            f'scipyM1: {disponibleClusterDistScipyM1}; '
+        #            f'scipyM2: {disponibleClusterDistScipyM2}; '
+        #            f'scipyM3: {disponibleClusterDistScipyM3}')
+        # myLog.info(f'{TB}nDistRows: {nDistRows} = {self.nCeldasY_Destino}')
+        # myLog.info(f'{TB}nDistCols: {nDistCols} = {self.nCeldasX_Destino}')
+
         # Se genera un raster con el Tipo de Masa de minima distancia en cada pixel, para cada metodo Scipy
-        self.outputTiposDeMasaDistanciaMinimaFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasaDistMinima', self.idInputDir, self.driverExtension)
+        self.outputTiposDeMasaDistanciaMinimaTipoBoscAnyFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasaDistMinimaTipoBosqueCualquiera', self.idInputDir, self.driverExtension)
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima {self.outputTiposDeMasaDistanciaMinimaFileNameSinPath}')
-        myLog.info(f'{TB}nDistRows: {nDistRows} = {self.nCeldasY_Destino}')
-        myLog.info(f'{TB}nDistCols: {nDistCols} = {self.nCeldasX_Destino}')
+        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima sin comparar tipo de bosque {self.outputTiposDeMasaDistanciaMinimaTipoBoscAnyFileNameSinPath}')
         nScipyMethods = len(SCIPY_METHODS)
-        datasetTipoMasaScipy, bandaTipoMasaScipyM1 = clidraster.CrearOutputRaster(
+        datasetTipoMasaScipyTipoBoscAny, bandaTipoMasaScipyTipoBoscAnyM1 = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
-            self.outputTiposDeMasaDistanciaMinimaFileNameSinPath,
+            self.outputTiposDeMasaDistanciaMinimaTipoBoscAnyFileNameSinPath,
             self.nMinX_tif,
             self.nMaxY_tif,
             self.nCeldasX_Destino,
@@ -2839,96 +2943,158 @@ and two more layers for forest type (land cover) and stand type.
             generarMetaPixeles=True,
         )
         if nScipyMethods >= 2 and disponibleClusterDistScipyM2:
-            bandaTipoMasaScipyM2 = datasetTipoMasaScipy.GetRasterBand(2)
+            bandaTipoMasaScipyTipoBoscAnyM2 = datasetTipoMasaScipyTipoBoscAny.GetRasterBand(2)
         if nScipyMethods >= 3 and disponibleClusterDistScipyM3:
-            bandaTipoMasaScipyM3 = datasetTipoMasaScipy.GetRasterBand(3)
+            bandaTipoMasaScipyTipoBoscAnyM3 = datasetTipoMasaScipyTipoBoscAny.GetRasterBand(3)
+
+        # Se genera un raster adicional con el Tipo de Masa de minima distancia 
+        # que tenga especie compatible con patron en cada pixel, para cada metodo Scipy
+        self.outputTiposDeMasaDistanciaMinimaTipoBoscProFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasaDistMinimaTipoBosqueCompatible', self.idInputDir, self.driverExtension)
+        # myLog.info('\n{:_^80}'.format(''))
+        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima con tipo de bosque compatible {self.outputTiposDeMasaDistanciaMinimaTipoBoscProFileNameSinPath}')
+        nScipyMethods = len(SCIPY_METHODS)
+        datasetTipoMasaScipyTipoBoscPro, bandaTipoMasaScipyTipoBoscProM1 = clidraster.CrearOutputRaster(
+            self.LOCLoutPathNameRuta,
+            self.outputTiposDeMasaDistanciaMinimaTipoBoscProFileNameSinPath,
+            self.nMinX_tif,
+            self.nMaxY_tif,
+            self.nCeldasX_Destino,
+            self.nCeldasY_Destino,
+            self.metrosPixelX_Destino,
+            self.metrosPixelY_Destino,
+            self.LOCLoutRasterDriver,
+            self.outputOptions,
+            nScipyMethods,
+            self.outputGdalDatatypeTipoMasa,
+            self.outputNpDatatypeTipoMasa,
+            self.GLBLnoDataTipoDMasa,
+            self.GLBLnoDataTipoDMasa,
+            self.GLBLnoDataTiffFiles,
+            generarMetaPixeles=True,
+        )
+        if nScipyMethods >= 2 and disponibleClusterDistScipyM2:
+            bandaTipoMasaScipyTipoBoscProM2 = datasetTipoMasaScipyTipoBoscPro.GetRasterBand(2)
+        if nScipyMethods >= 3 and disponibleClusterDistScipyM3:
+            bandaTipoMasaScipyTipoBoscProM3 = datasetTipoMasaScipyTipoBoscPro.GetRasterBand(3)
 
         if disponibleClusterDistScipyM1:
             myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M1')
-            arrayTipoMasaScipyM1 = bandaTipoMasaScipyM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            arrayTipoMasaScipyTipoBoscAnyM1 = bandaTipoMasaScipyTipoBoscAnyM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            arrayTipoMasaScipyTipoBoscProM1 = bandaTipoMasaScipyTipoBoscProM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
                 for nDistCol in range(nDistCols):
-                    distanciaMinimaM1 = 99999
+                    distanciaMinimaTipoBoscAnyM1 = 99999
+                    distanciaMinimaTipoBoscProM1 = 99999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
-                            # if nDistRow == nDistCol:
-                            #     print(
-                            #         nDistRow,
-                            #         distanciaMinimaM1,
-                            #         arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
-                            #     )
-                            distanciaMinimaM1 = min(
-                                distanciaMinimaM1,
+                            distanciaMinimaTipoBoscAnyM1 = min(
+                                distanciaMinimaTipoBoscAnyM1,
                                 arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
-                        # else:
-                        #     if nDistRow == nDistCol:
-                        #         print(
-                        #             nDistRow,
-                        #             distanciaMinimaM1,
-                        #             '-------',
-                        #         )
-
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
+                            if arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible:
+                                distanciaMinimaTipoBoscProM1 = min(
+                                    distanciaMinimaTipoBoscProM1,
+                                    arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                                )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
-                            if arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM1:
-                                arrayTipoMasaScipyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
-                    # if nDistRow == nDistCol:
-                    #     print(
-                    #         nDistRow,
-                    #         distanciaMinimaM1,
-                    #         '->', arrayTipoMasaScipyM1[nDistRow, nDistCol]
-                    #     )
+                            if arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscAnyM1:
+                                arrayTipoMasaScipyTipoBoscProM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
+                            if (
+                                arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM1
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                            ):
+                                arrayTipoMasaScipyTipoBoscAnyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM2:
             myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M2')
-            arrayTipoMasaScipyM2 = bandaTipoMasaScipyM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            arrayTipoMasaScipyTipoBoscAnyM2 = bandaTipoMasaScipyTipoBoscAnyM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            arrayTipoMasaScipyTipoBoscProM2 = bandaTipoMasaScipyTipoBoscProM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
                 for nDistCol in range(nDistCols):
-                    distanciaMinimaM2 = 9999
+                    distanciaMinimaTipoBoscAnyM2 = 99999
+                    distanciaMinimaTipoBoscProM2 = 99999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
-                            distanciaMinimaM2 = min(
-                                distanciaMinimaM2,
+                            distanciaMinimaTipoBoscAnyM2 = min(
+                                distanciaMinimaTipoBoscAnyM2,
                                 arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
+                            if arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible:
+                                distanciaMinimaTipoBoscProM2 = min(
+                                    distanciaMinimaTipoBoscProM2,
+                                    arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                                )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
-                            if arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM2:
-                                arrayTipoMasaScipyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                            if arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscAnyM2:
+                                arrayTipoMasaScipyTipoBoscProM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
+                            if (
+                                arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM2
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                            ):
+                                arrayTipoMasaScipyTipoBoscAnyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM3:
             myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M3')
-            arrayTipoMasaScipyM3 = bandaTipoMasaScipyM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            arrayTipoMasaScipyTipoBoscAnyM3 = bandaTipoMasaScipyTipoBoscAnyM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
+            arrayTipoMasaScipyTipoBoscProM3 = bandaTipoMasaScipyTipoBoscProM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
                 for nDistCol in range(nDistCols):
-                    distanciaMinimaM3 = 9999
+                    distanciaMinimaTipoBoscAnyM3 = 99999
+                    distanciaMinimaTipoBoscProM3 = 99999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
-                            distanciaMinimaM3 = min(
-                                distanciaMinimaM3,
+                            distanciaMinimaTipoBoscAnyM3 = min(
+                                distanciaMinimaTipoBoscAnyM3,
                                 arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
+                            if arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible:
+                                distanciaMinimaTipoBoscProM3 = min(
+                                    distanciaMinimaTipoBoscProM3,
+                                    arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
+                                )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
-                            if arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaM3:
-                                arrayTipoMasaScipyM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                            if arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscAnyM3:
+                                arrayTipoMasaScipyTipoBoscProM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
+                            if (
+                                arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM3
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                            ):
+                                arrayTipoMasaScipyTipoBoscAnyM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM1:
             myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M1')
-            print('->->->arrayTipoMasaScipyM1:', arrayTipoMasaScipyM1[:5, :10])
-            bandaTipoMasaScipyM1 = guardarArrayEnBandaDataset(
-                arrayTipoMasaScipyM1, bandaTipoMasaScipyM1
+            bandaTipoMasaScipyTipoBoscAnyM1 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyTipoBoscAnyM1, bandaTipoMasaScipyTipoBoscAnyM1
+            )
+            bandaTipoMasaScipyTipoBoscProM1 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyTipoBoscProM1, bandaTipoMasaScipyTipoBoscProM1
             )
         if disponibleClusterDistScipyM2:
             myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
-            bandaTipoMasaScipyM2 = guardarArrayEnBandaDataset(
-                arrayTipoMasaScipyM2, bandaTipoMasaScipyM2
+            bandaTipoMasaScipyTipoBoscAnyM2 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyTipoBoscAnyM2, bandaTipoMasaScipyTipoBoscAnyM2
+            )
+            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
+            bandaTipoMasaScipyTipoBoscProM2 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyTipoBoscProM2, bandaTipoMasaScipyTipoBoscProM2
             )
         if disponibleClusterDistScipyM3:
             myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M3')
-            bandaTipoMasaScipyM3 = guardarArrayEnBandaDataset(
-                arrayTipoMasaScipyM3, bandaTipoMasaScipyM3
+            bandaTipoMasaScipyTipoBoscAnyM3 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyTipoBoscAnyM3, bandaTipoMasaScipyTipoBoscAnyM3
+            )
+            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M3')
+            bandaTipoMasaScipyTipoBoscProM3 = guardarArrayEnBandaDataset(
+                arrayTipoMasaScipyTipoBoscProM3, bandaTipoMasaScipyTipoBoscProM3
             )
 
 

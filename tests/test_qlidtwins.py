@@ -199,10 +199,11 @@ for numTest, myVerbose in enumerate(listaVerbose):
         cfgDict = qlidtwins.creaConfigDict(argsConfig)
         # cfgDict['mainAction'] = 2
         myDasolidar = qlidtwins.clidtwinsUseCase(cfgDict, accionPral=2)
-        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterAllDasoVarsFileNameSinPath)), 'Debe crear un raster con todas las variables clusterizadas para toda la zona de analisis'
-        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterTiposDeMasaFileNameSinPath)), 'Debe crear un raster con los tipos de masa para toda la zona de analisis'
-        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterFactorProxiFileNameSinPath)), 'Debe crear un raster con el factor de proximidad para toda la zona de analisis'
-        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterDistanciaEuFileNameSinPath)), 'Debe crear un raster con la distancia euclidea para toda la zona de analisis'
+        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterAllDasoVarsFileNameSinPath)), 'Debe crear un raster con todas las variables clusterizadas para toda la zona de analisis (para cada tipo de masa de referencia)'
+        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterTipoBoscProFileNameSinPath)), 'Debe crear un raster con los tipos de bosque para toda la zona de analisis (para cada tipo de masa de referencia)'
+        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterTipoMasaParFileNameSinPath)), 'Debe crear un raster con los tipos de masa para toda la zona de analisis (para cada tipo de masa de referencia)'
+        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterFactorProxiFileNameSinPath)), 'Debe crear un raster con el factor de proximidad para toda la zona de analisis (para cada tipo de masa de referencia)'
+        assert os.path.exists(os.path.join(myDasolidar.LOCLoutPathNameRuta, myDasolidar.outputClusterDistanciaEuFileNameSinPath)), 'Debe crear un raster con la distancia euclidea para toda la zona de analisis (para cada tipo de masa de referencia)'
         print('\ntest_UseCase_2 ok')
 
 

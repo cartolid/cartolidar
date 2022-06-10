@@ -1350,7 +1350,8 @@ def clidtwinsUseCase(
             #
             #     myDasolidar.LOCLoutPathNameRuta,
             #     myDasolidar.outputClusterAllDasoVarsFileNameSinPath,
-            #     myDasolidar.outputClusterTiposDeMasaFileNameSinPath,
+            #     myDasolidar.outputClusterTipoBoscProFileNameSinPath,
+            #     myDasolidar.outputClusterTipoMasaParFileNameSinPath,
             #     myDasolidar.outputClusterFactorProxiFileNameSinPath,
             #     myDasolidar.outputClusterDistanciaEuFileNameSinPath,
             myLog.debug('qlidtwins-> tests-> generarRasterCluster')
@@ -1361,7 +1362,8 @@ def clidtwinsUseCase(
             #
             myLog.debug(myDasolidar.LOCLoutPathNameRuta)
             myLog.debug(myDasolidar.outputClusterAllDasoVarsFileNameSinPath)
-            myLog.debug(myDasolidar.outputClusterTiposDeMasaFileNameSinPath)
+            myLog.debug(myDasolidar.outputClusterTipoBoscProFileNameSinPath)
+            myLog.debug(myDasolidar.outputClusterTipoMasaParFileNameSinPath)
             myLog.debug(myDasolidar.outputClusterFactorProxiFileNameSinPath)
             myLog.debug(myDasolidar.outputClusterDistanciaEuFileNameSinPath)
             myLog.debug('{:=^80}'.format(''))
