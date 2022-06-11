@@ -668,13 +668,13 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
             argsConfig = parser.parse_args()
         else:
             argsConfig, unknown = parser.parse_known_args()
-            myLog.debug('{:_^80}'.format(''))
-            myLog.debug('qlidtwins-> Info transitoria de la version alpha:')
-            myLog.debug(f'Argumentos leidos en linea de comandos y/o fichero de configuracion ({type(argsConfig)}):')
-            myLog.debug(f'{argsConfig}')
+            if __verbose__ == 3:
+                myLog.debug('{:_^80}'.format(''))
+                myLog.debug(f'qlidtwins-> Argumentos leidos en linea de comandos y/o fichero de configuracion ({type(argsConfig)}):')
+                myLog.debug(f'{TB}{argsConfig}')
             if not unknown is None and unknown != []:
-                myLog.debug(f'\nArgumentos ignorados: {type(unknown)} {unknown}')
-                myLog.debug(f'\nRevisando argumentos ignorados:')
+                myLog.debug(f'qlidtwins-> Argumentos ignorados: {type(unknown)} {unknown}')
+                myLog.debug(f'{TB}-> Revisando argumentos ignorados:')
             if type(unknown) == list and unknown != []:
                 for argumentoIgnorado in unknown:
                     if argumentoIgnorado in sys.argv:
@@ -711,7 +711,7 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
                         if __verbose__ == 3:
                             myLog.debug(f'{TB}{TV}{TV}-> sys.argv post: {sys.argv}')
             if __verbose__ == 3:
-                myLog.debug(f'{TB}{TV}-> argsConfig post: {argsConfig}')
+                myLog.debug(f'{TB}-> argsConfig post: {argsConfig}')
             myLog.debug('{:=^80}'.format(''))
 
     except KeyboardInterrupt:
@@ -906,8 +906,10 @@ def creaConfigDict(
 
 
     if __verbose__ == 3:
-        myLog.debug(f'qlidtwins-> args.listTxtDasoVars de tipos {type(args.listTxtDasoVars)} -> {args.listTxtDasoVars}')
-        myLog.debug(f'{TB}El primer argumento posicional tiene {len((args.listTxtDasoVars[0]).split(","))} elementos: {(args.listTxtDasoVars[0]).split(",")}')
+        myLog.debug(f'qlidtwins-> args.listTxtDasoVars ({type(args.listTxtDasoVars)}) -> {args.listTxtDasoVars}')
+        numElementosPorDasoVarEnArgumentoListTxtDasoVars = len((args.listTxtDasoVars[0]).split(","))
+        myLog.debug(f'{TB}El primer argumento posicional tiene {numElementosPorDasoVarEnArgumentoListTxtDasoVars} elementos: {(args.listTxtDasoVars[0]).split(",")}')
+        myLog.debug('{:=^80}'.format(''))
 
     # args.listTxtDasoVars es una lista de cadenas (argumentos posicionales)
     if len((args.listTxtDasoVars[0]).split(',')) == 1:
@@ -1017,18 +1019,47 @@ def mostrarConfiguracion(cfgDict):
 
     if 'listLstDasoVars' in cfgDict.keys():
         myLog.info(f'{TB}-> Listado de dasoVars:')
-        myLog.info(f'{TB}-> formato: [fileType, nickName, limInf, limSup, numClases, movilidadInterclases (0-100), ponderacion (0-10)]')
+        myLog.info(f'{TB}{TV}-> formato: [fileType, nickName, limInf, limSup, numClases, movilidadInterclases (0-100), ponderacion (0-10)]')
         for numDasoVar, listDasoVar in enumerate(cfgDict['listLstDasoVars']):
             myLog.info(f'{TB}{TV}Variable {numDasoVar}: {listDasoVar}')
     elif 'listaTxtDasoVarsFileTypes' in cfgDict.keys():
         myLog.info(f'{TB}-> Listado de FileTypeId (identificadores de dasoVars:')
         for numDasoVar, FileTypeId in enumerate(cfgDict['listaTxtDasoVarsFileTypes']):
             myLog.info(f'{TB}{TV}Variable {numDasoVar}: {FileTypeId}')
-    myLog.info(f'{TB}-> Rango de coordenadas UTM:')
 
+    myLog.info(f'{TB}-> Rango de coordenadas UTM:')
     if cfgDict['marcoPatronTest']:
-        myLog.info(f'{TB}{TV}Se adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
-        myLog.info(f'{TB}{TV}Ver valores mas adelante.')
+        if (
+            cfgDict['marcoCoordMiniX'] != 0
+            or cfgDict['marcoCoordMaxiX'] != 0
+            or cfgDict['marcoCoordMiniY'] != 0
+            or cfgDict['marcoCoordMaxiY'] != 0
+        ):
+            myLog.info(f'{TB}{TV}Se adopta la envolvente de las coordenadas sumunistradas y los shapes de referenia (patron) y chequeo (testeo).')
+            if (
+                cfgDict['marcoCoordMiniX'] != 0
+                or cfgDict['marcoCoordMaxiX'] != 0
+            ):
+                myLog.info(
+                    '{TB}{TV}{TV}X {:07f} - {:07f} -> {:04.0f} m:'.format(
+                        cfgDict['marcoCoordMiniX'], cfgDict['marcoCoordMaxiX'],
+                        cfgDict['marcoCoordMaxiX'] - cfgDict['marcoCoordMiniX']
+                    )
+                )
+            if (
+                cfgDict['marcoCoordMiniY'] != 0
+                or cfgDict['marcoCoordMaxiY'] != 0
+            ):
+                myLog.info(
+                    '{TB}{TV}{TV}Y {:07f} - {:07f} -> {:04.0f} m:'.format(
+                        cfgDict['marcoCoordMiniY'], cfgDict['marcoCoordMaxiY'],
+                        cfgDict['marcoCoordMaxiY'] - cfgDict['marcoCoordMiniY']
+                    )
+                )
+            myLog.info(f'{TB}{TV}Ver valores de la envolvente mas adelante.')
+        else:
+            myLog.info(f'{TB}{TV}Se adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
+            myLog.info(f'{TB}{TV}Ver valores mas adelante.')
     elif (
         cfgDict['marcoCoordMiniX'] == 0
         or cfgDict['marcoCoordMaxiX'] == 0
@@ -1039,17 +1070,18 @@ def mostrarConfiguracion(cfgDict):
         myLog.info(f'{TB}{TV}Se adopta la envolvente de los ficheros con variables dasoLidar.')
     else:
         myLog.info(
-            '\t\tX {:07f} - {:07f} -> {:04.0f} m:'.format(
+            '{TB}{TV}{TV}X {:07f} - {:07f} -> {:04.0f} m:'.format(
                 cfgDict['marcoCoordMiniX'], cfgDict['marcoCoordMaxiX'],
                 cfgDict['marcoCoordMaxiX'] - cfgDict['marcoCoordMiniX']
             )
         )
         myLog.info(
-            '\t\tY {:07f} - {:07f} -> {:04.0f} m:'.format(
+            '{TB}{TV}{TV}Y {:07f} - {:07f} -> {:04.0f} m:'.format(
                 cfgDict['marcoCoordMiniY'], cfgDict['marcoCoordMaxiY'],
                 cfgDict['marcoCoordMaxiY'] - cfgDict['marcoCoordMiniY']
             )
         )
+
     myLog.info(f'{TB}-> Ruta base (raiz) y ficheros:')
     myLog.info(f'{TB}{TV}rutaAscRaizBase: {cfgDict["rutaAscRaizBase"]}')
     myLog.info(f'{TB}{TV}patronVectrName: {cfgDict["patronVectrName"]}')
@@ -1065,14 +1097,14 @@ def mostrarConfiguracion(cfgDict):
     myLog.info(f'{TB}{TV}cartoMFEcampoSp: {cfgDict["cartoMFEcampoSp"]}')
     myLog.info('{:=^80}'.format(''))
 
-    myLog.debug('\n{:_^80}'.format(''))
-    myLog.debug('__verbose__: {}'.format(__verbose__))
     if __verbose__ == 3:
-        myLog.debug(f'->-> qlidtwins-> args: {argsConfig}')
+        myLog.debug('\n{:_^80}'.format(''))
+        # myLog.debug('__verbose__: {}'.format(__verbose__))
+        # myLog.debug(f'->-> qlidtwins-> args: {argsConfig}')
         # myLog.info(f'{TB}->> dir(args):', dir(args))
-    myLog.debug('->> Lista de dasoVars en formato para linea de comandos:')
-    myLog.debug(f'{TB}{argsConfig.listTxtDasoVars}')
-    myLog.debug('{:=^80}'.format(''))
+        myLog.debug('->> Lista de dasoVars en formato para linea de comandos:')
+        myLog.debug(f'{TB}{argsConfig.listTxtDasoVars}')
+        myLog.debug('{:=^80}'.format(''))
 
     if __verbose__ >= 2:
         if TRNS_LEER_EXTRA_ARGS:
@@ -1124,10 +1156,11 @@ def clidtwinsUseCase(
     # -> Que tiene como propiedades los argumentos extra y otros adicionales:
     #    GLBLmenuInteractivo, etc.
     #    LOCLmarcoCoordMiniX, etc.
-    myLog.debug('qlidtwins-> tests-> Verifica DasoLidarSource')
-    myLog.debug(f'type(myDasolidar): {type(myDasolidar)}')
-    myLog.debug(f'hasattr(myDasolidar, "GLBLmenuInteractivo"): {hasattr(myDasolidar, "GLBLmenuInteractivo")}')
-    myLog.debug('{:=^80}'.format(''))
+    if __verbose__ == 3:
+        myLog.debug('qlidtwins-> tests-> Verifica DasoLidarSource')
+        myLog.debug(f'{TB}type(myDasolidar): {type(myDasolidar)}')
+        myLog.debug(f'{TB}hasattr(myDasolidar, "GLBLmenuInteractivo"): {hasattr(myDasolidar, "GLBLmenuInteractivo")}')
+        myLog.debug('{:=^80}'.format(''))
 
     myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando setRangeUTM...')
@@ -1140,13 +1173,14 @@ def clidtwinsUseCase(
     # Resultados a testear:
     # -> Que el objeto myDasolidar tiene la propiedad GLBLmarcoPatronTest
     # -> Que el objeto myDasolidar tiene coordenadas del marco definidas
-    myLog.debug('qlidtwins-> tests-> Verifica setRangeUTM')
-    myLog.debug(f'myDasolidar.GLBLmarcoPatronTest: {myDasolidar.GLBLmarcoPatronTest}')
-    myLog.debug(f'myDasolidar.LOCLmarcoCoordMiniX: {myDasolidar.LOCLmarcoCoordMiniX}')
-    myLog.debug(f'myDasolidar.LOCLmarcoCoordMaxiX: {myDasolidar.LOCLmarcoCoordMaxiX}')
-    myLog.debug(f'myDasolidar.LOCLmarcoCoordMiniY: {myDasolidar.LOCLmarcoCoordMiniY}')
-    myLog.debug(f'myDasolidar.LOCLmarcoCoordMaxiY: {myDasolidar.LOCLmarcoCoordMaxiY}')
-    myLog.debug('{:=^80}'.format(''))
+    if __verbose__ == 3:
+        myLog.debug('qlidtwins-> tests-> Verifica setRangeUTM')
+        myLog.debug(f'{TB}myDasolidar.GLBLmarcoPatronTest: {myDasolidar.GLBLmarcoPatronTest}')
+        myLog.debug(f'{TB}myDasolidar.LOCLmarcoCoordMiniX: {myDasolidar.LOCLmarcoCoordMiniX}')
+        myLog.debug(f'{TB}myDasolidar.LOCLmarcoCoordMaxiX: {myDasolidar.LOCLmarcoCoordMaxiX}')
+        myLog.debug(f'{TB}myDasolidar.LOCLmarcoCoordMiniY: {myDasolidar.LOCLmarcoCoordMiniY}')
+        myLog.debug(f'{TB}myDasolidar.LOCLmarcoCoordMaxiY: {myDasolidar.LOCLmarcoCoordMaxiY}')
+        myLog.debug('{:=^80}'.format(''))
 
     myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando searchSourceFiles...')
@@ -1193,13 +1227,18 @@ def clidtwinsUseCase(
         sys.exit(0)
     # Resultados a testear:
     # -> Lista de ficheros encontrados:
-    myLog.debug('qlidtwins-> tests-> Verifica searchSourceFiles')
-    # myDasolidar.inFilesListAllTypes
-    myLog.debug(f'len(myDasolidar.inFilesListAllTypes): {len(myDasolidar.inFilesListAllTypes)}')
-    for numDasoVarX, listaFileTuplesDasoVarX in enumerate(myDasolidar.inFilesListAllTypes):
-        for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
-            myLog.debug(f'inFilesListAllTypes-> {numDasoVarX}, {numFile}, {pathFile}, {nameFile}')
-    myLog.debug('{:=^80}'.format(''))
+    if __verbose__ == 3:
+        myLog.debug('\n{:_^80}'.format(''))
+        myLog.debug('qlidtwins-> tests-> Verifica searchSourceFiles')
+        # myDasolidar.inFilesListAllTypes
+        myLog.debug(f'{TB}len(myDasolidar.inFilesListAllTypes): {len(myDasolidar.inFilesListAllTypes)}')
+        for numDasoVarX, listaFileTuplesDasoVarX in enumerate(myDasolidar.inFilesListAllTypes):
+            for numFile, [pathFile, nameFile] in enumerate(listaFileTuplesDasoVarX):
+                if numFile < 10 or numFile == len(listaFileTuplesDasoVarX) - 1:
+                    myLog.debug(f'{TB}{TV}inFilesListAllTypes-> {numDasoVarX}, {numFile}, {pathFile}, {nameFile}')
+                elif numFile == 10:
+                    myLog.debug(f'{TB}{TV}...')
+        myLog.debug('{:=^80}'.format(''))
 
     myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando createMultiDasoLayerRasterFile...')
@@ -1286,27 +1325,37 @@ def clidtwinsUseCase(
         #    myDasolidar.LOCLoutPathNameRuta
         #    myDasolidar.outputRangosFileTxtSinPath
         #    myDasolidar.outputRangosFileNpzSinPath,
-        myLog.debug('qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
-        myLog.debug('qlidtwins-> tests-> Verifica los tipos de bosque mas frecuentes en zona patron:')
-        myLog.debug(f'pctjTipoBosquePatronMasFrecuente1: {myDasolidar.pctjTipoBosquePatronMasFrecuente1}')
-        myLog.debug(f'codeTipoBosquePatronMasFrecuente1: {myDasolidar.codeTipoBosquePatronMasFrecuente1}')
-        myLog.debug(f'pctjTipoBosquePatronMasFrecuente2: {myDasolidar.pctjTipoBosquePatronMasFrecuente2}')
-        myLog.debug(f'codeTipoBosquePatronMasFrecuente2: {myDasolidar.codeTipoBosquePatronMasFrecuente2}')
-        # myLog.debug(f'qlidtwins-> tests-> Verifica que los rangos son correctos:')
-        # myLog.debug(f'0_Alt95_ref: {myDasolidar.dictHistProb01["0_Alt95_ref"]}')
-        # myLog.debug(f'0_Alt95_min: {myDasolidar.dictHistProb01["0_Alt95_min"]}')
-        # myLog.debug(f'0_Alt95_max: {myDasolidar.dictHistProb01["0_Alt95_max"]}')
-        # myLog.debug(f'2_Fcc3m_ref: {myDasolidar.dictHistProb01["2_Fcc3m_ref"]}')
-        # myLog.debug(f'2_Fcc3m_min: {myDasolidar.dictHistProb01["2_Fcc3m_min"]}')
-        # myLog.debug(f'2_Fcc3m_max: {myDasolidar.dictHistProb01["2_Fcc3m_max"]}')
-        # myLog.debug(f'3_CobMt_ref: {myDasolidar.dictHistProb01["3_CobMt_ref"]}')
-        # myLog.debug(f'3_CobMt_min: {myDasolidar.dictHistProb01["3_CobMt_min"]}')
-        # myLog.debug(f'3_CobMt_max: {myDasolidar.dictHistProb01["3_CobMt_max"]}')
-        myLog.debug(f'qlidtwins-> tests-> Verifica que se ha creado el txt con los rangos:')
-        myLog.debug(myDasolidar.LOCLoutPathNameRuta)
-        myLog.debug(myDasolidar.outputRangosFileTxtSinPath)
-        myLog.debug(myDasolidar.outputRangosFileNpzSinPath)
-        myLog.info('{:=^80}'.format(''))
+        if __verbose__ == 3:
+            myLog.debug('\n{:_^80}'.format(''))
+            myLog.debug(f'{TB}qlidtwins-> tests-> analyzeMultiDasoLayerRasterFile')
+            myLog.debug(f'{TB}-> Verifica los tipos de bosque mas frecuentes en zona patron:')
+            myLog.debug(f'{TB}pctjTipoBosquePatronMasFrecuente1: {myDasolidar.pctjTipoBosquePatronMasFrecuente1}')
+            myLog.debug(f'{TB}codeTipoBosquePatronMasFrecuente1: {myDasolidar.codeTipoBosquePatronMasFrecuente1}')
+            myLog.debug(f'{TB}pctjTipoBosquePatronMasFrecuente2: {myDasolidar.pctjTipoBosquePatronMasFrecuente2}')
+            myLog.debug(f'{TB}codeTipoBosquePatronMasFrecuente2: {myDasolidar.codeTipoBosquePatronMasFrecuente2}')
+            if (
+                '0_Alt95_ref' in myDasolidar.dictHistProb01.keys()
+                or '2_Fcc3m_ref' in myDasolidar.dictHistProb01.keys()
+                or '3_CobMt_ref' in myDasolidar.dictHistProb01.keys()
+            ):
+                myLog.debug(f'{TB}-> Verifica que los rangos son correctos:')
+            if '0_Alt95_ref' in myDasolidar.dictHistProb01.keys():
+                myLog.debug(f'{TB}0_Alt95_ref: {myDasolidar.dictHistProb01["0_Alt95_ref"]}')
+                myLog.debug(f'{TB}0_Alt95_min: {myDasolidar.dictHistProb01["0_Alt95_min"]}')
+                myLog.debug(f'{TB}0_Alt95_max: {myDasolidar.dictHistProb01["0_Alt95_max"]}')
+            if '2_Fcc3m_ref' in myDasolidar.dictHistProb01.keys():
+                myLog.debug(f'{TB}2_Fcc3m_ref: {myDasolidar.dictHistProb01["2_Fcc3m_ref"]}')
+                myLog.debug(f'{TB}2_Fcc3m_min: {myDasolidar.dictHistProb01["2_Fcc3m_min"]}')
+                myLog.debug(f'{TB}2_Fcc3m_max: {myDasolidar.dictHistProb01["2_Fcc3m_max"]}')
+            if '3_CobMt_ref' in myDasolidar.dictHistProb01.keys():
+                myLog.debug(f'{TB}3_CobMt_ref: {myDasolidar.dictHistProb01["3_CobMt_ref"]}')
+                myLog.debug(f'{TB}3_CobMt_min: {myDasolidar.dictHistProb01["3_CobMt_min"]}')
+                myLog.debug(f'{TB}3_CobMt_max: {myDasolidar.dictHistProb01["3_CobMt_max"]}')
+            myLog.debug(f'{TB}-> Verifica que se ha creado el txt con los rangos:')
+            myLog.debug(f'{TB}{myDasolidar.LOCLoutPathNameRuta}')
+            myLog.debug(f'{TB}{myDasolidar.outputRangosFileTxtSinPath}')
+            myLog.debug(f'{TB}{myDasolidar.outputRangosFileNpzSinPath}')
+            myLog.info('{:=^80}'.format(''))
 
         if cfgDict['mainAction'] == 0:
             # No se ejecuta ninguna accion (solo para testing)
@@ -1326,13 +1375,15 @@ def clidtwinsUseCase(
             #     myDasolidar.distanciaEuclideaMedia,
             #     myDasolidar.pctjPorcentajeDeProximidad,
             #     myDasolidar.matrizDeDistancias,
-            myLog.debug('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
-            myLog.debug(myDasolidar.tipoBosqueOk)
-            myLog.debug(myDasolidar.nVariablesNoOk)
-            myLog.debug(myDasolidar.distanciaEuclideaMedia)
-            myLog.debug(myDasolidar.pctjPorcentajeDeProximidad)
-            myLog.debug(myDasolidar.matrizDeDistancias)
-            myLog.debug('{:=^80}'.format(''))
+            if __verbose__ == 3:
+                myLog.debug('\n{:_^80}'.format(''))
+                myLog.debug('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
+                myLog.debug(f'{TB}{myDasolidar.tipoBosqueOk}')
+                myLog.debug(f'{TB}{myDasolidar.nVariablesNoOk}')
+                myLog.debug(f'{TB}{myDasolidar.distanciaEuclideaMedia}')
+                myLog.debug(f'{TB}{myDasolidar.pctjPorcentajeDeProximidad}')
+                myLog.debug(f'{TB}{myDasolidar.matrizDeDistancias}')
+                myLog.debug('{:=^80}'.format(''))
 
         elif cfgDict['mainAction'] == 2:
             myLog.debug('\n{:_^80}'.format(''))
@@ -1354,19 +1405,21 @@ def clidtwinsUseCase(
             #     myDasolidar.outputClusterTipoMasaParFileNameSinPath,
             #     myDasolidar.outputClusterFactorProxiFileNameSinPath,
             #     myDasolidar.outputClusterDistanciaEuFileNameSinPath,
-            myLog.debug('qlidtwins-> tests-> generarRasterCluster')
-            myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente1)
-            myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente1)
-            myLog.debug(myDasolidar.pctjTipoBosquePatronMasFrecuente2)
-            myLog.debug(myDasolidar.codeTipoBosquePatronMasFrecuente2)
-            #
-            myLog.debug(myDasolidar.LOCLoutPathNameRuta)
-            myLog.debug(myDasolidar.outputClusterAllDasoVarsFileNameSinPath)
-            myLog.debug(myDasolidar.outputClusterTipoBoscProFileNameSinPath)
-            myLog.debug(myDasolidar.outputClusterTipoMasaParFileNameSinPath)
-            myLog.debug(myDasolidar.outputClusterFactorProxiFileNameSinPath)
-            myLog.debug(myDasolidar.outputClusterDistanciaEuFileNameSinPath)
-            myLog.debug('{:=^80}'.format(''))
+            if __verbose__ == 3:
+                myLog.debug('\n{:_^80}'.format(''))
+                myLog.debug('qlidtwins-> tests-> generarRasterCluster')
+                myLog.debug(f'{TB}{myDasolidar.pctjTipoBosquePatronMasFrecuente1}')
+                myLog.debug(f'{TB}{myDasolidar.codeTipoBosquePatronMasFrecuente1}')
+                myLog.debug(f'{TB}{myDasolidar.pctjTipoBosquePatronMasFrecuente2}')
+                myLog.debug(f'{TB}{myDasolidar.codeTipoBosquePatronMasFrecuente2}')
+                #
+                myLog.debug(f'{TB}{myDasolidar.LOCLoutPathNameRuta}')
+                myLog.debug(f'{TB}{myDasolidar.outputClusterAllDasoVarsFileNameSinPath}')
+                myLog.debug(f'{TB}{myDasolidar.outputClusterTipoBoscProFileNameSinPath}')
+                myLog.debug(f'{TB}{myDasolidar.outputClusterTipoMasaParFileNameSinPath}')
+                myLog.debug(f'{TB}{myDasolidar.outputClusterFactorProxiFileNameSinPath}')
+                myLog.debug(f'{TB}{myDasolidar.outputClusterDistanciaEuFileNameSinPath}')
+                myLog.debug('{:=^80}'.format(''))
     
         else:
             return None

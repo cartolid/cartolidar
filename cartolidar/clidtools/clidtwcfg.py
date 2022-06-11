@@ -62,7 +62,7 @@ else:
     __quiet__ = 0
 # ==============================================================================
 # TB = '\t'
-TB = ' ' * 19
+TB = ' ' * 12
 TV = ' ' * 3
 # ==============================================================================
 if (
@@ -860,13 +860,14 @@ def readGLO():
         for myParameter in dir(GLO):
             if not myParameter.startswith('__'):
                 myLog.debug(f'{TB}{myParameter}')
-                if hasattr(GLO, myParameter) and (
-                    'listaDasoVars' in myParameter
-                    or 'listLstDasoVars' in myParameter
-                    or 'listTxtDasoVars' in myParameter
-                ):
-                    
+                if hasattr(GLO, myParameter):
+                #  and (
+                #     'listaDasoVars' in myParameter
+                #     or 'listLstDasoVars' in myParameter
+                #     or 'listTxtDasoVars' in myParameter
+                # ):
                     myLog.debug(f'{TB}{TV}-> {getattr(GLO, myParameter)}')
+        myLog.debug('{:=^80}'.format(''))
 
     return GLO
 
