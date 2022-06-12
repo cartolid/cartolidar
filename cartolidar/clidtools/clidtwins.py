@@ -3090,7 +3090,10 @@ and two more layers for forest type (land cover) and stand type.
                                 arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
-                            if arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible:
+                            if (
+                                arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
+                            ):
                                 distanciaMinimaTipoBoscProM1 = min(
                                     distanciaMinimaTipoBoscProM1,
                                     arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
@@ -3103,6 +3106,7 @@ and two more layers for forest type (land cover) and stand type.
                             if (
                                 arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM1
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
                             ):
                                 arrayTipoMasaScipyTipoBoscAnyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
@@ -3121,7 +3125,10 @@ and two more layers for forest type (land cover) and stand type.
                                 arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
-                            if arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible:
+                            if (
+                                arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
+                            ):
                                 distanciaMinimaTipoBoscProM2 = min(
                                     distanciaMinimaTipoBoscProM2,
                                     arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
@@ -3134,6 +3141,7 @@ and two more layers for forest type (land cover) and stand type.
                             if (
                                 arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM2
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
                             ):
                                 arrayTipoMasaScipyTipoBoscAnyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
@@ -3152,7 +3160,10 @@ and two more layers for forest type (land cover) and stand type.
                                 arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
-                            if arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible:
+                            if (
+                                arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
+                            ):
                                 distanciaMinimaTipoBoscProM3 = min(
                                     distanciaMinimaTipoBoscProM3,
                                     arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
@@ -4356,12 +4367,12 @@ def comprobarTipoMasaDeCapaVectorial(
     listaCampos = []
     for nCampo in range(featureDefnAll.GetFieldCount()):
         listaCampos.append(featureDefnAll.GetFieldDefn(nCampo).GetName())
-    myLog.debug(f'{TW}clidtwins-> listaCampos: {listaCampos}')
     if LOCLpatronFieldName in listaCampos:
         tipoDeMasaField = True
     else:
         tipoDeMasaField = False
-        myLog.error(f'{TW}clidtwins-> ATENCION: la capa {LOCLvectorFileName} no incluye el campo {LOCLpatronFieldName}')
+        myLog.error(f'clidtwins-> ATENCION: la capa {LOCLvectorFileName} no incluye el campo {LOCLpatronFieldName}')
+        myLog.error(f'{TB}-> Todos los campos en esa capa: {listaCampos}')
         return (False, False, [None])
 
     listaTM = []
