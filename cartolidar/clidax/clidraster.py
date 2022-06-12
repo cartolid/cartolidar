@@ -278,7 +278,7 @@ def crearRasterTiff(
             # Se verifica por si self_inFilesListAllTypes llegara incorrecto.
             if numBloques != len(inFilesListTypeX):
                 myLog.error('clidraster-> ATENCION: todas las listas en self_inFilesListAllTypes deben tener el mismo numero de ficheros (ordenados por codBloque).')
-                myLog.error('{TB}-> Se inerrume la ejecucion.')
+                myLog.error('f{TB}-> Se inerrume la ejecucion.')
                 sys.exit(0)
     else:
         numDLVs = len(list(self_inFilesDictAllTypes.values())[0])
@@ -295,7 +295,7 @@ def crearRasterTiff(
             inFilesListPorCodigoBloqueX = list(self_inFilesDictAllTypes.values())[numOrdenCodigoBloqueX]
             if nFilesPorCodigoBloque0 != len(inFilesListPorCodigoBloqueX):
                 myLog.error('clidraster-> ATENCION: todos los bloques de self_inFilesDictAllTypes deben tener el mismo numero de ficheros (ordenados por DLV).')
-                myLog.error('{TB}-> Se inerrume la ejecucion.')
+                myLog.error('f{TB}-> Se inerrume la ejecucion.')
                 sys.exit(0)
 
     nBandasOutput = numDLVs + 2
@@ -397,12 +397,12 @@ def crearRasterTiff(
     myLog.info('\n{:_^80}'.format(''))
     if PAR_generarDasoLayers:
         myLog.info(f'clidraster-> Leyendo {len(infilesListTipo0)} bloques y {PAR_nInputVars} variables para cada bloque ({PAR_nInputVars} tipos de fichero):')
-        myLog.info('{TB}-> Se leen las cabeceras de los ficheros del tipo {} ({}).'.format(0, txtTipoFichero))
-        myLog.info('{TB}{TV}-> Tambien se verifica que los ficheros de las otras variables tienen las mismas dimensiones y resolucion.')
-        myLog.info('{TB}{TV}-> Se calculan los rangos de las coordenadas de los bloques (debiera exceder al del marco de analisis).')
-        myLog.info('{TB}{TV}-> El noDataValue debe ser el mismo para todos los bloques en cada variable pero puede cambiar de una variable a otra.')
-        myLog.info('{TB}{TV}-> Las coordenadas de la esquina superior-izquierda cambian de bloque a bloque')
-        myLog.info('{TB}-> Se leen los valores de cada variable en todos los ficheros para calcular rango de valores de cada una.')
+        myLog.info(f'{TB}-> Se leen las cabeceras de los ficheros del tipo {0} ({txtTipoFichero}).')
+        myLog.info(f'{TB}{TV}-> Tambien se verifica que los ficheros de las otras variables tienen las mismas dimensiones y resolucion.')
+        myLog.info(f'{TB}{TV}-> Se calculan los rangos de las coordenadas de los bloques (debiera exceder al del marco de analisis).')
+        myLog.info(f'{TB}{TV}-> El noDataValue debe ser el mismo para todos los bloques en cada variable pero puede cambiar de una variable a otra.')
+        myLog.info(f'{TB}{TV}-> Las coordenadas de la esquina superior-izquierda cambian de bloque a bloque')
+        myLog.info(f'{TB}-> Se leen los valores de cada variable en todos los ficheros para calcular rango de valores de cada una.')
     else:
         myLog.info(f'clidraster-> Leyendo {len(infilesListTipo0)} bloques:')
     if len(infilesListTipo0) > 5:
@@ -1050,6 +1050,21 @@ def crearRasterTiff(
         # myLog.debug('-->dictArrayBandaX:')
         # myLog.debug(dictArrayBandaX[outputNBand][10:15, 10:15])
 
+
+
+
+    # ======================================================================
+    # Tipo de bosque del MFE
+    if cartoRefMfe.usarVectorRef:
+        # arrayMFE = (cartoRefMfe.aCeldasLandUseCover)[::-1]).transpose()
+        arrayMFE = np.flipud(cartoRefMfe.aCeldasLandUseCover.transpose())
+        # myLog.debug(f'->-> {nFilaRaster} {nColumnaRaster} -> shapes: {dictArrayBandaX[nBandasOutput - 1].shape} {cartoRefMfe.aCeldasLandUseCover.shape} {arrayMFE.shape}')
+        # myLog.debug(f'->-> outputNBand: {nBandasOutput - 1}, nFilaColuna: {nFilaRaster} {nColumnaRaster}, nTipoMasa: {arrayMFE[nFilaRaster, nColumnaRaster]}')
+    else:
+        myLog.error('\nclidraster-> ATENCION: no se ha podido crear el MFE recortado')
+        sys.exit(0)
+    # ======================================================================
+
     nMinTipoMasa = 999999
     nMaxTipoMasa = -999999
     # Si no trabajo con subLoteAsc, este buce no tiene ningun efecto (solo se ejecuta una vez)
@@ -1553,19 +1568,11 @@ def crearRasterTiff(
                                     else:
                                         dictArrayBandaX[outputNBand][nFilaRaster, nColumnaRaster] = valorVariableLeida
                                     # ==========================================
-
                                     # Tipo de bosque del MFE
                                     if cartoRefMfe.usarVectorRef:
-                                        # arrayMFE = (cartoRefMfe.aCeldasLandUseCover)[::-1]).transpose()
-                                        arrayMFE = np.flipud(cartoRefMfe.aCeldasLandUseCover.transpose())
-                                        # myLog.debug(f'->-> {nFilaRaster} {nColumnaRaster} -> shapes: {dictArrayBandaX[nBandasOutput - 1].shape} {cartoRefMfe.aCeldasLandUseCover.shape} {arrayMFE.shape}')
                                         # ======================================
                                         dictArrayBandaX[nBandasOutput - 1][nFilaRaster, nColumnaRaster] = arrayMFE[nFilaRaster, nColumnaRaster]
                                         # ======================================
-                                        # myLog.debug(f'->-> outputNBand: {nBandasOutput - 1}, nFilaColuna: {nFilaRaster} {nColumnaRaster}, nTipoMasa: {arrayMFE[nFilaRaster, nColumnaRaster]}')
-                                    else:
-                                        myLog.error('\nclidraster-> ATENCION: no se ha podido crear el MFE recortado')
-                                        sys.exit(0)
 
                             except:
                                 myLog.error('Error al integrar asc en tif-> shape: {} nFila: {} nFilaRaster: {} col: {} nColRaster: {} valor1: {}'.format(

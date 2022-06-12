@@ -432,7 +432,8 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
         'marcoCoordMaxiY', 'marcoPatronTest', 'nPatronDasoVars', 'rasterPixelSize',
         'radioClusterPix', 'nivelSubdirExpl', 'outRasterDriver', 'outputSubdirNew',
         'cartoMFErecorte', 'varsTxtFileName', 'ambitoTiffNuevo', 'noDataTiffProvi',
-        'noDataTiffFiles', 'noDataTipoDMasa', 'umbralMatriDist')
+        'noDataTiffFiles', 'noDataTipoDMasa', 'umbralMatriDist', 'distMaxScipyAdm',
+    )
 
     program_name = os.path.basename(sys.argv[0])
     program_version = 'v{}'.format(__version__)
@@ -636,6 +637,12 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
                                 type=int,
                                 help='Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars. Default: %(default)s',
                                 default = GLO.GLBLumbralMatriDistPorDefecto,)
+            parser.add_argument('-I',  # '--distMaxScipyAdm',
+                                dest='distMaxScipyAdm',
+                                type=int,
+                                help='Umbral de distancia Scipy (entre histogramas) por encima del cual se descarta que una celda sea parecida a la patron aunque sea la de distancia minima. Default: %(default)s',
+                                default = GLO.GLBLdistMaxScipyAdmPorDefecto,)
+
 
         parser.add_argument('--idProceso',
                             dest='idProceso',
@@ -768,6 +775,8 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
         argsConfig.noDataTipoDMasa = GLO.GLBLnoDataTipoDMasaPorDefecto
     if not 'umbralMatriDist' in dir(argsConfig):
         argsConfig.umbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto
+    if not 'distMaxScipyAdm' in dir(argsConfig):
+        argsConfig.distMaxScipyAdm = GLO.GLBLdistMaxScipyAdmPorDefecto
 
     for myMainArg in listaMainArgs:
         if not myMainArg in dir(argsConfig):
@@ -857,6 +866,8 @@ def saveArgs(args: argparse.Namespace) -> str:
                 argsFileControl.write(f'-O={args.noDataTipoDMasa}\n')
             if 'umbralMatriDist' in dir(args):
                 argsFileControl.write(f'-U={args.umbralMatriDist}\n')
+            if 'distMaxScipyAdm' in dir(args):
+                argsFileControl.write(f'-I={args.distMaxScipyAdm}\n')
 
             for miDasoVar in args.listTxtDasoVars:
                 argsFileControl.write(f'{miDasoVar}\n')
@@ -973,6 +984,7 @@ def creaConfigDict(
         cfgDict['noDataTiffFiles'] = args.noDataTiffFiles
         cfgDict['noDataTipoDMasa'] = args.noDataTipoDMasa
         cfgDict['umbralMatriDist'] = args.umbralMatriDist
+        cfgDict['distMaxScipyAdm'] = args.distMaxScipyAdm
     except Exception as e:
         myLog.error(f'qlidtwins-> args: {list(myArgs for myArgs in dir(args) if not myArgs.startswith("__"))}')
         program_name = 'qlidtwins.py'
@@ -1041,21 +1053,15 @@ def mostrarConfiguracion(cfgDict):
                 or cfgDict['marcoCoordMaxiX'] != 0
             ):
                 myLog.info(
-                    '{TB}{TV}{TV}X {:07f} - {:07f} -> {:04.0f} m:'.format(
-                        cfgDict['marcoCoordMiniX'], cfgDict['marcoCoordMaxiX'],
-                        cfgDict['marcoCoordMaxiX'] - cfgDict['marcoCoordMiniX']
-                    )
-                )
+                    f'{TB}{TV}{TV}X {cfgDict["marcoCoordMiniX"]:07f} - {cfgDict["marcoCoordMaxiX"]:07f} '
+                    f'-> {cfgDict["marcoCoordMaxiX"] - cfgDict["marcoCoordMiniX"]:04.0f} m:')
             if (
                 cfgDict['marcoCoordMiniY'] != 0
                 or cfgDict['marcoCoordMaxiY'] != 0
             ):
                 myLog.info(
-                    '{TB}{TV}{TV}Y {:07f} - {:07f} -> {:04.0f} m:'.format(
-                        cfgDict['marcoCoordMiniY'], cfgDict['marcoCoordMaxiY'],
-                        cfgDict['marcoCoordMaxiY'] - cfgDict['marcoCoordMiniY']
-                    )
-                )
+                    f'{TB}{TV}{TV}Y {cfgDict["marcoCoordMiniY"]:07f} - {cfgDict["marcoCoordMaxiY"]:07f} '
+                    f'-> {cfgDict["marcoCoordMaxiY"] - cfgDict["marcoCoordMiniY"]:04.0f} m:')
             myLog.info(f'{TB}{TV}Ver valores de la envolvente mas adelante.')
         else:
             myLog.info(f'{TB}{TV}Se adopta la envolvente de los shapes de referenia (patron) y chequeo (testeo).')
@@ -1135,6 +1141,7 @@ def mostrarConfiguracion(cfgDict):
         myLog.debug(f'{TB}-> noDataTiffFiles: {cfgDict["noDataTiffFiles"]}')
         myLog.debug(f'{TB}-> noDataTipoDMasa: {cfgDict["noDataTipoDMasa"]}')
         myLog.debug(f'{TB}-> umbralMatriDist: {cfgDict["umbralMatriDist"]}')
+        myLog.debug(f'{TB}-> distMaxScipyAdm: {cfgDict["distMaxScipyAdm"]}')
         myLog.debug('{:=^80}'.format(''))
 
 
@@ -1299,9 +1306,9 @@ def clidtwinsUseCase(
     # tipoDeMasaValueOk = tipoDeMasaSelecOk[1]
     # listaTM = [None]
     # listaTM = listaTM[1:]
-    print(f'qlidtwins-> listaTM: {listaTM}')
+    myLog.info(f'qlidtwins-> listaTM: {listaTM}')
     for LCL_tipoDeMasaSelec in listaTM:
-        print(f'qlidtwins-> LCL_tipoDeMasaSelec: {LCL_tipoDeMasaSelec}')
+        myLog.info(f'qlidtwins-> LCL_tipoDeMasaSelec: {LCL_tipoDeMasaSelec}')
         myDasolidar.analyzeMultiDasoLayerRasterFile(
             LCL_patronVectrName=cfgDict['patronVectrName'],
             LCL_patronLayerName=cfgDict['patronLayerName'],
@@ -1427,9 +1434,11 @@ def clidtwinsUseCase(
     # Se identifica el TM mas ajustado para cada pixel, dentro de unos minimos 
     myLog.debug('\n{:_^80}'.format(''))
     myLog.debug('qlidtwins-> Ejecutando asignarTipoDeMasa...')
-    myDasolidar.asignarTipoDeMasaConDistanciaMinima(listaTM)
+    myDasolidar.asignarTipoDeMasaConDistanciaMinima(
+        LCL_listaTM=listaTM,
+        LCL_distMaxScipyAdm=cfgDict['distMaxScipyAdm']
+    )
     myLog.debug('{:=^80}'.format(''))
-
 
     myLog.info('\nqlidtwins-> Fin.')
     return myDasolidar

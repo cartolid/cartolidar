@@ -644,6 +644,9 @@ def leerConfigDictPorDefecto():
         'GLBLumbralMatriDistPorDefecto': [20,
                                           'dasoLidar', 'int',
                                           'Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars'],
+        'GLBLdistMaxScipyAdmPorDefecto': [2,
+                                          'dasoLidar', 'int',
+                                          'Umbral de distancia Scipy (entre histogramas) por encima del cual se descarta que una celda sea parecida a la patron aunque sea la de distancia minima'],
 
         'GLBLmarcoCoordMiniXPorDefecto': [0,
                                           'dasoLidar', 'int',

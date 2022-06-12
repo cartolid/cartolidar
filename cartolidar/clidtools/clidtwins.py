@@ -1630,14 +1630,14 @@ and two more layers for forest type (land cover) and stand type.
             myLog.warning(f'{TB}1. Buscar ficheros asc con las las variables DasoLidar (funcion searchSourceFiles<>)')
             myLog.warning(f'{TB}{TV}-> Se genera la lista inFilesListAllTypes')
             myLog.warning(f'{TB}2. Generar el raster con todas las variables DasoLidar (funcion createMultiDasoLayerRasterFile<>)')
-            myLog.warning(f'{TB}{TV}-> Se genera el dict rasterDatasetAll')
+            myLog.warning(f'{TB}{TV}-> Al abrirlo se obtiene el dataset rasterDatasetAll')
             myLog.warning(f'{TB}3. Calcular los rangos de las variables Dasolidar (funcion analyzeMultiDasoLayerRasterFile<>)')
             myLog.warning(f'{TB}{TV}-> Se genera el dict dictHistProb01')
             self.variablesDasoLidarAnalizadas = False
         elif self.rasterDatasetAll is None:
             myLog.warning(f'clidtwins-> Aviso: antes de {procesoObjetivo} hay que:')
             myLog.warning(f'{TB}1. Generar el raster con todas las variables DasoLidar (con la funcion createMultiDasoLayerRasterFile<>)')
-            myLog.warning(f'{TB}{TV}-> Se genera el dict rasterDatasetAll')
+            myLog.warning(f'{TB}{TV}-> Al abrirlo se obtiene el dataset rasterDatasetAll')
             myLog.warning(f'{TB}2. Calcular los rangos de las variables Dasolidar (con la funcion analyzeMultiDasoLayerRasterFile<>)')
             myLog.warning(f'{TB}{TV}-> Se genera el dict dictHistProb01')
             self.variablesDasoLidarAnalizadas = False
@@ -2074,7 +2074,21 @@ and two more layers for forest type (land cover) and stand type.
 
         # ======================================================================
         # Lectura de las DLVs del dataset  rasterDatasetAll
-        arrayBandaXinputMonoPixelAll = {}
+        # arrayBandaXinputMonoPixelAll = {}
+        if (
+            not hasattr(self, 'nBandasRasterOutput')
+            or not hasattr(self, 'nCeldasX_Destino')
+            or not hasattr(self, 'nCeldasY_Destino')
+        ):
+            myLog.critical('\n{:_^80}'.format(''))
+            myLog.critical(f'clidtwins-> ATENCION: Revisar codigo (no existen algunas variables despues de verificaCreateAnalyzeMultiDasoLayer<>).')
+            myLog.critical('{:=^80}'.format(''))
+            sys.exit(0)
+        arrayBandaXinputMonoPixelAll = np.zeros(
+            self.nBandasRasterOutput * self.nCeldasX_Destino * self.nCeldasY_Destino,
+            dtype=self.outputNpDatatypeAll
+        ).reshape(self.nBandasRasterOutput, self.nCeldasX_Destino, self.nCeldasY_Destino)
+
         # arrayBandaFlip = {}
         for nBanda in range(1, self.nBandasRasterOutput + 1):
             selecBandaXinputMonoPixelAll = self.rasterDatasetAll.GetRasterBand(nBanda)
@@ -2510,17 +2524,86 @@ and two more layers for forest type (land cover) and stand type.
                 mostrarPixelClusterMatch = False
                 # ==============================================================
 
-                if numbaOk:
+                if numbaOk and False:
+                    # ======================================================================
+                    # Array con los valores de las dasoVars en el cluster local,
+                    # cambia para cada el cluster local de cada pixel
+                    localClusterArrayMultiBandaDasoVars = np.zeros(
+                        (self.nBandasRasterOutput)
+                        * (ladoCluster ** 2),
+                        dtype=self.outputNpDatatypeAll
+                    ).reshape(
+                        self.nBandasRasterOutput,
+                        ladoCluster,
+                        ladoCluster
+                    )
+                    localSubClusterArrayMultiBandaDasoVars = np.zeros(
+                        (self.nBandasRasterOutput)
+                        * (ladoCluster ** 2),
+                        dtype=self.outputNpDatatypeAll
+                    ).reshape(
+                        self.nBandasRasterOutput,
+                        ladoCluster,
+                        ladoCluster
+                    )
+                    arrayBandaXMaskCluster = np.zeros(
+                        (ladoCluster ** 2), dtype=np.uint8
+                    ).reshape(
+                        ladoCluster,
+                        ladoCluster
+                    )
+                    arrayBandaXMaskSubCluster = np.zeros(
+                        (ladoCluster ** 2), dtype=np.uint8
+                    ).reshape(
+                        ladoCluster,
+                        ladoCluster
+                    )
                     clusterRelleno = rellenarLocalClusterNb(
                         arrayBandaXinputMonoPixelAll,
                         nRowRaster,
                         nColRaster,
-                        self_LOCLradioClusterPix=self.LOCLradioClusterPix,
-                        self_noDataDasoVarAll=self.noDataDasoVarAll,
-                        self_outputNpDatatypeAll=self.outputNpDatatypeAll,
-                        mostrarPixelClusterMatch=mostrarPixelClusterMatch,
-                        contadorAvisosCluster=contadorAvisosCluster,
-                        self_LOCLverbose=self.LOCLverbose,
+                        self.LOCLradioClusterPix,  # self_LOCLradioClusterPix=
+                        self.noDataDasoVarAll,  # self_noDataDasoVarAll=
+                        self.outputNpDatatypeAll,  # self_outputNpDatatypeAll=
+                        mostrarPixelClusterMatch,  # mostrarPixelClusterMatch=
+                        contadorAvisosCluster,  # contadorAvisosCluster=
+                        self.LOCLverbose,  # self_LOCLverbose=
+                        localClusterArrayMultiBandaDasoVars,
+                        localSubClusterArrayMultiBandaDasoVars,
+                        arrayBandaXMaskCluster,
+                        arrayBandaXMaskSubCluster,
+                    )
+                    localClusterOk = clusterRelleno[0]
+                    contadorAvisosCluster = clusterRelleno[1]
+                    print('localClusterOk:', localClusterOk, 'contadorAvisosCluster;', contadorAvisosCluster)
+                    if not localClusterOk:
+                        if contadorAvisosCluster == -1:
+                            sys.exit(0)
+                        continue
+                    clusterCompleto = clusterRelleno[2]
+                    localClusterArrayMultiBandaDasoVars = clusterRelleno[3]
+                    localSubClusterArrayMultiBandaDasoVars = clusterRelleno[4]
+                    arrayBandaXMaskCluster = clusterRelleno[5]
+                    arrayBandaXMaskSubCluster = clusterRelleno[6]
+                    nCeldasConDasoVarsOk = clusterRelleno[7]
+                    listaCeldasConDasoVarsOkCluster = np.zeros(
+                        nCeldasConDasoVarsOk * self.nBandasRasterOutput, dtype=self.outputNpDatatypeAll
+                    ).reshape(nCeldasConDasoVarsOk, self.nBandasRasterOutput)
+                    listaCeldasConDasoVarsOkSubCluster = np.zeros(
+                        nCeldasConDasoVarsOk * self.nBandasRasterOutput, dtype=self.outputNpDatatypeAll
+                    ).reshape(nCeldasConDasoVarsOk, self.nBandasRasterOutput)
+
+
+                    clusterRelleno = rellenarLocalClusterNb2(
+                        arrayBandaXinputMonoPixelAll,
+                        nRowRaster,
+                        nColRaster,
+                        self.LOCLradioClusterPix,  # self_LOCLradioClusterPix=
+                        self.noDataDasoVarAll,  # self_noDataDasoVarAll=
+                        self.outputNpDatatypeAll,  # self_outputNpDatatypeAll=
+                        mostrarPixelClusterMatch,  # mostrarPixelClusterMatch=
+                        contadorAvisosCluster,  # contadorAvisosCluster=
+                        self.LOCLverbose,  # self_LOCLverbose=
                     )
                 else:
                     clusterRelleno = rellenarLocalClusterPy(
@@ -2534,8 +2617,11 @@ and two more layers for forest type (land cover) and stand type.
                         contadorAvisosCluster=contadorAvisosCluster,
                         self_LOCLverbose=self.LOCLverbose,
                     )
+                localClusterOk = clusterRelleno[0]
                 contadorAvisosCluster = clusterRelleno[1]
-                if not clusterRelleno[0]:
+                if not localClusterOk:
+                    if contadorAvisosCluster == -1:
+                        sys.exit(0)
                     continue
                 clusterCompleto = clusterRelleno[2]
                 localClusterArrayMultiBandaDasoVars = clusterRelleno[3]
@@ -2554,12 +2640,32 @@ and two more layers for forest type (land cover) and stand type.
                 nVariablesNoOk = 0
                 tipoBosqueOk = 0
                 # myLog.debug(f'clidtwins-> {nRowRaster} // {nColRaster} Recorriendo bandas+++')
+                sumaPoderaciones = 0
                 for nBanda in range(1, self.nBandasRasterOutput + 1):
                     nInputVar = nBanda - 1
-                    ponderacionDeLaVariable = self.LOCLlistLstDasoVars[nInputVar][6] / 10.0
+                    sumaPoderaciones += self.LOCLlistLstDasoVars[nInputVar][6]
+                if sumaPoderaciones == 0:
+                    myLog.warning(f'clidtwins-> ATENCION: las ponderaciones de las variables DasoLidar son todas nulas')
+                    for nBanda in range(1, self.nBandasRasterOutput + 1):
+                        nInputVar = nBanda - 1
+                        myLog.warning(f'{TB}Banda: {nBanda} -> dasovar: {self.LOCLlistLstDasoVars[nInputVar]} (poderacion: {self.LOCLlistLstDasoVars[nInputVar][6]})')
+                    myLog.warning(f'{TB}-> Se asigna la misma ponderacion a todas las dasoVars.')
+                    sumaPoderaciones = 1
+                    hayPonderaciones = False
+                else:
+                    hayPonderaciones = True
+                for nBanda in range(1, self.nBandasRasterOutput + 1):
+                    nInputVar = nBanda - 1
+                    if hayPonderaciones:
+                        ponderacionDeLaVariable = self.LOCLlistLstDasoVars[nInputVar][6]
+                    else:
+                        ponderacionDeLaVariable = 1 / (self.nBandasRasterOutput - 2)
                     # Factor entre 0 y 1 que modifica el numero de clases que estan fuera de rango
+                    # al comparar el histograma de testeo con el de referencia (patron),
+                    # Tras establecer para cada clase un rango admisible de frecuencias
+                    # alrededdor de la frecuencia del histograma de referencia para esa clase.
                     # El valor 1 suma todos los "fuera de rango"; el factor 0.5 los contabiliza mitad
-                    multiplicadorDeFueraDeRangoParaLaVariable = ponderacionDeLaVariable
+                    multiplicadorDeFueraDeRangoParaLaVariable = ponderacionDeLaVariable / 10
                     claveDef = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_ref'
                     if mostrarPixelClusterMatch and self.LOCLverbose > 1:
                         if nInputVar >= 0 and nInputVar < self.nInputVars:
@@ -2589,7 +2695,7 @@ and two more layers for forest type (land cover) and stand type.
                     #                 try:
                     #                     localClusterArrayMultiBandaDasoVars[nInputVar, self.LOCLradioClusterPix + desplY, self.LOCLradioClusterPix + desplX] = (arrayBandaXAll[nBanda - 1])[nRowCluster, nColCluster]
                     #                 except:
-                    #                     myLog.error(f'\n-> Revsar error: {nInputVar} {self.LOCLradioClusterPix + desplY} {self.LOCLradioClusterPix + desplX}')
+                    #                     myLog.error(f'\n-> Revisar error: {nInputVar} {self.LOCLradioClusterPix + desplY} {self.LOCLradioClusterPix + desplX}')
                     #                     myLog.error(f'localClusterArrayMultiBandaDasoVars.shape: {localClusterArrayMultiBandaDasoVars.shape}')
                     #                     myLog.error(f'nRowCluster, nColCluster: {nRowCluster} {nColCluster}')
                     #                     sys.exit(0)
@@ -2686,9 +2792,9 @@ and two more layers for forest type (land cover) and stand type.
                             #         f'noData: {self.GLBLnoDataDistancia}'
                             #     )
                             if arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] == self.GLBLnoDataDistancia:
-                                arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] = distanciaEntreHistogramas * ponderacionDeLaVariable
+                                arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] = distanciaEntreHistogramas * ponderacionDeLaVariable / sumaPoderaciones
                             else:
-                                arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] += distanciaEntreHistogramas * ponderacionDeLaVariable
+                                arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster] += distanciaEntreHistogramas * ponderacionDeLaVariable / sumaPoderaciones
                                 self.maxDistanciaScipySuma = max(arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster], self.maxDistanciaScipySuma)
                             # if mostrarPixelClusterMatch:
                             #     myLog.debug(
@@ -2810,6 +2916,7 @@ and two more layers for forest type (land cover) and stand type.
                     arrayDistanciaScipy[nInputVar, 2], outputBandaDistanciaScipyMethod3[nInputVar]
                 )
 
+        # Banda final con la media ponderada de distancias teniendo en cuenta todas las dasoVars
         try:
             outputBandaDistanciaScipyMethod1[self.nInputVars] = guardarArrayEnBandaDataset(
                 arrayDistanciaScipy[-1, 0], outputBandaDistanciaScipyMethod1[self.nInputVars]
@@ -2823,9 +2930,9 @@ and two more layers for forest type (land cover) and stand type.
                     arrayDistanciaScipy[-1, 2], outputBandaDistanciaScipyMethod3[self.nInputVars]
                 )
         except:
-            print(f'clidtwins-> ATENCION: revisar dimensiones {type(arrayDistanciaScipy)} {type(outputBandaDistanciaScipyMethod3)}, {type(outputBandaDistanciaScipyMethod3[self.nInputVars])}')
-            print(f'{TB}arrayDistanciaScipy.shape: {arrayDistanciaScipy.shape}')
-            print(f'{TB}outputBandaDistanciaScipyMethod3[self.nInputVars].shape: {outputBandaDistanciaScipyMethod3[self.nInputVars].shape}')
+            myLog.error(f'clidtwins-> ATENCION: revisar dimensiones {type(arrayDistanciaScipy)} {type(outputBandaDistanciaScipyMethod3)}, {type(outputBandaDistanciaScipyMethod3[self.nInputVars])}')
+            myLog.error(f'{TB}arrayDistanciaScipy.shape: {arrayDistanciaScipy.shape}')
+            myLog.error(f'{TB}outputBandaDistanciaScipyMethod3[self.nInputVars].shape: {outputBandaDistanciaScipyMethod3[self.nInputVars].shape}')
 
         return True
         # return (
@@ -2840,12 +2947,19 @@ and two more layers for forest type (land cover) and stand type.
     # ==========================================================================
     def asignarTipoDeMasaConDistanciaMinima(
             self,
-            LCL_listaTM=None
+            LCL_listaTM=None,
+            LCL_distMaxScipyAdm=None
         ):
         if LCL_listaTM is None:
             self.LOCLlistaTM = [None]
         else:
             self.LOCLlistaTM = LCL_listaTM
+        if LCL_distMaxScipyAdm is None:
+            self.LOCLdistMaxScipyAdm = GLO.GLBLdistMaxScipyAdmPorDefecto
+        else:
+            self.LOCLdistMaxScipyAdm = LCL_distMaxScipyAdm
+            LCL_distMaxScipyAdm=None
+
         outputClusterTipoBoscProFileNameSinPath = {}
         outputClusterDistScipyM1FileNameSinPath = {}
         outputClusterDistScipyM2FileNameSinPath = {}
@@ -3037,7 +3151,7 @@ and two more layers for forest type (land cover) and stand type.
             self.outputNpDatatypeTipoMasa,
             self.GLBLnoDataTipoDMasa,
             self.GLBLnoDataTipoDMasa,
-            self.GLBLnoDataTiffFiles,
+            self.GLBLnoDataTipoDMasa,
             generarMetaPixeles=True,
         )
         if nScipyMethods >= 2 and disponibleClusterDistScipyM2:
@@ -3067,7 +3181,7 @@ and two more layers for forest type (land cover) and stand type.
             self.outputNpDatatypeTipoMasa,
             self.GLBLnoDataTipoDMasa,
             self.GLBLnoDataTipoDMasa,
-            self.GLBLnoDataTiffFiles,
+            self.GLBLnoDataTipoDMasa,
             generarMetaPixeles=True,
         )
         if nScipyMethods >= 2 and disponibleClusterDistScipyM2:
@@ -3081,34 +3195,38 @@ and two more layers for forest type (land cover) and stand type.
             arrayTipoMasaScipyTipoBoscProM1 = bandaTipoMasaScipyTipoBoscProM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
                 for nDistCol in range(nDistCols):
-                    distanciaMinimaTipoBoscAnyM1 = 99999
-                    distanciaMinimaTipoBoscProM1 = 99999
+                    distanciaMinimaScipyM1TipoBoscAny = 99999
+                    distanciaMinimaScipyM1TipoBoscPro = 99999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
-                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
-                            distanciaMinimaTipoBoscAnyM1 = min(
-                                distanciaMinimaTipoBoscAnyM1,
+                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys():
+                            distanciaMinimaScipyM1TipoBoscAny = min(
+                                distanciaMinimaScipyM1TipoBoscAny,
                                 arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
-                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
                             if (
                                 arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
                             ):
-                                distanciaMinimaTipoBoscProM1 = min(
-                                    distanciaMinimaTipoBoscProM1,
+                                distanciaMinimaScipyM1TipoBoscPro = min(
+                                    distanciaMinimaScipyM1TipoBoscPro,
                                     arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                                 )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
-                            if arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscAnyM1:
-                                arrayTipoMasaScipyTipoBoscProM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
-                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM1.keys(): 
                             if (
-                                arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM1
+                                distanciaMinimaScipyM1TipoBoscAny != 99999
+                                and distanciaMinimaScipyM1TipoBoscAny < self.LOCLdistMaxScipyAdm
+                                and arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaScipyM1TipoBoscAny
+                            ):
+                                arrayTipoMasaScipyTipoBoscAnyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                            if (
+                                distanciaMinimaScipyM1TipoBoscPro != 99999
+                                and distanciaMinimaScipyM1TipoBoscPro < self.LOCLdistMaxScipyAdm
+                                and arrayClusterDistScipyM1[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaScipyM1TipoBoscPro
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
                             ):
-                                arrayTipoMasaScipyTipoBoscAnyM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                                arrayTipoMasaScipyTipoBoscProM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM2:
             myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M2')
@@ -3116,34 +3234,38 @@ and two more layers for forest type (land cover) and stand type.
             arrayTipoMasaScipyTipoBoscProM2 = bandaTipoMasaScipyTipoBoscProM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
                 for nDistCol in range(nDistCols):
-                    distanciaMinimaTipoBoscAnyM2 = 99999
-                    distanciaMinimaTipoBoscProM2 = 99999
+                    distanciaMinimaScipyM2TipoBoscAny = 99999
+                    distanciaMinimaScipyM2TipoBoscPro = 99999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
-                            distanciaMinimaTipoBoscAnyM2 = min(
-                                distanciaMinimaTipoBoscAnyM2,
+                            distanciaMinimaScipyM2TipoBoscAny = min(
+                                distanciaMinimaScipyM2TipoBoscAny,
                                 arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
-                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
                             if (
                                 arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
                             ):
-                                distanciaMinimaTipoBoscProM2 = min(
-                                    distanciaMinimaTipoBoscProM2,
+                                distanciaMinimaScipyM2TipoBoscPro = min(
+                                    distanciaMinimaScipyM2TipoBoscPro,
                                     arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                                 )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
-                            if arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscAnyM2:
-                                arrayTipoMasaScipyTipoBoscProM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
-                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM2.keys(): 
                             if (
-                                arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM2
+                                distanciaMinimaScipyM2TipoBoscAny != 99999
+                                and distanciaMinimaScipyM2TipoBoscAny < self.LOCLdistMaxScipyAdm
+                                and arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaScipyM2TipoBoscAny
+                            ):
+                                arrayTipoMasaScipyTipoBoscAnyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                            if (
+                                distanciaMinimaScipyM2TipoBoscPro != 99999
+                                and distanciaMinimaScipyM2TipoBoscPro < self.LOCLdistMaxScipyAdm
+                                and arrayClusterDistScipyM2[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaScipyM2TipoBoscPro
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
                             ):
-                                arrayTipoMasaScipyTipoBoscAnyM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                                arrayTipoMasaScipyTipoBoscProM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM3:
             myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M3')
@@ -3151,33 +3273,38 @@ and two more layers for forest type (land cover) and stand type.
             arrayTipoMasaScipyTipoBoscProM3 = bandaTipoMasaScipyTipoBoscProM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
                 for nDistCol in range(nDistCols):
-                    distanciaMinimaTipoBoscAnyM3 = 99999
-                    distanciaMinimaTipoBoscProM3 = 99999
+                    distanciaMinimaScipyM3TipoBoscAny = 99999
+                    distanciaMinimaScipyM3TipoBoscPro = 99999
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
-                            distanciaMinimaTipoBoscAnyM3 = min(
-                                distanciaMinimaTipoBoscAnyM3,
+                            distanciaMinimaScipyM3TipoBoscAny = min(
+                                distanciaMinimaScipyM3TipoBoscAny,
                                 arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                             )
-                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
                             if (
                                 arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
                                 and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
                             ):
-                                distanciaMinimaTipoBoscProM3 = min(
-                                    distanciaMinimaTipoBoscProM3,
+                                distanciaMinimaScipyM3TipoBoscPro = min(
+                                    distanciaMinimaScipyM3TipoBoscPro,
                                     arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol],
                                 )
                     for LCL_tipoDeMasaSelec in self.LOCLlistaTM:
                         if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
-                            if arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscAnyM3:
-                                arrayTipoMasaScipyTipoBoscProM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
-                        if LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys(): 
                             if (
-                                arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaTipoBoscProM3
-                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                                distanciaMinimaScipyM3TipoBoscAny != 99999
+                                and distanciaMinimaScipyM3TipoBoscAny < self.LOCLdistMaxScipyAdm
+                                and arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaScipyM3TipoBoscAny
                             ):
                                 arrayTipoMasaScipyTipoBoscAnyM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
+                            if (
+                                distanciaMinimaScipyM3TipoBoscPro != 99999
+                                and distanciaMinimaScipyM3TipoBoscPro < self.LOCLdistMaxScipyAdm
+                                and arrayClusterDistScipyM3[LCL_tipoDeMasaSelec][nDistRow, nDistCol] == distanciaMinimaScipyM3TipoBoscPro
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] >= TRNS_tipoBoscCompatible
+                                and arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec][nDistRow, nDistCol] != self.GLBLnoDataTipoDMasa
+                            ):
+                                arrayTipoMasaScipyTipoBoscProM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM1:
             myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M1')
@@ -3187,6 +3314,7 @@ and two more layers for forest type (land cover) and stand type.
             bandaTipoMasaScipyTipoBoscProM1 = guardarArrayEnBandaDataset(
                 arrayTipoMasaScipyTipoBoscProM1, bandaTipoMasaScipyTipoBoscProM1
             )
+
         if disponibleClusterDistScipyM2:
             myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
             bandaTipoMasaScipyTipoBoscAnyM2 = guardarArrayEnBandaDataset(
@@ -3235,9 +3363,10 @@ def rellenarLocalClusterPy(
         contadorAvisosCluster=0,
         self_LOCLverbose=False,
     ):
-    self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll)
+    # self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll)
+    self_nBandasRasterOutput = arrayBandaXinputMonoPixelAll.shape[0]
     if self_outputNpDatatypeAll is None:
-        self_outputNpDatatypeAll = arrayBandaXinputMonoPixelAll.dtype
+        self_outputNpDatatypeAll = self_outputNpDatatypeAll
     ladoCluster = (self_LOCLradioClusterPix * 2) + 1
     coordY = (arrayBandaXinputMonoPixelAll[0]).shape[0] - nRowRaster
     coordX = nColRaster
@@ -3485,40 +3614,38 @@ def rellenarLocalClusterNb(
         arrayBandaXinputMonoPixelAll,
         nRowRaster,
         nColRaster,
-        self_LOCLradioClusterPix=3,
-        self_noDataDasoVarAll=-9999,
-        self_outputNpDatatypeAll=None,
-        mostrarPixelClusterMatch=False,
-        contadorAvisosCluster=0,
-        self_LOCLverbose=False,
+        self_LOCLradioClusterPix,
+        self_noDataDasoVarAll,
+        self_outputNpDatatypeAll,
+        mostrarPixelClusterMatch,
+        contadorAvisosCluster,
+        self_LOCLverbose,
+        localClusterArrayMultiBandaDasoVars,
+        localSubClusterArrayMultiBandaDasoVars,
+        arrayBandaXMaskCluster,
+        arrayBandaXMaskSubCluster,
     ):
-    self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll)
-    if self_outputNpDatatypeAll is None:
-        self_outputNpDatatypeAll = arrayBandaXinputMonoPixelAll.dtype
+    # No admitido con numba (cambio de dict a ndarray):
+    # self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll.keys())
+    self_nBandasRasterOutput = arrayBandaXinputMonoPixelAll.shape[0]
     ladoCluster = (self_LOCLradioClusterPix * 2) + 1
     coordY = (arrayBandaXinputMonoPixelAll[0]).shape[0] - nRowRaster
     coordX = nColRaster
-    listaCeldasConDasoVarsOkCluster = None
-    listaCeldasConDasoVarsOkSubCluster = None
-    arrayBandaXMaskCluster = None
-    arrayBandaXMaskSubCluster = None
-
+    # listaCeldasConDasoVarsOkCluster = None
+    # listaCeldasConDasoVarsOkSubCluster = None
+    # arrayBandaXMaskCluster = None
+    # arrayBandaXMaskSubCluster = None
+    arrayBandaXMaskCluster.fill(0)
+    arrayBandaXMaskSubCluster.fill(0)
     # ======================================================================
     # Array con los valores de las dasoVars en el cluster local,
-    # cambia para cada el cluster local de cada pixel
-    localClusterArrayMultiBandaDasoVars = np.zeros(
-        (self_nBandasRasterOutput)
-        * (ladoCluster ** 2),
-        dtype=self_outputNpDatatypeAll
-    ).reshape(
-        self_nBandasRasterOutput,
-        ladoCluster,
-        ladoCluster
-    )
-    # localClusterArrayMultiBandaDasoVars.fill(0)
-    localSubClusterArrayMultiBandaDasoVars = None
-
-    # myLog.debug(f'-->>nRowRaster: {nRowRaster} nColRaster: {nColRaster}') 
+    # cambia para cada cluster local de cada pixel
+    localClusterArrayMultiBandaDasoVars.fill(0)
+    # localSubClusterArrayMultiBandaDasoVars = None
+    localSubClusterArrayMultiBandaDasoVars.fill(0)
+    # # myLog.debug(f'-->>nRowRaster: {nRowRaster} nColRaster: {nColRaster}') 
+    # print('-->>nRowRaster:', nRowRaster, 'nColRaster:', nColRaster) 
+    nCeldasConDasoVarsOk = 0
     nRowClusterIni = nRowRaster - self_LOCLradioClusterPix
     nRowClusterFin = nRowRaster + self_LOCLradioClusterPix
     nColClusterIni = nColRaster - self_LOCLradioClusterPix
@@ -3548,9 +3675,12 @@ def rellenarLocalClusterNb(
             nColClustFin = ladoCluster - (nColClusterFin - (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape[1])
         else:
             nColClustFin = ladoCluster
-        # myLog.debug(f'-->>nRowClusterIniFin: {nRowClusterIni} {nRowClusterFin} nColClustIniFin: {nColClusterIni} {nColClusterFin} clusterCompleto: {clusterCompleto}')
-        # myLog.debug(f'-->>(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape: {(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape}')
-        # myLog.debug(f'-->>nRowClustIniFin: {nRowClustIni} {nRowClustFin} nColClustIniFin: {nColClustIni} {nColClustFin}')
+        # # myLog.debug(f'-->>nRowClusterIniFin: {nRowClusterIni} {nRowClusterFin} nColClustIniFin: {nColClusterIni} {nColClusterFin} clusterCompleto: {clusterCompleto}')
+        # # myLog.debug(f'-->>(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape: {(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape}')
+        # # myLog.debug(f'-->>nRowClustIniFin: {nRowClustIni} {nRowClustFin} nColClustIniFin: {nColClustIni} {nColClustFin}')
+        # print('-->>nRowClusterIniFin:', nRowClusterIni, nRowClusterFin, 'nColClustIniFin:', nColClusterIni, nColClusterFin, 'clusterCompleto:', clusterCompleto)
+        # print('-->>(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape:', (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape)
+        # print('-->>nRowClustIniFin:', nRowClustIni, nRowClustFin, 'nColClustIniFin:', nColClustIni, nColClustFin)
 
     # ==================================================================
     # Tengo que recorrer todas las bandas para enmascarar las celdas con alguna banda noData
@@ -3562,7 +3692,7 @@ def rellenarLocalClusterNb(
         # se ponen a 1 las celdas con ALGUN valor noData y, despues de recorrer 
         # todas las bandas, se cuenta el numero de celdas igual a cero.
         # Con eso, se crea un array que va a contener la lista de celdas con valor ok
-        arrayBandaXMaskCluster = np.zeros((ladoCluster ** 2), dtype=np.uint8).reshape(ladoCluster, ladoCluster)
+        arrayBandaXMaskCluster.fill(0)
         # Recorro todas las bandas para verificar en cada celda si hay valores validos en todas las bandas
         # Calculo arrayBandaXMaskCluster y con ella enmascaro los noData al calcular el histograma de cada banda
         for nBanda in range(1, self_nBandasRasterOutput + 1):
@@ -3578,37 +3708,411 @@ def rellenarLocalClusterNb(
                 return (
                     localClusterOk,
                     contadorAvisosCluster,
+                    clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
                 )
                 # continue
-            arrayBandaXMaskCluster[localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
-
+            # No admitido con numba:
+            # arrayBandaXMaskCluster[localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
+            for nRowNb in nb.prange(ladoCluster):
+                for nColNb in nb.prange(ladoCluster):
+                    if localClusterArrayMultiBandaDasoVars[nBanda-1, nRowNb, nColNb] == self_noDataDasoVarAll:
+                        arrayBandaXMaskCluster[nRowNb, nColNb] = 1
         if (arrayBandaXMaskCluster == 1).all():
             if contadorAvisosCluster == 0:
-                myLog.debug('')
+                # myLog.debug('')
+                print('')
             if contadorAvisosCluster < 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                print('clidtwins-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
             elif contadorAvisosCluster == 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
                 localClusterOk,
                 contadorAvisosCluster,
+                clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
             )
             # continue
         elif (arrayBandaXMaskCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
             if contadorAvisosCluster == 0:
-                myLog.debug('')
+                # myLog.debug('')
+                print('')
             if contadorAvisosCluster < 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
+                print('clidtwins-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskCluster != 1).sum())
             elif contadorAvisosCluster == 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
 
             localClusterOk = False
             return (
                 localClusterOk,
                 contadorAvisosCluster,
+                clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
+            )
+            # continue
+
+        nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskCluster == 0)
+        # listaCeldasConDasoVarsOkCluster = np.zeros(nCeldasConDasoVarsOk * self_nBandasRasterOutput, dtype=self_outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, self_nBandasRasterOutput)
+    else:
+        # localSubClusterArrayMultiBandaDasoVars = np.zeros(
+        #     (self_nBandasRasterOutput)
+        #     * (nRowClustFin - nRowClustIni)
+        #     * (nColClustFin - nColClustIni),
+        #     dtype=self_outputNpDatatypeAll
+        # ).reshape(
+        #     self_nBandasRasterOutput,
+        #     nRowClustFin - nRowClustIni,
+        #     nColClustFin - nColClustIni
+        # )
+        # Este array es para contar las celda con valores validos en todas las bandas:
+        # arrayBandaXMaskSubCluster = np.zeros(
+        #     (nRowClustFin - nRowClustIni)
+        #     * (nColClustFin - nColClustIni),
+        #     dtype=np.uint8
+        # ).reshape(
+        #     nRowClustFin - nRowClustIni,
+        #     nColClustFin - nColClustIni
+        # )
+
+        # Tomo prestado este array que no uso por no ser clusterCompleto
+        # Para calcular el subCluster
+        localClusterArrayMultiBandaDasoVars.fill(self_noDataDasoVarAll)
+        # Recorro todas las bandas para verificar en cada celda si hay valores validos en todas las bandas
+        # Calculo arrayBandaXMaskSubCluster y con ella enmascaro los noData al calcular el histograma de cada banda
+        for nBanda in range(1, self_nBandasRasterOutput + 1):
+            nInputVar = nBanda - 1
+            for desplY in range(-self_LOCLradioClusterPix, self_LOCLradioClusterPix + 1):
+                for desplX in range(-self_LOCLradioClusterPix, self_LOCLradioClusterPix + 1):
+                    nRowCluster = nRowRaster + desplY
+                    nColCluster = nColRaster + desplX
+                    if (
+                        nRowCluster >= 0
+                        and nRowCluster < (arrayBandaXinputMonoPixelAll[nBanda - 1]).shape[0]
+                        and nColCluster >= 0
+                        and nColCluster < (arrayBandaXinputMonoPixelAll[nBanda - 1]).shape[1]
+                    ):
+                        try:
+                            localClusterArrayMultiBandaDasoVars[
+                                nInputVar,
+                                self_LOCLradioClusterPix + desplY,
+                                self_LOCLradioClusterPix + desplX
+                            ] = arrayBandaXinputMonoPixelAll[nBanda - 1][
+                                nRowCluster, nColCluster
+                            ]
+                        except:
+                            # myLog.error(f'\n-> Revisar error: {nInputVar} {self_LOCLradioClusterPix + desplY} {self_LOCLradioClusterPix + desplX}')
+                            # myLog.error(f'localClusterArrayMultiBandaDasoVars.shape: {localClusterArrayMultiBandaDasoVars.shape}')
+                            # myLog.error(f'nRowCluster, nColCluster: {nRowCluster} {nColCluster}')
+                            print('\n-> Revisar error:', nInputVar, self_LOCLradioClusterPix + desplY, self_LOCLradioClusterPix + desplX)
+                            print('localClusterArrayMultiBandaDasoVars.shape:', localClusterArrayMultiBandaDasoVars.shape)
+                            print('nRowCluster, nColCluster:', nRowCluster, nColCluster)
+                            localClusterOk = False
+                            contadorAvisosCluster = -1
+                            return (
+                                localClusterOk,
+                                contadorAvisosCluster,
+                                clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
+                            )
+            localSubClusterArrayMultiBandaDasoVars[nBanda-1][
+                nRowClustIni:nRowClustFin,
+                nColClustIni:nColClustFin
+            ] = localClusterArrayMultiBandaDasoVars[nBanda - 1][
+                nRowClustIni:nRowClustFin,
+                nColClustIni:nColClustFin
+            ]
+            # Sustituyo el self_noDataDasoVarAll (-9999) por self_GLBLnoDataTipoDMasa (255)
+            # localSubClusterArrayMultiBandaDasoVars[localSubClusterArrayMultiBandaDasoVars == self_noDataDasoVarAll] = self_GLBLnoDataTipoDMasa
+            if (localSubClusterArrayMultiBandaDasoVars == self_noDataDasoVarAll).all():
+                localClusterOk = False
+                return (
+                    localClusterOk,
+                    contadorAvisosCluster,
+                    clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
+                )
+                # continue
+            # No admitido con numba:
+            # arrayBandaXMaskSubCluster[localSubClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
+            for nRowNb in nb.prange(ladoCluster):
+                for nColNb in nb.prange(ladoCluster):
+                    if localSubClusterArrayMultiBandaDasoVars[nBanda-1, nRowNb, nColNb] == self_noDataDasoVarAll:
+                        arrayBandaXMaskSubCluster[nRowNb, nColNb] = 1
+
+        # Anulo el array de cluster completo prestado temporalmente para el subCLuster
+        localClusterArrayMultiBandaDasoVars.fill(self_noDataDasoVarAll)
+
+        if (arrayBandaXMaskSubCluster == 1).all():
+            if contadorAvisosCluster == 0:
+                # myLog.debug('')
+                print('')
+            if contadorAvisosCluster < 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                print('clidtwins-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
+            elif contadorAvisosCluster == 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
+            localClusterOk = False
+            return (
+                localClusterOk,
+                contadorAvisosCluster,
+                clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
+            )
+            # continue
+        elif (arrayBandaXMaskSubCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
+            if contadorAvisosCluster == 0:
+                # myLog.debug('')
+                print('')
+            if contadorAvisosCluster < 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
+                print('clidtwins-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskSubCluster != 1).sum())
+            elif contadorAvisosCluster == 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
+            localClusterOk = False
+            return (
+                localClusterOk,
+                contadorAvisosCluster,
+                clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
+            )
+            # continue
+
+        nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskSubCluster == 0)
+        # listaCeldasConDasoVarsOkSubCluster = np.zeros(nCeldasConDasoVarsOk * self_nBandasRasterOutput, dtype=self_outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, self_nBandasRasterOutput)
+    # ==============================================================
+
+    if mostrarPixelClusterMatch:
+        # myLog.debug(f'\n-> nRowColRaster: {nRowRaster} {nColRaster}; coordXY: {coordX} {coordY}')
+        # myLog.debug(f'{TB}{TV}-> clusterCompleto: {clusterCompleto}')
+        # myLog.debug(f'{TB}{TV}-> Numero de celdas con dasoVars ok en todas las bandas: {nCeldasConDasoVarsOk}')
+        # myLog.debug(f'{TB}{TV}-> Celdas noData (valor=1): {arrayBandaXMaskSubCluster}')
+        print('\n-> nRowColRaster:', nRowRaster, nColRaster, 'coordXY:', coordX, coordY)
+        print('clidtwins-> clusterCompleto:', clusterCompleto)
+        print('clidtwins-> Numero de celdas con dasoVars ok en todas las bandas:', nCeldasConDasoVarsOk)
+        print('clidtwins-> Celdas noData (valor=1):', arrayBandaXMaskSubCluster)
+
+    localClusterOk = True
+    return (
+        localClusterOk,
+        contadorAvisosCluster,
+        clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                    nCeldasConDasoVarsOk,
+    )
+
+
+# ==============================================================================
+@nb.jit(nopython=True)
+def rellenarLocalClusterNb2(
+        arrayBandaXinputMonoPixelAll,
+        nRowRaster,
+        nColRaster,
+        self_LOCLradioClusterPix,
+        self_noDataDasoVarAll,
+        self_outputNpDatatypeAll,
+        mostrarPixelClusterMatch,
+        contadorAvisosCluster,
+        self_LOCLverbose,
+    ):
+    # No admitido con numba (cambio de dict a ndarray):
+    # self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll.keys())
+    self_nBandasRasterOutput = arrayBandaXinputMonoPixelAll.shape[0]
+    ladoCluster = (self_LOCLradioClusterPix * 2) + 1
+    coordY = (arrayBandaXinputMonoPixelAll[0]).shape[0] - nRowRaster
+    coordX = nColRaster
+    listaCeldasConDasoVarsOkCluster = None
+    listaCeldasConDasoVarsOkSubCluster = None
+    # arrayBandaXMaskCluster = None
+    # arrayBandaXMaskSubCluster = None
+    arrayBandaXMaskCluster = np.zeros((ladoCluster ** 2), dtype=np.uint8).reshape(ladoCluster, ladoCluster)
+    arrayBandaXMaskSubCluster = np.zeros((1), dtype=np.uint8).reshape(1, 1)
+    # ======================================================================
+    # Array con los valores de las dasoVars en el cluster local,
+    # cambia para cada el cluster local de cada pixel
+    localClusterArrayMultiBandaDasoVars = np.zeros(
+        (self_nBandasRasterOutput)
+        * (ladoCluster ** 2),
+        dtype=self_outputNpDatatypeAll
+    ).reshape(
+        self_nBandasRasterOutput,
+        ladoCluster,
+        ladoCluster
+    )
+    # localClusterArrayMultiBandaDasoVars.fill(0)
+    # localSubClusterArrayMultiBandaDasoVars = None
+    localSubClusterArrayMultiBandaDasoVars = np.zeros(
+        1,
+        dtype=self_outputNpDatatypeAll
+    ).reshape(1, 1, 1)
+
+    # # myLog.debug(f'-->>nRowRaster: {nRowRaster} nColRaster: {nColRaster}') 
+    # print('-->>nRowRaster:', nRowRaster, 'nColRaster:', nColRaster) 
+    nRowClusterIni = nRowRaster - self_LOCLradioClusterPix
+    nRowClusterFin = nRowRaster + self_LOCLradioClusterPix
+    nColClusterIni = nColRaster - self_LOCLradioClusterPix
+    nColClusterFin = nColRaster + self_LOCLradioClusterPix
+    if (
+        nRowClusterIni >= 0
+        and nColClusterIni >= 0
+        and nRowClusterFin < (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape[0]
+        and nColClusterFin < (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape[1]
+    ):
+        clusterCompleto = True
+    else:
+        clusterCompleto = False
+        if nRowClusterIni < 0:
+            nRowClustIni = - nRowClusterIni
+        else:
+            nRowClustIni = 0
+        if nColClusterIni < 0:
+            nColClustIni = - nColClusterIni
+        else:
+            nColClustIni = 0
+        if nRowClusterFin >= (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape[0]:
+            nRowClustFin = ladoCluster - (nRowClusterFin - (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape[0])
+        else:
+            nRowClustFin = ladoCluster
+        if nColClusterFin >= (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape[1]:
+            nColClustFin = ladoCluster - (nColClusterFin - (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape[1])
+        else:
+            nColClustFin = ladoCluster
+        # # myLog.debug(f'-->>nRowClusterIniFin: {nRowClusterIni} {nRowClusterFin} nColClustIniFin: {nColClusterIni} {nColClusterFin} clusterCompleto: {clusterCompleto}')
+        # # myLog.debug(f'-->>(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape: {(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape}')
+        # # myLog.debug(f'-->>nRowClustIniFin: {nRowClustIni} {nRowClustFin} nColClustIniFin: {nColClustIni} {nColClustFin}')
+        # print('-->>nRowClusterIniFin:', nRowClusterIni, nRowClusterFin, 'nColClustIniFin:', nColClusterIni, nColClusterFin, 'clusterCompleto:', clusterCompleto)
+        # print('-->>(arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape:', (arrayBandaXinputMonoPixelAll[self_nBandasRasterOutput - 1]).shape)
+        # print('-->>nRowClustIniFin:', nRowClustIni, nRowClustFin, 'nColClustIniFin:', nColClustIni, nColClustFin)
+
+    # ==================================================================
+    # Tengo que recorrer todas las bandas para enmascarar las celdas con alguna banda noData
+    # Empiezo contando el numero de celdas con valor valido en todas las bandas
+    # Una vez contadas (nCeldasConDasoVarsOk) creo el array listaCeldasConDasoVarsOkCluster
+    if clusterCompleto:
+        # Para contar el numero de celdas con valores distintos de noData en todas las bandas,
+        # se parte de un array con todos los valores cero (arrayBandaXMaskCluster),
+        # se ponen a 1 las celdas con ALGUN valor noData y, despues de recorrer 
+        # todas las bandas, se cuenta el numero de celdas igual a cero.
+        # Con eso, se crea un array que va a contener la lista de celdas con valor ok
+        arrayBandaXMaskCluster.fill(0)
+        # Recorro todas las bandas para verificar en cada celda si hay valores validos en todas las bandas
+        # Calculo arrayBandaXMaskCluster y con ella enmascaro los noData al calcular el histograma de cada banda
+        for nBanda in range(1, self_nBandasRasterOutput + 1):
+            localClusterArrayMultiBandaDasoVars[nBanda-1] = arrayBandaXinputMonoPixelAll[nBanda - 1][
+                nRowClusterIni:nRowClusterFin + 1,
+                nColClusterIni:nColClusterFin + 1
+            ]
+            # Sustituyo el self_noDataDasoVarAll (-9999) por self_GLBLnoDataTipoDMasa (255)
+            # localClusterArrayMultiBandaDasoVars[nBanda-1][localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = self_GLBLnoDataTipoDMasa
+            # Si no hay informacion de TipoBosque (MFE):
+            if (localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll).all():
+                localClusterOk = False
+                return (
+                    localClusterOk,
+                    contadorAvisosCluster,
+                    clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    listaCeldasConDasoVarsOkCluster,
+                    listaCeldasConDasoVarsOkSubCluster,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
+                )
+                # continue
+            # No admitido con numba:
+            # arrayBandaXMaskCluster[localClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
+            for nRowNb in nb.prange(ladoCluster):
+                for nColNb in nb.prange(ladoCluster):
+                    if localClusterArrayMultiBandaDasoVars[nBanda-1, nRowNb, nColNb] == self_noDataDasoVarAll:
+                        arrayBandaXMaskCluster[nRowNb, nColNb] = 1
+        if (arrayBandaXMaskCluster == 1).all():
+            if contadorAvisosCluster == 0:
+                # myLog.debug('')
+                print('')
+            if contadorAvisosCluster < 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                print('clidtwins-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
+            elif contadorAvisosCluster == 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
+            localClusterOk = False
+            return (
+                localClusterOk,
+                contadorAvisosCluster,
+                clusterCompleto,
+                localClusterArrayMultiBandaDasoVars,
+                localSubClusterArrayMultiBandaDasoVars,
+                listaCeldasConDasoVarsOkCluster,
+                listaCeldasConDasoVarsOkSubCluster,
+                arrayBandaXMaskCluster,
+                arrayBandaXMaskSubCluster,
+            )
+            # continue
+        elif (arrayBandaXMaskCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
+            if contadorAvisosCluster == 0:
+                # myLog.debug('')
+                print('')
+            if contadorAvisosCluster < 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
+                print('clidtwins-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskCluster != 1).sum())
+            elif contadorAvisosCluster == 10:
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            contadorAvisosCluster += 1
+
+            localClusterOk = False
+            return (
+                localClusterOk,
+                contadorAvisosCluster,
+                clusterCompleto,
+                localClusterArrayMultiBandaDasoVars,
+                localSubClusterArrayMultiBandaDasoVars,
+                listaCeldasConDasoVarsOkCluster,
+                listaCeldasConDasoVarsOkSubCluster,
+                arrayBandaXMaskCluster,
+                arrayBandaXMaskSubCluster,
             )
             # continue
 
@@ -3661,10 +4165,25 @@ def rellenarLocalClusterNb(
                                 nRowCluster, nColCluster
                             ]
                         except:
-                            myLog.error(f'\n-> Revisar error: {nInputVar} {self_LOCLradioClusterPix + desplY} {self_LOCLradioClusterPix + desplX}')
-                            myLog.error(f'localClusterArrayMultiBandaDasoVars.shape: {localClusterArrayMultiBandaDasoVars.shape}')
-                            myLog.error(f'nRowCluster, nColCluster: {nRowCluster} {nColCluster}')
-                            sys.exit(0)
+                            # myLog.error(f'\n-> Revisar error: {nInputVar} {self_LOCLradioClusterPix + desplY} {self_LOCLradioClusterPix + desplX}')
+                            # myLog.error(f'localClusterArrayMultiBandaDasoVars.shape: {localClusterArrayMultiBandaDasoVars.shape}')
+                            # myLog.error(f'nRowCluster, nColCluster: {nRowCluster} {nColCluster}')
+                            print('\n-> Revisar error:', nInputVar, self_LOCLradioClusterPix + desplY, self_LOCLradioClusterPix + desplX)
+                            print('localClusterArrayMultiBandaDasoVars.shape:', localClusterArrayMultiBandaDasoVars.shape)
+                            print('nRowCluster, nColCluster:', nRowCluster, nColCluster)
+                            localClusterOk = False
+                            contadorAvisosCluster = -1
+                            return (
+                                localClusterOk,
+                                contadorAvisosCluster,
+                                clusterCompleto,
+                                localClusterArrayMultiBandaDasoVars,
+                                localSubClusterArrayMultiBandaDasoVars,
+                                listaCeldasConDasoVarsOkCluster,
+                                listaCeldasConDasoVarsOkSubCluster,
+                                arrayBandaXMaskCluster,
+                                arrayBandaXMaskSubCluster,
+                            )
             localSubClusterArrayMultiBandaDasoVars[nBanda-1] = localClusterArrayMultiBandaDasoVars[nBanda - 1][
                 nRowClustIni:nRowClustFin,
                 nColClustIni:nColClustFin
@@ -3676,39 +4195,71 @@ def rellenarLocalClusterNb(
                 return (
                     localClusterOk,
                     contadorAvisosCluster,
+                    clusterCompleto,
+                    localClusterArrayMultiBandaDasoVars,
+                    localSubClusterArrayMultiBandaDasoVars,
+                    listaCeldasConDasoVarsOkCluster,
+                    listaCeldasConDasoVarsOkSubCluster,
+                    arrayBandaXMaskCluster,
+                    arrayBandaXMaskSubCluster,
                 )
                 # continue
-            arrayBandaXMaskSubCluster[localSubClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
+            # No admitido con numba:
+            # arrayBandaXMaskSubCluster[localSubClusterArrayMultiBandaDasoVars[nBanda-1] == self_noDataDasoVarAll] = 1
+            for nRowNb in nb.prange(ladoCluster):
+                for nColNb in nb.prange(ladoCluster):
+                    if localSubClusterArrayMultiBandaDasoVars[nBanda-1, nRowNb, nColNb] == self_noDataDasoVarAll:
+                        arrayBandaXMaskSubCluster[nRowNb, nColNb] = 1
 
         # Anulo el array de cluster completo prestado temporalmente para el subCLuster
         localClusterArrayMultiBandaDasoVars.fill(self_noDataDasoVarAll)
 
         if (arrayBandaXMaskSubCluster == 1).all():
             if contadorAvisosCluster == 0:
-                myLog.debug('')
+                # myLog.debug('')
+                print('')
             if contadorAvisosCluster < 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                print('clidtwins-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
             elif contadorAvisosCluster == 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
                 localClusterOk,
                 contadorAvisosCluster,
+                clusterCompleto,
+                localClusterArrayMultiBandaDasoVars,
+                localSubClusterArrayMultiBandaDasoVars,
+                listaCeldasConDasoVarsOkCluster,
+                listaCeldasConDasoVarsOkSubCluster,
+                arrayBandaXMaskCluster,
+                arrayBandaXMaskSubCluster,
             )
             # continue
         elif (arrayBandaXMaskSubCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
             if contadorAvisosCluster == 0:
-                myLog.debug('')
+                # myLog.debug('')
+                print('')
             if contadorAvisosCluster < 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
+                print('clidtwins-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskSubCluster != 1).sum())
             elif contadorAvisosCluster == 10:
-                myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                print('clidtwins-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
                 localClusterOk,
                 contadorAvisosCluster,
+                clusterCompleto,
+                localClusterArrayMultiBandaDasoVars,
+                localSubClusterArrayMultiBandaDasoVars,
+                listaCeldasConDasoVarsOkCluster,
+                listaCeldasConDasoVarsOkSubCluster,
+                arrayBandaXMaskCluster,
+                arrayBandaXMaskSubCluster,
             )
             # continue
 
@@ -3717,10 +4268,14 @@ def rellenarLocalClusterNb(
     # ==============================================================
 
     if mostrarPixelClusterMatch:
-        myLog.debug(f'\n-> nRowColRaster: {nRowRaster} {nColRaster}; coordXY: {coordX} {coordY}')
-        myLog.debug(f'{TB}{TV}-> clusterCompleto: {clusterCompleto}')
-        myLog.debug(f'{TB}{TV}-> Numero de celdas con dasoVars ok en todas las bandas: {nCeldasConDasoVarsOk}')
-        myLog.debug(f'{TB}{TV}-> Celdas noData (valor=1): {arrayBandaXMaskSubCluster}')
+        # myLog.debug(f'\n-> nRowColRaster: {nRowRaster} {nColRaster}; coordXY: {coordX} {coordY}')
+        # myLog.debug(f'{TB}{TV}-> clusterCompleto: {clusterCompleto}')
+        # myLog.debug(f'{TB}{TV}-> Numero de celdas con dasoVars ok en todas las bandas: {nCeldasConDasoVarsOk}')
+        # myLog.debug(f'{TB}{TV}-> Celdas noData (valor=1): {arrayBandaXMaskSubCluster}')
+        print('\n-> nRowColRaster:', nRowRaster, nColRaster, 'coordXY:', coordX, coordY)
+        print('clidtwins-> clusterCompleto:', clusterCompleto)
+        print('clidtwins-> Numero de celdas con dasoVars ok en todas las bandas:', nCeldasConDasoVarsOk)
+        print('clidtwins-> Celdas noData (valor=1):', arrayBandaXMaskSubCluster)
 
     localClusterOk = True
     return (
@@ -4758,19 +5313,7 @@ def recortarRasterTiffPatronDasoLidar(
             codeTipoBosquePatronMasFrecuente1 = (histNumberPatron[0]).argmax(axis=0)
             arrayPosicionTipoBosquePatron1 = np.where(histNumberPatron[0] == histogramaTemp[-1])
             arrayPosicionTipoBosquePatron2 = np.where(histNumberPatron[0] == histogramaTemp[-2])
-            try:
-                myLog.debug(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))} %')
-            except:
-                print('histogramaDisponible:', histogramaDisponible)
-                print('arrayBandaXClip:', arrayBandaXClip)
-                print('myRange[nBanda][1]:', myRange[nBanda][1])
-                print('celdasConValorSiData:', celdasConValorSiData)
-                print('np.count_nonzero(celdasConValorSiData):', np.count_nonzero(celdasConValorSiData))
-                print('arrayBandaXClip < myRange[nBanda][1]):', arrayBandaXClip < myRange[nBanda][1])
-                print('codeTipoBosquePatronMasFrecuente1:', codeTipoBosquePatronMasFrecuente1)
-                print('histProb01PatronBandaX:', histProb01PatronBandaX)
-                print('histNumberPatron:', histNumberPatron[0])
-                print('histProbabPatron[0]:', histProbabPatron[0])
+            myLog.debug(f'{TB}-> Tipo de bosque principal (patron): {codeTipoBosquePatronMasFrecuente1}; frecuencia: {int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))} %')
             # myLog.debug(f'{TB}-> {arrayPosicionTipoBosquePatron1}')
             for contadorTB1, numPosicionTipoBosquePatron1 in enumerate(arrayPosicionTipoBosquePatron1[0]):
                 # myLog.debug(f'{TB}-> {numPosicionTipoBosquePatron1}')
