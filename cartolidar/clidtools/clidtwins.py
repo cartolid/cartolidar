@@ -95,6 +95,7 @@ try:
         #   llvmlite                            0.33.0-py37ha925a31_0 --> 0.36.0-py37h34b8924_4
         #   numba                               0.50.1-py37h47e9c7a_0 --> 0.53.0-py37hf11a4ad_0
         # Ver https://github.com/alan-turing-institute/sktime/issues/764
+        # https://pypi.org/project/numba/0.53.1/
     else:
         numbaOk = False
         print('clidtwins-> numba NO usar')
@@ -2498,13 +2499,13 @@ and two more layers for forest type (land cover) and stand type.
 
         # ======================================================================
         # Array con unos en el circulo central (se usa como peso para los histogramas (como contra-mascara)
-        localClusterArrayRound = np.ones((ladoCluster ** 2), dtype=np.uint8).reshape(ladoCluster, ladoCluster)
-        nRowCenter = localClusterArrayRound.shape[0] / 2
-        nColCenter = localClusterArrayRound.shape[1] / 2
-        for nRowCell in range(localClusterArrayRound.shape[0]):
-            for nColCell in range(localClusterArrayRound.shape[1]):
+        arrayRoundCluster = np.ones((ladoCluster ** 2), dtype=np.uint8).reshape(ladoCluster, ladoCluster)
+        nRowCenter = arrayRoundCluster.shape[0] / 2
+        nColCenter = arrayRoundCluster.shape[1] / 2
+        for nRowCell in range(arrayRoundCluster.shape[0]):
+            for nColCell in range(arrayRoundCluster.shape[1]):
                 if np.sqrt((((nRowCell + 0.5) - nRowCenter) ** 2) + (((nColCell + 0.5) - nColCenter) ** 2)) > ladoCluster / 2:
-                    localClusterArrayRound[nRowCell, nColCell] = 0
+                    arrayRoundCluster[nRowCell, nColCell] = 0
         # ======================================================================
 
         # # ======================================================================
@@ -2739,7 +2740,7 @@ and two more layers for forest type (land cover) and stand type.
                             listaCeldasConDasoVarsOkSubCluster,
                             arrayBandaXMaskCluster,
                             arrayBandaXMaskSubCluster,
-                            localClusterArrayRound,
+                            arrayRoundCluster,
                             nBanda,
                             self.myNBins,
                             self.myRange,
@@ -2765,7 +2766,7 @@ and two more layers for forest type (land cover) and stand type.
                             listaCeldasConDasoVarsOkSubCluster,
                             arrayBandaXMaskCluster,
                             arrayBandaXMaskSubCluster,
-                            localClusterArrayRound,
+                            arrayRoundCluster,
                             nBanda,
                             self.myNBins,
                             self.myRange,
@@ -3401,7 +3402,7 @@ def rellenarLocalClusterPy(
     # self_nBandasRasterOutput = len(arrayBandaXinputMonoPixelAll)
     self_nBandasRasterOutput = arrayBandaXinputMonoPixelAll.shape[0]
     if self_outputNpDatatypeAll is None:
-        self_outputNpDatatypeAll = self_outputNpDatatypeAll
+        self_outputNpDatatypeAll = np.float32
     ladoCluster = (self_LOCLradioClusterPix * 2) + 1
     coordY = (arrayBandaXinputMonoPixelAll[0]).shape[0] - nRowRaster
     coordX = nColRaster
@@ -3640,27 +3641,6 @@ def rellenarLocalClusterPy(
         arrayBandaXMaskCluster,
         arrayBandaXMaskSubCluster,
     )
-
-
-# ==============================================================================
-if numbaOk:
-    @nb.jit(nopython=True)
-    def rellenarLocalClusterNb0(
-            arrayBandaXinputMonoPixelAll,
-            nRowRaster,
-            nColRaster,
-            self_LOCLradioClusterPix,
-            self_noDataDasoVarAll,
-            self_outputNpDatatypeAll,
-            mostrarPixelClusterMatch,
-            contadorAvisosCluster,
-            self_LOCLverbose,
-            localClusterArrayMultiBandaDasoVars,
-            localSubClusterArrayMultiBandaDasoVars,
-            arrayBandaXMaskCluster,
-            arrayBandaXMaskSubCluster,
-        ):
-        return localClusterArrayMultiBandaDasoVars
 
 
 # ==============================================================================
@@ -4051,7 +4031,7 @@ def calculaHistogramasPy(
         listaCeldasConDasoVarsOkSubCluster,
         arrayBandaXMaskCluster,
         arrayBandaXMaskSubCluster,
-        localClusterArrayRound,
+        arrayRoundCluster,
         nBanda,
         self_myNBins,
         self_myRange,
@@ -4074,28 +4054,32 @@ def calculaHistogramasPy(
 
     # myLog.debug(f'\nCluster asignado a la variable {nInputVar}, coordendas del raster -> row: {nRowRaster} col: {nColRaster} (completo: {clusterCompleto}):')
     if clusterCompleto:
-        localClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
-            localClusterArrayMultiBandaDasoVars[nBanda-1],
-            mask=arrayBandaXMaskCluster,
-            dtype=self_outputNpDatatypeAll
-        )
-        listaCeldasConDasoVarsOkCluster[:, nInputVar] = ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)
-    
-        # Utilizo el mismo localClusterArrayRound para todos los clusters porque tienen las mismas dimensiones
+        # localClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
+        #     localClusterArrayMultiBandaDasoVars[nBanda-1],
+        #     mask=arrayBandaXMaskCluster,
+        #     dtype=self_outputNpDatatypeAll
+        # )
+        # listaCeldasConDasoVarsOkCluster[:, nInputVar] = ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)
+        localClusterArrayMultiBandaDasoVarsMasked = localClusterArrayMultiBandaDasoVars[nBanda-1][
+            arrayBandaXMaskCluster == False
+        ]
+        listaCeldasConDasoVarsOkCluster[:, nInputVar] = np.ravel(localClusterArrayMultiBandaDasoVarsMasked)
+
+        # Utilizo el mismo arrayRoundCluster para todos los clusters porque tienen las mismas dimensiones
 
         # if localClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
         #     myLog.debug(f'\nclidtwins-> +++ {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
         #           f'(b) Revisar myNBins {self_myNBins[nBanda]} '
         #           f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
         #           f'con sumaValores: {localClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
-        #     myLog.debug('localClusterArrayRound: {localClusterArrayRound}')
+        #     myLog.debug('arrayRoundCluster: {arrayRoundCluster}')
         #     myLog.debug(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
         #     myLog.debug(localClusterArrayMultiBandaDasoVars[nBanda-1])
         #     myLog.debug(f'Masked: {localClusterArrayMultiBandaDasoVarsMasked}')
         #     myLog.debug(f'Valores ok: {np.count_nonzero(localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)}')
 
         celdasConValorSiData = localClusterArrayMultiBandaDasoVars[nBanda-1][
-            (localClusterArrayRound != 0)
+            (arrayRoundCluster != 0)
             & (localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)
             & (localClusterArrayMultiBandaDasoVars[nBanda-1] >= self_myRange[nBanda][0])
             & (localClusterArrayMultiBandaDasoVars[nBanda-1] < self_myRange[nBanda][1])
@@ -4113,13 +4097,13 @@ def calculaHistogramasPy(
                 localClusterArrayMultiBandaDasoVars[nBanda-1],
                 bins=self_myNBins[nBanda],
                 range=self_myRange[nBanda],
-                weights=localClusterArrayRound
+                weights=arrayRoundCluster
             )
             histProbabCluster = np.histogram(
                 localClusterArrayMultiBandaDasoVars[nBanda-1],
                 bins=self_myNBins[nBanda],
                 range=self_myRange[nBanda],
-                weights=localClusterArrayRound,
+                weights=arrayRoundCluster,
                 density=True
             )
         else:
@@ -4148,12 +4132,16 @@ def calculaHistogramasPy(
         # myLog.debug(f'---->>>> {arrayBandaXMaskSubCluster.shape} {nRowClustFin - nRowClustIni}, {nColClustFin - nColClustIni}')
         # myLog.debug(f'---->>>> {nRowClustFin}, {nRowClustIni}, {nColClustFin}, {nColClustIni}')
         # myLog.debug(f'---->>>> {nRowClusterFin}, {nRowClusterIni}, {nColClusterFin}, {nColClusterIni}')
-        localSubClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
-            localSubClusterArrayMultiBandaDasoVars[nBanda-1],
-            mask=arrayBandaXMaskSubCluster,
-            dtype=self_outputNpDatatypeAll
-            )
-        listaCeldasConDasoVarsOkSubCluster[:, nInputVar] = ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked)
+        # localSubClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
+        #     localSubClusterArrayMultiBandaDasoVars[nBanda-1],
+        #     mask=arrayBandaXMaskSubCluster,
+        #     dtype=self_outputNpDatatypeAll
+        #     )
+        # listaCeldasConDasoVarsOkSubCluster[:, nInputVar] = ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked)
+        localSubClusterArrayMultiBandaDasoVarsMasked = localSubClusterArrayMultiBandaDasoVars[nBanda-1][
+            arrayBandaXMaskSubCluster == False
+        ]
+        listaCeldasConDasoVarsOkSubCluster[:, nInputVar] = np.ravel(localSubClusterArrayMultiBandaDasoVarsMasked)
 
         # myLog.debug(localSubClusterArrayMultiBandaDasoVars[nBanda-1])
 
@@ -4273,7 +4261,7 @@ if numbaOk:
             listaCeldasConDasoVarsOkSubCluster,
             arrayBandaXMaskCluster,
             arrayBandaXMaskSubCluster,
-            localClusterArrayRound,
+            arrayRoundCluster,
             nBanda,
             self_myNBins,
             self_myRange,
@@ -4284,7 +4272,8 @@ if numbaOk:
             self_LOCLverbose=False,
         ):
         if self_outputNpDatatypeAll is None:
-            self_outputNpDatatypeAll = localClusterArrayMultiBandaDasoVars.dtype
+            # self_outputNpDatatypeAll = localClusterArrayMultiBandaDasoVars.dtype
+            self_outputNpDatatypeAll = np.float32
         nInputVar = nBanda - 1
         ladoCluster = (self_LOCLradioClusterPix * 2) + 1
         nRowClusterIni = nRowRaster - self_LOCLradioClusterPix
@@ -4293,39 +4282,70 @@ if numbaOk:
         # nColClusterFin = nColRaster + self_LOCLradioClusterPix
         localClusterArrayMultiBandaDasoVarsMasked = None
         localSubClusterArrayMultiBandaDasoVarsMasked = None
-    
+        celdasConValorSiData = np.zeros((ladoCluster ** 2), dtype=self_outputNpDatatypeAll)
+
         # myLog.debug(f'\nCluster asignado a la variable {nInputVar}, coordendas del raster -> row: {nRowRaster} col: {nColRaster} (completo: {clusterCompleto}):')
         if clusterCompleto:
-            localClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
-                localClusterArrayMultiBandaDasoVars[nBanda-1],
-                mask=arrayBandaXMaskCluster,
-                dtype=self_outputNpDatatypeAll
-            )
-            listaCeldasConDasoVarsOkCluster[:, nInputVar] = ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)
-        
-            # Utilizo el mismo localClusterArrayRound para todos los clusters porque tienen las mismas dimensiones
+            # Esto no funciona con numba:
+            # https://github.com/numba/numba/issues/1834
+            # localClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
+            #     localClusterArrayMultiBandaDasoVars[nBanda-1],
+            #     mask=arrayBandaXMaskCluster,
+            #     dtype=self_outputNpDatatypeAll
+            # )
+            # listaCeldasConDasoVarsOkCluster[:, nInputVar] = ma.compressed(localClusterArrayMultiBandaDasoVarsMasked)
+            # Mascara alternativa que tampoco funciona con numba
+            # localClusterArrayMultiBandaDasoVarsMasked = localClusterArrayMultiBandaDasoVars[nBanda-1][
+            #     arrayBandaXMaskCluster == False
+            # ]
+            # listaCeldasConDasoVarsOkCluster[:, nInputVar] = np.ravel(localClusterArrayMultiBandaDasoVarsMasked)
+            nContadorCluster = 0
+            for nRowCluster in nb.prange(localClusterArrayMultiBandaDasoVars[nBanda-1].shape[0]):
+                for nColCluster in nb.prange(localClusterArrayMultiBandaDasoVars[nBanda-1].shape[1]):
+                    if arrayBandaXMaskCluster[nRowCluster, nColCluster] == False:
+                        listaCeldasConDasoVarsOkCluster[
+                            nContadorCluster, nInputVar
+                        ] = localClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster]
+                        nContadorCluster += 1
+
+            # Utilizo el mismo arrayRoundCluster para todos los clusters porque tienen las mismas dimensiones
     
             # if localClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
             #     myLog.debug(f'\nclidtwins-> +++ {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
             #           f'(b) Revisar myNBins {self_myNBins[nBanda]} '
             #           f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
             #           f'con sumaValores: {localClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
-            #     myLog.debug('localClusterArrayRound: {localClusterArrayRound}')
+            #     myLog.debug('arrayRoundCluster: {arrayRoundCluster}')
             #     myLog.debug(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
             #     myLog.debug(localClusterArrayMultiBandaDasoVars[nBanda-1])
             #     myLog.debug(f'Masked: {localClusterArrayMultiBandaDasoVarsMasked}')
             #     myLog.debug(f'Valores ok: {np.count_nonzero(localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)}')
-    
-            celdasConValorSiData = localClusterArrayMultiBandaDasoVars[nBanda-1][
-                (localClusterArrayRound != 0)
-                & (localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)
-                & (localClusterArrayMultiBandaDasoVars[nBanda-1] >= self_myRange[nBanda][0])
-                & (localClusterArrayMultiBandaDasoVars[nBanda-1] < self_myRange[nBanda][1])
-            ]
+            # Mascara no admitida con numba:
+            # celdasConValorSiData = localClusterArrayMultiBandaDasoVars[nBanda-1][
+            #     (arrayRoundCluster != 0)
+            #     & (localClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)
+            #     & (localClusterArrayMultiBandaDasoVars[nBanda-1] >= self_myRange[nBanda][0])
+            #     & (localClusterArrayMultiBandaDasoVars[nBanda-1] < self_myRange[nBanda][1])
+            # ]
+            # celdasConValorSiData = np.zeros((ladoCluster ** 2), dtype=self_outputNpDatatypeAll)
+            celdasConValorSiData.fill(0)
+            nContadorCluster = 0
+            for nRowCluster in nb.prange(localClusterArrayMultiBandaDasoVars[nBanda-1].shape[0]):
+                for nColCluster in nb.prange(localClusterArrayMultiBandaDasoVars[nBanda-1].shape[1]):
+                    if (
+                        (arrayRoundCluster[nRowCluster, nColCluster] != 0)
+                        and (localClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster] != self_noDataDasoVarAll)
+                        and (localClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster] >= self_myRange[nBanda, 0])
+                        and (localClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster] < self_myRange[nBanda, 1])
+                    ):
+                        celdasConValorSiData[
+                            nContadorCluster
+                        ] = localClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster]
+                        nContadorCluster += 1
             if (
                 (np.count_nonzero(celdasConValorSiData) > 0)
-                & (self_myNBins[nBanda] > 0)
-                & (self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0)
+                and (self_myNBins[nBanda] > 0)
+                and (self_myRange[nBanda, 1] - self_myRange[nBanda, 0] > 0)
             ):
                 # if np.count_nonzero(celdasConValorSiData) == 0:
                 #     myLog.debug(f'\nclidtwins-> ------------> ATENCION: celda sin datos.')
@@ -4335,13 +4355,13 @@ if numbaOk:
                     localClusterArrayMultiBandaDasoVars[nBanda-1],
                     bins=self_myNBins[nBanda],
                     range=self_myRange[nBanda],
-                    weights=localClusterArrayRound
+                    weights=arrayRoundCluster
                 )
                 histProbabCluster = np.histogram(
                     localClusterArrayMultiBandaDasoVars[nBanda-1],
                     bins=self_myNBins[nBanda],
                     range=self_myRange[nBanda],
-                    weights=localClusterArrayRound,
+                    weights=arrayRoundCluster,
                     density=True
                 )
             else:
@@ -4358,7 +4378,7 @@ if numbaOk:
     
             # myLog.debug(f'\nhistProbabCluster[0]: {type(histProbabCluster[0])}')
             histProb01cluster = np.array(histProbabCluster[0]) * (
-                (self_myRange[nBanda][1] - self_myRange[nBanda][0])
+                (self_myRange[nBanda, 1] - self_myRange[nBanda, 0])
                 / self_myNBins[nBanda]
             )
             # if mostrarPixelClusterMatch and self_LOCLverbose > 2:
@@ -4370,12 +4390,27 @@ if numbaOk:
             # myLog.debug(f'---->>>> {arrayBandaXMaskSubCluster.shape} {nRowClustFin - nRowClustIni}, {nColClustFin - nColClustIni}')
             # myLog.debug(f'---->>>> {nRowClustFin}, {nRowClustIni}, {nColClustFin}, {nColClustIni}')
             # myLog.debug(f'---->>>> {nRowClusterFin}, {nRowClusterIni}, {nColClusterFin}, {nColClusterIni}')
-            localSubClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
-                localSubClusterArrayMultiBandaDasoVars[nBanda-1],
-                mask=arrayBandaXMaskSubCluster,
-                dtype=self_outputNpDatatypeAll
-                )
-            listaCeldasConDasoVarsOkSubCluster[:, nInputVar] = ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked)
+            # Esto no funciona con numba:
+            # https://github.com/numba/numba/issues/1834
+            # localSubClusterArrayMultiBandaDasoVarsMasked = ma.masked_array(
+            #     localSubClusterArrayMultiBandaDasoVars[nBanda-1],
+            #     mask=arrayBandaXMaskSubCluster,
+            #     dtype=self_outputNpDatatypeAll
+            #     )
+            # listaCeldasConDasoVarsOkSubCluster[:, nInputVar] = ma.compressed(localSubClusterArrayMultiBandaDasoVarsMasked)
+            # Mascara alternativa que tampoco funciona con numba
+            # localSubClusterArrayMultiBandaDasoVarsMasked = localClusterArrayMultiBandaDasoVars[nBanda-1][
+            #     arrayBandaXMaskSubCluster == False
+            # ]
+            # listaCeldasConDasoVarsOkSubCluster[:, nInputVar] = np.ravel(localSubClusterArrayMultiBandaDasoVarsMasked)
+            nContadorCluster = 0
+            for nRowCluster in nb.prange(localSubClusterArrayMultiBandaDasoVars[nBanda-1].shape[0]):
+                for nColCluster in nb.prange(localSubClusterArrayMultiBandaDasoVars[nBanda-1].shape[1]):
+                    if arrayBandaXMaskSubCluster[nRowCluster, nColCluster] == False:
+                        listaCeldasConDasoVarsOkSubCluster[
+                            nContadorCluster, nInputVar
+                        ] = localSubClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster]
+                        nContadorCluster += 1
     
             # myLog.debug(localSubClusterArrayMultiBandaDasoVars[nBanda-1])
     
@@ -4403,16 +4438,34 @@ if numbaOk:
             #     myLog.debug(f'Masked: {localSubClusterArrayMultiBandaDasoVarsMasked}')
             #     myLog.debug(f'Valores ok: {np.count_nonzero(localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)}')
             try:
-                celdasConValorSiData = localSubClusterArrayMultiBandaDasoVars[nBanda-1][
-                    (arrayRoundSubCluster != 0)
-                    & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)
-                    & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] >= self_myRange[nBanda][0])
-                    & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] < self_myRange[nBanda][1])
-                ]
+                # Mascara no admitida con numba:
+                # celdasConValorSiData = localSubClusterArrayMultiBandaDasoVars[nBanda-1][
+                #     (arrayRoundSubCluster != 0)
+                #     & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] != self_noDataDasoVarAll)
+                #     & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] >= self_myRange[nBanda][0])
+                #     & (localSubClusterArrayMultiBandaDasoVars[nBanda-1] < self_myRange[nBanda][1])
+                # ]
+                # celdasConValorSiData = np.zeros((ladoCluster ** 2), dtype=self_outputNpDatatypeAll)
+                celdasConValorSiData.fill(0)
+                nContadorCluster = 0
+                for nRowCluster in nb.prange(localSubClusterArrayMultiBandaDasoVars[nBanda-1].shape[0]):
+                    for nColCluster in nb.prange(localSubClusterArrayMultiBandaDasoVars[nBanda-1].shape[1]):
+                        if (
+                            (arrayRoundSubCluster[nRowCluster, nColCluster] != 0)
+                            and (localSubClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster] != self_noDataDasoVarAll)
+                            and (localSubClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster] >= self_myRange[nBanda, 0])
+                            and (localSubClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster] < self_myRange[nBanda, 1])
+                        ):
+                            celdasConValorSiData[
+                                nContadorCluster
+                            ] = localSubClusterArrayMultiBandaDasoVars[nBanda-1, nRowCluster, nColCluster]
+                            nContadorCluster += 1
+
+
                 if (
                     (np.count_nonzero(celdasConValorSiData) > 0)
-                    & (self_myNBins[nBanda] > 0)
-                    & (self_myRange[nBanda][1] - self_myRange[nBanda][0] > 0)
+                    and (self_myNBins[nBanda] > 0)
+                    and (self_myRange[nBanda, 1] - self_myRange[nBanda, 0] > 0)
                 ):
                     histNumberCluster = np.histogram(
                         localSubClusterArrayMultiBandaDasoVars[nBanda-1],
@@ -4438,7 +4491,7 @@ if numbaOk:
     
                 # myLog.debug(f'\nhistProbabCluster[0]: {type(histProbabCluster[0])}')
                 histProb01cluster = np.array(histProbabCluster[0]) * (
-                    (self_myRange[nBanda][1] - self_myRange[nBanda][0])
+                    (self_myRange[nBanda, 1] - self_myRange[nBanda, 0])
                     / self_myNBins[nBanda]
                     )
             except:
@@ -5152,8 +5205,8 @@ def recortarRasterTiffPatronDasoLidar(
     # myNBins = {}
     # factorMovilidad = {}
     # Se crean con un elemento que no se usa, porque las banas se empiezan a numerar en 1
-    myRange = [0]
-    myNBins = [0]
+    myRange = np.zeros((nBandasRasterOutput + 1) * 2, dtype=np.float32).reshape((nBandasRasterOutput + 1), 2)
+    myNBins = np.zeros((nBandasRasterOutput + 1), dtype=np.int32)
     factorMovilidad = [0]
     for nBanda in range(1, nBandasRasterOutput + 1):
         nInputVar = nBanda - 1
@@ -5162,23 +5215,23 @@ def recortarRasterTiffPatronDasoLidar(
         if nBanda == nBandasRasterOutput:
             # TipoMasa
             # myRange[nBanda] = (nMinTipoMasa, nMaxTipoMasa)
-            myRange.append((nMinTipoMasa, nMaxTipoMasa))
+            myRange[nBanda] = np.array((nMinTipoMasa, nMaxTipoMasa))
             # myNBins[nBanda] = nMaxTipoMasa - nMinTipoMasa
-            myNBins.append(nMaxTipoMasa - nMinTipoMasa)
+            myNBins[nBanda] = nMaxTipoMasa - nMinTipoMasa
             # factorMovilidad[nBanda] = 0
         elif nBanda == nBandasRasterOutput - 1:
             # TipoBosqueMfe
             # myRange[nBanda] = (0, 255)
-            myRange.append((0, 255))
+            myRange[nBanda] = np.array((0, 255))
             # myNBins[nBanda] = 255
-            myNBins.append(255)
+            myNBins[nBanda] = 255
             # factorMovilidad[nBanda] = 0
         else:
             # Alturas y Coberturas
             # myRange[nBanda] = (self_LOCLlistLstDasoVars[nInputVar][2], self_LOCLlistLstDasoVars[nInputVar][3])
-            myRange.append((self_LOCLlistLstDasoVars[nInputVar][2], self_LOCLlistLstDasoVars[nInputVar][3]))
+            myRange[nBanda] = np.array((self_LOCLlistLstDasoVars[nInputVar][2], self_LOCLlistLstDasoVars[nInputVar][3]))
             # myNBins[nBanda] = self_LOCLlistLstDasoVars[nInputVar][4]
-            myNBins.append(self_LOCLlistLstDasoVars[nInputVar][4])
+            myNBins[nBanda] = self_LOCLlistLstDasoVars[nInputVar][4]
             # factorMovilidad[nBanda] = 0.25
 
     myLog.info(f'clidtwins-> Analizando bandas del raster recortado:')
