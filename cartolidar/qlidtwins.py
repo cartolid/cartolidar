@@ -32,6 +32,7 @@ import logging
 # try:
 if True:
     from cartolidar.clidtools import clidtwcfg
+    from cartolidar.clidtools import clidtwins
     from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools.clidtwins import DasoLidarSource
     from cartolidar.clidtools.clidtwins import comprobarTipoMasaDeCapaVectorial
@@ -433,6 +434,7 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
         'radioClusterPix', 'nivelSubdirExpl', 'outRasterDriver', 'outputSubdirNew',
         'cartoMFErecorte', 'varsTxtFileName', 'ambitoTiffNuevo', 'noDataTiffProvi',
         'noDataTiffFiles', 'noDataTipoDMasa', 'umbralMatriDist', 'distMaxScipyAdm',
+        'compilaConNumba',
     )
 
     program_name = os.path.basename(sys.argv[0])
@@ -642,7 +644,11 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
                                 type=int,
                                 help='Umbral de distancia Scipy (entre histogramas) por encima del cual se descarta que una celda sea parecida a la patron aunque sea la de distancia minima. Default: %(default)s',
                                 default = GLO.GLBLdistMaxScipyAdmPorDefecto,)
-
+            parser.add_argument('-B',  # '--compilaConNumba',
+                                dest='compilaConNumba',
+                                type=int,
+                                help='Activar el compilado numba con LLVM. Requiere numba == 0.53.0, llvmlite 0.36.0 y NumPy >=1.15 (si numba=0.55.0 -> NumPy >=1.18,<1.23). Default: %(default)s',
+                                default = GLO.GLBLcompilaConNumbaPorDefecto,)
 
         parser.add_argument('--idProceso',
                             dest='idProceso',
@@ -777,6 +783,8 @@ def leerConfiguracion(argv: list = None) -> argparse.Namespace:
         argsConfig.umbralMatriDist = GLO.GLBLumbralMatriDistPorDefecto
     if not 'distMaxScipyAdm' in dir(argsConfig):
         argsConfig.distMaxScipyAdm = GLO.GLBLdistMaxScipyAdmPorDefecto
+    if not 'compilaConNumba' in dir(argsConfig):
+        argsConfig.compilaConNumba = GLO.GLBLcompilaConNumbaPorDefecto
 
     for myMainArg in listaMainArgs:
         if not myMainArg in dir(argsConfig):
@@ -868,6 +876,8 @@ def saveArgs(args: argparse.Namespace) -> str:
                 argsFileControl.write(f'-U={args.umbralMatriDist}\n')
             if 'distMaxScipyAdm' in dir(args):
                 argsFileControl.write(f'-I={args.distMaxScipyAdm}\n')
+            if 'compilaConNumba' in dir(args):
+                argsFileControl.write(f'-B={args.compilaConNumba}\n')
 
             for miDasoVar in args.listTxtDasoVars:
                 argsFileControl.write(f'{miDasoVar}\n')
@@ -985,6 +995,7 @@ def creaConfigDict(
         cfgDict['noDataTipoDMasa'] = args.noDataTipoDMasa
         cfgDict['umbralMatriDist'] = args.umbralMatriDist
         cfgDict['distMaxScipyAdm'] = args.distMaxScipyAdm
+        cfgDict['compilaConNumba'] = args.compilaConNumba
     except Exception as e:
         myLog.error(f'qlidtwins-> args: {list(myArgs for myArgs in dir(args) if not myArgs.startswith("__"))}')
         program_name = 'qlidtwins.py'
@@ -1142,6 +1153,7 @@ def mostrarConfiguracion(cfgDict):
         myLog.debug(f'{TB}-> noDataTipoDMasa: {cfgDict["noDataTipoDMasa"]}')
         myLog.debug(f'{TB}-> umbralMatriDist: {cfgDict["umbralMatriDist"]}')
         myLog.debug(f'{TB}-> distMaxScipyAdm: {cfgDict["distMaxScipyAdm"]}')
+        myLog.debug(f'{TB}-> compilaConNumba: {cfgDict["compilaConNumba"]}')
         myLog.debug('{:=^80}'.format(''))
 
 
@@ -1385,11 +1397,11 @@ def clidtwinsUseCase(
             if __verbose__ == 3:
                 myLog.debug('\n{:_^80}'.format(''))
                 myLog.debug('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
-                myLog.debug(f'{TB}{myDasolidar.tipoBosqueOk}')
-                myLog.debug(f'{TB}{myDasolidar.nVariablesNoOk}')
-                myLog.debug(f'{TB}{myDasolidar.distanciaEuclideaMedia}')
-                myLog.debug(f'{TB}{myDasolidar.pctjPorcentajeDeProximidad}')
-                myLog.debug(f'{TB}{myDasolidar.matrizDeDistancias}')
+                myLog.debug(f'{TB}-> tipoBosqueOk: {myDasolidar.tipoBosqueOk}')
+                myLog.debug(f'{TB}-> nVariablesNoOk: {myDasolidar.nVariablesNoOk}')
+                myLog.debug(f'{TB}-> distanciaEuclideaMedia: {myDasolidar.distanciaEuclideaMedia}')
+                myLog.debug(f'{TB}-> pctjPorcentajeDeProximidad{myDasolidar.pctjPorcentajeDeProximidad}')
+                myLog.debug(f'{TB}-> matrizDeDistancias: {myDasolidar.matrizDeDistancias}')
                 myLog.debug('{:=^80}'.format(''))
 
         elif cfgDict['mainAction'] == 2:
@@ -1427,18 +1439,18 @@ def clidtwinsUseCase(
                 myLog.debug(f'{TB}{myDasolidar.outputClusterFactorProxiFileNameSinPath}')
                 myLog.debug(f'{TB}{myDasolidar.outputClusterDistanciaEuFileNameSinPath}')
                 myLog.debug('{:=^80}'.format(''))
+
+            # Se identifica el TM mas ajustado para cada pixel, dentro de unos minimos 
+            myLog.debug('\n{:_^80}'.format(''))
+            myLog.debug('qlidtwins-> Ejecutando asignarTipoDeMasa...')
+            myDasolidar.asignarTipoDeMasaConDistanciaMinima(
+                LCL_listaTM=listaTM,
+                LCL_distMaxScipyAdm=cfgDict['distMaxScipyAdm']
+            )
+            myLog.debug('{:=^80}'.format(''))
     
         else:
             return None
-
-    # Se identifica el TM mas ajustado para cada pixel, dentro de unos minimos 
-    myLog.debug('\n{:_^80}'.format(''))
-    myLog.debug('qlidtwins-> Ejecutando asignarTipoDeMasa...')
-    myDasolidar.asignarTipoDeMasaConDistanciaMinima(
-        LCL_listaTM=listaTM,
-        LCL_distMaxScipyAdm=cfgDict['distMaxScipyAdm']
-    )
-    myLog.debug('{:=^80}'.format(''))
 
     myLog.info('\nqlidtwins-> Fin.')
     return myDasolidar

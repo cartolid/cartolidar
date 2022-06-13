@@ -438,6 +438,8 @@ def foo0():
 # GLO.GLBLnoDataTiffFilesPorDefecto = None
 # GLO.GLBLnoDataTipoDMasaPorDefecto = None
 # GLO.GLBLumbralMatriDistPorDefecto = None
+# GLO.GLBLdistMaxScipyAdmPorDefecto = None
+# GLO.GLBLcompilaConNumbaPorDefecto = None
 #
 # GLO.GLBLaccionPrincipal = None
 # GLO.GLBLrutaAscRaizBase = None
@@ -472,6 +474,8 @@ def foo0():
 # GLO.GLBLnoDataTiffFiles = None
 # GLO.GLBLnoDataTipoDMasa = None
 # GLO.GLBLumbralMatriDist = None
+# GLO.GLBLdistMaxScipyAdm = None
+# GLO.GLBLcompilaConNumba = None
 #
 # GLO.GLBLmarcoCoordMiniX = 0
 # GLO.GLBLmarcoCoordMaxiX = 0
@@ -647,6 +651,10 @@ def leerConfigDictPorDefecto():
         'GLBLdistMaxScipyAdmPorDefecto': [2,
                                           'dasoLidar', 'int',
                                           'Umbral de distancia Scipy (entre histogramas) por encima del cual se descarta que una celda sea parecida a la patron aunque sea la de distancia minima'],
+
+        'GLBLcompilaConNumbaPorDefecto': [1,
+                                          'dasoLidar', 'int',
+                                          'Activar el compilado numba con LLVM. Requiere numba == 0.53.0, llvmlite 0.36.0 y NumPy >=1.15 (si numba=0.55.0 -> NumPy >=1.18,<1.23).'],
 
         'GLBLmarcoCoordMiniXPorDefecto': [0,
                                           'dasoLidar', 'int',
@@ -828,6 +836,8 @@ def checkGLO(GLO):
     GLO.GLBLnoDataTiffFilesPorDefecto = int(GLO.GLBLnoDataTiffFilesPorDefecto)
     GLO.GLBLnoDataTipoDMasaPorDefecto = int(GLO.GLBLnoDataTipoDMasaPorDefecto)
     GLO.GLBLumbralMatriDistPorDefecto = int(GLO.GLBLumbralMatriDistPorDefecto)
+    GLO.GLBLdistMaxScipyAdmPorDefecto = int(GLO.GLBLdistMaxScipyAdmPorDefecto)
+    GLO.GLBLcompilaConNumbaPorDefecto = int(GLO.GLBLcompilaConNumbaPorDefecto)
     # ==========================================================================
     
     # ==========================================================================
