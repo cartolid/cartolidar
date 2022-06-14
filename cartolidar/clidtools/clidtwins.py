@@ -148,6 +148,8 @@ SCIPY_METHODS = (
 )
 nScipyMethods = len(SCIPY_METHODS)
 # ==============================================================================
+GLBLarrayProximidadInterEspecies = GLO.GLBLarrayProximidadInterEspecies
+# ==============================================================================
 
 # ==============================================================================
 thisModule = __name__.split('.')[-1]
@@ -2455,13 +2457,16 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
 
         # ======================================================================
-        dictDtSetMultiBandaClusterDasoVars = {}
-        dictArrayMultiBandaClusterDasoVars = {}
+        # dictDtSetMultiBandaClusterDasoVars = {}
+        # dictArrayMultiBandaClusterDasoVars = {}
+        dictDtSetMultiBandaClusterDasoVars = [None]
+        dictArrayMultiBandaClusterDasoVars = [None]
         for outputNBand in range(1, self.nBandasPrevistasOutput + 1):
-            dictDtSetMultiBandaClusterDasoVars[outputNBand] = outputDatasetClusterDasoVarMultiple.GetRasterBand(outputNBand)
-            dictArrayMultiBandaClusterDasoVars[outputNBand] = dictDtSetMultiBandaClusterDasoVars[outputNBand].ReadAsArray().astype(self.outputNpDatatypeAll)
+            # dictDtSetMultiBandaClusterDasoVars[outputNBand] = outputDatasetClusterDasoVarMultiple.GetRasterBand(outputNBand)
+            dictDtSetMultiBandaClusterDasoVars.append(outputDatasetClusterDasoVarMultiple.GetRasterBand(outputNBand))
+            # dictArrayMultiBandaClusterDasoVars[outputNBand] = dictDtSetMultiBandaClusterDasoVars[outputNBand].ReadAsArray().astype(self.outputNpDatatypeAll)
+            dictArrayMultiBandaClusterDasoVars.append(dictDtSetMultiBandaClusterDasoVars[outputNBand].ReadAsArray().astype(self.outputNpDatatypeAll))
             # myLog.debug(f'{TB}-> Banda: {outputNBand} -> shape: {dictArrayMultiBandaClusterDasoVars[outputNBand].shape}')
-        # myLog.debug(f'{TB}claves de dictArrayMultiBandaClusterDasoVars: {dictArrayMultiBandaClusterDasoVars.keys()}')
         myLog.debug('\n{:_^80}'.format(''))
         myLog.debug(f'clidtwins-> Dimensiones de los raster creados (pixeles): {arrayBandaTipoMasa.shape}')
         myLog.debug(f'-> Tipo de dato de los rasters creados:')
@@ -2726,6 +2731,7 @@ and two more layers for forest type (land cover) and stand type.
                     # myLog.debug(f'{TB}Calculando histograma+++')
                     if numbaOk:
                         (
+                            histogramaOk,
                             histNumberCluster,
                             histProb01cluster,
                             localClusterArrayMultiBandaDasoVarsMasked,
@@ -2752,6 +2758,7 @@ and two more layers for forest type (land cover) and stand type.
                         )
                     else:
                         (
+                            histogramaOk,
                             histNumberCluster,
                             histProb01cluster,
                             localClusterArrayMultiBandaDasoVarsMasked,
@@ -2776,38 +2783,74 @@ and two more layers for forest type (land cover) and stand type.
                             self_noDataDasoVarAll=self.noDataDasoVarAll,
                             self_LOCLverbose=self.LOCLverbose and nInputVar < self.nInputVars,
                         )
+                    if not histogramaOk:
+                        sys.exit(0)
                     if len(np.nonzero(histNumberCluster[0])[0]) == 0:
                         if mostrarPixelClusterMatch:
                             myLog.warning(f'clidtwins-> Aviso: el cluster de nRowColRaster: {nRowRaster} {nColRaster} nBanda: {nBanda} tiene todas celdas nulas (clusterCompleto: {clusterCompleto}).')
                         continue
-                    (
-                        dictArrayMultiBandaClusterDasoVars,
-                        nVariablesNoOk,
-                        tipoBosqueOk,
-                    ) = calculaClusterDasoVars(
-                        dictArrayMultiBandaClusterDasoVars,
-                        nBanda,
-                        histNumberCluster,
-                        histProb01cluster,
-                        self.dictHistProb01,
-                        self.codeTipoBosquePatronMasFrecuente1,
-                        self.pctjTipoBosquePatronMasFrecuente1,
-                        self.codeTipoBosquePatronMasFrecuente2,
-                        self.pctjTipoBosquePatronMasFrecuente2,
-                        self.nInputVars,
-                        self.myNBins,
-                        self.myRange,
-                        self.LOCLlistLstDasoVars,
-                        multiplicadorDeFueraDeRangoParaLaVariable,
-                        ponderacionDeLaVariable,
-                        nVariablesNoOk,
-                        tipoBosqueOk,
-                        # localClusterArrayMultiBandaDasoVars,
-                        nRowRaster=nRowRaster,
-                        nColRaster=nColRaster,
-                        mostrarPixelClusterMatch=mostrarPixelClusterMatch,
-                        self_LOCLverbose=self.LOCLverbose,
+                    if numbaOk:
+                        (
+                            clusterOk,
+                            dictArrayMultiBandaClusterDasoVars,
+                            nVariablesNoOk,
+                            tipoBosqueOk,
+                        ) = calculaClusterDasoVarsNb(
+                            dictArrayMultiBandaClusterDasoVars,
+                            nBanda,
+                            histNumberCluster,
+                            histProb01cluster,
+                            self.dictHistProb01,
+                            self.codeTipoBosquePatronMasFrecuente1,
+                            self.pctjTipoBosquePatronMasFrecuente1,
+                            self.codeTipoBosquePatronMasFrecuente2,
+                            self.pctjTipoBosquePatronMasFrecuente2,
+                            self.nInputVars,
+                            self.myNBins,
+                            self.myRange,
+                            self.LOCLlistLstDasoVars,
+                            multiplicadorDeFueraDeRangoParaLaVariable,
+                            ponderacionDeLaVariable,
+                            nVariablesNoOk,
+                            tipoBosqueOk,
+                            # localClusterArrayMultiBandaDasoVars,
+                            nRowRaster=nRowRaster,
+                            nColRaster=nColRaster,
+                            mostrarPixelClusterMatch=mostrarPixelClusterMatch,
+                            self_LOCLverbose=self.LOCLverbose,
                         )
+                    else:
+                        (
+                            clusterOk,
+                            dictArrayMultiBandaClusterDasoVars,
+                            nVariablesNoOk,
+                            tipoBosqueOk,
+                        ) = calculaClusterDasoVarsPy(
+                            dictArrayMultiBandaClusterDasoVars,
+                            nBanda,
+                            histNumberCluster,
+                            histProb01cluster,
+                            self.dictHistProb01,
+                            self.codeTipoBosquePatronMasFrecuente1,
+                            self.pctjTipoBosquePatronMasFrecuente1,
+                            self.codeTipoBosquePatronMasFrecuente2,
+                            self.pctjTipoBosquePatronMasFrecuente2,
+                            self.nInputVars,
+                            self.myNBins,
+                            self.myRange,
+                            self.LOCLlistLstDasoVars,
+                            multiplicadorDeFueraDeRangoParaLaVariable,
+                            ponderacionDeLaVariable,
+                            nVariablesNoOk,
+                            tipoBosqueOk,
+                            # localClusterArrayMultiBandaDasoVars,
+                            nRowRaster=nRowRaster,
+                            nColRaster=nColRaster,
+                            mostrarPixelClusterMatch=mostrarPixelClusterMatch,
+                            self_LOCLverbose=self.LOCLverbose,
+                        )
+                    if not clusterOk:
+                        sys.exit(0)
 
                     # Se compara el histograma del patron con el del cluster
                     if nInputVar < self.nInputVars:
@@ -4241,6 +4284,7 @@ def calculaHistogramasPy(
             myLog.debug(f'{TB}{TV}histProb01Cluster: {type(histProb01cluster)} shape: --- -> {histProb01cluster}')
 
     return (
+        True,
         histNumberCluster,
         histProb01cluster,
         localClusterArrayMultiBandaDasoVarsMasked,
@@ -4351,18 +4395,34 @@ if numbaOk:
                 #     myLog.debug(f'\nclidtwins-> ------------> ATENCION: celda sin datos.')
                 # else:
                 #     myLog.debug(f'\nclidtwins-> ------------> Celdas con datos: {np.count_nonzero(celdasConValorSiData)} {celdasConValorSiData}')
-                histNumberCluster = np.histogram(
+                # numpy.histograms no esta en numba:
+                # https://numba.pydata.org/numba-examples/examples/density_estimation/histogram/results.html
+                # histNumberCluster = np.histogram(
+                #     localClusterArrayMultiBandaDasoVars[nBanda-1],
+                #     bins=self_myNBins[nBanda],
+                #     range=self_myRange[nBanda],
+                #     weights=arrayRoundCluster
+                # )
+                histNumberCluster = numba_histogram(
                     localClusterArrayMultiBandaDasoVars[nBanda-1],
-                    bins=self_myNBins[nBanda],
-                    range=self_myRange[nBanda],
-                    weights=arrayRoundCluster
+                    self_myNBins[nBanda],
+                    self_myRange[nBanda],
+                    arrayRoundCluster,
+                    False,
                 )
-                histProbabCluster = np.histogram(
+                # histProbabCluster = np.histogram(
+                #     localClusterArrayMultiBandaDasoVars[nBanda-1],
+                #     bins=self_myNBins[nBanda],
+                #     range=self_myRange[nBanda],
+                #     weights=arrayRoundCluster,
+                #     density=True
+                # )
+                histProbabCluster = numba_histogram(
                     localClusterArrayMultiBandaDasoVars[nBanda-1],
-                    bins=self_myNBins[nBanda],
-                    range=self_myRange[nBanda],
-                    weights=arrayRoundCluster,
-                    density=True
+                    self_myNBins[nBanda],
+                    self_myRange[nBanda],
+                    arrayRoundCluster,
+                    True,
                 )
             else:
                 # myLog.debug(f'clidtwins-> {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
@@ -4370,14 +4430,14 @@ if numbaOk:
                 #       f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
                 #       f'con sumaValores: {localClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
                 # myLog.debug(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
-                histNumberCluster = [np.zeros(self_myNBins[nBanda]), None]
-                histProbabCluster = [np.zeros(self_myNBins[nBanda]), None]
-    
+                histNumberCluster = (np.zeros(self_myNBins[nBanda], dtype=np.float32), np.zeros(self_myNBins[nBanda] + 1, dtype=np.float32))
+                histProbabCluster = (np.zeros(self_myNBins[nBanda], dtype=np.float32), np.zeros(self_myNBins[nBanda] + 1, dtype=np.float32))
+
             # if localClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
             #     myLog.debug(f'{TB}{TV}PostCompleto+++ {histNumberCluster}')
     
             # myLog.debug(f'\nhistProbabCluster[0]: {type(histProbabCluster[0])}')
-            histProb01cluster = np.array(histProbabCluster[0]) * (
+            histProb01cluster = histProbabCluster[0] * (
                 (self_myRange[nBanda, 1] - self_myRange[nBanda, 0])
                 / self_myNBins[nBanda]
             )
@@ -4467,18 +4527,32 @@ if numbaOk:
                     and (self_myNBins[nBanda] > 0)
                     and (self_myRange[nBanda, 1] - self_myRange[nBanda, 0] > 0)
                 ):
-                    histNumberCluster = np.histogram(
+                    # histNumberCluster = np.histogram(
+                    #     localSubClusterArrayMultiBandaDasoVars[nBanda-1],
+                    #     bins=self_myNBins[nBanda],
+                    #     range=self_myRange[nBanda],
+                    #     weights=arrayRoundSubCluster
+                    # )
+                    histNumberCluster = numba_histogram(
                         localSubClusterArrayMultiBandaDasoVars[nBanda-1],
-                        bins=self_myNBins[nBanda],
-                        range=self_myRange[nBanda],
-                        weights=arrayRoundSubCluster
+                        self_myNBins[nBanda],
+                        self_myRange[nBanda],
+                        arrayRoundSubCluster,
+                        False,
                     )
-                    histProbabCluster = np.histogram(
+                    # histProbabCluster = np.histogram(
+                    #     localSubClusterArrayMultiBandaDasoVars[nBanda-1],
+                    #     bins=self_myNBins[nBanda],
+                    #     range=self_myRange[nBanda],
+                    #     weights=arrayRoundSubCluster,
+                    #     density=True
+                    # )
+                    histProbabCluster = numba_histogram(
                         localSubClusterArrayMultiBandaDasoVars[nBanda-1],
-                        bins=self_myNBins[nBanda],
-                        range=self_myRange[nBanda],
-                        weights=arrayRoundSubCluster,
-                        density=True
+                        self_myNBins[nBanda],
+                        self_myRange[nBanda],
+                        arrayRoundSubCluster,
+                        True,
                     )
                 else:
                     # myLog.debug(f'clidtwins-> {nRowRaster} // {nColRaster} clusterCompleto {clusterCompleto} '
@@ -4486,11 +4560,11 @@ if numbaOk:
                     #       f'y myRange {self_myRange[nBanda]} para banda {nBanda} '
                     #       f'con sumaValores: {localSubClusterArrayMultiBandaDasoVars[nBanda-1].sum()}')
                     # myLog.debug(f'{TB}Se crean histogramas con {self_myNBins[nBanda]} clases nulas')
-                    histNumberCluster = [np.zeros(self_myNBins[nBanda]), None]
-                    histProbabCluster = [np.zeros(self_myNBins[nBanda]), None]
+                    histNumberCluster = (np.zeros(self_myNBins[nBanda], dtype=np.float32), np.zeros(self_myNBins[nBanda] + 1, dtype=np.float32))
+                    histProbabCluster = (np.zeros(self_myNBins[nBanda], dtype=np.float32), np.zeros(self_myNBins[nBanda] + 1, dtype=np.float32))
     
                 # myLog.debug(f'\nhistProbabCluster[0]: {type(histProbabCluster[0])}')
-                histProb01cluster = np.array(histProbabCluster[0]) * (
+                histProb01cluster = histProbabCluster[0] * (
                     (self_myRange[nBanda, 1] - self_myRange[nBanda, 0])
                     / self_myNBins[nBanda]
                     )
@@ -4500,8 +4574,15 @@ if numbaOk:
                 # histNumberCluster = np.array([])
                 # histProbabCluster = np.array([])
                 # histProb01cluster = np.array([])
-                sys.exit(0)
-    
+                return (
+                    False,
+                    histNumberCluster,
+                    histProb01cluster,
+                    localClusterArrayMultiBandaDasoVarsMasked,
+                    localSubClusterArrayMultiBandaDasoVarsMasked,
+                )
+                # sys.exit(0)
+
             # if localSubClusterArrayMultiBandaDasoVars[nBanda-1].sum() <= 0:
             #     myLog.debug(f'{TB}{TV}PostInCompleto+++ {histNumberCluster}')
     
@@ -4520,14 +4601,14 @@ if numbaOk:
             print(TB, TV, 'Cluster completo', clusterCompleto, '-> rowCol:', nRowRaster, nColRaster, 'banda:', nBanda, 'bins:', self_myNBins[nBanda], 'range:', self_myRange[nBanda])
             print(TB, TV, 'histProbabCluster[0]:', histProbabCluster[0])
             print(TB, TV, 'histProbabCluster[1]:', histProbabCluster[1])
-            print(TB, TV, 'histProb01Cluster:', type(histProb01cluster), 'shape: --- ->', histProb01cluster)
-    
+            print(TB, TV, 'histProb01Cluster.shape:', histProb01cluster.shape)
+
         if mostrarPixelClusterMatch and self_LOCLverbose:
             if not histProb01cluster is None:
                 # myLog.debug(f'{TB}{TV}Cluster completo {clusterCompleto}-> rowCol: {nRowRaster} {nColRaster} banda: {nBanda} bins: {self_myNBins[nBanda]} range: {self_myRange[nBanda]}')
                 # myLog.debug(f'{TB}{TV}histProb01Cluster: {type(histProb01cluster)} shape: {histProb01cluster.shape} -> {histProb01cluster}')
                 print(TB, TV, 'Cluster completo', clusterCompleto, '-> rowCol:', nRowRaster, nColRaster, 'banda:', nBanda, 'bins:', self_myNBins[nBanda], 'range:', self_myRange[nBanda])
-                print(TB, TV, 'histProb01Cluster:', type(histProb01cluster), 'shape:', histProb01cluster.shape, '->', histProb01cluster)
+                print(TB, TV, 'histProb01Cluster.shape:', histProb01cluster.shape, '->', histProb01cluster)
             else:
                 # myLog.debug(f'{TB}{TV}Cluster completo {clusterCompleto}-> rowCol: {nRowRaster} {nColRaster} banda: {nBanda} bins: {self_myNBins[nBanda]} range: {self_myRange[nBanda]}')
                 # myLog.debug(f'{TB}{TV}histProbabCluster[0]: {histProbabCluster[0]}')
@@ -4536,18 +4617,86 @@ if numbaOk:
                 print(TB, TV, 'Cluster completo', clusterCompleto, '-> rowCol:', nRowRaster, nColRaster, 'banda:', nBanda, 'bins:', self_myNBins[nBanda], 'range:', self_myRange[nBanda])
                 print(TB, TV, 'histProbabCluster[0]:', histProbabCluster[0])
                 print(TB, TV, 'histProbabCluster[1]:', histProbabCluster[1])
-                print(TB, TV, 'histProb01Cluster:', type(histProb01cluster), 'shape: --- ->', histProb01cluster)
+                print(TB, TV, 'histProb01Cluster.shape:', histProb01cluster.shape)
     
         return (
+            True,
             histNumberCluster,
             histProb01cluster,
             localClusterArrayMultiBandaDasoVarsMasked,
             localSubClusterArrayMultiBandaDasoVarsMasked,
         )
 
+    # Uso esta implementacion de los histogramas para numba (retocada para incluir rango):
+    #  https://numba.pydata.org/numba-examples/examples/density_estimation/histogram/results.html
+    # ==============================================================================
+    @nb.jit(nopython=True)
+    def get_bin_edges(a, bins, myRange):
+        bin_edges = np.zeros((bins+1,), dtype=np.float32)
+        if (myRange == np.array([0.0, 0.0])).all():
+            a_min = a.min()
+            a_max = a.max()
+        else:
+            a_min = myRange[0]
+            a_max = myRange[1]
+        delta = (a_max - a_min) / bins
+        for i in range(bin_edges.shape[0]):
+            bin_edges[i] = a_min + i * delta
+    
+        bin_edges[-1] = a_max  # Avoid roundoff error on last point
+        return bin_edges
+    
+    
+    # ==============================================================================
+    @nb.jit(nopython=True)
+    def compute_bin(x, bin_edges):
+        # assuming uniform bins for now
+        n = bin_edges.shape[0] - 1
+        a_min = bin_edges[0]
+        a_max = bin_edges[-1]
+    
+        # special case to mirror NumPy behavior for last bin
+        if x == a_max:
+            return n - 1 # a_max always in last bin
+    
+        bin = int(n * (x - a_min) / (a_max - a_min))
+    
+        if bin < 0 or bin >= n:
+            return None
+        else:
+            return bin
+    
+    
+    # ==============================================================================
+    @nb.jit(nopython=True)
+    def numba_histogram(
+            a, myBins, myRange, myWeights, myDensity
+        ):
+        hist = np.zeros((myBins,), dtype=np.float32)
+        bin_edges = get_bin_edges(a, myBins, myRange)
+
+        if myWeights is None:
+            for x in a.flat:
+                myBin = compute_bin(x, bin_edges)
+                if myBin is not None:
+                    hist[int(myBin)] += 1
+        else:
+            wf = myWeights.ravel()
+            ws = myWeights.sum()
+            for nn, xx in enumerate(a.flat):
+                myBin = compute_bin(xx, bin_edges)
+                if myBin is not None:
+                    hist[int(myBin)] += wf[nn] / ws
+        if myDensity:
+            ss = hist.sum()
+            for hh in nb.prange(hist.shape[0]):
+                hist[hh] = hist[hh] / ss
+
+        return (hist, bin_edges)
+
 
 # ==============================================================================
-def calculaClusterDasoVars(
+def calculaClusterDasoVarsPy(
         dictArrayMultiBandaClusterDasoVars,
         nBanda,
         histNumberCluster,
@@ -4760,11 +4909,283 @@ def calculaClusterDasoVars(
         # ==========================================================
         dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster] = nTramosFueraDeRango * multiplicadorDeFueraDeRangoParaLaVariable
         # ==========================================================
+    clusterOk = True
     return (
+        clusterOk,
         dictArrayMultiBandaClusterDasoVars,
         nVariablesNoOk,
         tipoBosqueOk,
     )
+
+
+# ==============================================================================
+if numbaOk:
+    @nb.jit(nopython=True)
+    def calculaClusterDasoVarsNb(
+            dictArrayMultiBandaClusterDasoVars,
+            nBanda,
+            histNumberCluster,
+            histProb01cluster,
+            self_dictHistProb01,
+            self_codeTipoBosquePatronMasFrecuente1,
+            self_pctjTipoBosquePatronMasFrecuente1,
+            self_codeTipoBosquePatronMasFrecuente2,
+            self_pctjTipoBosquePatronMasFrecuente2,
+            self_nInputVars,
+            self_myNBins,
+            self_myRange,
+            self_LOCLlistLstDasoVars,
+            multiplicadorDeFueraDeRangoParaLaVariable,
+            ponderacionDeLaVariable,
+            nVariablesNoOk,
+            tipoBosqueOk,
+            # localClusterArrayMultiBandaDasoVars,
+            nRowRaster=0,
+            nColRaster=0,
+            mostrarPixelClusterMatch=False,
+            self_LOCLverbose=False,
+        ):
+        nInputVar = nBanda - 1
+        self_nBandasRasterOutput = self_nInputVars + 2
+    
+        if nBanda == self_nBandasRasterOutput - 1:
+            if mostrarPixelClusterMatch:
+                # El primer elemento de histNumberCluster[0] son las frecuencias del histograma
+                # El segundo elemento de histNumberCluster[0] son los limites de las clases del histograma
+                # myLog.debug(
+                #     f'Histograma del cluster de Tipos de bosque (banda {nBanda}):'
+                #     + f' histNumberCluster[0]: {histNumberCluster[0]}'
+                # )
+                print(
+                    'Histograma del cluster de Tipos de bosque (banda', nBanda, '):'
+                    + ' histNumberCluster[0]:', histNumberCluster[0]
+                )
+            tipoBosqueUltimoNumero = np.max(np.nonzero(histNumberCluster[0]))
+            histogramaTemp = (histNumberCluster[0]).copy()
+            histogramaTemp.sort()
+            codeTipoBosqueClusterMasFrecuente1 = (histNumberCluster[0]).argmax(axis=0)
+            arrayPosicionTipoBosqueCluster1 = np.where(histNumberCluster[0] == histogramaTemp[-1])
+            arrayPosicionTipoBosqueCluster2 = np.where(histNumberCluster[0] == histogramaTemp[-2])
+    
+            if mostrarPixelClusterMatch:
+                # myLog.debug(f'{TB}{TV}-->>> Valor original de la celda: '
+                #       f'{dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster]}; ' 
+                #       f'TipoBosqueClusterMasFrecuente: '
+                #       f'{codeTipoBosqueClusterMasFrecuente1}'
+                #       f' = {arrayPosicionTipoBosqueCluster1[0][0]}')
+                print(TB, TV, '-->>> Valor original de la celda: ',
+                      dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster], '; ' 
+                      'TipoBosqueClusterMasFrecuente: ',
+                      codeTipoBosqueClusterMasFrecuente1, '=', arrayPosicionTipoBosqueCluster1[0][0])
+    
+            # myLog.debug(f'{TB}-> Tipo de bosque principal (cluster): {codeTipoBosqueClusterMasFrecuente1}; frecuencia: {int(round(100 * histProb01cluster[codeTipoBosqueClusterMasFrecuente1], 0))} %')
+            # myLog.debug(f'{TB}-> {arrayPosicionTipoBosqueCluster1}')
+    
+            # for contadorTB1, numPosicionTipoBosqueCluster1 in enumerate(arrayPosicionTipoBosqueCluster1[0]):
+            #     myLog.debug(f'{TB}-> {numPosicionTipoBosqueCluster1}')
+            #     myLog.debug(f'{TB}-> {contadorTB1} Tipo de bosque primero (cluster): {numPosicionTipoBosqueCluster1}; frecuencia: {int(round(100 * histProb01cluster[numPosicionTipoBosqueCluster1], 0))} %')
+            # if histProb01cluster[arrayPosicionTipoBosqueCluster2[0][0]] != 0:
+            #     for contadorTB2, numPosicionTipoBosqueCluster2 in enumerate(arrayPosicionTipoBosqueCluster2[0]):
+            #         myLog.debug(f'{TB}-> {numPosicionTipoBosqueCluster2}')
+            #         myLog.debug(f'{TB}-> {contadorTB2} Tipo de bosque segundo (cluster): {numPosicionTipoBosqueCluster2}; frecuencia: {int(round(100 * histProb01cluster[numPosicionTipoBosqueCluster2], 0))} %')
+            # else:
+            #     myLog.debug(f'{TB}-> Solo hay tipo de bosque princial')
+    
+            if codeTipoBosqueClusterMasFrecuente1 != arrayPosicionTipoBosqueCluster1[0][0]:
+                # myLog.critical(f'{TB}-> ATENCION: revisar esto porque debe haber algun error: {codeTipoBosqueClusterMasFrecuente1} != {arrayPosicionTipoBosqueCluster1[0][0]}')
+                print(TB, '-> ATENCION: revisar esto porque debe haber algun error:', codeTipoBosqueClusterMasFrecuente1, '!=', arrayPosicionTipoBosqueCluster1[0][0])
+            if len(arrayPosicionTipoBosqueCluster1[0]) == 1:
+                codeTipoBosqueClusterMasFrecuente2 = arrayPosicionTipoBosqueCluster2[0][0]
+            else:
+                codeTipoBosqueClusterMasFrecuente2 = arrayPosicionTipoBosqueCluster1[0][1]
+    
+            pctjTipoBosqueClusterMasFrecuente1 = int(round(100 * histProb01cluster[codeTipoBosqueClusterMasFrecuente1], 0))
+            pctjTipoBosqueClusterMasFrecuente2 = int(round(100 * histProb01cluster[codeTipoBosqueClusterMasFrecuente2], 0))
+    
+            # codeTipoBosqueClusterMasFrecuente1 = (localClusterArrayMultiBandaDasoVars[nBanda-1]).flatten()[(localClusterArrayMultiBandaDasoVars[nBanda-1]).argmax()]
+            # if nRowRaster >= 16 and nRowRaster <= 30 and nColRaster <= 5:
+            #     myLog.debug(
+            #         f'{TB} {nRowRaster} {nColRaster} nBanda {nBanda}' 
+            #         f'-> codeTipoBosqueClusterMasFrecuente1: {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1})'
+            #         f'-> codeTipoBosqueClusterMasFrecuente2: {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2})'
+            #     )
+    
+            # ==================================================
+            dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster] = codeTipoBosqueClusterMasFrecuente1
+            # ==================================================
+    
+            if mostrarPixelClusterMatch:
+                if codeTipoBosqueClusterMasFrecuente1 != 0:
+                    # myLog.debug(f'{TB}-> nRowColRaster: {nRowRaster} {nColRaster} -> (cluster) Chequeando tipo de bosque: codeTipoBosqueClusterMasFrecuente1: {dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster]} = {codeTipoBosqueClusterMasFrecuente1}')
+                    # myLog.debug(f'{TB}{TV}-> Tipos de bosque mas frecuentes (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %); 2-> {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2} %)')
+                    # myLog.debug(f'{TB}{TV}-> Numero pixeles de cada tipo de bosque (cluster) ({(histNumberCluster[0]).sum()}):\n{histNumberCluster[0][:tipoBosqueUltimoNumero + 1]}')
+                    print(TB, TV, '-> Tipos de bosque mas frecuentes (cluster): 1->', codeTipoBosqueClusterMasFrecuente1, '(', pctjTipoBosqueClusterMasFrecuente1, '%); 2->', codeTipoBosqueClusterMasFrecuente2, '(', pctjTipoBosqueClusterMasFrecuente2, '%)')
+                    print(TB, TV, '-> Numero pixeles de cada tipo de bosque (cluster) (', (histNumberCluster[0]).sum(), '):')
+                    print(histNumberCluster[0][:tipoBosqueUltimoNumero + 1])
+                else:
+                    # # myLog.debug(f'nRow: {nRowRaster} nCol {nColRaster} ->codeTipoBosqueClusterMasFrecuente1: {localClusterArrayMultiBandaDasoVars[nBanda-1][nRowRaster, nColRaster]} Revisar')
+                    # myLog.debug(f'nRow: {nRowRaster} nCol {nColRaster} -> Revisar')
+                    print('nRow:', nRowRaster, 'nCol', nColRaster, '-> Revisar')
+    
+            if self_pctjTipoBosquePatronMasFrecuente1 >= 70 and pctjTipoBosqueClusterMasFrecuente1 >= 70:
+                if (codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente1):
+                    tipoBosqueOk = 10
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
+                        print(TB, '-> Tipo de bosque principal con mas del 70 de ocupacion SI ok:')
+                else:
+                    # binomioEspecies = str(codeTipoBosqueClusterMasFrecuente1) + '_' + str(self_codeTipoBosquePatronMasFrecuente1)
+                    tipoBosqueOk = GLBLarrayProximidadInterEspecies[
+                        codeTipoBosqueClusterMasFrecuente1,
+                        self_codeTipoBosquePatronMasFrecuente1
+                    ]
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(f'{TB}-> Tipo de bosque principal con mas del 70 de ocupacion NO ok: {tipoBosqueOk}')
+                        print(TB, '-> Tipo de bosque principal con mas del 70 de ocupacion NO ok:', tipoBosqueOk)
+                if mostrarPixelClusterMatch:
+                    # myLog.debug(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
+                    # myLog.debug(f'{TB}{TV}-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
+                    print(TB, TV, '-> Tipo mas frecuente (patron): 1->', self_codeTipoBosquePatronMasFrecuente1, '(', self_pctjTipoBosquePatronMasFrecuente1, '%)')
+                    print(TB, TV, '-> Tipo mas frecuente (cluster): 1->', codeTipoBosqueClusterMasFrecuente1, '(', pctjTipoBosqueClusterMasFrecuente1, '%)')
+            else:
+                if (
+                    codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente1
+                    and codeTipoBosqueClusterMasFrecuente2 == self_codeTipoBosquePatronMasFrecuente2
+                ):
+                    tipoBosqueOk = 10
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo SI ok:')
+                        print(TB, '-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo SI ok:')
+                elif (
+                    codeTipoBosqueClusterMasFrecuente1 == self_codeTipoBosquePatronMasFrecuente2
+                    and codeTipoBosqueClusterMasFrecuente2 == self_codeTipoBosquePatronMasFrecuente1
+                ):
+                    tipoBosqueOk = 7
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(f'{TB}-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
+                        print(TB, '-> Tipo de bosque principal (menos del 70 de ocupacion) y segundo XX ok:')
+                else:
+                    # binomioEspecies = str(codeTipoBosqueClusterMasFrecuente1) + '_' + str(self_codeTipoBosquePatronMasFrecuente1)
+                    tipoBosqueOk = GLBLarrayProximidadInterEspecies[
+                        codeTipoBosqueClusterMasFrecuente1,
+                        self_codeTipoBosquePatronMasFrecuente1
+                    ]
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(f'{TB}-> Tipos de bosque principal (menos del 70 de ocupacion) y segundo NO ok: {tipoBosqueOk}')
+                        print(TB, '-> Tipos de bosque principal (menos del 70 de ocupacion) y segundo NO ok:', tipoBosqueOk)
+    
+                if mostrarPixelClusterMatch:
+                    # myLog.debug(f'{TB}{TV}-> Tipo mas frecuente (patron): 1-> {self_codeTipoBosquePatronMasFrecuente1} ({self_pctjTipoBosquePatronMasFrecuente1} %)')
+                    # myLog.debug(f'{TB}{TV}-> Tipo mas frecuente (cluster): 1-> {codeTipoBosqueClusterMasFrecuente1} ({pctjTipoBosqueClusterMasFrecuente1} %)')
+                    # myLog.debug(f'{TB}{TV}-> Tipo mas frecuente (patron): 2-> {self_codeTipoBosquePatronMasFrecuente2} ({self_pctjTipoBosquePatronMasFrecuente2} %)')
+                    # myLog.debug(f'{TB}{TV}-> Tipo mas frecuente (cluster): 2-> {codeTipoBosqueClusterMasFrecuente2} ({pctjTipoBosqueClusterMasFrecuente2} %)')
+                    print(TB, TV, '-> Tipo mas frecuente (patron): 1->', self_codeTipoBosquePatronMasFrecuente1, '(', self_pctjTipoBosquePatronMasFrecuente1, '%)')
+                    print(TB, TV, '-> Tipo mas frecuente (cluster): 1->', codeTipoBosqueClusterMasFrecuente1, '(', pctjTipoBosqueClusterMasFrecuente1, '%)')
+                    print(TB, TV, '-> Tipo mas frecuente (patron): 2->', self_codeTipoBosquePatronMasFrecuente2, '(', self_pctjTipoBosquePatronMasFrecuente2, '%)')
+                    print(TB, TV, '-> Tipo mas frecuente (cluster): 2->', codeTipoBosqueClusterMasFrecuente2, '(', pctjTipoBosqueClusterMasFrecuente2, '%)')
+    
+        elif nInputVar >= 0 and nInputVar < self_nInputVars:
+            claveDef = str(nInputVar) + '_' + str(self_LOCLlistLstDasoVars[nInputVar][1]) + '_ref'
+            claveMin = str(nInputVar) + '_' + str(self_LOCLlistLstDasoVars[nInputVar][1]) + '_min'
+            claveMax = str(nInputVar) + '_' + str(self_LOCLlistLstDasoVars[nInputVar][1]) + '_max'
+            # self_dictHistProb01[claveDef] = histProb01cluster
+    
+            todosLosRangosOk = True
+            nTramosFueraDeRango = 0
+            for nRango in range(len(histProb01cluster)):
+                histProb01cluster[nRango] = round(histProb01cluster[nRango], 3)
+                limInf = nRango * (self_myRange[nBanda][1] - self_myRange[nBanda][0]) / self_myNBins[nBanda]
+                limSup = (nRango + 1) * (self_myRange[nBanda][1] - self_myRange[nBanda][0]) / self_myNBins[nBanda]
+                miRango = str(limInf) + '-' + str(limSup)
+                if histProb01cluster[nRango] < self_dictHistProb01[claveMin][nRango]:
+                    todosLosRangosOk = False
+                    # nTramosFueraDeRango += 1
+                    esteTramoFueraDeRango = (
+                        (self_dictHistProb01[claveMin][nRango] - histProb01cluster[nRango])
+                        / (self_dictHistProb01[claveMax][nRango] - self_dictHistProb01[claveMin][nRango])
+                    )
+                    nTramosFueraDeRango += esteTramoFueraDeRango
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(
+                        #     f'{TB}{TV}-> {claveDef}-> nRango {nRango} ({miRango}): '
+                        #     f'{histProb01cluster[nRango]} debajo del rango '
+                        #     f'{self_dictHistProb01[claveMin][nRango]} '
+                        #     f'- {self_dictHistProb01[claveMax][nRango]};'
+                        #     f' Valor de referencia: {self_dictHistProb01[claveDef][nRango]} '
+                        #     f'-> fuera: {esteTramoFueraDeRango}'
+                        # )
+                        print(
+                            TB, TV, '->', claveDef, '-> nRango', nRango, '(', miRango, '): '
+                            '', histProb01cluster[nRango], 'debajo del rango '
+                            '', self_dictHistProb01[claveMin][nRango], ''
+                            '-', self_dictHistProb01[claveMax][nRango], ';'
+                            ' Valor de referencia:', self_dictHistProb01[claveDef][nRango], ''
+                            '-> fuera:', esteTramoFueraDeRango, ''
+                        )
+                if histProb01cluster[nRango] > self_dictHistProb01[claveMax][nRango]:
+                    todosLosRangosOk = False
+                    # nTramosFueraDeRango += 1
+                    esteTramoFueraDeRango = (
+                        (histProb01cluster[nRango] - self_dictHistProb01[claveMax][nRango])
+                        / (self_dictHistProb01[claveMax][nRango] - self_dictHistProb01[claveMin][nRango])
+                    )
+                    nTramosFueraDeRango += esteTramoFueraDeRango
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(
+                        #     f'{TB}{TV}-> {claveDef}-> nRango {nRango} ({miRango}): '
+                        #     f'{histProb01cluster[nRango]} encima del rango '
+                        #     f'{self_dictHistProb01[claveMin][nRango]} '
+                        #     f'- {self_dictHistProb01[claveMax][nRango]}; '
+                        #     f'Valor de referencia: {self_dictHistProb01[claveDef][nRango]} '
+                        #     f'-> fuera: {esteTramoFueraDeRango}')
+                        print(
+                            TB, TV, '->', claveDef, '-> nRango', nRango, '(', miRango, '): '
+                            '', histProb01cluster[nRango], 'encima del rango '
+                            '', self_dictHistProb01[claveMin][nRango], ''
+                            '-', self_dictHistProb01[claveMax][nRango], '; '
+                            'Valor de referencia:', self_dictHistProb01[claveDef][nRango], ''
+                            '-> fuera:', esteTramoFueraDeRango)
+            if todosLosRangosOk:
+                if mostrarPixelClusterMatch:
+                    # myLog.debug(f'{TB}{TV}-> Todos los tramos ok.')
+                    print(TB, TV, '-> Todos los tramos ok.')
+            else:
+                if mostrarPixelClusterMatch:
+                    # myLog.debug(
+                    #     '{}{}-> Cluster-> Numero de tramos fuera de rango: {} (ponderado: {:0.2f})'.format(
+                    #         TB, TV,
+                    #         nTramosFueraDeRango,
+                    #         nTramosFueraDeRango * multiplicadorDeFueraDeRangoParaLaVariable
+                    #     )
+                    # )
+                    print(
+                        TB, TV, '-> Cluster-> Numero de tramos fuera de rango:', nTramosFueraDeRango,
+                        '(ponderado:', nTramosFueraDeRango * multiplicadorDeFueraDeRangoParaLaVariable, ')'
+                    )
+                if nTramosFueraDeRango * multiplicadorDeFueraDeRangoParaLaVariable >= 1:
+                    nVariablesNoOk += 1 * ponderacionDeLaVariable 
+                    if mostrarPixelClusterMatch:
+                        # myLog.debug(
+                        #     '{}{}{}-> Esta variable desviaciones respecto a zona de referencia (patron) con {:0.2f} puntos'.format(
+                        #         TB, TV, TV,
+                        #         ponderacionDeLaVariable
+                        #     )
+                        # )
+                        print(
+                            TB, TV, TV, '-> Esta variable desviaciones respecto a zona de referencia (patron) con',
+                            ponderacionDeLaVariable, 'puntos'
+                        )
+    
+            # ==========================================================
+            dictArrayMultiBandaClusterDasoVars[nBanda][nRowRaster, nColRaster] = nTramosFueraDeRango * multiplicadorDeFueraDeRangoParaLaVariable
+            # ==========================================================
+        clusterOk = True
+        return (
+            clusterOk,
+            dictArrayMultiBandaClusterDasoVars,
+            nVariablesNoOk,
+            tipoBosqueOk,
+        )
 
 
 # ==============================================================================

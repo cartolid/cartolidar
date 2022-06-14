@@ -32,6 +32,7 @@ try:
 except:
     psutilOk = False
 
+import numpy as np
 # Recuperar la captura de errores de importacion en la version beta
 # try:
 if True:
@@ -674,7 +675,7 @@ def leerConfigDictPorDefecto():
 
 # ==============================================================================
 def readSppMatch():
-    sppMatch = [
+    sppMatch = np.array([
         [21, 22, 7], # Ps Pu
         [21, 23, 3], # Ps Pp
         [21, 24, 2], # Ps Ph
@@ -711,7 +712,7 @@ def readSppMatch():
         [44, 45, 7], # Qf Qi
         [44, 46, 5], # Qf Qs
         [45, 46, 7], # Qi Qs
-        ]
+        ], dtype=np.int32)
     return sppMatch
 
 
@@ -843,11 +844,14 @@ def checkGLO(GLO):
     # ==========================================================================
     sppMatch = readSppMatch()
     GLO.GLBLdictProximidadInterEspecies = {}
+    GLO.GLBLarrayProximidadInterEspecies = np.zeros((sppMatch.max() + 1, sppMatch.max() + 1), dtype=np.int8)
     for (codeEsp1, codeEsp2, proximidadInterEsp) in sppMatch:
         binomioEspeciesA = f'{codeEsp1}_{codeEsp2}'
         binomioEspeciesB = f'{codeEsp2}_{codeEsp1}'
         GLO.GLBLdictProximidadInterEspecies[binomioEspeciesA] = proximidadInterEsp
         GLO.GLBLdictProximidadInterEspecies[binomioEspeciesB] = proximidadInterEsp
+        GLO.GLBLarrayProximidadInterEspecies[codeEsp1, codeEsp2] = proximidadInterEsp
+        GLO.GLBLarrayProximidadInterEspecies[codeEsp2, codeEsp1] = proximidadInterEsp
     # myLog.debug('GLBLdictProximidadInterEspecies:')
     # for binomioSpp in GLO.GLBLdictProximidadInterEspecies:
     #     myLog.debug(binomioSpp, GLO.GLBLdictProximidadInterEspecies[binomioSpp])
