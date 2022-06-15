@@ -2581,14 +2581,14 @@ and two more layers for forest type (land cover) and stand type.
                 self.noDataDasoVarAll,
                 self.LOCLradioClusterPix,
                 self.outputNpDatatypeAll,
-                self.LOCLlistLstDasoVars,
-                self.LOCLlistaDasoVarsFileTypes,  # self.LOCLlistLstDasoVars[:, 0]
-                self.LOCLlistaDasoVarsNickNames,  # self.LOCLlistLstDasoVars[:, 1]
-                self.LOCLlistaDasoVarsRangoLinf,  # self.LOCLlistLstDasoVars[:, 2]
-                self.LOCLlistaDasoVarsRangoLsup,  # self.LOCLlistLstDasoVars[:, 3]
-                self.LOCLlistaDasoVarsNumClases,  # self.LOCLlistLstDasoVars[:, 4]
-                self.LOCLlistaDasoVarsMovilidad,  # self.LOCLlistLstDasoVars[:, 5]
-                self.LOCLlistaDasoVarsPonderado,  # self.LOCLlistLstDasoVars[:, 6]
+                # self.LOCLlistLstDasoVars,
+                # self.LOCLlistaDasoVarsFileTypes,  # self.LOCLlistLstDasoVars[:, 0]
+                # self.LOCLlistaDasoVarsNickNames,  # self.LOCLlistLstDasoVars[:, 1]
+                # self.LOCLlistaDasoVarsRangoLinf,  # self.LOCLlistLstDasoVars[:, 2]
+                # self.LOCLlistaDasoVarsRangoLsup,  # self.LOCLlistLstDasoVars[:, 3]
+                # self.LOCLlistaDasoVarsNumClases,  # self.LOCLlistLstDasoVars[:, 4]
+                # self.LOCLlistaDasoVarsMovilidad,  # self.LOCLlistLstDasoVars[:, 5]
+                np.array(self.LOCLlistaDasoVarsPonderado, dtype=np.int8),  # self.LOCLlistLstDasoVars[:, 6]
                 self.nInputVars,
                 self.myNBins,
                 self.myRange,
@@ -3120,13 +3120,13 @@ if numbaOk:
             self_noDataDasoVarAll,
             self_LOCLradioClusterPix,
             self_outputNpDatatypeAll,
-            self_LOCLlistLstDasoVars,
-                self_LOCLlistaDasoVarsFileTypes,
-                self_LOCLlistaDasoVarsNickNames,
-                self_LOCLlistaDasoVarsRangoLinf,
-                self_LOCLlistaDasoVarsRangoLsup,
-                self_LOCLlistaDasoVarsNumClases,
-                self_LOCLlistaDasoVarsMovilidad,
+            # self_LOCLlistLstDasoVars,
+                # self_LOCLlistaDasoVarsFileTypes,
+                # self_LOCLlistaDasoVarsNickNames,
+                # self_LOCLlistaDasoVarsRangoLinf,
+                # self_LOCLlistaDasoVarsRangoLsup,
+                # self_LOCLlistaDasoVarsNumClases,
+                # self_LOCLlistaDasoVarsMovilidad,
                 self_LOCLlistaDasoVarsPonderado,
             self_nInputVars,
             self_myNBins,
@@ -3241,7 +3241,7 @@ if numbaOk:
                     for nBanda in range(1, self_nBandasRasterOutput + 1):
                         nInputVar = nBanda - 1
                         # myLog.warning(f'{TB}Banda: {nBanda} -> dasovar: {self_LOCLlistLstDasoVars[nInputVar]} (poderacion: {self_LOCLlistLstDasoVars[nInputVar][6]})')
-                        print(TB, 'Banda:', nBanda, '-> dasovar:', self_LOCLlistaDasoVarsFileTypes[nInputVar], '(poderacion:', self_LOCLlistaDasoVarsPonderado[nInputVar], ')')
+                        print(TB, 'Banda:', nBanda, '-> nInputVar:', nInputVar, '(poderacion:', self_LOCLlistaDasoVarsPonderado[nInputVar], ')')
                     # myLog.warning(f'{TB}-> Se asigna la misma ponderacion a todas las dasoVars.')
                     print(TB, '-> Se asigna la misma ponderacion a todas las dasoVars.')
                     sumaPoderaciones = 1
@@ -3388,18 +3388,17 @@ if numbaOk:
                             # distanciaEntreHistogramas = method(self_dictHistProb01[claveRef], histProb01cluster)
                             # Uso solo las primeras clases del histograma (por defecto tiene maxNBins = 256 clases)
                             # distanciaEntreHistogramas = method(self_listHistProb01[nInputVar, 1, :self_nBandasRasterOutput + 1], histProb01cluster)
-
                             if numMethod == 0:
                                 methodName = 'Euclidean'
                                 # distanciaEntreHistogramas = distance_hist.euclidean(self_listHistProb01[nInputVar, 1, :self_nBandasRasterOutput + 1], histProb01cluster)
-                                distanciaEntreHistogramas = myDistanceEuclidea(self_listHistProb01[nInputVar, 1, :self_nBandasRasterOutput + 1], histProb01cluster)
+                                distanciaEntreHistogramas = myDistanceEuclidea(self_listHistProb01[nInputVar, 1, :self_myNBins[nBanda]], histProb01cluster, nInputVar, nBanda)
                             elif numMethod == 1:
                                 methodName = 'Manhattan'
-                                # distanciaEntreHistogramas = distance_hist.cityblock(self_listHistProb01[nInputVar, 1, :self_nBandasRasterOutput + 1], histProb01cluster)
+                                # distanciaEntreHistogramas = distance_hist.cityblock(self_listHistProb01[nInputVar, 1, :self_myNBins[nBanda]], histProb01cluster)
                                 distanciaEntreHistogramas = 0
                             elif numMethod == 2:
                                 methodName = 'Chebysev'
-                                # distanciaEntreHistogramas = distance_hist.chebyshev(self_listHistProb01[nInputVar, 1, :self_nBandasRasterOutput + 1], histProb01cluster)
+                                # distanciaEntreHistogramas = distance_hist.chebyshev(self_listHistProb01[nInputVar, 1, :self_myNBins[nBanda]], histProb01cluster)
                                 distanciaEntreHistogramas = 0
                             arrayDistanciaScipy[nInputVar, numMethod, nRowRaster, nColRaster] = distanciaEntreHistogramas
                             self_maxDistanciaScipyMono = max(arrayDistanciaScipy[-1, numMethod, nRowRaster, nColRaster], self_maxDistanciaScipyMono)
@@ -3519,7 +3518,7 @@ if numbaOk:
     def myDistanceMatrix(array1, array2):
         matrizDeDistancias = np.zeros(array1.shape[0] * array2.shape[0], dtype=np.float32).reshape(array1.shape[0], array2.shape[0])
         if array1.shape[1] != array2.shape[1]:
-            print('clidtwins-> ATENCION: revisar dimensiones de arrays', array1.shape[0], array2.shape[0])
+            print('clidtwins-> ATENCION: revisar dimensiones de arrays', array1.shape[1], array2.shape[1], array1.shape, array2.shape)
             return matrizDeDistancias
         for myRow in range(array1.shape[0]):
             for myCol in range(array2.shape[0]):
@@ -3533,9 +3532,9 @@ if numbaOk:
 
     # ==========================================================================
     @nb.jit(nopython=True)
-    def myDistanceEuclidea(array1, array2):
+    def myDistanceEuclidea(array1, array2, nInputVar, nBanda):
         if array1.shape[0] != array2.shape[0]:
-            print('clidtwins-> ATENCION: revisar dimensiones de arrays', array1.shape[0], array2.shape[0])
+            print('clidtwins-> ATENCION: revisar dimensiones de arrays para myDistanceEuclidea', array1.shape, array2.shape, 'nInputVar', nInputVar, 'nBanda', nBanda)
             return 0.0
         sumaCuadratica = 0
         # for myVar in range(array1.shape[1]):

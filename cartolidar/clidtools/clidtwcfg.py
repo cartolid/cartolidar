@@ -875,7 +875,8 @@ def readGLO():
     if __verbose__ == 3:
         myLog.debug('clidtwcfg-> GLO:')
         for myParameter in dir(GLO):
-            if not myParameter.startswith('__'):
+            # if not myParameter.startswith('__'):
+            if myParameter.startswith('GLBL'):
                 myLog.debug(f'{TB}{myParameter}')
                 if hasattr(GLO, myParameter):
                 #  and (

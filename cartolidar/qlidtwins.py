@@ -16,6 +16,7 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 '''
 
 import sys
+import time
 import os
 import argparse
 from argparse import ArgumentParser
@@ -1452,7 +1453,6 @@ def clidtwinsUseCase(
         else:
             return None
 
-    myLog.info('\nqlidtwins-> Fin.')
     return myDasolidar
 
 
@@ -1462,6 +1462,10 @@ def foo():
 
 # ==============================================================================
 if (__name__ == '__main__' or 'qlidtwins' in __name__) and not TRNS_testTwins:
+
+    tiempo0 = time.time()
+    timeInicio = time.asctime(time.localtime(time.time()))
+    myLog.info(timeInicio)
 
     tipoEjecucion = checkRun()
     testRun()
@@ -1473,3 +1477,9 @@ if (__name__ == '__main__' or 'qlidtwins' in __name__) and not TRNS_testTwins:
         mostrarConfiguracion(cfgDict)
     
     _ = clidtwinsUseCase(cfgDict)
+
+    tiempo1 = time.time()
+    timeFin = time.asctime(time.localtime(time.time()))
+    myLog.info(f'Tiempo total: : {(tiempo1 - tiempo0):0.0f} segundos ({round((tiempo1 - tiempo0)/60, 1)} minutos)')
+    myLog.info(timeFin)
+    myLog.info('\nqlidtwins-> Fin.')
