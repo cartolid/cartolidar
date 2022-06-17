@@ -4,6 +4,8 @@ include cartolidar/clidax/*.py
 include cartolidar/data/*.*
 include cartolidar/data/ref/*.*
 include data/*.*
+global-exclude cartolidar/data/asc/PuenteDuero/dasoLayers
+global-exclude dasoLayers/*.*
 global-exclude *.back
 global-exclude *.txt
 global-exclude *.cfg
