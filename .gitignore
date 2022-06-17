@@ -5,7 +5,7 @@ cartolidar/qlidmerge.py
 cartolidar/clidtools/clidmerge.py
 
 # Ficheros auxiliares que no incluyo en el repositorio
-pruebas.py
+pruebas*.py
 Ayuda.txt
 README_extras.txt
 cartolidar/cartolidar.cfg
@@ -22,7 +22,9 @@ qlidtwins.args
 *.args
 # Creados por notepad++
 *.bak
-# data/
+# data
+data/asc/PueteDuero/dasolayers*/*.*
+dasolayers*/*.*
 cartolidar.egg-info/
 cartolidar.egg-info/*.*
 dist/*.*
