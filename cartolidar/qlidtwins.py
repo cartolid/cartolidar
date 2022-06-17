@@ -36,7 +36,7 @@ if True:
     from cartolidar.clidtools import clidtwins
     from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools.clidtwins import DasoLidarSource
-    from cartolidar.clidtools.clidtwins import comprobarTipoMasaDeCapaVectorial
+    from cartolidar.clidtools.clidtwinx import comprobarTipoMasaDeCapaVectorial
 # except ModuleNotFoundError:
 #     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
 #     sys.stderr.write('\t-> Se importan paquetes de cartolidar desde qlidtwins del directorio local {os.getcwd()}/clidtools.')
@@ -1392,7 +1392,9 @@ def clidtwinsUseCase(
             # Resultados a testear:
             #     myDasolidar.tipoBosqueOk,
             #     myDasolidar.nVariablesNoOk,
-            #     myDasolidar.distanciaEuclideaMedia,
+            #     myDasolidar.distanciaEuclideaMediaPatronTesteo,
+            #     myDasolidar.distanciaEuclideaMediaPatronPatron,
+            #     myDasolidar.distanciaEuclideaRazon
             #     myDasolidar.pctjPorcentajeDeProximidad,
             #     myDasolidar.matrizDeDistancias,
             if __verbose__ == 3:
@@ -1400,11 +1402,13 @@ def clidtwinsUseCase(
                 myLog.debug('qlidtwins-> tests-> chequearCompatibilidadConTesteoVector')
                 myLog.debug(f'{TB}-> tipoBosqueOk: {myDasolidar.tipoBosqueOk}')
                 myLog.debug(f'{TB}-> nVariablesNoOk: {myDasolidar.nVariablesNoOk}')
-                myLog.debug(f'{TB}-> distanciaEuclideaMedia: {myDasolidar.distanciaEuclideaMedia}')
+                myLog.debug(f'{TB}-> distanciaEuclideaMediaPatronTesteo: {myDasolidar.distanciaEuclideaMediaPatronTesteo}')
+                myLog.debug(f'{TB}-> distanciaEuclideaMediaPatronPatron:  {myDasolidar.distanciaEuclideaMediaPatronPatron}')
+                myLog.debug(f'{TB}-> distanciaEuclideaRazon: {myDasolidar.distanciaEuclideaRazon}')
                 myLog.debug(f'{TB}-> pctjPorcentajeDeProximidad{myDasolidar.pctjPorcentajeDeProximidad}')
-                myLog.debug(f'{TB}-> matrizDeDistancias: {myDasolidar.matrizDeDistancias}')
+                myLog.debug(f'{TB}-> matrizDeDistanciasPatronTesteo: {myDasolidar.matrizDeDistanciasPatronTesteo}')
+                myLog.debug(f'{TB}-> matrizDeDistanciasPatronPatron: {myDasolidar.matrizDeDistanciasPatronPatron}')
                 myLog.debug('{:=^80}'.format(''))
-
         elif cfgDict['mainAction'] == 2:
             myLog.debug('\n{:_^80}'.format(''))
             myLog.debug('qlidtwins-> Ejecutando generarRasterCluster...')

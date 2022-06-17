@@ -23,7 +23,7 @@ import logging
 if True:
     from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
     from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
-    from cartolidar.clidtools.clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
+    from cartolidar.clidtools.clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
 # except:
 #     from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
 #     from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
