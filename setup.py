@@ -115,7 +115,7 @@ setuptools.setup(
 	# Versions should comply with PEP 440:
     # 	https://www.python.org/dev/peps/pep-0440/
     # version=versioneer.get_version(),
-    version='0.0a3',
+    version='0.0a4',
     description='Lidar data processing tools focused on Spanish PNOA datasets',
     long_description=README,
     long_description_content_type='text/markdown',

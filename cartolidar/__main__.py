@@ -16,9 +16,9 @@ from argparse import RawDescriptionHelpFormatter
 import logging
 import traceback
 
-__version__ = '0.0a3'
+__version__ = '0.0a4'
 __date__ = '2016-2022'
-__updated__ = '2022-06-01'
+__updated__ = '2022-06-17'
 __all__ = []
 
 # ==============================================================================

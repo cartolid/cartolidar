@@ -45,8 +45,8 @@ __all__ = [
     'mostrarListaDrivers'
 ]
 # ==============================================================================
-__version__ = '0.0a3'
-__updated__ = '2022-06-10'
+__version__ = '0.0a4'
+__updated__ = '2022-06-17'
 # No se importa nada con: from qlidtwins import *
 __all__ = []
 

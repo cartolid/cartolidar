@@ -31,7 +31,12 @@ This project is in alpha version and includes only the "clidtwins" tool.
 DLV: Lidar variables that describe or characterize forest or land cover structure.
 
 > CartoLidar es una colección de herramientas destinadas a procesar ficheros lidar 
-> ("las" y "laz") para clasificar los puntos y generar ficheros ráster con DEM y DLVs.
+> ("las" y "laz") para clasificar los puntos mediante inteligencia artificial (GANs)
+> y generar ficheros ráster con DEM y DLVs.
+> 
+> GAN (Generative Adversarial Networks): arquitectura de DL basada en redes neuronales en la que
+> se optimiza simultanemante un discriminador y un generador para obtener imágenes verosímiles
+> a partir de inputs que, en este caso, no son aleatorios (sino variables lidar).
 > 
 > DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
 > 
@@ -46,7 +51,7 @@ DLV: Lidar variables that describe or characterize forest or land cover structur
 > Las herramientas de procesado de ficheros Lidar (clasificación de puntos, generación de DEM y DLVs)) 
 > se incorporará a github a partir del cuarto trimestre de 2022.
 > 
-> La herraienta clidtwins está destinada a buscar zonas similares a una(s) 
+> La herramienta clidtwins está destinada a buscar zonas similares a una(s) 
 > de referencia en términos de determinadas variables dasoLidar (DLVs).
 
 
@@ -85,6 +90,8 @@ Requeriments
 cartolidar requires Python 3.7 or higher.
 
 See other package requirements in requirements.txt.
+
+Numba requirement (0.53.0) is optional but advisable for speeding up some tasks.
 
 
 Use
@@ -160,7 +167,7 @@ To execute module qlidtwins.py from python code:
 ```
 from cartolidar import qlidtwins
 ```
-In this case, there are no options: it runs with qlidtwins.cfg configuration (if exists) or by default.
+In this case, there are no options: it runs with qlidtwins.cfg configuration (if exists) or default configuration.
 
 
 Required inputs
@@ -200,10 +207,10 @@ myDasolidar = DasoLidarSource()
 2. Delimit the prospecting area (optional):
 ```
 myDasolidar.setRangeUTM(
-    LCL_marcoCoordMiniX=CFG_marcoCoordMiniX,
-    LCL_marcoCoordMaxiX=CFG_marcoCoordMaxiX,
-    LCL_marcoCoordMiniY=CFG_marcoCoordMiniY,
-    LCL_marcoCoordMaxiY=CFG_marcoCoordMaxiY,
+    LCL_marcoCoordMiniX=348000,
+    LCL_marcoCoordMaxiX=350000,
+    LCL_marcoCoordMiniY=4598000,
+    LCL_marcoCoordMaxiY=4602000,
 )
 ```
 
