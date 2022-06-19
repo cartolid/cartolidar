@@ -118,33 +118,6 @@ TV = ' ' * 3
 # ==============================================================================
 
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-formatter0 = logging.Formatter('{message}', style='{')
-consoleLog = logging.StreamHandler()
-if __verbose__ == 3:
-    consoleLog.setLevel(logging.DEBUG)
-elif __verbose__ == 2:
-    consoleLog.setLevel(logging.INFO)
-elif __verbose__ == 1:
-    consoleLog.setLevel(logging.WARNING)
-elif not __quiet__:
-    consoleLog.setLevel(logging.ERROR)
-else:
-    consoleLog.setLevel(logging.CRITICAL)
-consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(thisModule)
-myLog.addHandler(consoleLog)
-# ==============================================================================
-myLog.debug('{:_^80}'.format(''))
-myLog.debug('clidaux-> Debug & alpha version info:')
-myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
-myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
-myLog.debug(f'{TB}-> __name__:     <{__name__}>')
-myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
-myLog.debug('{:=^80}'.format(''))
-# ==============================================================================
-
-# ==============================================================================
 def showCallingModules(inspect_stack=inspect.stack(), verbose=True):
     # print('->->->inspect_stack  ', inspect_stack
     # print('->->->inspect.stack()', inspect.stack())
@@ -341,6 +314,21 @@ if callingModuleInicial == 'cartolider':
 else:
     printMsgToFile = True
 
+
+# ==============================================================================
+myModule = __name__.split('.')[-1]
+myUser = clidconfig.infoUsuario()
+# ==============================================================================
+myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidaux-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
 
 # print('\nclidaux-> cargando clidaux. GLO:', GLO)
 # ==============================================================================

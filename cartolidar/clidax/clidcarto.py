@@ -84,33 +84,6 @@ TW = ' ' * 2
 # ==============================================================================
 
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-formatter0 = logging.Formatter('{message}', style='{')
-consoleLog = logging.StreamHandler()
-if __verbose__ == 3:
-    consoleLog.setLevel(logging.DEBUG)
-elif __verbose__ == 2:
-    consoleLog.setLevel(logging.INFO)
-elif __verbose__ == 1:
-    consoleLog.setLevel(logging.WARNING)
-elif not __quiet__:
-    consoleLog.setLevel(logging.ERROR)
-else:
-    consoleLog.setLevel(logging.CRITICAL)
-consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(thisModule)
-myLog.addHandler(consoleLog)
-# ==============================================================================
-myLog.debug('{:_^80}'.format(''))
-myLog.debug('clidcarto-> Debug & alpha version info:')
-myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
-myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
-myLog.debug(f'{TB}-> __name__:     <{__name__}>')
-myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
-myLog.debug('{:=^80}'.format(''))
-# ==============================================================================
-
-# ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
     MAIN_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
 else:
@@ -173,16 +146,6 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
     return callingModulePrevio, callingModuleInicial
 # ==============================================================================
 
-# ==============================================================================
-CONFIGverbose = False
-if CONFIGverbose:
-    myLog.debug(f'clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
-    myLog.debug('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
-callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=CONFIGverbose)
-if CONFIGverbose:
-    myLog.debug(f'clidcarto-> Pila de llamadas revisada-> callingModulePrevio: {callingModulePrevio} callingModuleInicial: {callingModuleInicial}')
-# ==============================================================================
-
 
 # ==============================================================================
 # Recuperar la captura de errores de importacion en la version beta
@@ -194,6 +157,33 @@ if True:
 #         sys.stderr.write(f'qlidtwins-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools\n')
 #         sys.stderr.write('\tNo hay vesion de cartolidar instalada en site-packages.')
 #     from clidax import clidconfig
+
+
+# ==============================================================================
+myModule = __name__.split('.')[-1]
+myUser = clidconfig.infoUsuario()
+# ==============================================================================
+myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidcarto-> Debug & alpha version info:')
+myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
+myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:     <{__name__}>')
+myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
+
+# ==============================================================================
+CONFIGverbose = False
+if CONFIGverbose:
+    myLog.debug(f'clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
+    myLog.debug('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
+callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=CONFIGverbose)
+if CONFIGverbose:
+    myLog.debug(f'clidcarto-> Pila de llamadas revisada-> callingModulePrevio: {callingModulePrevio} callingModuleInicial: {callingModuleInicial}')
+# ==============================================================================
+
 
 # if (
 #     callingModuleInicial != 'runpy'

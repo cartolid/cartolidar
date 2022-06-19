@@ -31,7 +31,6 @@ import numpy.ma as ma
 from scipy.spatial import distance_matrix
 from scipy.spatial import distance as distance_hist
 # from scipy.spatial import KDTree
-import matplotlib.pyplot as plt
 try:
     import psutil
     psutilOk = True
@@ -65,8 +64,6 @@ if True:
 #     from clidax import clidconfig
 #     from clidax import clidraster
 #     from clidtools.clidtwcfg import GLO
-
-myUser = clidconfig.infoUsuario()
 
 # Alternativa, si necesitara algun otro ingreciente de clidtwcfg:
 # from cartolidar.clidtools import clidtwcfg as CNFG
@@ -109,22 +106,10 @@ GLBLarrayProximidadInterEspecies = GLO.GLBLarrayProximidadInterEspecies
 # ==============================================================================
 
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-formatter0 = logging.Formatter('{message}', style='{')
-consoleLog = logging.StreamHandler()
-if __verbose__ == 3:
-    consoleLog.setLevel(logging.DEBUG)
-elif __verbose__ == 2:
-    consoleLog.setLevel(logging.INFO)
-elif __verbose__ == 1:
-    consoleLog.setLevel(logging.WARNING)
-elif not __quiet__:
-    consoleLog.setLevel(logging.ERROR)
-else:
-    consoleLog.setLevel(logging.CRITICAL)
-consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(thisModule)
-myLog.addHandler(consoleLog)
+myModule = __name__.split('.')[-1]
+myUser = clidconfig.infoUsuario()
+# ==============================================================================
+myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
 myLog.debug('clidtwinp-> Debug & alpha version info:')

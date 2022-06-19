@@ -67,7 +67,7 @@ gdal.UseExceptions()
 # Recuperar la captura de errores de importacion en la version beta
 # try:
 if True:
-    # from cartolidar.clidax import clidconfig
+    from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidcarto
     # Se importan los parametros de configuracion por defecto por si
     # se carga esta clase sin aportar algun parametro de configuracion
@@ -100,22 +100,10 @@ TV = ' ' * 3
 # ==============================================================================
 
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-formatter0 = logging.Formatter('{message}', style='{')
-consoleLog = logging.StreamHandler()
-if __verbose__ == 3:
-    consoleLog.setLevel(logging.DEBUG)
-elif __verbose__ == 2:
-    consoleLog.setLevel(logging.INFO)
-elif __verbose__ == 1:
-    consoleLog.setLevel(logging.WARNING)
-elif not __quiet__:
-    consoleLog.setLevel(logging.ERROR)
-else:
-    consoleLog.setLevel(logging.CRITICAL)
-consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(thisModule)
-myLog.addHandler(consoleLog)
+myModule = __name__.split('.')[-1]
+myUser = clidconfig.infoUsuario()
+# ==============================================================================
+myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
 myLog.debug('clidraster-> Debug & alpha version info:')

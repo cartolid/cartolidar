@@ -55,23 +55,182 @@ TB = ' ' * 12
 TV = ' ' * 3
 # ==============================================================================
 
+
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-formatter0 = logging.Formatter('{message}', style='{')
-consoleLog = logging.StreamHandler()
-if __verbose__ == 3:
-    consoleLog.setLevel(logging.DEBUG)
-elif __verbose__ == 2:
-    consoleLog.setLevel(logging.INFO)
-elif __verbose__ == 1:
-    consoleLog.setLevel(logging.WARNING)
-elif not __quiet__:
-    consoleLog.setLevel(logging.ERROR)
-else:
-    consoleLog.setLevel(logging.CRITICAL)
-consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(thisModule)
-myLog.addHandler(consoleLog)
+# ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+# Duplico esta funcion de clidaux para no importar clidaux
+def infoUsuario(verbose=False):
+    if psutilOk:
+        try:
+            esteUsuario = psutil.users()[0].name
+            if verbose:
+                print('clidconfig-> Usuario:', esteUsuario)
+        except:
+            esteUsuario = psutil.users()
+            if verbose:
+                print('clidconfig-> Users:', esteUsuario)
+        if not isinstance(esteUsuario, str) or esteUsuario == '':
+            esteUsuario = 'local'
+    else:
+        esteUsuario = 'SinUsuario'
+    return esteUsuario
+
+
+# ==============================================================================
+myModule = __name__.split('.')[-1]
+myUser = infoUsuario()
+# ==============================================================================
+def creaLog(consLogYaCreado=False, myModule='cartolidar', myVerbose=False, myQuiet=False):
+    if myVerbose == 3:
+        logLevel = logging.DEBUG
+    elif myVerbose == 2:
+        logLevel = logging.INFO
+    elif myVerbose == 1:
+        logLevel = logging.WARNING
+    elif not myQuiet:
+        logLevel = logging.ERROR
+    else:
+        logLevel = logging.CRITICAL
+    # ==============================================================================
+    class ContextFilter(logging.Filter):
+        """
+        This is a filter which injects contextual information into the log.
+        """
+    
+        def filter(self, record):
+            record.thisUser = myUser
+            record.thisFile = myModule[:10]
+            return True
+    # ==============================================================================
+    myFilter = ContextFilter()
+    # ==============================================================================
+    # formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    # formatter = logging.Formatter('%(name)-12s: %(message)s')
+    # formatter = logging.Formatter('{name:16s}: {levelname:8s} {message}', style='{')
+    # formatter3 = '%(asctime)s|%(process)d|%(thisFile)-10s|%(levelname)-8s|%(thisUser)-8s|>%(message)s' # tyle='%'
+    
+    formatter0 = '{message}'
+    formatter1 = '{asctime}|{name:10s}|{levelname:8s}|> {message}'
+    formatter2 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
+    formatterFile = logging.Formatter(formatter2, style='{', datefmt='%d-%m-%y %H:%M:%S')
+    formatterCons = logging.Formatter(formatter0, style='{')
+
+    if not consLogYaCreado:
+        # print(f'clidconfig-> {myModule}-> Iniciando logging.basicConfig<> para fileLog & consLog')
+        # Este logger se mantiene activo para todos los modulos,
+        # pero no puedo utilizar myFilter con todos los modulos porque algunas librerias (matplotlib)
+        # lanzan mensajes de debug y no tienen definido el filtro, con lo que da error
+        # https://docs.python.org/3/library/logging.html#logging.basicConfig
+        logging.basicConfig(
+            filename='cartolidar.log',
+            filemode='w',
+            format=formatter1,
+            style='{',
+            datefmt='%d-%m-%y %H:%M:%S',
+            # datefmt='%d-%b-%y %H:%M:%S',
+            level=logging.DEBUG,
+            # level=logging.INFO,
+            # level=logging.WARNING,
+            # level=logging.ERROR,
+            # level=logging.CRITICAL,
+        )
+    else:
+        # qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:
+        #  python -m cartolidar
+        # En __main__.py ya se ha confiigurado el logging.basicConfig()
+        # print(f'clidconfig-> {myModule}-> Ya se ha creado el loggin de consola para todos los modulos en __main__.py')
+        pass
+
+    myLog = logging.getLogger(myModule)
+    # myLog.setLevel(logging.DEBUG)
+    myLog.addFilter(myFilter)
+    
+    # Este logger solo actua para este modulo:
+    # https://docs.python.org/3/library/logging.handlers.html#filehandler
+    fileLog = logging.FileHandler('qlidtwins.log', mode='w')
+    # fileLog.terminator = ''
+    fileLog.set_name(myModule)
+    fileLog.setLevel(logging.DEBUG)
+    fileLog.setFormatter(formatterFile)
+    fileLog.addFilter(myFilter)
+    # logging.getLogger().addHandler(fileLog)
+    myLog.addHandler(fileLog)
+    if not consLogYaCreado:
+        # https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler
+        consLog = logging.StreamHandler()
+        # https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler.terminator
+        # consLog.terminator = ''  # Sustituye al valor por defecto que es '\n'
+        consLog.setFormatter(formatterCons)
+        consLog.setLevel(logLevel)
+        # logging.getLogger().addHandler(consLog)
+        myLog.addHandler(consLog)
+    # ==============================================================================
+    # myLog.debug('qlidtwins-> debug')
+    # myLog.info('qlidtwins-> info')
+    # myLog.warning('qlidtwins-> warning')
+    # myLog.error('qlidtwins-> error')
+    # myLog.critical('qlidtwins-> critical')
+    # ==============================================================================
+
+    return myLog
+
+
+# ==============================================================================
+def iniciaConsLog(myModule='cartolidar', myVerbose=False, myQuiet=False):
+    if __verbose__ == 3:
+        logLevel = logging.DEBUG
+    elif __verbose__ == 2:
+        logLevel = logging.INFO
+    elif __verbose__ == 1:
+        logLevel = logging.WARNING
+    elif not __quiet__:
+        logLevel = logging.ERROR
+    else:
+        logLevel = logging.CRITICAL
+    # ==============================================================================
+    # class ContextFilter(logging.Filter):
+    #     """
+    #     This is a filter which injects contextual information into the log.
+    #     """
+    #
+    #     def filter(self, record):
+    #         record.thisUser = myUser
+    #         record.thisFile = myModule[:10]
+    #         return True
+    # myFilter = ContextFilter()
+    # ==============================================================================
+    # formatter1 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
+    # formatterFile = logging.Formatter(formatter1, style='{', datefmt='%d-%m-%y %H:%M:%S')
+    formatterCons = logging.Formatter('{message}', style='{')
+    
+    # fileLog = logging.FileHandler('qlidtwins.log', mode='w')
+    # fileLog.set_name(myModule)
+    # fileLog.setLevel(logging.DEBUG)
+    # fileLog.setFormatter(formatterFile)
+    # fileLog.addFilter(myFilter)
+    
+    myLog = logging.getLogger(myModule)
+    # myLog.addFilter(myFilter)
+    # myLog.addHandler(fileLog)
+    if sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+        # qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:
+        #  python -m cartolidar
+        # En __main__.py ya se ha confiigurado el logging.basicConfig()
+        # if myModule == __name__.split('.')[-1]:
+        #     print(f'{myModule}-> En __main.py se va a crear el loggin de consola para todos los modulos en __main__.py')
+        # else:
+        #     print(f'{myModule}-> Ya se ha creado el loggin de consola para todos los modulos en __main__.py')
+        pass
+    consLog = logging.StreamHandler()
+    consLog.setFormatter(formatterCons)
+    consLog.setLevel(logLevel)
+    myLog.addHandler(consLog)
+
+    return myLog
+
+
+# ==============================================================================
+myLog = iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
 myLog.debug('clidconfig-> Debug & alpha version info:')
@@ -194,25 +353,6 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
     if verbose:
         print()
     return callingModulePrevio, callingModuleInicial
-
-
-# ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-# Duplico esta funcion de clidaux para no importar clidaux
-def infoUsuario(verbose=False):
-    if psutilOk:
-        try:
-            esteUsuario = psutil.users()[0].name
-            if verbose:
-                print('clidconfig-> Usuario:', esteUsuario)
-        except:
-            esteUsuario = psutil.users()
-            if verbose:
-                print('clidconfig-> Users:', esteUsuario)
-        if not isinstance(esteUsuario, str) or esteUsuario == '':
-            esteUsuario = 'local'
-    else:
-        esteUsuario = 'SinUsuario'
-    return esteUsuario
 
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo

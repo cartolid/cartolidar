@@ -16,11 +16,10 @@ from argparse import RawDescriptionHelpFormatter
 import logging
 import traceback
 
-__version__ = '0.0a4'
-__date__ = '2016-2022'
-__updated__ = '2022-06-17'
-__all__ = []
+from cartolidar.clidax import clidconfig
 
+# ==============================================================================
+# ========================== Variables globales ================================
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -40,28 +39,63 @@ else:
     __quiet__ = 0
 # ==============================================================================
 # TB = '\t'
-TB = ' ' * 12
+TB = ' ' * 22
 TV = ' ' * 3
 # ==============================================================================
 
 # ==============================================================================
-# set a format which is simpler for console use
-formatter0 = logging.Formatter('{message}', style='{')
-# define a Handler which writes INFO messages or higher to the sys.stderr
-consoleLog = logging.StreamHandler()
+thisModule = __name__.split('.')[-1]
+myLog = clidconfig.creaLog(consLogYaCreado=False, myModule=thisModule, myVerbose=__verbose__)
+# print(f'cartolidar.__main__->')
+# print(f'{TB}-> myLog.name: {myLog.name}')
+# print(f'{TB}-> myLog.level: {myLog.level}')
+# print(f'{TB}-> myLog.handlers: {myLog.handlers}')
+
+'''
 if __verbose__ == 3:
-    consoleLog.setLevel(logging.DEBUG)
+    logLevel = logging.DEBUG
 elif __verbose__ == 2:
-    consoleLog.setLevel(logging.INFO)
+    logLevel = logging.INFO
 elif __verbose__ == 1:
-    consoleLog.setLevel(logging.WARNING)
+    logLevel = logging.WARNING
 elif not __quiet__:
-    consoleLog.setLevel(logging.ERROR)
+    logLevel = logging.ERROR
 else:
-    consoleLog.setLevel(logging.CRITICAL)
-consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(__name__.split('.')[-1])
-myLog.addHandler(consoleLog)
+    logLevel = logging.CRITICAL
+# ==============================================================================
+# set a format which is simpler for console use
+formatter0 = '{message}'
+# formatter1 = '{asctime}|{name:10s}|{levelname:8s}|> {message}'
+# formatter2 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
+formatterCons = logging.Formatter(formatter0, style='{')
+# formatterFile = logging.Formatter(formatter2, style='{', datefmt='%d-%m-%y %H:%M:%S')
+# ==============================================================================
+logging.basicConfig(
+    # filename='cartolidar_main.log',
+    # filemode='w',
+    format=formatter0,
+    style='{',
+    datefmt='%d-%m-%y %H:%M:%S',
+    # datefmt='%d-%b-%y %H:%M:%S',
+    level=logLevel,
+    # level=logging.INFO,
+    # level=logging.WARNING,
+    # level=logging.ERROR,
+    # level=logging.CRITICAL,
+)
+# Define a Handler which writes INFO messages or higher to the sys.stderr
+# https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler
+consLog = logging.StreamHandler()
+# https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler.terminator
+# consLog.terminator = ''  # Sustituye al valor por defecto que es '\n'
+consLog.setLevel(logLevel)
+consLog.setFormatter(formatterCons)
+
+myLog = logging.getLogger(thisModule)
+# Si agrego este handler, se duplica la salida a consola.
+# myLog.addHandler(consLog)
+# ==============================================================================
+'''
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
 myLog.debug('cartolidar.__main__-> Debug & alpha version info:')
@@ -72,6 +106,14 @@ myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
 # ==============================================================================
 
+# ==============================================================================
+# Actualizar version en clidtwcfg.py
+from cartolidar.clidtools.clidtwcfg import GLO
+__version__ = GLO.__version__
+__date__ = GLO.__date__
+__updated__ = GLO.__updated__
+__all__ = []
+# ==============================================================================
 
 # ==============================================================================
 def mensajeError(program_name):
@@ -95,7 +137,8 @@ def mensajeError(program_name):
         descError = exc_obj.strerror
     except:
         descError = exc_obj
-    sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
+    sys.stderr.write('')
+    sys.stderr.write(f'Ops! Ha surgido un error inesperado.\n')
     sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
     sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
     sys.stderr.write(f'\tError en:    {fileNameError}\n')
@@ -106,7 +149,8 @@ def mensajeError(program_name):
     sys.stderr.write(f'\tError en:    {codigoConError}\n')
     sys.stderr.write(f'Gracias!\n')
     # ==================================================================
-    sys.stderr.write(f'\nFor help use:\n')
+    sys.stderr.write('')
+    sys.stderr.write(f'For help use:\n')
     sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
     sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e 1 -h\n')
     # ==================================================================
@@ -196,7 +240,8 @@ def leerArgumentosEnLineaDeComandos(
         # Se ignoran argumentos desconocidos sin problemas porque no los hay posicionales
         args, unknown = parser.parse_known_args()
         if not unknown is None and unknown != []:
-            myLog.warning(f'\ncartolidar.__main__-> Argumentos ignorados: {unknown}')
+            myLog.warning('')
+            myLog.warning(f'cartolidar.__main__-> Argumentos ignorados: {unknown}')
         return args, unknown
     except KeyboardInterrupt:
         program_name = 'cartolidar_main'
@@ -232,7 +277,8 @@ if __name__ == '__main__':
     if args is None:
         myLog.error('\ncartolidar-> ATENCION: error en los argumentos en linea de comandos')
         # myLog.error('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
-        sys.stderr.write(f'\nFor help use:\n')
+        sys.stderr.write('')
+        sys.stderr.write(f'For help use:\n')
         sys.stderr.write(f'\tpython -m cartolidar -h\n')
         sys.exit(0)
 
@@ -246,7 +292,7 @@ if __name__ == '__main__':
         myLog.debug(f'sys.argv post: {sys.argv}')
         sys.argv.append('-h')
         if '-e' in unknown:
-            # myLog.debug(f'\ncartolidar.__main__-> Recuperando el argumento ignorado: -e')
+            # myLog.debug(f'cartolidar.__main__-> Recuperando el argumento ignorado: -e')
             sys.argv.append('-e')
         myLog.debug(f'sys.argv fin:  {sys.argv}')
         if args.toolHelp == 'qlidtwins':
@@ -274,23 +320,27 @@ if __name__ == '__main__':
             try:
                 nOpcionElegida = int(selec)
             except:
-                myLog.error(f'\nATENCION: Opcion elegida no disponible: <{selec}>')
+                myLog.info('')
+                myLog.error(f'ATENCION: Opcion elegida no disponible: <{selec}>')
                 sys.exit(0)
-        myLog.info(f'\nSe ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}')
+        myLog.info('')
+        myLog.info(f'Se ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}')
     elif args.menuOption < len(opcionesPrincipales):
-        myLog.info(f'\nOpcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}')
+        myLog.info('')
+        myLog.info(f'Opcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}')
         nOpcionElegida = args.menuOption
     else:
-        myLog.error(f'\nATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}')
+        myLog.error('')
+        myLog.error(f'ATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}')
         myLog.error('Fin de cartolidar\n')
         sys.exit(0)
 
     if nOpcionElegida == 1:
-        myLog.info('\ncartolidar.__main__-> Se ha elegido ejecutar qlidtwuins:')
+        myLog.debug('\ncartolidar.__main__-> Se ha elegido ejecutar qlidtwuins:')
         myLog.debug('\t-> Se importa el modulo qlidtwins.py.')
         from cartolidar import qlidtwins
     elif nOpcionElegida == 2:
-        myLog.info('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
+        myLog.debug('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
         myLog.warning('\nAVISO: herramienta pendiente de incluir en cartolidar.')
         # from cartolidar import qlidmerge
     myLog.info('\nFin de cartolidar\n')

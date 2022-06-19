@@ -31,7 +31,6 @@ import numpy.ma as ma
 from scipy.spatial import distance_matrix
 from scipy.spatial import distance as distance_hist
 # from scipy.spatial import KDTree
-import matplotlib.pyplot as plt
 try:
     import psutil
     psutilOk = True
@@ -53,27 +52,6 @@ except:
 #     sys.stderr.write('clidtwins-> Tampoco se ha podido cargar desde la carpeta osgeo')
 #     sys.exit(0)
 
-# Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
-    from cartolidar.clidtools.clidtwcfg import GLO
-    from cartolidar.clidtools import clidtwinx
-    from cartolidar.clidtools import clidtwinp
-    from cartolidar.clidtools import clidtwinb
-    from cartolidar.clidax import clidconfig
-    from cartolidar.clidax import clidraster
-# except:
-#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-#     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
-#     from clidtools.clidtwcfg import GLO
-#     from clidtools import clidtwinx
-#     from clidtools import clidtwinp
-#     from clidtools import clidtwinb
-#     from clidax import clidconfig
-#     from clidax import clidraster
-
-
-# GLO.GLBLcompilaConNumbaPorDefecto = False
 '''
 configuracion original que da error:
 llvmlite==0.33.0+1.g022ab0f
@@ -81,12 +59,19 @@ numba==0.50.1
 numpy==1.21.6
 '''
 try:
+    from cartolidar.clidtools.clidtwcfg import GLO
+except:
+    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
+    from clidtools.clidtwcfg import GLO
+try:
+    # GLO.GLBLcompilaConNumbaPorDefecto = False
     if GLO.GLBLcompilaConNumbaPorDefecto:
         import numba as nb
         numbaOk = True
-        print('clidtwins-> numba ok')
-        print('numba version:', nb.__version__)
-        print('numpy version:', np.__version__)
+        # print('clidtwins-> numba ok')
+        # print('numba version:', nb.__version__)
+        # print('numpy version:', np.__version__)
         # Usar numba=0.53.00 (no uso el 0.55.0 porque requiere python 3.10)
         # Requiere:
         #  llvmlite==0.36.0
@@ -111,7 +96,26 @@ except:
 
 # numbaOk = False
 
-myUser = clidconfig.infoUsuario()
+
+# Recuperar la captura de errores de importacion en la version beta
+# try:
+if True:
+    # from cartolidar.clidtools.clidtwcfg import GLO
+    from cartolidar.clidtools import clidtwinx
+    from cartolidar.clidtools import clidtwinp
+    from cartolidar.clidtools import clidtwinb
+    from cartolidar.clidax import clidconfig
+    from cartolidar.clidax import clidraster
+# except:
+#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+#     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
+#     from clidtools.clidtwcfg import GLO
+#     from clidtools import clidtwinx
+#     from clidtools import clidtwinp
+#     from clidtools import clidtwinb
+#     from clidax import clidconfig
+#     from clidax import clidraster
+
 
 # Alternativa, si necesitara algun otro ingreciente de clidtwcfg:
 # from cartolidar.clidtools import clidtwcfg as CNFG
@@ -160,22 +164,10 @@ GLBLarrayProximidadInterEspecies = GLO.GLBLarrayProximidadInterEspecies
 # ==============================================================================
 
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-formatter0 = logging.Formatter('{message}', style='{')
-consoleLog = logging.StreamHandler()
-if __verbose__ == 3:
-    consoleLog.setLevel(logging.DEBUG)
-elif __verbose__ == 2:
-    consoleLog.setLevel(logging.INFO)
-elif __verbose__ == 1:
-    consoleLog.setLevel(logging.WARNING)
-elif not __quiet__:
-    consoleLog.setLevel(logging.ERROR)
-else:
-    consoleLog.setLevel(logging.CRITICAL)
-consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(thisModule)
-myLog.addHandler(consoleLog)
+myModule = __name__.split('.')[-1]
+myUser = clidconfig.infoUsuario()
+# ==============================================================================
+myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
 myLog.debug('clidtwins-> Debug & alpha version info:')

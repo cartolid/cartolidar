@@ -33,6 +33,7 @@ except:
     psutilOk = False
 
 import numpy as np
+
 # Recuperar la captura de errores de importacion en la version beta
 # try:
 if True:
@@ -41,9 +42,12 @@ if True:
 #     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
 #     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
 #     from clidax import clidconfig
-myUser = clidconfig.infoUsuario()
 
 
+# ==============================================================================
+__version__ = '0.0a4'
+__date__ = '2016-2022'
+__updated__ = '2022-06-17'
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -80,46 +84,20 @@ else:
 # ==============================================================================
 
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-# class ContextFilter(logging.Filter):
-#     """
-#     This is a filter which injects contextual information into the log.
-#     """
-#
-#     def filter(self, record):
-#         record.thisUser = myUser
-#         record.thisFile = thisModule[:10]
-#         return True
-# myFilter = ContextFilter()
+myModule = __name__.split('.')[-1]
+myUser = clidconfig.infoUsuario()
 # ==============================================================================
-# formatter1 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
-# formatterFile = logging.Formatter(formatter1, style='{', datefmt='%d-%m-%y %H:%M:%S')
-formatterCons = logging.Formatter('{message}', style='{')
-
-# fileLog = logging.FileHandler('qlidtwins.log', mode='w')
-# fileLog.set_name(thisModule)
-# fileLog.setLevel(logging.DEBUG)
-# fileLog.setFormatter(formatterFile)
-# fileLog.addFilter(myFilter)
-
-consLog = logging.StreamHandler()
-if __verbose__ == 3:
-    consLog.setLevel(logging.DEBUG)
-elif __verbose__ == 2:
-    consLog.setLevel(logging.INFO)
-elif __verbose__ == 1:
-    consLog.setLevel(logging.WARNING)
-elif not __quiet__:
-    consLog.setLevel(logging.ERROR)
-else:
-    consLog.setLevel(logging.CRITICAL)
-consLog.setFormatter(formatterCons)
-
-myLog = logging.getLogger(thisModule)
-myLog.setLevel(logging.DEBUG)
-# myLog.addFilter(myFilter)
-# myLog.addHandler(fileLog)
-myLog.addHandler(consLog)
+myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+# print('myLog:', dir((myLog)))
+# 'addFilter', 'addHandler', 'callHandlers', 'critical', 'debug', 'disabled',
+# 'error', 'exception', 'fatal', 'filter', 'filters', 'findCaller', 'getChild',
+# 'getEffectiveLevel', 'handle', 'handlers', 'hasHandlers', 'info', 'isEnabledFor',
+# 'level', 'log', 'makeRecord', 'manager', 'name', 'parent', 'propagate',
+# 'removeFilter', 'removeHandler', 'root', 'setLevel', 'warn', 'warning']
+# print(f'clidtwcfg->')
+# print(f'{TB}-> myLog.name: {myLog.name}')
+# print(f'{TB}-> myLog.level: {myLog.level}')
+# print(f'{TB}-> myLog.handlers: {myLog.handlers}')
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
 myLog.debug('clidtwcfg-> Debug & alpha version info:')
@@ -143,20 +121,6 @@ else:
     sys.argv.append('--idProceso')
     sys.argv.append(MAIN_idProceso)
 # ==============================================================================
-
-
-# ==============================================================================
-def infoUsuario():
-    if psutilOk:
-        try:
-            USERusuario = psutil.users()[0].name
-        except Exception as excpt:
-            USERusuario = psutil.users()
-        if not isinstance(USERusuario, str) or USERusuario == '':
-            USERusuario = 'local'
-        return USERusuario
-    else:
-        return 'SinUsuario'
 
 
 # ==============================================================================
@@ -870,6 +834,9 @@ def readGLO():
     # parametros de configuracion guardados en GRAL_configDict como atributos
     GLO = clidconfig.VariablesGlobales(GRAL_configDict)
     GLO.configFileNameCfg = configFileNameCfg
+    GLO.__version__ = __version__
+    GLO.__date__ = __date__
+    GLO.__updated__ = __updated__
     checkGLO(GLO)
 
     if __verbose__ == 3:

@@ -44,12 +44,12 @@ __all__ = [
     'DasoLidarSource',
     'mostrarListaDrivers'
 ]
-# ==============================================================================
-__version__ = '0.0a4'
-__updated__ = '2022-06-17'
 # No se importa nada con: from qlidtwins import *
 __all__ = []
-
+# ==============================================================================
+__version__ = GLO.__version__
+__date__ = GLO.__date__
+__updated__ = GLO.__updated__
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
