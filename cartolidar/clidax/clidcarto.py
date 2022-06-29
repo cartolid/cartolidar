@@ -6,14 +6,15 @@ Created on 16 jun. 2019
 @author: joseb
 '''
 from __future__ import division, print_function
-import inspect
+
 import os
 import sys
 import time
 import math
-import random
 import pathlib
-import logging
+import inspect
+# import logging
+# import random
 # import struct
 
 import numpy as np
@@ -85,18 +86,19 @@ TW = ' ' * 2
 
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
-    MAIN_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+    ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+    try:
+        MAIN_idProceso = int(ARGS_idProceso)
+    except:
+        sys.stderr.write(f'clidconfig-> ATENCION: revisar asignacion de idProceso.\n')
+        sys.stderr.write(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}\n')
+        sys.stderr.write(f'sys.argv: {sys.argv}\n')
 else:
     # MAIN_idProceso = random.randint(1, 999998)
     MAIN_idProceso = 0
     sys.argv.append('--idProceso')
     sys.argv.append(MAIN_idProceso)
 # ==============================================================================
-
-
-# ==============================================================================
-class myClass(object):
-    pass
 
 
 # ==============================================================================
@@ -146,43 +148,29 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
     return callingModulePrevio, callingModuleInicial
 # ==============================================================================
 
-
-# ==============================================================================
-# Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
-    from cartolidar.clidax import clidconfig
-# except:
-#     if __verbose__ > 2:
-#         sys.stderr.write(f'qlidtwins-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools\n')
-#         sys.stderr.write('\tNo hay vesion de cartolidar instalada en site-packages.')
-#     from clidax import clidconfig
-
-
-# ==============================================================================
-myModule = __name__.split('.')[-1]
-myUser = clidconfig.infoUsuario()
-# ==============================================================================
-myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
-# ==============================================================================
-myLog.debug('{:_^80}'.format(''))
-myLog.debug('clidcarto-> Debug & alpha version info:')
-myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
-myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
-myLog.debug(f'{TB}-> __name__:     <{__name__}>')
-myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
-myLog.debug('{:=^80}'.format(''))
-# ==============================================================================
-
 # ==============================================================================
 CONFIGverbose = False
 if CONFIGverbose:
-    myLog.debug(f'clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
-    myLog.debug('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
+    print(f'clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
+    print('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
 callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=CONFIGverbose)
 if CONFIGverbose:
-    myLog.debug(f'clidcarto-> Pila de llamadas revisada-> callingModulePrevio: {callingModulePrevio} callingModuleInicial: {callingModuleInicial}')
+    print(f'clidcarto-> Pila de llamadas revisada-> callingModulePrevio: {callingModulePrevio} callingModuleInicial: {callingModuleInicial}')
 # ==============================================================================
+
+
+# ==============================================================================
+# Recuperar la captura de errores de importacion en la version beta
+try:
+    from cartolidar.clidax import clidconfig
+except:
+    sys.stderr.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+    sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidcarto del directorio local {os.getcwd()}/....\n')
+
+    if __verbose__ > 2:
+        sys.stderr.write(f'clidcarto-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools\n')
+        sys.stderr.write('\tNo hay vesion de cartolidar instalada en site-packages.\n')
+    from clidax import clidconfig
 
 
 # if (
@@ -194,20 +182,20 @@ if CONFIGverbose:
 #     and callingModuleInicial != 'clidtwins' and callingModuleInicial != 'qlidtwins'
 #     and callingModuleInicial != 'clidmerge' and callingModuleInicial != 'qlidmerge'
 # ):
-if (
-    callingModuleInicial == 'cartolidar'
-    or callingModuleInicial == 'clidaux'
-    or callingModuleInicial == 'clidclas'
-    # or callingModuleInicial == 'clidtry':
-):
-    try:
-        # clidnaux se incorporara proximamente de cartolid a cartolidar
-        from cartolidar.clidnb import clidnaux
-    except:
-        myLog.warning('clidcarto-> ATENCION: error al cargar clidnaux desde clidcarto ')
-        myLog.warning('\t-> Modulo inicial: <{}>'.format(callingModuleInicial))
-        myLog.warning('\t-> Modificar el codigo para que no importe clidnaux')
-        myLog.warning('\t   cuando se llama desde este modulo inicial.')
+# if (
+#     callingModuleInicial == 'cartolidar'
+#     or callingModuleInicial == 'clidaux'
+#     or callingModuleInicial == 'clidclas'
+#     # or callingModuleInicial == 'clidtry':
+# ):
+#     try:
+#         # clidnaux se incorporara proximamente de cartolid a cartolidar
+#         from cartolidar.clidnb import clidnaux
+#     except:
+#         myLog.warning('clidcarto-> ATENCION: error al cargar clidnaux desde clidcarto ')
+#         myLog.warning('\t-> Modulo inicial: <{}>'.format(callingModuleInicial))
+#         myLog.warning('\t-> Modificar el codigo para que no importe clidnaux')
+#         myLog.warning('\t   cuando se llama desde este modulo inicial.')
 
 # ==============================================================================
 # if (
@@ -230,7 +218,6 @@ if (
     class Object(object):
         pass
     GLO = Object()
-    GLO.MAINidProceso = 0
     GLO.GLBLverbose = False
     GLO.GLBLmetrosSubCelda = 2.0
     GLO.GLBLmetrosCelda = 10.0
@@ -244,12 +231,43 @@ else:
         idProceso=MAIN_idProceso
     )
     GLO = clidconfig.VariablesGlobales(configVarsDict)
+GLO.MAIN_idProceso = MAIN_idProceso
+
+GLBNsubCeldasPorCelda = int(GLO.GLBLmetrosCelda / GLO.GLBLmetrosSubCelda)
+
+# ==============================================================================
+myModule = __name__.split('.')[-1]
+myUser = clidconfig.infoUsuario()
+# ==============================================================================
+myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+# ==============================================================================
+myLog.debug('{:_^80}'.format(''))
+myLog.debug('clidcarto-> Debug & alpha version info:')
+# myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
+myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
+myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:         <{__name__}>')
+myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
+myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso}>')
+myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
+myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
+myLog.debug(f'{TB}-> Modulo desde el que se importa: <{callingModulePrevio}>')
+myLog.debug(f'{TB}-> Modulo ejecutado inicialmente:  <{callingModuleInicial}>')
+
+# myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
+
+myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
+myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:         <{__name__}>')
+myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
+myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso}>')
+myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
+myLog.debug('{:=^80}'.format(''))
+# ==============================================================================
 
 if GLO.GLBLverbose:
     myLog.debug('->->Cargando clidcarto')
     # clidaux.showCallingModules(inspect_stack=inspect.stack())
-
-GLBNsubCeldasPorCelda = int(GLO.GLBLmetrosCelda / GLO.GLBLmetrosSubCelda)
 
 if False:
     inputVectorDriverName = 'ESRI Shapefile'
@@ -602,12 +620,12 @@ class CartoRefVector(object):
             '{}.{}'.format(self.nombreCapaInputVector, driverExt)
         )
         if not gdalOk:
-            myLog.error('\tclidcarto-> Gdal no disponible; no se puede leer %s' % (self.nombreConPathCapaInputVector))
+            myLog.error(f'{TB}clidcarto-> Gdal no disponible; no se puede leer {self.nombreConPathCapaInputVector}')
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
         if not os.path.exists(self.nombreConPathCapaInputVector):
-            myLog.error('\tclidcarto-> AVISO no esta disponible el fichero %s' % (self.nombreConPathCapaInputVector))
+            myLog.error(f'{TB}clidcarto-> AVISO no esta disponible el fichero {self.nombreConPathCapaInputVector}')
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
@@ -667,7 +685,7 @@ class CartoRefVector(object):
             outputVectorDriverName = 'ESRI Shapefile'
             outputVectorRecFileName = os.path.join(
                 self.miRutaCartoRecortes, '{}_recortada_id{}.shp'.format(
-                    self.nombreCapaInputVector, GLO.MAINidProceso
+                    self.nombreCapaInputVector, GLO.MAIN_idProceso
                 )
             )
             outputVectorRecLayerName = self.nombreCapaInputVector
@@ -676,7 +694,7 @@ class CartoRefVector(object):
         else:
             outputVectorDriverName = 'Memory'
             outputVectorRecFileName = '{}DataFrameInMemory{}'.format(
-                self.nombreCapaInputVector, GLO.MAINidProceso
+                self.nombreCapaInputVector, GLO.MAIN_idProceso
             )
             outputVectorRecLayerName = self.nombreCapaInputVector + 'layerInMemory'
         if not gdalOk:
@@ -717,7 +735,7 @@ class CartoRefVector(object):
             pixelsPorMetro = -1
 
         if self.LCLhusoUTM != 30:
-            myLog.debug(f'{TW}cartolider-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
+            myLog.debug(f'{TW}clidcarto-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
             myLog.debug(f'{TW}{TB}-> Previamente se abre la primera ortofoto, solo para conocer la dimension del pixel y hacer este ajuste antes de las intersecciones')
             myLog.debug(f'{TW}{TB}{TV}-> Dimension del pixel -> cartoRefRecortadaPixelX: {GLO.GLBLrasterPixelSize}; cartoRefRecortadaPixelY: {GLO.GLBLrasterPixelSize}')
             myLog.debug(f'{TW}{TB}{TV}-> metrosPorPixel/pixelsPorMetro: {metrosPorPixel}/{pixelsPorMetro}')
@@ -964,9 +982,9 @@ class CartoRefVector(object):
                 break
             except:
                 if nIntentosEscritura > 5:
-                    myLog.error(f'{TW}clidcarto.{GLO.MAINidProceso:006d}-> ATENCION!!!: No se ha podido crear crear {targetRasterFileName}')
+                    myLog.error(f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION!!!: No se ha podido crear crear {targetRasterFileName}')
                     return False
-                myLog.error(f'{TW}clidcarto.{GLO.MAINidProceso:006d}-> ATENCION: error al crear {targetRasterFileName}')
+                myLog.error(f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION: error al crear {targetRasterFileName}')
                 time.sleep(5)
 
         try:
@@ -1028,7 +1046,7 @@ class CartoRefVector(object):
             self.vectorRefMinY = self.vectorRefOrigenY + (self.vectorRefNumCeldasY * self.vectorRefPixelY)
             self.vectorRefMaxY = self.vectorRefOrigenY
         except:
-            myLog.error(f'{TW}clidcarto.{GLO.MAINidProceso:006d}-> ATENCION!!!: Error al crear {targetRasterFileName}')
+            myLog.error(f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION!!!: Error al crear {targetRasterFileName}')
             return False
 
         if GLO.GLBLverbose or True:
@@ -1383,7 +1401,7 @@ class CartoRefVector(object):
                             break
                 if GLO.GLBLverbose:
                     print(
-                        'cartolider.{}-> Creando directorio train_npz...: {}'.format(
+                        'clidcarto.{}-> Creando directorio train_npz...: {}'.format(
                             self.fileCoordYear, self.trainPathNpz
                         )
                     )
@@ -1417,7 +1435,7 @@ class CartoRefVector(object):
                             break
                 if GLO.GLBLverbose:
                     print(
-                        'cartolider.{}-> Creando directorio train_png...: {}'.format(
+                        'clidcarto.{}-> Creando directorio train_png...: {}'.format(
                             self.fileCoordYear, self.trainPathPng
                         )
                     )
@@ -1445,7 +1463,7 @@ class CartoRefVector(object):
                                 break
                     if GLO.GLBLverbose or True:
                         print(
-                            'cartolider.{}-> Creando directorio exDataA: {}'.format(
+                            'clidcarto.{}-> Creando directorio exDataA: {}'.format(
                                 self.fileCoordYear, self.trainPathExDataCartoRefA
                             )
                         )
@@ -1470,7 +1488,7 @@ class CartoRefVector(object):
                                 break
                     if GLO.GLBLverbose or True:
                         print(
-                            'cartolider.{}-> Creando directorio exDataB: {}'.format(
+                            'clidcarto.{}-> Creando directorio exDataB: {}'.format(
                                 self.fileCoordYear, self.trainPathExDataCartoRefB
                             )
                         )
@@ -1499,7 +1517,7 @@ class CartoRefVector(object):
                             break
                 if GLO.GLBLverbose:
                     print(
-                        'cartolider.{}-> Creando directorio train/png...: {}'.format(
+                        'clidcarto.{}-> Creando directorio train/png...: {}'.format(
                             self.fileCoordYear, self.trainPathPng1m
                         )
                     )
@@ -1525,7 +1543,7 @@ class CartoRefVector(object):
                             break
                 if GLO.GLBLverbose:
                     print(
-                        'cartolider.{}-> Creando directorio train/asc...: {}'.format(
+                        'clidcarto.{}-> Creando directorio train/asc...: {}'.format(
                             self.fileCoordYear, self.trainPathAsc
                         )
                     )
@@ -2348,7 +2366,7 @@ class CartoRefRaster(object):
             pixelsPorMetro = -1
 
         if self.LCLhusoUTM != 30:
-            print(f'\ncartolider-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
+            print(f'\nclidcarto-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
             print(f'\t-> Previamente se abre la primera ortofoto, solo para conocer la dimension del pixel y hacer este ajuste antes de las intersecciones')
             print(f'\t\t-> Dimension del pixel -> rasterRefMetrosPixelX: {self.rasterRefMetrosPixelX}; rasterRefMetrosPixelY: {self.rasterRefMetrosPixelY}')
             print(f'\t\t-> metrosPorPixel/pixelsPorMetro: {metrosPorPixel}/{pixelsPorMetro}')
@@ -2522,7 +2540,8 @@ class CartoRefRaster(object):
             self.miRasterRefVentanaOk = 0
             return
         elif self.chequearPuntosDeEjemplo:
-            listaCeldas = clidnaux.celdasDeControl()
+            # listaCeldas = clidnaux.celdasDeControl()
+            listaCeldas = []
             for celdaDeControl in listaCeldas:
                 nX, nY = celdaDeControl[0], celdaDeControl[1]
                 coordX = self.xminBloqueH30 + ((nX + 0.5) * self.rasterRefMetrosPixelX)
@@ -2572,7 +2591,7 @@ class CartoRefRaster(object):
                             break
                 if GLO.GLBLverbose:
                     print(
-                        'cartolider.{}-> Creando directorio train_npz...: {}'.format(
+                        'clidcarto.{}-> Creando directorio train_npz...: {}'.format(
                             self.fileCoordYear, self.trainPathNpz
                         )
                     )
@@ -2603,7 +2622,7 @@ class CartoRefRaster(object):
                             break
                 if GLO.GLBLverbose:
                     print(
-                        'cartolider.{}-> Creando directorio train_png...: {}'.format(
+                        'clidcarto.{}-> Creando directorio train_png...: {}'.format(
                             self.fileCoordYear, self.trainPathPng
                         )
                     )
@@ -2629,7 +2648,7 @@ class CartoRefRaster(object):
                             break
                 if GLO.GLBLverbose:
                     print(
-                        'cartolider.{}-> Creando directorio train/asc...: {}'.format(
+                        'clidcarto.{}-> Creando directorio train/asc...: {}'.format(
                             self.fileCoordYear, self.trainPathAsc
                         )
                     )
@@ -4148,8 +4167,8 @@ def crearTilesTargetReDepurados(
                     if numIntentosEscritura > 5:
                         break
             print(
-                'cartolider.{:006}-> Creando directorio exData: {}'.format(
-                    GLO.MAINidProceso, trainPathExDataMiniSubCelLasClass_2_345_6
+                'clidcarto.{:006}-> Creando directorio exData: {}'.format(
+                    GLO.MAIN_idProceso, trainPathExDataMiniSubCelLasClass_2_345_6
                 )
             )
     else:
@@ -4818,10 +4837,10 @@ def crearTilesInputTarget(
         trainPathNpzTarget = os.path.join(GLO.MAINrutaOutput, train_dir, 'inputVariablesNpz/')
         if not os.path.isdir(trainPathNpzInput):
             os.makedirs(trainPathNpzInput)
-            print('cartolider-> Creando directorio train', trainPathNpzInput)
+            print('clidcarto-> Creando directorio train', trainPathNpzInput)
         if not os.path.isdir(trainPathNpzTarget):
             os.makedirs(trainPathNpzTarget)
-            print('cartolider-> Creando directorio train', trainPathNpzTarget)
+            print('clidcarto-> Creando directorio train', trainPathNpzTarget)
     else:
         trainPathNpzInput = ''
         trainPathNpzTarget = ''
@@ -4840,8 +4859,8 @@ def crearTilesInputTarget(
                     if numIntentosEscritura > 5:
                         break
             print(
-                'cartolider.{:006}-> Creando directorio exData: {}'.format(
-                    GLO.MAINidProceso, trainPathExDataMiniSubCelLasClassOriginal
+                'clidcarto.{:006}-> Creando directorio exData: {}'.format(
+                    GLO.MAIN_idProceso, trainPathExDataMiniSubCelLasClassOriginal
                 )
             )
 
@@ -4860,8 +4879,8 @@ def crearTilesInputTarget(
                     if numIntentosEscritura > 5:
                         break
             print(
-                'cartolider.{:006}-> Creando directorio exData: {}'.format(
-                    GLO.MAINidProceso, trainPathExDataMiniSubCelLasClass_2_345_6
+                'clidcarto.{:006}-> Creando directorio exData: {}'.format(
+                    GLO.MAIN_idProceso, trainPathExDataMiniSubCelLasClass_2_345_6
                 )
             )
 

@@ -19,6 +19,15 @@ import traceback
 from cartolidar.clidax import clidconfig
 
 # ==============================================================================
+# Actualizar version en clidtwcfg.py
+from cartolidar.clidtools.clidtwcfg import GLO
+__version__ = GLO.__version__
+__date__ = GLO.__date__
+__updated__ = GLO.__updated__
+__all__ = []
+# ==============================================================================
+
+# ==============================================================================
 # ========================== Variables globales ================================
 # ==============================================================================
 # Verbose provisional para la version alpha
@@ -44,8 +53,8 @@ TV = ' ' * 3
 # ==============================================================================
 
 # ==============================================================================
-thisModule = __name__.split('.')[-1]
-myLog = clidconfig.creaLog(consLogYaCreado=False, myModule=thisModule, myVerbose=__verbose__)
+myModule = __name__.split('.')[-1]
+myLog = clidconfig.creaLog(consLogYaCreado=False, myModule=myModule, myPath='../data/log', myVerbose=__verbose__)
 # print(f'cartolidar.__main__->')
 # print(f'{TB}-> myLog.name: {myLog.name}')
 # print(f'{TB}-> myLog.level: {myLog.level}')
@@ -91,7 +100,7 @@ consLog = logging.StreamHandler()
 consLog.setLevel(logLevel)
 consLog.setFormatter(formatterCons)
 
-myLog = logging.getLogger(thisModule)
+myLog = logging.getLogger(myModule)
 # Si agrego este handler, se duplica la salida a consola.
 # myLog.addHandler(consLog)
 # ==============================================================================
@@ -104,15 +113,6 @@ myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
 myLog.debug(f'{TB}-> __name__:     <{__name__}>')
 myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
-# ==============================================================================
-
-# ==============================================================================
-# Actualizar version en clidtwcfg.py
-from cartolidar.clidtools.clidtwcfg import GLO
-__version__ = GLO.__version__
-__date__ = GLO.__date__
-__updated__ = GLO.__updated__
-__all__ = []
 # ==============================================================================
 
 # ==============================================================================

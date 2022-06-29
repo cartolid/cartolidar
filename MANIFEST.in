@@ -1,12 +1,84 @@
+include _version.py
 include cartolidar/*.py
-include cartolidar/clidtools/*.py
+include cartolidar/__init__.py
+include cartolidar/__main__.py
+include cartolidar/qlidtwins.py
+
+exclude cartolidar/qlidmerge.py
+exclude cartolidar/cartolidar.py
+exclude cartolidar/cartolider.py
+exclude cartolidar/cartolidar.xls
+exclude cartolidar/reClasificador.csv
+exclude cartolidar/listaBloquesSelec.cfg
+
 include cartolidar/clidax/*.py
-include cartolidar/data/*.*
-include cartolidar/data/ref/*.*
+include cartolidar/clidax/__init__.py
+include cartolidar/clidax/clidaux.py
+include cartolidar/clidax/clidcarto.py
+include cartolidar/clidax/clidconfig.py
+include cartolidar/clidax/clidraster.py
+exclude cartolidar/clidax/clidcluster.py
+exclude cartolidar/clidax/clidgis.py
+exclude cartolidar/clidax/clidshow.py
+
+include cartolidar/clidio/*.py
+include cartolidar/clidio/clidhead.py
+exclude cartolidar/clidio/clidlat.py
+exclude cartolidar/clidio/clidlax.py
+exclude cartolidar/clidio/clidpoint.py
+exclude cartolidar/clidio/clidshape.py
+exclude cartolidar/clidio/classificationLookup.csv
+exclude cartolidar/clidio/LandCover.csv
+
+exclude cartolidar/clidml/__init__.py
+exclude cartolidar/clidml/clidclas.py
+exclude cartolidar/clidml/clidinferconvol.py
+exclude cartolidar/clidml/clidmachine.py
+exclude cartolidar/clidml/clidmanual.py
+exclude cartolidar/clidml/clidtrain.py
+
+include cartolidar/clidnb/*.py
+exclude cartolidar/clidnb/__init__.py
+exclude cartolidar/clidnb/clidnaux.py
+exclude cartolidar/clidnb/clidndat.py
+exclude cartolidar/clidnb/clidnv0.py
+exclude cartolidar/clidnb/clidnv1.py
+exclude cartolidar/clidnb/clidnv2k.py
+exclude cartolidar/clidnb/clidnv2s.py
+exclude cartolidar/clidnb/clidnv2x.py
+exclude cartolidar/clidnb/clidnv2y.py
+exclude cartolidar/clidnb/clidnv3.py
+exclude cartolidar/clidnb/clidnv4.py
+exclude cartolidar/clidnb/clidnv5.py
+exclude cartolidar/clidnb/clidnv6.py
+
+include cartolidar/clidtools/*.py
+include cartolidar/clidtools/__init__.py
+include cartolidar/clidtools/__main__.py
+include cartolidar/clidtools/clidtwcfg.py
+include cartolidar/clidtools/clidtwinb.py
+include cartolidar/clidtools/clidtwinp.py
+include cartolidar/clidtools/clidtwins.py
+include cartolidar/clidtools/clidtwinx.py
+exclude cartolidar/clidtools/clidmerge.py
+
+global-exclude tests/pruebas*.*
+
 include data/*.*
-global-exclude cartolidar/data/asc/PuenteDuero/dasoLayers
+global-exclude  data/asc/*.*
+global-exclude  data/ext/*.*
+global-exclude  data/log/*.*
+global-exclude  data/mfe/*.*
+global-exclude  data/other/*.*
+include data/ref/*.*
+
+global-exclude data/asc/PuenteDuero/dasoLayers
 global-exclude dasoLayers/*.*
+global-exclude cartolidar/__pycache__/*.*
+global-exclude *.pyc
 global-exclude *.back
 global-exclude *.txt
+global-exclude *.log
 global-exclude *.cfg
 global-exclude *.args
+global-exclude *.bat

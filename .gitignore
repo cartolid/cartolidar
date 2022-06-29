@@ -1,21 +1,96 @@
 #Elaborado a partir de https://github.com/github/gitignore
 
 # Modulos que, por ahora, no incluyo en el respositorio
+# include cartolidar/*.py
+# include cartolidar/__main__.py
+# include cartolidar/qlidtwins.py
 cartolidar/qlidmerge.py
+cartolidar/cartolidar.py
+cartolidar/cartolider.py
+cartolidar/cartolidar.xls
+cartolidar/reClasificador.csv
+cartolidar/listaBloquesSelec.cfg
+
+# include cartolidar/clidax/*.py
+# include cartolidar/clidax/__init__.py
+# include cartolidar/clidax/clidaux.py
+# include cartolidar/clidax/clidcarto.py
+# include cartolidar/clidax/clidconfig.py
+# include cartolidar/clidax/clidraster.py
+cartolidar/clidax/clidcluster.py
+cartolidar/clidax/clidgis.py
+cartolidar/clidax/clidshow.py
+
+# include cartolidar/clidio/clidhead.py
+cartolidar/clidio/clidlat.py
+cartolidar/clidio/clidlax.py
+cartolidar/clidio/clidpoint.py
+cartolidar/clidio/clidshape.py
+cartolidar/clidio/classificationLookup.csv
+cartolidar/clidio/LandCover.csv
+
+cartolidar/clidml/__init__.py
+cartolidar/clidml/clidclas.py
+cartolidar/clidml/clidinferconvol.py
+cartolidar/clidml/clidmachine.py
+cartolidar/clidml/clidmanual.py
+cartolidar/clidml/clidtrain.py
+
+cartolidar/clidnb/__init__.py
+cartolidar/clidnb/clidnaux.py
+cartolidar/clidnb/clidndat.py
+cartolidar/clidnb/clidnv0.py
+cartolidar/clidnb/clidnv1.py
+cartolidar/clidnb/clidnv2k.py
+cartolidar/clidnb/clidnv2s.py
+cartolidar/clidnb/clidnv2x.py
+cartolidar/clidnb/clidnv2y.py
+cartolidar/clidnb/clidnv3.py
+cartolidar/clidnb/clidnv4.py
+cartolidar/clidnb/clidnv5.py
+cartolidar/clidnb/clidnv6.py
+
+# include cartolidar/clidtools/__init__.py
+# include cartolidar/clidtools/__main__.py
+# include cartolidar/clidtools/clidtwcfg.py
+# include cartolidar/clidtools/clidtwinb.py
+# include cartolidar/clidtools/clidtwinp.py
+# include cartolidar/clidtools/clidtwins.py
+# include cartolidar/clidtools/clidtwinx.py
 cartolidar/clidtools/clidmerge.py
 
+tests/pruebas.py
+
 # Ficheros auxiliares que no incluyo en el repositorio
+# data/*.*
+data/asc/*.*
+data/ext/*.*
+data/ext/cfg/*.*
+data/ext/invoVuelos/*.*
+data/ext/io/*.*
+data/log/*.*
+data/mfe/*.*
+data/other/*.*
+# data/ref/*.*
+
 pruebas*.py
 Ayuda.txt
 README_extras.txt
+cartolidar/clid.bat
 cartolidar/cartolidar.cfg
 cartolidar/qlidtwins.cfg
 qlidtwins_LeRoble.cfg
 qlidtwins_SgPino.cfg
 qlidtwins_LeRobleTolosana.cfg
 qlidtwins.args
+# Ficheros logging
+*.log
 # Ayuda.txt, qlidtwins.txt, clidtwins.txt, etc.
 *.txt
+# Archivos de configuracion
+*.xls
+*.xlsx
+*.xlsm
 # cartolidar.cfg, clidtwins.cfg, etc.
 *.cfg
 # clidtwins.args, etc.
@@ -29,6 +104,7 @@ cartolidar.egg-info/
 cartolidar.egg-info/*.*
 dist/*.*
 basura/
+*.bat
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

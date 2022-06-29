@@ -5,6 +5,7 @@
 
 import os
 import sys
+import re
 
 import setuptools
 # from setuptools import find_packages
@@ -26,6 +27,17 @@ print('\npackages encontrados:', packages)
 # # https://github.com/python-versioneer/python-versioneer/issues/193
 # sys.path.append(os.path.dirname(__file__))
 # import versioneer
+
+# Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
+VERSIONFILE = '_version.py'
+verstrline = open(VERSIONFILE, "rt").read()
+VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    verstr = mo.group(1)
+else:
+    raise RuntimeError("Unable to find version string in %s." % (VERSIONFILE,))
+print('version:', verstr)
 
 rutaTrabajo = sys.prefix
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -115,7 +127,8 @@ setuptools.setup(
 	# Versions should comply with PEP 440:
     # 	https://www.python.org/dev/peps/pep-0440/
     # version=versioneer.get_version(),
-    version='0.0a4',
+    # version='0.0a4',
+    version=verstr,
     description='Lidar data processing tools focused on Spanish PNOA datasets',
     long_description=README,
     long_description_content_type='text/markdown',

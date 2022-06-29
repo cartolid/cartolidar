@@ -15,7 +15,7 @@ import time
 from datetime import datetime, timedelta
 import math
 import random
-import logging
+import traceback
 import struct
 import platform, subprocess
 import inspect
@@ -59,6 +59,60 @@ except:
 
 
 # ==============================================================================
+if '--cargadoClidaux' in sys.argv:
+    moduloCargado = True
+    print(f'\nclidaux->x> moduloCargado: {moduloCargado}; sys.argv: {sys.argv}')
+else:
+    moduloCargado = False
+    print(f'\nclidaux->x> moduloCargado: {moduloCargado}; sys.argv: {sys.argv}')
+    sys.argv.append('--cargadoClidaux')
+# ==============================================================================
+if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
+    ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+else:
+    # ARGS_idProceso = str(random.randint(1, 999998))
+    ARGS_idProceso = '999999'
+    sys.argv.append('--idProceso')
+    sys.argv.append(ARGS_idProceso)
+# ==============================================================================
+if type(ARGS_idProceso) == str:
+    try:
+        MAIN_idProceso = int(ARGS_idProceso)
+    except:
+        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
+        print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+        print(f'sys.argv: {sys.argv}')
+else:
+    MAIN_idProceso = ARGS_idProceso
+    print(f'clidaux-> ATENCION: revisar codigo de idProceso.')
+    print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+    print(f'sys.argv: {sys.argv}')
+# ==============================================================================
+
+# ==============================================================================
+# Verbose provisional para la version alpha
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
+    __verbose__ = 0
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 10
+TV = ' ' * 3
+# ==============================================================================
+
+# ==============================================================================
 # ============================== Variables MAIN ================================
 # ==============================================================================
 # Directorio que depende del entorno:
@@ -94,28 +148,48 @@ else:
     except:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
+
 # ==============================================================================
-# Verbose provisional para la version alpha
-if '-vvv' in sys.argv:
-    __verbose__ = 3
-elif '-vv' in sys.argv:
-    __verbose__ = 2
-elif '-v' in sys.argv or '--verbose' in sys.argv:
-    __verbose__ = 1
-else:
-    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
-    __verbose__ = 0
-# ==============================================================================
-if '-q' in sys.argv:
-    __quiet__ = 1
-    __verbose__ = 0
-else:
-    __quiet__ = 0
-# ==============================================================================
-# TB = '\t'
-TB = ' ' * 12
-TV = ' ' * 3
-# ==============================================================================
+def mensajeError(program_name):
+    # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+    exc_type, exc_obj, exc_tb = sys.exc_info()
+    # ==================================================================
+    # tb = traceback.extract_tb(exc_tb)[-1]
+    # lineError = tb[1]
+    # funcError = tb[2]
+    try:
+        lineasTraceback = list((traceback.format_exc()).split('\n'))
+        codigoConError = lineasTraceback[2]
+    except:
+        codigoConError = ''
+    # ==================================================================
+    fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    lineError = exc_tb.tb_lineno
+    funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+    typeError = exc_type.__name__
+    try:
+        descError = exc_obj.strerror
+    except:
+        descError = exc_obj
+    sys.stderr.write(f'\nOps! Ha surgido un error inesperado.\n')
+    sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
+    sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
+    sys.stderr.write(f'\tError en:    {fileNameError}\n')
+    sys.stderr.write(f'\tFuncion:     {funcError}\n')
+    sys.stderr.write(f'\tLinea:       {lineError}\n')
+    sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
+    sys.stderr.write(f'\tTipo:        {typeError}\n')
+    sys.stderr.write(f'\tError en:    {codigoConError}\n')
+    sys.stderr.write(f'Gracias!\n')
+    # ==================================================================
+    sys.stderr.write(f'\nFor help use:\n')
+    sys.stderr.write(f'\thelp for main arguments:         python {program_name}.py -h\n')
+    sys.stderr.write(f'\thelp for main & extra arguments: python {program_name}.py -e 1 -h\n')
+    # ==================================================================
+    # sys.stderr.write('\nFormato estandar del traceback:\n')
+    # sys.stderr.write(traceback.format_exc())
+    return (lineError, descError, typeError)
+
 
 # ==============================================================================
 def showCallingModules(inspect_stack=inspect.stack(), verbose=True):
@@ -134,7 +208,7 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=True):
             return 'desconocido1', 'desconocido1'
     else:
         print('\tclidaux-> No hay modulos que identificar')
-        return 'desconocido2', 'desconocido2'
+        return 'noHayModuloPrevio', 'esteModulo'
 
     if not esteModuloName0 is None:
         esteModuloName = esteModuloName0
@@ -159,52 +233,57 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=True):
                 # print('clidaux-> llamado por', llamada[1:3], end=' ')
             if verbose:
                 print('importado desde: {} ({})'.format(callingModule, llamada[2]), end='; ')
-    print()
+    if verbose:
+        print()
     return callingModulePrevio, callingModuleInicial
+
+
+# ==============================================================================
+CONFIGverbose = __verbose__ > 2
+if CONFIGverbose:
+    print(f'\nclidaux-> Cargando clidaux...')
+    print(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
+    print(f'{TB}-> Revisando la pila de llamadas...')
+callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
+if CONFIGverbose:
+    print(f'{TB}{TV}-> callingModulePrevio:  {callingModulePrevio}')
+    print(f'{TB}{TV}-> callingModuleInicial: {callingModuleInicial}')
 # ==============================================================================
 
-CONFIGverbose = False
-if CONFIGverbose:
-    print('clidaux-> Directorio desde el que se lanza la aplicacion-> os.getcwd():', os.getcwd())
-    print('clidaux-> Cargando clidaux; reviso la pila de llamadas')
-callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=CONFIGverbose)
-if CONFIGverbose:
-    print('clidaux-> Pila de llamadas revisada-> callingModulePrevio:', callingModulePrevio, 'callingModuleInicial:', callingModuleInicial)
-
-# print('\nclidaux-> Cargando clidaux desde callingModuleInicial:', callingModuleInicial)
 
 # ==============================================================================
 if (
     callingModuleInicial == 'generax'
     or os.getcwd().endswith('gens')
     or (callingModuleInicial==  '__main__' and 'cartolidar' in sys.argv[0])  # sys.argv[0].endswith('__main__.py')
+    # or callingModuleInicial == 'cartolidar'
     or callingModuleInicial == 'qlidtwins' or callingModuleInicial == 'clidtwins'
     or callingModuleInicial == 'qlidmerge' or callingModuleInicial == 'clidmerge'
-    or callingModuleInicial == 'cartolidar'
     or callingModuleInicial == 'runpy'
     or callingModuleInicial == '__init__'
     or callingModuleInicial.startswith('test_')
     # or callingModuleInicial != 'clidtools'
 ):
+    print(f'\nclidaux-> NO se cargan las variables globales. Modulo importado desde la ruta: {os.getcwd()} -> Inicial: {callingModuleInicial}')
+    print(f'{TB}-> __name__:        {__name__}')
+    print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
+    print(f'{TB}-> Ruta de trabajo: {os.getcwd()}')
 
     class Object(object):
         pass
 
     GLO = Object()
-    GLO.MAINidProceso = 0
     GLO.GLBLficheroLasTemporal = ''
     GLO.GLBLverbose = True
-    if GLO.GLBLverbose > 2:
-        print(f'clidaux-> Modulo importado desde la ruta: {os.getcwd()} -> Modulo: {callingModuleInicial}')
-        print('\t-> No se cargan las variables globales')
 
 else:
+    print(f'\nclidaux-> SI se cargan las variables globales.')
+    print(f'{TB}-> __name__:        {__name__}')
+    print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
+    print(f'{TB}-> Ruta de trabajo: {os.getcwd()}')
+
     if __name__ == '__main__': # callingModuleInicial != 'clidaux'
         print('clidaux-> Modulo cargado directamente. os.getcwd():', os.getcwd(), time.asctime(time.localtime(time.time())))
-        MAINidProceso = random.randint(1, 999998)
-        sys.argv.append('idProceso')
-        sys.argv.append(MAINidProceso)
-        print('\t-> Se asigna idProceso: {} = {}'.format(MAINidProceso, sys.argv[-1]))
 #         try:
         if True:
             # https://stackoverflow.com/questions/61234609/how-to-import-python-package-from-another-directory
@@ -252,12 +331,11 @@ else:
         MAINusuario = clidconfig.infoUsuario(False)
         # ==============================================================================
         nuevosParametroConfiguracion = {}
-        #nuevosParametroConfiguracion['MAINversionLidas'] = [__version__, 'GrupoMAIN', '', 'str']
         nuevosParametroConfiguracion['MAINcopyright'] = ['2016-2021', 'GrupoMAIN', '', 'str']
         nuevosParametroConfiguracion['MAINusuario'] = [MAINusuario, 'GrupoMAIN', '', 'str']
         nuevosParametroConfiguracion['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'GrupoMAIN', '', 'str']
         nuevosParametroConfiguracion['MAINmiRutaRaiz'] = [MAIN_RAIZ_DIR, 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAINidProceso'] = [MAINidProceso, 'GrupoMAIN', '', 'str']
+        nuevosParametroConfiguracion['MAIN_idProceso'] = [MAIN_idProceso, 'GrupoMAIN', '', 'str']
         nuevosParametroConfiguracion['MAIN_ENTORNO'] = [MAIN_ENTORNO, 'GrupoMAIN', '', 'str']
         nuevosParametroConfiguracion['MAIN_PC'] = [MAIN_PC, 'GrupoMAIN', '', 'str']
         nuevosParametroConfiguracion['MAIN_DRIVE'] = [MAIN_DRIVE, 'GrupoDirsFiles', '', 'str']
@@ -270,7 +348,6 @@ else:
         nuevosParametroConfiguracion['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'GrupoDirsFiles', '', 'str']
 
     else:
-        MAINidProceso = sys.argv[-1]
         nuevosParametroConfiguracion = {}
         if callingModuleInicial != 'clidaux' and callingModuleInicial != 'clidtools' and callingModuleInicial != '__main__':
             if CONFIGverbose or True:
@@ -294,19 +371,19 @@ else:
 
     if __name__ == '__main__' or (callingModuleInicial != 'clidaux' and callingModuleInicial != 'clidtools'):
         if CONFIGverbose:
-            print('clidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (con o sin nuevosParametroConfiguracion) para leer los parametros de configuracion del fichero cfg')
+            print(f'\nclidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (con o sin nuevosParametroConfiguracion) para leer los parametros de configuracion del fichero cfg')
         GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
             nuevosParametroConfiguracion,
-            idProceso=MAINidProceso,
+            idProceso=MAIN_idProceso,
             inspect_stack=inspect.stack(),
             verbose=CONFIGverbose,
         )
         if CONFIGverbose:
-            print('clidaux-> B Cargando parametros de configuracion en GLO configVarsDict["GLBLverbose"]:', GLOBALconfigDict["GLBLverbose"])
+            print(f'clidaux-> B Cargando parametros de configuracion GLOBALconfigDict en GLO')
         GLO = clidconfig.VariablesGlobales(GLOBALconfigDict)
         if CONFIGverbose:
-            print('clidaux-> C ok. GLO.GLBLverbose:', GLO.GLBLverbose,)
-        GLO.MAINidProceso = MAINidProceso
+            print(f'clidaux-> C ok. GLO.GLBLverbose: {GLO.GLBLverbose}; CONFIGverbose: {CONFIGverbose}; __verbose__: {__verbose__}')
+        GLO.MAIN_idProceso = MAIN_idProceso
 
 
 if callingModuleInicial == 'cartolider':
@@ -319,15 +396,21 @@ else:
 myModule = __name__.split('.')[-1]
 myUser = clidconfig.infoUsuario()
 # ==============================================================================
-myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+if not moduloCargado:
+    print('\ncartolidar-> AVISO: creando myLog')
+    myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
 myLog.debug('clidaux-> Debug & alpha version info:')
-myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
-myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
-myLog.debug(f'{TB}-> __name__:     <{__name__}>')
-myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
-myLog.debug('{:=^80}'.format(''))
+myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
+myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
+myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
+myLog.debug(f'{TB}-> __name__:         <{__name__}>')
+myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
+myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso:006}>')
+myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
+myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
+myLog.debug(f'{"":=^80}')
 # ==============================================================================
 
 # print('\nclidaux-> cargando clidaux. GLO:', GLO)
@@ -578,14 +661,14 @@ def memoriaRam(marcador='-', verbose=True, swap=False, sangrado=''):
 
 # ==============================================================================o
 def infoPC(verbosePlus=False):
-    print('\n{:_^80}'.format(''))
-    print('Sistema operativo:')
-    print('  OS:      ', platform.system())
-    print('  Version: ', platform.release())
-    print('IP local:', socket.gethostbyname(socket.gethostname()))
+    print(f'\n{"":_^80}')
+    print(f'clidaux-> Sistema operativo:')
+    print(f'  OS:       {platform.system()}')
+    print(f'  Version:  {platform.release()}')
+    print(f'\nIP local: {socket.gethostbyname(socket.gethostname())}')
 
-    print('\nHardware:')
-    print('  CPU totales %i (fisicas: %i)' % (psutil.cpu_count(), psutil.cpu_count(logical=False)))
+    print(f'\nHardware:')
+    print(f'  CPU totales {psutil.cpu_count()} (fisicas: {psutil.cpu_count(logical=False)})')
     # print( 'CPU times - interrupt:', psutil.cpu_times(percpu=False) )
     # print( 'CPU times - interrupt:', psutil.cpu_times(percpu=True) )
     # print( 'CPU statistics:', psutil.cpu_stats() )
@@ -621,7 +704,7 @@ def infoPC(verbosePlus=False):
     memoriaRam(sangrado='  ')
     if verbosePlus:
         print(' ', proc.memory_info())
-    print('{:=^80}'.format(''))
+    print(f'{"":=^80}')
 
     # import np.distutils.cpuinfo as cpuinfo
     # print( '1.', dir(cpuinfo) )
@@ -652,7 +735,7 @@ def infoPC(verbosePlus=False):
 
 # ==============================================================================o
 def mostrarEntornoDeTrabajo(verbosePlus=False):
-    print('\n{:_^80}'.format(''))
+    print(f'\n{"":_^80}')
     print('clidaux-> Info sobre Python:')
     print('\t-> Version:      %i.%i' % (sys.version_info[0], sys.version_info[1]))
     print('\t-> Ruta python:  %s' % sys.prefix)
@@ -689,6 +772,15 @@ def mostrarEntornoDeTrabajo(verbosePlus=False):
     print('  Version de numpy:     ', np.__version__) # <=> np.version.version
     print('  Version de scipy:     ', scipy.__version__) # <=> scipy.version.version
     print('  Version de Numba:     ', numba.__version__)
+    endMajor = numba.__version__.find('.')
+    endMinor = numba.__version__.find('.', endMajor + 1)
+    verMajor = int(numba.__version__[:endMajor])
+    if endMinor == -1:
+        verMinor = int(numba.__version__[endMajor + 1:])
+    else:
+        verMinor = int(numba.__version__[endMajor + 1: endMinor])
+    if verMajor == 0 and verMinor < 53:
+        print('   -> Atencion: recomendable actualizar numba a 0.53.0')
     print('  Version de gdal:      ', gdal.VersionInfo())
     try:
         import pyproj
@@ -699,12 +791,12 @@ def mostrarEntornoDeTrabajo(verbosePlus=False):
             print(pyproj.show_versions())
     except:
         print('  pyproj no disponible')
-    print('{:=^80}'.format(''))
+    print(f'{"":=^80}')
 
 
 # ==============================================================================o
 def mostrar_directorios():
-    print('\n{:_^80}'.format(''))
+    print(f'\n{"":_^80}')
     print('clidaux-> Modulos y directorios de la aplicacion:')
     print('\t-> Modulos de la aplicacion:')
     print('\t\t-> Modulo principal (sys.argv[0]) {}'.format(sys.argv[0]))
@@ -720,8 +812,7 @@ def mostrar_directorios():
     if len(sys.argv) > 3:
         print('\t-> Argumentos en linea de comandos:')
         print('\t\t-> Args: {}'.format(sys.argv[3:]))
-    print('{:=^80}'.format(''))
-
+    print(f'{"":=^80}')
 
 
 # ==============================================================================o
@@ -745,6 +836,33 @@ def buscarDirectorioDeTrabajo():
 
 
 # ==============================================================================o
+def buscarDirectorioDataExt():
+    dataExtPath = os.path.abspath(GLO.MAINrutaDataExt)
+    dataFiles = []
+    if os.path.isdir(dataExtPath):
+        for (_, _, filenames) in os.walk(dataExtPath):
+            break
+        dataFiles = [
+            filename for filename in filenames
+            if filename[-4:].lower() == '.txt'
+            or filename[-4:].lower() == '.cfg'
+            or filename[-4:].lower() == '.csv'
+            or filename[-4:].lower() == '.xls'
+            or filename[-5:].lower() == '.xlsx'
+            or filename[-5:].lower() == '.xlsm'
+        ]
+        if dataFiles:
+            return dataExtPath
+        else:
+            print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+            directorioDeTrabajo = buscarDirectorioDeTrabajo()
+            print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
+            return directorioDeTrabajo
+    else:
+        print(f'clidaux-> La ruta {dataExtPath} no es valida.')
+        directorioDeTrabajo = buscarDirectorioDeTrabajo()
+        print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
+        return directorioDeTrabajo
 
 
 # ==============================================================================o
@@ -1634,7 +1752,7 @@ def comprimeLaz(
         sobreEscribirOutFile=False,
     ):
     if LCLverbose:
-        printMsg('\n{:_^80}'.format(''))
+        printMsg(f'\n{"":_^80}')
 
     if not os.path.exists(infileConRuta):
         printMsg(f'clidaux-> Fichero no disponible para comprimir: {infileConRuta}')
@@ -1693,7 +1811,7 @@ def descomprimeLaz(
         sobreEscribirOutFile=False,
     ):
     if LCLverbose:
-        printMsg('\n{:_^80}'.format(''))
+        printMsg(f'\n{"":_^80}')
 
     if not os.path.exists(infileConRuta):
         printMsg(f'clidaux-> Fichero no disponible para descomprimir: {infileConRuta}')
@@ -1879,12 +1997,12 @@ def descomprimeLaz(
         # if MAIN_ENTORNO == 'windows':
         #     ejecutar = laszip_binary + ' ' + infileConRuta + ' ' + outfileLasConRuta
         #     if GLO.GLBLverbose:
-        #         print('\tcartolidar.%0.6i->' % GLO.MAINidProceso + 'Descomprimiendo con', laszip_binary)
+        #         print('\tcartolidar.%0.6i->' % GLO.MAIN_idProceso + 'Descomprimiendo con', laszip_binary)
         #         print('\t\t', ejecutar)
         #     os.system(ejecutar)
 
     if LCLverbose:
-        printMsg('{:=^80}'.format(''))
+        printMsg(f'{"":=^80}')
 
     return lasDataMem
 
@@ -2191,12 +2309,12 @@ def borrarFicheroDeConfiguracionTemporal():
             #             print('\tBorrando: {}'.format(os.path.join(thisPath2, filename)))
 
 
-    configFileNameCfg = sys.argv[0].replace('.py', '%06i.cfg' % MAINidProceso)
+    configFileNameCfg = sys.argv[0].replace('.py', '%06i.cfg' % MAIN_idProceso)
     if os.path.exists(configFileNameCfg):
         print('clidaux-> Eliminando {}'.format(configFileNameCfg))
         os.remove(configFileNameCfg)
-    #configFileNameXlsx = sys.argv[0].replace('.py', '%06i.xlsx' % MAINidProceso)
-    configFileNameXlsx = sys.argv[0].replace('.py', '{:006}.xlsx'.format(MAINidProceso))
+    #configFileNameXlsx = sys.argv[0].replace('.py', '%06i.xlsx' % MAIN_idProceso)
+    configFileNameXlsx = sys.argv[0].replace('.py', '{:006}.xlsx'.format(MAIN_idProceso))
     if os.path.exists(configFileNameXlsx):
         print('clidaux-> Eliminando {}'.format(configFileNameXlsx))
         os.remove(configFileNameXlsx)
