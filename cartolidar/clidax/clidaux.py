@@ -60,11 +60,11 @@ except:
 
 # ==============================================================================
 if '--cargadoClidaux' in sys.argv:
-    moduloCargado = True
-    print(f'\nclidaux->x> moduloCargado: {moduloCargado}; sys.argv: {sys.argv}')
+    moduloPreviamenteCargado = True
+    print(f'\nclidaux->x> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
 else:
-    moduloCargado = False
-    print(f'\nclidaux->x> moduloCargado: {moduloCargado}; sys.argv: {sys.argv}')
+    moduloPreviamenteCargado = False
+    print(f'\nclidaux->x> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
     sys.argv.append('--cargadoClidaux')
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
@@ -75,7 +75,9 @@ else:
     sys.argv.append('--idProceso')
     sys.argv.append(ARGS_idProceso)
 # ==============================================================================
-if type(ARGS_idProceso) == str:
+if type(ARGS_idProceso) == int:
+    MAIN_idProceso = ARGS_idProceso
+elif type(ARGS_idProceso) == str:
     try:
         MAIN_idProceso = int(ARGS_idProceso)
     except:
@@ -83,8 +85,8 @@ if type(ARGS_idProceso) == str:
         print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
         print(f'sys.argv: {sys.argv}')
 else:
-    MAIN_idProceso = ARGS_idProceso
-    print(f'clidaux-> ATENCION: revisar codigo de idProceso.')
+    MAIN_idProceso = 0
+    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
     print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
     print(f'sys.argv: {sys.argv}')
 # ==============================================================================
@@ -396,7 +398,7 @@ else:
 myModule = __name__.split('.')[-1]
 myUser = clidconfig.infoUsuario()
 # ==============================================================================
-if not moduloCargado:
+if not moduloPreviamenteCargado:
     print('\ncartolidar-> AVISO: creando myLog')
     myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
@@ -2159,7 +2161,1267 @@ See also:
 
 """
 
-# ...............................................................................
+
+# ==============================================================================
+def completarVariablesGlobales(
+        GLO,
+        LCLobjetivoSiReglado='GENERAL',
+        LCLprocedimiento='',
+        LCLcuadrante='',
+        ARGSnInputsModeloNln=0,
+        ARGScodModeloNln='',
+        rutaLazCompleta=''
+    ):
+    # Si hay ARGScodCuadrante, prevalece sobre el que figure en el fichero de configuracion xls (y se incorpora a la configuracion)
+
+    # ==========================================================================
+    MAINusuario = clidconfig.infoUsuario(False)
+    # ==========================================================================
+
+
+
+    # global GLO
+    # En esta funcion se establecen algunas variables globales (si es necesario modificarlas):
+    #    MAINrutaCarto      -> Se adapta para que cuelgue de MAINmiRutaRaiz o se adapta segun MAINprocedimiento
+    #    MAINrutaOutput     -> Se vincula a MAINmiRutaRaiz (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento
+    #    MAINrutaLaz        -> Se vincula a MAINmiRutaRaiz (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento 
+    #    MAINprocedimiento  -> Se retoca si el procedimiento menciona calendula pero lo ejecuto en Windows
+    #    GLBLshapeNumPoints, GLBLtipoLectura, GLBLshapeFilter, GLBLprocesarComprimidosLaz, etc.
+    # Y se devuelven variables (sin utilidad para determinados procedimiento)
+    #    listaDirsLaz, listaSubDirsLaz, coordenadasDeMarcos
+    coordenadasDeMarcos = {}
+    # ==========================================================================
+
+    # print('{:_^80}'.format(' El Entorno y el cuadrante condicionan MAINrutaLaz y MAINrutaOutput'))
+    # print(f'{"":_^80}')
+
+    # ==========================================================================
+    GLO.MAINmiRutaRaiz = MAIN_RAIZ_DIR
+    if MAIN_ENTORNO == 'calendula':
+        GLO.MAINmiRutaRais = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
+    else:
+        GLO.MAINmiRutaRais = GLO.MAINmiRutaRaiz
+    GLO.MAINmiRutaProyecto = MAIN_PROJ_DIR
+    # ==========================================================================
+
+
+    # ==========================================================================
+    # =========================== MAINrutaLaz ==================================
+    # ==========================================================================
+    # Sitio por defecto para MAINrutaLaz
+    # No se recorren subcarpetas de MAINrutaLaz salvo que lo establezca el MAINprocedimiento
+    if rutaLazCompleta != '':
+        # Solo cuando se inicia con cartolider
+        GLO.MAINrutaLaz = rutaLazCompleta
+    else:
+        if GLO.MAINrutaLaz is None or GLO.MAINrutaLaz == 'None' or GLO.MAINrutaLaz == '':
+            GLO.MAINrutaLaz = os.path.join(
+                GLO.MAINmiRutaRais,
+                'laz'
+            )
+            # print('cartolidar-> 1 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+        else:
+            # print('cartolidar-> 2a GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+            if ':' in GLO.MAINrutaLaz:
+                GLO.MAINrutaLaz = GLO.MAINrutaLaz
+            else:
+                GLO.MAINrutaLaz = os.path.abspath(
+                    os.path.join(
+                        GLO.MAINmiRutaRais,
+                        GLO.MAINrutaLaz
+                    )
+                )
+            # print('cartolidar-> 2b GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+            # if MAIN_ENTORNO == 'calendula':
+            #     print(
+            #         '\t-> Como MAIN_ENTORNO == calendula -> Mas adelante se cambia a',
+            #         os.path.join(GLO.MAINmiRutaRais, lazDirCalendula)
+            #     )
+
+    # ==========================================================================
+    GLO.MAINrutaLaz, listaDirsLaz, listaSubDirsLaz = casosEspecialesParaMAINrutaLaz(
+        GLO.MAINprocedimiento,
+        GLO.MAINrutaLaz,
+        LCLcuadrante
+    )
+    # ==========================================================================
+    # print('cartolidar-> 4 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+
+    # ==========================================================================
+    # ========================== MAINrutaCarto ================================
+    # ==========================================================================
+    if GLO.MAINrutaCarto is None or GLO.MAINrutaCarto == 'None' or GLO.MAINrutaCarto == '':
+        MAINrutaCarto1 = os.path.join(
+            GLO.MAINmiRutaRaiz,
+            'data/carto/'
+        )
+        if not os.path.isdir(MAINrutaCarto1):
+            MAINrutaCarto2 = os.path.abspath(
+                os.path.join(
+                    GLO.MAINmiRutaRaiz,
+                    '../data/carto/'
+                )
+            )
+            if not os.path.isdir(MAINrutaCarto2):
+                myLog.warning(f'{"":+^80}')
+                myLog.warning(f'cartolidar-> ATENCION: No se ha localizado el directorio data/carto con informacion cartografica de apoyo.')
+                myLog.warning(f'{TB}Directorios buscados:')
+                myLog.warning(f'{TB}{TV}{MAINrutaCarto1}')
+                myLog.warning(f'{TB}{TV}{MAINrutaCarto2}')
+                myLog.warning(f'{"":+^80}')
+            else:
+                GLO.MAINrutaCarto = MAINrutaCarto2
+        else:
+            GLO.MAINrutaCarto = MAINrutaCarto1
+
+            
+    # ==========================================================================
+
+    # ==========================================================================
+    # ========================== MAINrutaOutput ================================
+    # ==========================================================================
+    if GLO.MAINrutaOutput is None or GLO.MAINrutaOutput == 'None' or GLO.MAINrutaOutput == '':
+        GLO.MAINrutaOutput = os.path.join(
+            GLO.MAINmiRutaRais,
+            '../cartolidout'
+        )
+
+    # ==========================================================================
+    GLO.MAINrutaOutput = casosEspecialesParaMAINrutaOutput(
+        GLO.MAINprocedimiento,
+        GLO.MAINrutaOutput,
+        GLO.MAINmiRutaRais,
+        LCLobjetivoSiReglado,
+        LCLcuadrante,
+    )
+    # ==========================================================================
+
+    # ==========================================================================
+    if not os.path.exists(GLO.MAINrutaOutput):
+        print(f'No existe el directorio {GLO.MAINrutaOutput} -> Se crea automaticamente')
+        try:
+            os.makedirs(GLO.MAINrutaOutput)
+        except:
+            print(f'No se ha podido crear el directorio {GLO.MAINrutaOutput}. Revisar MAINprocedimiento')
+            sys.exit(0)
+    # ==========================================================================
+
+
+    # ==========================================================================
+    # ======================== Procesados especiales ===========================
+    # ================ RENOMBRAR_FICHEROS, MERGEAR, GEOINTEGRAR ================
+    # ==================== COMPRIMIR_LAS, DESCOMPRIMIR_LAZ ===================== 
+    # ==== CREAR_SHAPE, CREAR_CAPA_CON_UNA_PROPIEDAD_DE_LOS_FICHEROS_LIDAR =====
+    # ==========================================================================
+
+
+    # ==========================================================================
+    MOSTRAR_CONFIGURACION = __verbose__ >= 1
+    if MOSTRAR_CONFIGURACION:
+        print(f'{"":_^80}')
+        print(f'{" Configuracion final ":_^80}')
+        print(f'{"":_^80}')
+        print(f'{TB}{"MAINobjetivoEjecucion":.<21}: {GLO.MAINobjetivoEjecucion}')
+        print(f'{TB}{"MAINobjetivoSiReglado":.<21}: {LCLobjetivoSiReglado}')
+        print(f'{TB}{"MAINprocedimiento":.<21}: {GLO.MAINprocedimiento}')
+        print(f'{TB}{"MAINmiRutaRaiz":.<21}: {GLO.MAINmiRutaRaiz}')
+        print(f'{TB}{"MAINmiRutaRais":.<21}: {GLO.MAINmiRutaRais}')
+        print(f'{TB}{"MAINmiRutaProyecto":.<21}: {GLO.MAINmiRutaProyecto}')
+        print(f'{TB}{"MAINrutaCarto":.<21}: {GLO.MAINrutaCarto}')
+        print(f'{TB}{"MAINrutaLaz":.<21}: {GLO.MAINrutaLaz}')
+        print(f'{TB}{"MAINrutaOutput":.<21}: {GLO.MAINrutaOutput}')
+        print(f'{TB}{"MAINcuadrante":.<21}: {GLO.MAINcuadrante}')
+        print(f'{"":=^80}')
+    # ==========================================================================
+
+    #print('clidaux: Creando directorio: {}'.format(GLO.MAINrutaOutput))
+    # try:
+    #     creaDirectorio(GLO.MAINrutaOutput)
+    # except:
+    #     time.sleep(10)
+    #     creaDirectorio(GLO.MAINrutaOutput)
+
+
+    # ==========================================================================
+    GLO.GLBLficheroDeControlGral = os.path.join(
+        GLO.MAINrutaOutput,
+        'GlobalControl_{}.txt'.format(MAINusuario)
+    )
+    # ==========================================================================
+    creaRutaDeFichero(GLO.GLBLficheroDeControlGral)
+    # ==========================================================================
+
+    # ==========================================================================
+    if (
+        GLO.GLBLcrearTilesTargetDeCartoRefSoloSiHaySingUseSuficientes
+        or GLO.GLBLcrearTilesTargetMiniSubCelSoloSiHayNoSueloSuficientes
+    ):
+        subDirTrain = 'trainSel'
+    else:
+        subDirTrain = 'trainAll'
+    # ==========================================================================
+    if MAIN_ENTORNO == 'calendula':
+        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+    elif MAIN_ENTORNO == 'colab':
+        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAIN_RAIZ_DIR, 'data/datasets/cartolid/trainImg')
+    else:
+        if MAIN_PC == 'JCyL':
+            # Imagenes de entrenamiento en disco externo
+            GLO.GLBL_TRAIN_DIR = 'D:/trainImg'
+            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'cartolidout/train')
+            # GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+            # Imagenes de entrenamiento en disco duro
+            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/datasets/cartolid/trainImg')
+            # GLO.GLBL_TRAIN_DIR = 'C:/_ws/cartolidout/train'
+            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+        else:
+            # En casa
+            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/trainImg')
+            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+    # ==========================================================================
+
+    # ==========================================================================
+    # Nombres de los modelos convolucionales
+    if GLO.GLBLpredecirCubiertasSingularesConvolucional or GLO.GLBLpredecirClasificaMiniSubCelConvolucional:
+        if (
+            not GLO.GLBLmodeloCartolidMiniSubCelEntrenado is None
+            and GLO.GLBLmodeloCartolidMiniSubCelEntrenado != ''
+        ):
+            idCuadranteActual = '_{}'.format((LCLcuadrante)[:2].upper())
+            indexCuadranteModelo = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('_Png') - 4
+            if indexCuadranteModelo > 0:
+                idCuadranteModelo = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[indexCuadranteModelo: indexCuadranteModelo + 3]
+                GLO.GLBLmodeloCartolidMiniSubCelEntrenado = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.replace(
+                    idCuadranteModelo,
+                    idCuadranteActual
+                )
+        if (
+            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoA is None
+            and GLO.GLBLmodeloCartolidCartoSinguEntrenadoA != ''
+        ):
+            idCuadranteActual = '_{}'.format((LCLcuadrante)[:2].upper())
+            indexCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('_Png') - 4
+            if indexCuadranteModelo > 0:
+                idCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[indexCuadranteModelo: indexCuadranteModelo + 3]
+                GLO.GLBLmodeloCartolidCartoSinguEntrenadoA = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.replace(
+                    idCuadranteModelo,
+                    idCuadranteActual
+                )
+        if (
+            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoB is None
+            and GLO.GLBLmodeloCartolidCartoSinguEntrenadoB != ''
+        ):
+            idCuadranteActual = '_{}'.format((LCLcuadrante)[:2].upper())
+            indexCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('_Png') - 4
+            if indexCuadranteModelo > 0:
+                idCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[indexCuadranteModelo: indexCuadranteModelo + 3]
+                GLO.GLBLmodeloCartolidCartoSinguEntrenadoB = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.replace(
+                    idCuadranteModelo,
+                    idCuadranteActual
+                )
+
+        # Nombre del modelo acumulativo
+        if LCLcuadrante != '' and ARGSnInputsModeloNln != 0 and ARGScodModeloNln != '':
+            # Si se incluyen estos argumentos en linea de comandos, prevalecen sobre el nombre del fichero xls de configuracion
+            nInputVars = ARGSnInputsModeloNln
+            if ARGScodModeloNln == '64+32+16_resBatchN':
+                GLO.GLBLnombreFicheroConModeloParaInferencia = 'NNCaleLote{}_i{:03}_h64_h32_h16_o10_dropoutPriUlt_normHL_RNN'.format(
+                    LCLcuadrante.upper(),
+                    nInputVars
+                )
+            else:
+                print('clidclas-> ATENCION: codigo de modelo en linea de comandos no implementado: {}'.format(ARGScodModeloNln))
+                sys.exit(0)
+            print('clidclas-> Nombre del modelo: {}'.format(GLO.GLBLnombreFicheroConModeloParaInferencia))
+        elif (
+            not GLO.GLBLnombreFicheroConModeloParaInferencia is None
+            and GLO.GLBLnombreFicheroConModeloParaInferencia != ''
+        ):
+            idCuadranteActual = 'Lote{}'.format((LCLcuadrante)[:2].upper())
+            indexCuadranteModelo = GLO.GLBLnombreFicheroConModeloParaInferencia.find('_i') - 6
+            if indexCuadranteModelo > 0:
+                idCuadranteModelo = GLO.GLBLnombreFicheroConModeloParaInferencia[indexCuadranteModelo: indexCuadranteModelo + 6]
+                GLO.GLBLnombreFicheroConModeloParaInferencia = GLO.GLBLnombreFicheroConModeloParaInferencia.replace(
+                    idCuadranteModelo,
+                    idCuadranteActual
+                )
+
+        # GLO.GLBLmodeloCartolidMiniSubCelEntrenado = 'clidGen_cale_LasClass_2_345_6_reDepurada_Png6_012345_20210605v0.h5'
+        if GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
+            iniDataset = 13
+            if '__Png' in GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
+                finDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('__Png')
+            elif '_Png' in GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
+                finDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('_Png')
+            else:
+                finDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('.h5')
+            txtDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[iniDataset: finDataset]
+            if '_Png' in GLO.GLBLmodeloCartolidMiniSubCelEntrenado: # Incluye '__Png'
+                iniNumPngs = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('_Png') + 1
+                finNumPngs = iniNumPngs + 4
+                txtNumPngs = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[iniNumPngs: finNumPngs]
+                intNumPngs = int(txtNumPngs[-1])
+                iniLstPngs = finNumPngs + 1
+                finLstPngs = iniLstPngs + intNumPngs
+                txtLstPngs = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[iniLstPngs: finLstPngs]
+            else:
+                print('cartolidar-> ATENCION: revisar el nombre del modelo entrenado (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidMiniSubCelEntrenado))
+                intNumPngs = 0
+                txtLstPngs = ''
+
+            MAIN_COD_18_16N_04_MODELOENTRENADO_MINI = 'cartolidMiniSubCel{}{}'.format(txtDataset, txtNumPngs)
+            MAIN_LISTA_PNGS_MODELOENTRENADO_MINI = 'X{}'.format(txtLstPngs)
+            # print('cartolidar-> MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:', MAIN_COD_18_16N_04_MODELOENTRENADO_MINI)
+            # print('txtDataset:', txtDataset)
+            # print('txtNumPngs:', txtNumPngs)
+            # print('txtLstPngs:', txtLstPngs)
+
+        # GLO.GLBLmodeloCartolidCartoSinguEntrenadoA = 'clidGen_cale_UsosDisp12_45678_Png6_012345_20210612v0.h5.h5'
+        # GLO.GLBLmodeloCartolidCartoSinguEntrenadoA = 'clidGen_cale_UsosDisp_2_45678_Png6_012345_20210202.h5.h5'
+        if GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
+            if '__Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
+                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('__Png')
+            elif '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
+                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('_Png')
+            else:
+                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('.h5')
+            txtDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[iniDataset: finDataset] # Puede ser: UsosDisp12_45678, UsosDisp_2_45678
+            if '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
+                iniNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('_Png') + 1
+                finNumPngs = iniNumPngs + 4
+                txtNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[iniNumPngs: finNumPngs]
+                intNumPngs = int(txtNumPngs[-1])
+                iniLstPngs = finNumPngs + 1
+                finLstPngs = iniLstPngs + intNumPngs
+                txtLstPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[iniLstPngs: finLstPngs]
+            else:
+                print('cartolidar-> ATENCION: revisar el nombre del modelo entrenadoA (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
+                intNumPngs = 0
+                txtLstPngs = ''
+            MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
+            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
+            MAIN_LISTA_PNGS_MODELOENTRENADO_CART_ = 'X{}'.format(txtLstPngs)
+            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA = 'X{}'.format(txtLstPngs)
+        else:
+            MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ = 'cartolidCartoSingu_'
+            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA = 'cartolidCartoSingu_'
+            MAIN_LISTA_PNGS_MODELOENTRENADO_CART_ = 'X123456'
+            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA = 'X123456'
+        # print('cartolidar-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA)
+        # print('txtDataset:', txtDataset)
+        # print('txtNumPngs:', txtNumPngs)
+        # print('txtLstPngs:', txtLstPngs)
+    
+        # GLO.GLBLmodeloCartolidCartoSinguEntrenadoB = 'clidGen_cale_UsosDisp___45678_Png6_012345_20210202.h5.h5'
+        if GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
+            if '__Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
+                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('__Png')
+            elif '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
+                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('_Png')
+            else:
+                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('.h5')
+            txtDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[iniDataset: finDataset] # Puede ser: UsosDisp12_45678, UsosDisp_2_45678
+            if '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
+                iniNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('_Png') + 1
+                finNumPngs = iniNumPngs + 4
+                txtNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[iniNumPngs: finNumPngs]
+                intNumPngs = int(txtNumPngs[-1])
+                iniLstPngs = finNumPngs + 1
+                finLstPngs = iniLstPngs + intNumPngs
+                txtLstPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[iniLstPngs: finLstPngs]
+            else:
+                print('cartolidar-> ATENCION: revisar el nombre del modelo entrenadoB (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
+                intNumPngs = 0
+                txtLstPngs = ''
+            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
+            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB = 'X{}'.format(txtLstPngs)
+        else:
+            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = 'cartolidCartoSingu_'
+            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB = 'X123456'
+        # print('cartolidar-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB)
+        # print('txtDataset:', txtDataset)
+        # print('txtNumPngs:', txtNumPngs)
+        # print('txtLstPngs:', txtLstPngs)
+    
+        # GLO.GLBLmodeloCartolid128PixelesEntrenado = 'modeloPix2PixGeneratEntrenado_calendula_Pn6_012345_20201224.h5'
+        txtDataset = 'SingUse128pixel'
+        txtNumPngs = 'Png6'
+        txtLstPngs = '012345'
+        MAIN_COD_18_16N_04_MODELOENTRENADO_128P = 'cartolid128Pixeles{}{}'.format(txtDataset, txtNumPngs)
+        MAIN_LISTA_PNGS_MODELOENTRENADO_128P = 'X{}'.format(txtLstPngs)
+    else:
+        MAIN_COD_18_16N_04_MODELOENTRENADO_MINI = ''
+        MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ = ''
+        MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA = ''
+        MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = ''
+        MAIN_COD_18_16N_04_MODELOENTRENADO_128P = ''
+    
+        MAIN_LISTA_PNGS_MODELOENTRENADO_MINI = ''
+        MAIN_LISTA_PNGS_MODELOENTRENADO_CART_ = ''
+        MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA = ''
+        MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB = ''
+        MAIN_LISTA_PNGS_MODELOENTRENADO_128P = ''
+    # ==========================================================================
+
+    if (
+        (
+            not GLO.GLBLmodeloCartolidMiniSubCelEntrenado is None
+            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidMiniSubCelEntrenado
+        )
+        or (
+            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoA is None
+            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA
+        )
+        or (
+            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoB is None
+            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB
+        )
+        or (
+            not GLO.GLBLnombreFicheroConModeloParaInferencia is None
+            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLnombreFicheroConModeloParaInferencia
+        )
+
+        or (
+            not MAIN_COD_18_16N_04_MODELOENTRENADO_MINI is None
+            and not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_MINI
+        )
+        or (
+            not MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ is None
+            and not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_CART_
+        )
+    ):
+        print(f'\n{"":_^80}')
+        print('cartolidar-> Verificando modelos entrenados disponibles para el cuadrante {} (identificador completo: {}):'.format((LCLcuadrante[:2]).upper(), LCLcuadrante))
+        print('\t-> GLBLmodeloCartolidMiniSubCelEntrenado:    {}'.format(GLO.GLBLmodeloCartolidMiniSubCelEntrenado))
+        print('\t-> GLBLmodeloCartolidCartoSinguEntrenadoA:   {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
+        print('\t-> GLBLmodeloCartolidCartoSinguEntrenadoB:   {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoB))
+        print('\t-> GLBLnombreFicheroConModeloParaInferencia: {}'.format(GLO.GLBLnombreFicheroConModeloParaInferencia))
+        print('\t-> MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:  {}'.format(MAIN_COD_18_16N_04_MODELOENTRENADO_MINI))
+        print('\t-> MAIN_COD_18_16N_04_MODELOENTRENADO_CART_: {}'.format(MAIN_COD_18_16N_04_MODELOENTRENADO_CART_))
+        print('\t-> cuadrante: {}_'.format((LCLcuadrante[:2]).upper()), '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidMiniSubCelEntrenado)
+        if not GLO.GLBLmodeloCartolidMiniSubCelEntrenado is None:
+            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
+                print(
+                    'cartolidar-> ATENCION 1: el modelo <{}> no esta disponible para el cuadrante {}'.format(
+                        GLO.GLBLmodeloCartolidMiniSubCelEntrenado,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+            else:
+                print(
+                    '\tModelo1 <{}> entrenado OK para el cuadrante {}'.format(
+                        GLO.GLBLmodeloCartolidMiniSubCelEntrenado,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+        if not GLO.GLBLmodeloCartolidCartoSinguEntrenadoA is None:
+            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
+                print(
+                    'cartolidar-> ATENCION 2: el modelo <{}> no esta disponible para el cuadrante {}'.format(
+                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoA,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+            else:
+                print(
+                    '\tModelo2 <{}> entrenado OK para el cuadrante {}'.format(
+                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoA,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+        if not GLO.GLBLmodeloCartolidCartoSinguEntrenadoB is None:
+            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
+                print(
+                    'Modelo3: el modelo <{}> no esta disponible para el cuadrante {} (no esencial)'.format(
+                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoB,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+            else:
+                print(
+                    '\tModelo3 <{}> entrenado OK para el cuadrante {}'.format(
+                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoB,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+        else:
+            print(
+                '\tModelo3 <{}> no se usa para el cuadrante {}'.format(
+                    GLO.GLBLmodeloCartolidCartoSinguEntrenadoB,
+                    '{}_'.format((LCLcuadrante[:2]).upper()),
+                )
+            )
+
+        if (
+            GLO.MAINobjetivoEjecucion == 'CREAR_LAZ'
+            and not GLO.GLBLnombreFicheroConModeloParaInferencia is None
+        ):
+            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLnombreFicheroConModeloParaInferencia:
+                # Solo necesito el modelo para inferencia si voy a CREAR_LAZ
+                print(
+                    'cartolidar-> ATENCION 4: el modelo <{}> no esta disponible para el cuadrante {}'.format(
+                        GLO.GLBLnombreFicheroConModeloParaInferencia,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+            else:
+                print(
+                    '\tModelo4 <{}> entrenado OK para el cuadrante {}'.format(
+                        GLO.GLBLnombreFicheroConModeloParaInferencia,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+        if not MAIN_COD_18_16N_04_MODELOENTRENADO_MINI is None:
+            if not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:
+                print(
+                    '\tModelo5 <{}> no disponible para el cuadrante {} (no esencial)'.format(
+                        MAIN_COD_18_16N_04_MODELOENTRENADO_MINI,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+            else:
+                print(
+                    '\tModelo5 <{}> entrenado OK para el cuadrante {}'.format(
+                        MAIN_COD_18_16N_04_MODELOENTRENADO_MINI,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+
+        if not MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ is None:
+            if not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_CART_:
+                print(
+                    '\tModelo6 <{}> no disponible para el cuadrante {} (no esencial)'.format(
+                        MAIN_COD_18_16N_04_MODELOENTRENADO_CART_,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+            else:
+                print(
+                    '\tModelo6 <{}> entrenado OK para el cuadrante {}'.format(
+                        MAIN_COD_18_16N_04_MODELOENTRENADO_CART_,
+                        '{}_'.format((LCLcuadrante[:2]).upper()),
+                    )
+                )
+        print(f'{"":=^80}')
+
+    # ==========================================================================
+    paramConfigAdicionalesGLBL = {}
+    paramConfigAdicionalesGLBL['MAINusuario'] = [MAINusuario, 'str', '', 'GrupoMAIN', MAINusuario]
+    paramConfigAdicionalesGLBL['MAIN_ENTORNO'] = [MAIN_ENTORNO, 'str', '', 'GrupoMAIN', MAIN_ENTORNO]
+    paramConfigAdicionalesGLBL['MAIN_PC'] = [MAIN_PC, 'str', '', 'GrupoMAIN', MAIN_PC]
+
+    paramConfigAdicionalesGLBL['MAIN_DRIVE'] = [MAIN_DRIVE, 'str', '', 'GrupoDirsFiles', MAIN_DRIVE]
+    paramConfigAdicionalesGLBL['MAIN_HOME_DIR'] = [MAIN_HOME_DIR, 'str', '', 'GrupoDirsFiles', MAIN_HOME_DIR]
+    paramConfigAdicionalesGLBL['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'str', '', 'GrupoDirsFiles', MAIN_FILE_DIR]
+    paramConfigAdicionalesGLBL['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
+    paramConfigAdicionalesGLBL['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
+    paramConfigAdicionalesGLBL['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_MDLS_DIR]
+    paramConfigAdicionalesGLBL['MAIN_BASE_DIR'] = [MAIN_BASE_DIR, 'str', '', 'GrupoDirsFiles', MAIN_BASE_DIR]
+    paramConfigAdicionalesGLBL['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_THIS_DIR]
+    paramConfigAdicionalesGLBL['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
+    paramConfigAdicionalesGLBL['MAINmiRutaRaiz'] = [GLO.MAINmiRutaRaiz, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
+    paramConfigAdicionalesGLBL['MAINmiRutaRais'] = [GLO.MAINmiRutaRais, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
+
+    paramConfigAdicionalesGLBL['MAINrutaLaz'] = [GLO.MAINrutaLaz, 'str', '', 'GrupoDirsFiles']
+    # paramConfigAdicionalesGLBL['MAINrutaLazFinal'] = [
+    #     GLO.MAINrutaLaz,
+    #     'str',
+    #     'Ruta en la que estan los ficheros laz o las (la usada finalmente, que puede ser distinta del establecido en cartolid.xml)',
+    #     'GrupoDirsFiles',
+    #     ]
+    paramConfigAdicionalesGLBL['MAINrutaOutput'] = [GLO.MAINrutaOutput, 'str', '', 'GrupoDirsFiles']
+    paramConfigAdicionalesGLBL['MAINrutaCarto'] = [GLO.MAINrutaCarto, 'str', '', 'GrupoDirsFiles']
+
+    paramConfigAdicionalesGLBL['GLBLficheroDeControlGral'] = [GLO.GLBLficheroDeControlGral, 'str', '', 'GrupoDirsFiles']
+    paramConfigAdicionalesGLBL['GLBL_TRAIN_DIR'] = [GLO.GLBL_TRAIN_DIR, 'str', '', 'GrupoDirsFiles']
+
+    paramConfigAdicionalesGLBL['GLBLmodeloCartolidMiniSubCelEntrenado'] = [GLO.GLBLmodeloCartolidMiniSubCelEntrenado, 'str', '', 'GrupoPredConvolucional']
+    paramConfigAdicionalesGLBL['GLBLmodeloCartolidCartoSinguEntrenadoA'] = [GLO.GLBLmodeloCartolidCartoSinguEntrenadoA, 'str', '', 'GrupoPredConvolucional']
+    paramConfigAdicionalesGLBL['GLBLmodeloCartolidCartoSinguEntrenadoB'] = [GLO.GLBLmodeloCartolidCartoSinguEntrenadoB, 'str', '', 'GrupoPredConvolucional']
+    paramConfigAdicionalesGLBL['GLBLnombreFicheroConModeloParaInferencia'] = [GLO.GLBLnombreFicheroConModeloParaInferencia, 'str', '', 'GrupoPredConvolucional']
+
+    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_MINI'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_MINI, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_CART_'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_CART_, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_128P'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_128P, 'str', '', 'GrupoModeloEntrenado']
+
+    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_MINI'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_MINI, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_CART_'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_CART_, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB, 'str', '', 'GrupoModeloEntrenado']
+    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_128P'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_128P, 'str', '', 'GrupoModeloEntrenado']
+
+    paramConfigAdicionalesGLBL['MAINprocedimiento'] = [GLO.MAINprocedimiento, 'str', '', 'GrupoMAIN']
+
+    paramConfigAdicionalesGLBL['GLBLsoloCuadradoDeEjemplo'] = [GLO.GLBLsoloCuadradoDeEjemplo, 'bool', '', 'GrupoGestionDeFicheros']
+    paramConfigAdicionalesGLBL['GLBLreprocesarFallidosUsandoMenosRAM'] = [GLO.GLBLreprocesarFallidosUsandoMenosRAM, 'bool', '', 'GrupoGestionDeFicheros']
+    paramConfigAdicionalesGLBL['GLBLficheroLasTemporal'] = [GLO.GLBLficheroLasTemporal, 'bool', '', 'GrupoGestionDeFicheros']
+    paramConfigAdicionalesGLBL['GLBLprocesarComprimidosLaz'] = [GLO.GLBLprocesarComprimidosLaz, 'bool', '', 'GrupoGestionDeFicheros']
+
+    paramConfigAdicionalesGLBL['GLBLshapeNumPoints'] = [GLO.GLBLshapeNumPoints, 'int', '', 'GrupoShape']
+    paramConfigAdicionalesGLBL['GLBLshapeFilter'] = [GLO.GLBLshapeFilter, 'str', '', 'GrupoShape']
+
+    paramConfigAdicionalesGLBL['GLBLtipoLectura'] = [GLO.GLBLtipoLectura, 'str', '', 'GrupoManejoMemoria']
+    paramConfigAdicionalesGLBL['GLBLusoDeRAM'] = [GLO.GLBLusoDeRAM, 'str', '', 'GrupoManejoMemoria']
+
+    paramConfigAdicionalesGLBL['GLBLnumeroDePuntosAleer'] = [GLO.GLBLnumeroDePuntosAleer, 'int', '', 'GrupoLecturaPuntosPasadas']
+    paramConfigAdicionalesGLBL['GLBLgrabarPercentilesRelativos'] = [GLO.GLBLgrabarPercentilesRelativos, 'bool', '', 'GrupoDasoLidar']
+    paramConfigAdicionalesGLBL['GLBLmetrosCelda'] = [GLO.GLBLmetrosCelda, 'float', '', 'GrupoDimensionCeldasBloques']
+
+    paramConfigAdicionalesGLBL['MAINprocedimientoFinal'] = [
+        GLO.MAINprocedimiento,
+        'str',
+        'Procedimiento finalmente ejecutado (puede ser distinto del establecido en cartolid.xml)',
+        'GrupoMAIN',
+    ]
+
+    if GLO.GLBLverbose:
+        print('cartolidar-> paramConfigAdicionalesGLBL:')
+        for nuevoParametro in paramConfigAdicionalesGLBL.keys():
+            print('\t{:>40}: {}'.format(nuevoParametro, paramConfigAdicionalesGLBL[nuevoParametro]))
+
+    _ = clidconfig.leerCambiarVariablesGlobales(
+        nuevosParametroConfiguracion=paramConfigAdicionalesGLBL,
+        idProceso=MAIN_idProceso,
+        inspect_stack=inspect.stack(),
+        verbose=False
+    )
+    return listaDirsLaz, listaSubDirsLaz, coordenadasDeMarcos
+
+
+# ==============================================================================
+def casosEspecialesParaMAINrutaLaz(
+        LCLprocedimiento,
+        LCLrutaLaz,
+        LCLcuadrante,
+    ):
+
+    listaDirsLaz = ['']
+    listaSubDirsLaz = ['']
+
+    # ==========================================================================
+    # ============== Casos especiales para MAINrutaLaz =========================
+    # ==========================================================================
+    if (
+        LCLprocedimiento.startswith('DESCOMPRIMIR_LAZ')
+        or LCLprocedimiento.startswith('COMPRIMIR_LAS')
+    ):
+        # Rutas ad-hoc
+        listaDirsLaz = ['lasfile-nw']
+        listaSubDirsLaz = ['RGBI_laz_H29']
+    elif MAIN_ENTORNO == 'calendula':
+        # Solo los laz se ubican en scratch, el resto en home
+        # GLO.MAINrutaCarto = '/scratch/jcyl_spi_1/jcyl_spi_1_1/data/carto'
+        # GLO.MAINrutaCarto = '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/data/carto'
+        # MAINmiRutaRaiz = '/scratch/jcyl_spi_1/jcyl_spi_1_1/'
+
+        # Se recorren estos subdirectorios de laz:
+        listaDirsLaz = ['']
+        listaDirsLaz = ['', 'lasfile-se', 'lasfile-ce']
+        listaDirsLaz = ['roquedos']
+
+        if (LCLcuadrante)[:2].upper() == 'CE':
+            listaDirsLaz = ['lasfile-ce']
+        elif (LCLcuadrante)[:2].upper() == 'NW':
+            listaDirsLaz = ['lasfile-nw']
+        elif (LCLcuadrante)[:2].upper() == 'NE':
+            listaDirsLaz = ['lasfile-ne']
+        elif (LCLcuadrante)[:2].upper() == 'SE':
+            listaDirsLaz = ['lasfile-se']
+        elif (LCLcuadrante)[:2].upper() == 'SW':
+            listaDirsLaz = ['lasfile-sw']
+        elif (LCLcuadrante)[:2].upper() == 'XX':
+            listaDirsLaz = ['lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw']
+        else:
+            listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
+
+        if (
+            LCLprocedimiento.startswith('COMPRIMIR_LAS')
+            or LCLprocedimiento.startswith('DESCOMPRIMIR_LAZ')
+        ):
+            if 'RGBI_cartolid' in LCLprocedimiento:
+                listaSubDirsLaz = ['RGBI_cartolid']
+            elif 'RGB_cartolid' in LCLprocedimiento:
+                listaSubDirsLaz = ['RGB_cartolid']
+            elif 'IRG_cartolid' in LCLprocedimiento:
+                listaSubDirsLaz = ['IRC_cartolid']
+            elif 'IRG_cartolid' in LCLprocedimiento:
+                listaSubDirsLaz = ['IRG_cartolid']
+            else:
+                listaSubDirsLaz = ['RGBI']
+        elif (
+            LCLprocedimiento.endswith('UNIFICAR_RGBI')
+            or LCLprocedimiento.endswith('COLOREAR_RGBI')
+        ):
+            listaSubDirsLaz = ['IRC']
+            # listaSubDirsLaz = ['IRC/_corregidos_versionOk_preORT_preCOLOR'] # Lo traslado temporalmente a SW y lo proceso ahi
+        else:
+            if GLO.MAINobjetivoEjecucion == 'CREAR_PUNTOS_TRAIN_ACUMULATIVO_NPZ':
+                # listaSubDirsLaz = ['lazNew']
+                listaSubDirsLaz = ['lazNewCLR']
+            else:
+                if LCLcuadrante[:2].upper() == 'SE':
+                    if 'SELECT' in LCLprocedimiento:
+                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+                    else:
+                        listaSubDirsLaz = ['RGBI_laz_cartolid_20220316']
+                elif LCLcuadrante[:2].upper() == 'NW':
+                    if 'SELECT' in LCLprocedimiento:
+                        primeraVersionDeLasFiles = False
+                        if primeraVersionDeLasFiles:
+                            # La primera vez proceso una muestra (SELECT) de bloques sin clasicacion
+                            # para tener una primera version de lasFiles clasificados provisionalmente en lasNew
+                            # Los lasFiles clasificados los muevo a lazNewCLR para trabajar preferencialmente con ellos en lo sucesivo
+                            # La segunda vez trabajo sobre esos lasFiles clasificados para mejorarlos
+                            rutaLazCompleta = os.path.join(GLO.MAINrutaLaz, listaDirsLaz[0], 'lazNewCLR')
+                            if len(listaDirsLaz) == 1 and os.path.isdir(rutaLazCompleta):
+                                print('cartolidar-> Aviso: Uso lazNewCLR para usar lasFiles provisionalmente clasificados y disponer de clase del miniSubCel')
+                                listaSubDirsLaz = ['lazNewCLR']
+                            else:
+                                print('cartolidar-> Aviso: No se ha encontrado la ruta de lasFiles pro-clasificados: {}'.format(rutaLazCompleta))
+                                print('\t-> listaDirsLaz: {}'.format(listaDirsLaz))
+                                # listaSubDirsLaz = ['RGBI_H29']
+                                # listaSubDirsLaz = ['RGBI_laz_H29', 'RGBI_laz']
+                                # listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
+                                listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+                        else:
+                            listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+                    else:
+                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
+                        listaSubDirsLaz = ['lazNewCompletoAll_RGBI']
+                        listaSubDirsLaz = ['lazNewCompleto_RGBI_laz_20220302']
+                        listaSubDirsLaz = ['lazNewCompleto_RGBI_laz_20220316']
+
+                elif LCLcuadrante[:2].upper() == 'CE':
+                    if 'SELECT' in LCLprocedimiento:
+                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+                    else:
+                        listaSubDirsLaz = ['RGBI_laz_cartolid_20220316']
+                elif LCLcuadrante[:2].upper() == 'SE':
+                    if 'SELECT' in LCLprocedimiento:
+                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+                    else:
+                        listaSubDirsLaz = ['RGBI_laz_cartolid_20220316']
+
+                elif LCLcuadrante[:2].upper() == 'SW':
+                    # listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+                    # listaSubDirsLaz = ['RGBI_H29']
+                    listaSubDirsLaz = ['RGBI_laz_H29', 'RGBI_laz']
+                    # listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
+                elif LCLcuadrante[:2].upper() == 'XX':
+                    listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
+                else:
+                    # listaSubDirsLaz = ['RGBI_laz']
+                    listaSubDirsLaz = ['RGBI']
+
+        if '_H29_' in GLO.MAINprocedimiento:
+            # Por el momento, esto solo lo uso para AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI
+            for nSubDir, subDirLaz in enumerate(listaSubDirsLaz):
+                if '_H29' in subDirLaz.upper():
+                    print(f'\ncartolidar-> ATENCION: revisar este codigo para adaptarlo a la lista de directorios que quiero recorrer:')
+                    print(f'\t-> GLO.MAINprocedimiento: {GLO.MAINprocedimiento}')
+                    print(f'\t-> listaSubDirsLaz:       {listaSubDirsLaz}')
+                    sys.exit(0)
+                listaSubDirsLaz[nSubDir] = subDirLaz + '_H29'
+
+    elif (
+        LCLprocedimiento.startswith('AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA')
+        or LCLprocedimiento.startswith('AUTOMATICO_EN_CALENDULA')
+    ):
+        # Se usan los valores establecidos por defecto
+        print('cartolidar-> ATENCION: ESTO ES PROVISIONAL:')
+        if (LCLcuadrante)[:2].upper() == 'CE':
+            listaDirsLaz = ['lasfile-ce']
+        elif (LCLcuadrante)[:2].upper() == 'NE':
+            listaDirsLaz = ['lasfile-ne']
+        elif (LCLcuadrante)[:2].upper() == 'NW':
+            listaDirsLaz = ['lasfile-nw']
+        elif (LCLcuadrante)[:2].upper() == 'SE':
+            listaDirsLaz = ['lasfile-se']
+        elif (LCLcuadrante)[:2].upper() == 'SW':
+            listaDirsLaz = ['lasfile-sw']
+        elif (LCLcuadrante)[:2].upper() == 'XX':
+            listaDirsLaz = ['lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw']
+        else:
+            listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
+        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+        print('cartolidar-> listaDirsLaz:    {}'.format(listaDirsLaz))
+        print('cartolidar-> listaSubDirsLaz: {}'.format(listaSubDirsLaz))
+        pass
+    elif LCLprocedimiento == 'PRECONFIGURADO_SINRUTA':
+        bloqueElegido = 0
+        if not LCLrutaLaz:
+            LCLrutaLaz = preguntarRutaLaz(r'../laz/')
+    elif (LCLprocedimiento).startswith('AUTOMATICO_DISCOEXTERNO'):
+        # Incluye 'AUTOMATICO_DISCOEXTERNO_UNIFICAR_RGBI_E'
+        unidadLaz = LCLprocedimiento[-1:]
+        # LCLrutaLaz = unidadLaz + ':/laz1/'
+        # LCLrutaLaz = unidadLaz + ':/CE/CIR/LAS/Huso_30/'
+        LCLrutaLaz = unidadLaz + ':/lidardata_2017_2021/lasfile_SE/IRC/'
+    elif (LCLprocedimiento).startswith('AUTOMATICO_SIGMENA'):
+        rutaSigmenaIntercam = LCLprocedimiento[19:]
+        LCLrutaLaz = os.path.join('O:Sigmena/intercam/', rutaSigmenaIntercam)
+    elif LCLprocedimiento[:20] == 'AUTOMATICO_CUADRANTE':
+        bloqueElegido = 0
+        miCuadrante = LCLprocedimiento[21:23]
+        miMarco = LCLprocedimiento[-8:]
+        miUbicacionLaz = LCLprocedimiento[24:31]
+        if LCLrutaLaz is None or LCLrutaLaz == '':
+            if miUbicacionLaz == 'SIGMENA':
+                LCLrutaLaz = 'O:/Sigmena/Intercam/laz/'
+            else:
+                input('ATENCION: nombre de procedimiento incorrecto: si empieza con AUTOMATIZADO_CUADRANTE solo admite SIGMENA en las posiciones 24:31')
+                sys.exit(0)
+        print('  MAINrutaLaz     ', LCLrutaLaz)
+
+        if miCuadrante == 'XX':
+            listaDirsLaz = ['2010_NW', '2010_NE', '2014_SW', '2010_SE']
+        elif miCuadrante in ['NW', 'NE', 'SW', 'SE']:
+            listaDirsLaz = ['2010_%s' % miCuadrante]
+        else:
+            input('ATENCION: nombre de procedimiento incorrecto: si empieza con AUTOMATIZADO_CUADRANTE solo admite cuadrantes NW, NE, SW o SE')
+            sys.exit(0)
+        if miMarco == 'SINMARCO':
+            GLO.GLBLsoloCuadradoDeEjemplo = False
+        elif miMarco == 'CONMARCO':
+            GLO.GLBLsoloCuadradoDeEjemplo = True
+        else:
+            input('ATENCION: nombre de procedimiento incorrecto: si empieza con AUTOMATIZADO_CUADRANTE debe terminar con SINMARCO o CONMARCO')
+            sys.exit(0)
+
+    elif (
+        LCLprocedimiento == 'PRECONFIGURADO_CONRUTA_4CUADRANTES_SIGMENA_CONOSINMARCO'
+        or LCLprocedimiento == 'PRECONFIGURADO_CONRUTA_4CUADRANTES_DISCOEXTERNO_CONOSINMARCO'
+    ):
+        if LCLprocedimiento == 'PRECONFIGURADO_CONRUTA_4CUADRANTES_DISCOEXTERNO_CONOSINMARCO':
+            selec = input('Para trabajar en disco externo (x:/LAZ/) pulsa la letra de unidad (C)')
+            try:
+                LCLrutaLaz = selec[:1] + ':/LAZ/'
+            except:
+                print('Entrada incorrecta')
+                LCLrutaLaz = 'C:/LAZ/'
+        else:
+            #LCLrutaLaz = 'O:/Sigmena/Intercam/laz/'
+            pass
+
+        listaDirsLaz = elegirSubcarpetas(LCLrutaLaz)
+        bloqueElegido = 0
+
+        selec = input('\nProcesar solo determinados cuadrados de cada cuadrante? (n/s)')
+        GLO.GLBLsoloCuadradoDeEjemplo = True if selec.upper() == 'S' else False
+
+        if GLO.GLBLsoloCuadradoDeEjemplo:
+            xMin_NW, yMin_NW, ladoMarco_NW = 200000, 4700000, 40000  # Zona generica
+            xMin_NE, yMin_NE, ladoMarco_NE = 450000, 4650000, 20000  # Zona generica
+            xMin_NE, yMin_NE, ladoMarco_NE = 458000, 4672000, 20000  # Cuadricula de ensayo Burgos
+            xMin_NE, yMin_NE, ladoMarco_NE = 436000, 4760000, 20000  # Soncillo - Machorras
+            xMin_SW, yMin_SW, ladoMarco_SW = 240000, 4584000, 22000  # Cuadricula de ensayo Zamora
+            xMin_SE, yMin_SE, ladoMarco_SE = 490000, 4600000, 20000  # Zona generica
+            coordenadasDeMarcos = {
+                'NW': [xMin_NW, yMin_NW, ladoMarco_NW],
+                'NE': [xMin_NE, yMin_NE, ladoMarco_NE],
+                'SW': [xMin_SW, yMin_SW, ladoMarco_SW],
+                'SE': [xMin_SE, yMin_SE, ladoMarco_SE],
+            }
+            listaValores = ['x min (inclusive)', 'y Min (inclusive)', 'lado del marco']
+            listaCuadrantes = ['NW', 'NE', 'SW', 'SE']
+            selec = input('\nEditar coordenadas para cada cuadrante? (n/s)')
+            if selec.upper() == 'S':
+                for cuadrante in listaCuadrantes:
+                    selec = input('\nEditar coordenadas para el cuadrante %s? (n/s/x) (x: no procesarlo)' % cuadrante)
+                    if selec.upper() == 'X':
+                        coordenadasDeMarcos[cuadrante] = [0, 0, 0]
+                    elif selec.upper() == 'S':
+                        nuevosValores = []
+                        for nValor, nombreValor in enumerate(listaValores):
+                            strNuevoValor = input('Cuadrante %s -> %s (%i):' % (cuadrante, nombreValor, coordenadasDeMarcos[cuadrante][nValor]))
+                            if strNuevoValor == '':
+                                nuevosValores.append(coordenadasDeMarcos[cuadrante][nValor])
+                            else:
+                                nuevosValores.append(int(strNuevoValor))
+                        coordenadasDeMarcos[cuadrante] = nuevosValores
+        else:
+            coordenadasDeMarcos = {}
+
+    elif LCLprocedimiento == 'MANUAL':
+        selec = input('Nombre de este PC (%s) -> ' % (GLO.MAINusuario))
+        if selec != '':
+            GLO.MAINusuario = selec
+        print('Los ficheros de control empiezan con una linea %s\n' % (GLO.MAINusuario))
+
+        selec = input('Ancho del pixel: (10 m)')
+        try:
+            GLO.GLBLmetrosCelda = float(selec)
+        except:
+            GLO.GLBLmetrosCelda = 10.0
+        print('Ancho del pixel: %i m\n' % (GLO.GLBLmetrosCelda))
+
+        LCLrutaLaz = preguntarRutaLaz(r'../laz/')
+
+        selec = input('\nProcesar solo los que quedaron incompletos en anteriores sesiones? (n/s)')
+        GLO.GLBLprocesarSoloIncompletos = True if selec.upper() == 'S' else False
+        print(
+            'Procesado normal'
+            if GLO.GLBLprocesarSoloIncompletos
+            else 'Se procesan los que quedaron incompletos en la primera vuelta (por falta de RAM disponible)'
+        )
+        GLO.GLBLreprocesarFallidosUsandoMenosRAM = False
+
+        print('1. Uso de RAM standard')
+        print('2. Uso de RAM alternativo')
+        selec = input('Selecciona opcion 1-2 (1):')
+
+        try:
+            if int(selec) == 1:
+                GLO.GLBLusoDeRAM = 'standard'
+            elif int(selec) == 2:
+                GLO.GLBLusoDeRAM = 'alternativo'
+            else:
+                sys.exit()
+        except:
+            GLO.GLBLusoDeRAM = 'standard'
+        print('Opcion elegida: %s' % (GLO.GLBLusoDeRAM))
+
+        selec = input('\nNumero de registros a procesar: (por defecto: todos -> Escribir 0 o [enter] directamente)')
+        try:
+            GLO.GLBLnumeroDePuntosAleer = int(selec)
+        except:
+            GLO.GLBLnumeroDePuntosAleer = 0
+        print('Numero de puntos: %s' % (str(GLO.GLBLnumeroDePuntosAleer) if GLO.GLBLnumeroDePuntosAleer != 0 else 'todos'))
+
+        selec = input('\nCalcular percentiles de valores absolutos (altitud o cota absoluta): (s/n)')
+        GLO.GLBLgrabarPercentilesAbsolutos = False if selec.upper() == 'N' else True
+        print('Calcular percentiles absolutos:', GLO.GLBLgrabarPercentilesAbsolutos)
+
+        selec = input('\nCalcular percentiles de valores relativos (altura sobre el plano-suelo o plano-basal): (s/n)')
+        GLO.GLBLgrabarPercentilesRelativos = False if selec.upper() == 'N' else True
+        print('Calcular percentiles relativos:', GLO.GLBLgrabarPercentilesRelativos)
+        # ==========================================================================
+
+        exploraDirectorios = False
+        # selec = input('Explorar directorios de '+LCLrutaLaz+ ' (n/s)')
+        # exploraDirectorios = True if selec.upper() == 'S' else False
+
+        if exploraDirectorios:
+            listaDirsLaz = []
+            for (_, dirnames, _) in os.walk(LCLrutaLaz):
+                listaDirsLaz.extend(dirnames)
+                # files.extend(filenames)
+                break
+            print(
+                'Directorios en %s:' % (LCLrutaLaz),
+            )
+            print(listaDirsLaz)
+            if len(listaDirsLaz) == 0:
+                print('No se rastrean los directorios')
+                listaDirsLaz = ['']
+            # bloqueElegido = 5
+        else:
+            print('\n0. Procesar ficheros de %s' % (LCLrutaLaz))
+            print('1. Procesar los ficheros laz de 2010_NW (%s)' % (LCLrutaLaz + '2010_NW/'))
+            print('2. Procesar los ficheros laz de 2010_NW (%s)' % (LCLrutaLaz + '2010_NW_las/'))
+            print('3. Procesar los ficheros las de 2010_NE (%s)' % (LCLrutaLaz + '2010_NE/'))
+            print('4. Procesar los ficheros laz de 2010_NE (%s)' % (LCLrutaLaz + '2010_NE_las/'))
+            print('5. Procesar los ficheros laz de 2014_SW (%s)' % (LCLrutaLaz + '2014_SW/'))
+            print('6. Procesar los ficheros las de 2014_SW (%s)' % (LCLrutaLaz + '2014_SW_las/'))
+            print('7. Procesar los ficheros laz de 2010_SE (%s)' % (LCLrutaLaz + '2010_SE/'))
+            print('8. Procesar los ficheros las de 2010_SE (%s)' % (LCLrutaLaz + '2010_SE_las/'))
+            try:
+                bloqueElegido = int(input('Selecciona opcion 1-9 (0):'))
+            except:
+                bloqueElegido = 0
+            if bloqueElegido == 1:
+                listaDirsLaz = ['2010_NW/']
+            elif bloqueElegido == 2:
+                listaDirsLaz = ['2010_NW_las/']
+            elif bloqueElegido == 3:
+                listaDirsLaz = ['2010_NE/']
+            elif bloqueElegido == 4:
+                listaDirsLaz = ['2010_NE_las/']
+            elif bloqueElegido == 5:
+                listaDirsLaz = ['2014_SW/']
+            elif bloqueElegido == 6:
+                listaDirsLaz = ['2014_SW_las/']
+            elif bloqueElegido == 7:
+                listaDirsLaz = ['2010_SE/']
+            elif bloqueElegido == 8:
+                listaDirsLaz = ['2010_SE_las/']
+            else:
+                listaDirsLaz = ['']
+
+        selec = input('Crear ficheros las de forma permanente (no se borran una vez procesados) (S/n)')
+        GLO.GLBLficheroLasTemporal = True if selec.upper() == 'N' else False
+        if GLO.GLBLficheroLasTemporal:
+            print('Los ficheros las creados son temporales (se borran tras procesarlos)\n')
+        else:
+            print('Los ficheros las creados son permanentes\n')
+    elif LCLprocedimiento.startswith('CREAR_CAPA_CON_UNA_PROPIEDAD_DE_LOS_FICHEROS_LIDAR'):
+        # Rutas por defecto, o bien:
+        if not LCLrutaLaz:
+            # LCLrutaLaz = 'E:/lidardata_2017_2021/lasfile_SE/IRC'
+            LCLrutaLaz = 'E:/lidardata_2017_2021/lasfile_CE/IRC'
+        pass
+    elif LCLprocedimiento == 'CREAR_SHAPE':
+        listaDirsLaz = ['']
+        bloqueElegido = 0
+        LCLrutaLaz = preguntarRutaLaz(r'../laz/')
+        selec = input('\nNumero de puntos del shape: (1000 por defecto; indicar 0 para todos)')
+        try:
+            GLO.GLBLshapeNumPoints = int(selec)
+        except:
+            GLO.GLBLshapeNumPoints = 1000
+        print('\nNumero de puntos: %s' % (str(GLO.GLBLshapeNumPoints) if GLO.GLBLshapeNumPoints != 0 else 'todos'))
+        if GLO.GLBLshapeNumPoints != 0:
+            GLO.GLBLtipoLectura = 'registrosPorLotes'
+        else:
+            GLO.GLBLtipoLectura = 'registrosIndividuales'
+
+        print('\n1. Todas las clases')
+        print('2. Todas las clases menos la 12 (relleno)')
+        print('3. Solo puntos de borde de escaneo')
+        selec = input('Selecciona opcion (1):')
+        try:
+            if int(selec) == 2:
+                GLO.GLBLshapeFilter = 'sinClase12'
+            elif int(selec) == 3:
+                GLO.GLBLshapeFilter = 'soloEdge'
+            else:
+                GLO.GLBLshapeFilter = 'noFilter'
+        except:
+            GLO.GLBLshapeFilter = 'noFilter'
+        print('Tipo de filtro: %s\n' % (GLO.GLBLshapeFilter))
+    elif LCLprocedimiento == 'RENOMBRAR_FICHEROS':
+        LCLrutaLaz = 'O:/Sigmena/Intercam/laz/'
+
+        listaDirsLaz = ['2010_NW', '2010_NE', '2014_SW', '2010_SE']
+        listaDirsLaz = ['2010_NW_Huso_29', '2010_NW_las']
+        GLO.GLBLprocesarComprimidosLaz = True
+        bloqueElegido = 0
+
+    elif LCLprocedimiento == 'MERGEAR':
+        input('Lo desarrollo en raster2vector de clidgis.py (rescatado de copiaSeg/2017/lidasMerge.py)')
+        sys.exit()
+
+    elif LCLprocedimiento == 'GEOINTEGRAR':
+        input('Lo desarrollo en raster2vector de clidcluster.py (antes GIS/cluster.py, renombrado a cluster_old_VerCartolid_clidax.py')
+        sys.exit()
+
+    elif LCLprocedimiento.startswith('LAS_INFO'):
+        if LCLprocedimiento.startswith('LAS_INFO_ASK'):
+            # LCLrutaLaz = preguntarRutaLaz(os.path.join(GLO.MAINmiRutaRaiz, 'laz2/'))
+            LCLrutaLaz = preguntarRutaLaz(GLO.MAINrutaLaz)
+        else:
+            LCLrutaLaz = GLO.MAINrutaLaz
+    else:
+        print('\nRevisar el nombre del procedimiento en cartolid.xlm. MAINprocedimiento:', LCLprocedimiento)
+        sys.exit()
+
+    # print('cartolidar-> 3b LCLrutaLaz:', LCLrutaLaz)
+
+    return LCLrutaLaz, listaDirsLaz, listaSubDirsLaz
+
+
+# ==============================================================================
+def casosEspecialesParaMAINrutaOutput(
+        LCLprocedimiento,
+        LCLrutaOutput,
+        LCLmiRutaRais,
+        LCLobjetivoSiReglado,
+        LCLcuadrante,
+    ):
+
+    if (
+        LCLobjetivoSiReglado == 'GENERAL'
+        or LCLobjetivoSiReglado == 'CREAR_TILES_TRAIN'
+        or LCLobjetivoSiReglado == 'PREPROCESADO_EN_CALENDULA'
+        or LCLobjetivoSiReglado == 'CREAR_PUNTOS_TRAIN_ACUMULATIVO_NPZ'
+        or LCLobjetivoSiReglado == 'CREAR_LAZ'
+        or LCLobjetivoSiReglado == 'AUTOMATICO_EN_CALENDULA_SCRATCH_COLOREAR_RGBI'
+        or LCLobjetivoSiReglado == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI'
+    ):
+        if LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH':
+            LCLrutaOutput = os.path.join(
+                LCLmiRutaRais,
+                'cartolidout_{}_{}_{}'.format(
+                    (LCLcuadrante)[:2].upper(),
+                    LCLobjetivoSiReglado,
+                    'completo'
+                )
+            )
+        elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_COLOREAR_RGBI':
+            LCLrutaOutput = os.path.join(
+                LCLmiRutaRais,
+                'cartolidout_{}_{}_{}'.format(
+                    (LCLcuadrante)[:2].upper(),
+                    'COLOREAR_RGBI',
+                    'completo'
+                )
+            )
+        elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI':
+            LCLrutaOutput = os.path.join(
+                LCLmiRutaRais,
+                'cartolidout_{}_{}_{}'.format(
+                    (LCLcuadrante)[:2].upper(),
+                    'COLOREAR_RGBI_H29',
+                    'completo'
+                )
+            )
+        elif not GLO.MAINrutaOutput is None:
+            LCLrutaOutput = GLO.MAINrutaOutput
+            print(f'cartolidar-> 6 Asignando LCLrutaOutput: {LCLrutaOutput}')
+        elif not LCLcuadrante is None:
+            LCLrutaOutput = os.path.join(
+                LCLmiRutaRais,
+                'cartolidout_{}_{}'.format(
+                    (LCLcuadrante)[:2].upper(),
+                    LCLobjetivoSiReglado
+                )
+            )
+            print(f'cartolidar-> 7 Asignando LCLrutaOutput: {LCLrutaOutput}')
+        elif LCLobjetivoSiReglado == 'GENERAL':
+            LCLrutaOutput = os.path.join(
+                LCLmiRutaRais,
+                'cartolidout'
+            )
+            print(f'cartolidar-> 8 Asignando LCLrutaOutput: {LCLrutaOutput}')
+        else:
+            LCLrutaOutput = GLO.MAINrutaOutput
+            print(f'cartolidar-> 9 Asignando LCLrutaOutput: {LCLrutaOutput}')
+        if not LCLcuadrante is None:
+            LCLrutaOutput = (LCLrutaOutput).replace('_XX', '_{}'.format((LCLcuadrante)[:2].upper()))
+        # print('\t{:.<25}: {}'.format('MAINrutaOutput (adaptado)', LCLrutaOutput))
+    elif (
+        LCLrutaOutput is None
+        or LCLrutaOutput == 'None'
+        or LCLrutaOutput == ''
+    ):
+        LCLrutaOutput = os.path.join(
+            LCLmiRutaRais,
+            'cartolidout_{}'.format(
+                (LCLcuadrante)[:2].upper()
+            )
+        )
+        LCLrutaOutput = (LCLrutaOutput).replace('_XX', '_{}'.format((LCLcuadrante)[:2].upper()))
+        print('\t{:.<25}: {}'.format('MAINrutaOutput (adaptado)', LCLrutaOutput))
+    else:
+        print('\t{:.<25}: {}'.format('MAINrutaOutput (original)', LCLrutaOutput))
+
+
+
+    if (LCLprocedimiento).startswith('AUTOMATICO_DISCOEXTERNO'):
+        # Incluye 'AUTOMATICO_DISCOEXTERNO_UNIFICAR_RGBI_E'
+        unidadLaz = LCLprocedimiento[-1:]
+        # LCLrutaOutput = unidadLaz + ':/CE/cartolidout/'
+        LCLrutaOutput = unidadLaz + ':/lidardata_2017_2021/Result/SE/cartolidout/'
+    elif LCLprocedimiento[:20] == 'AUTOMATICO_CUADRANTE':
+        # Guardo los resultados en una ruta que cuelga de la ruta de los laz (no de la ruta de cartolid)
+        bloqueElegido = 0
+        miCuadrante = LCLprocedimiento[21:23]
+        miMarco = LCLprocedimiento[-8:]
+        if LCLrutaOutput == '':
+            LCLrutaOutput = os.path.join(GLO.MAINmiRutaRaiz, 'cartolidout_%s_%s' % (miCuadrante, miMarco))
+        else:
+            # LCLrutaOutput = quitarContrabarrasAgregarBarraFinal(LCLrutaOutput)
+            LCLrutaOutput = (LCLrutaOutput).replace(os.sep, '/')
+
+    if LCLrutaOutput == '' or LCLrutaOutput == None:
+        miCarpetaResultadosInicial = 'cartolidout'
+        print(f'\n{"":_^80}')
+        print('Escribir ruta en la que se guardan los resultados:')
+        print('Se interpreta como ruta completa si empieza por "/" o por letra de unidad ("C:", "D:", etc.).')
+        print('y como subdirectorio de "%s" en el resto de los casos' % GLO.MAINmiRutaRaiz)
+        selec = input('Introduce un valor (pulsa [enter] para valor por defecto: %s): ' %
+                      os.path.join(GLO.MAINmiRutaRaiz, miCarpetaResultadosInicial))
+        if selec[1:2] == ':' or selec[:1] == '/':
+            # Es una ruta completa en vez de un subdirectorio
+            LCLrutaOutput = selec
+        elif selec != '':
+            LCLrutaOutput = os.path.join(GLO.MAINmiRutaRaiz, selec)
+        else:
+            LCLrutaOutput = os.path.join(GLO.MAINmiRutaRaiz, miCarpetaResultadosInicial)
+        print('{:^80}'.format(''))
+
+    return LCLrutaOutput
+
+
+
+
+# ==============================================================================
+def preguntarRutaLaz(rutaInicial):
+    rutaNormalizada = os.path.abspath(rutaInicial)
+    # rutaNormalizada = os.path.normpath(rutaInicial)
+    # rutaNormalizada = quitarContrabarrasAgregarBarraFinal(rutaNormalizada)
+    rutaNormalizada = rutaNormalizada.replace(os.sep, '/')
+
+    print('\nSe solicitan datos:')
+    selec = input('\nEscribir la ruta base de los ficheros lidar (.laz o las; p. ej. C:/laz/): (por defecto: %s)' % rutaNormalizada)
+    if selec == '':
+        rutaFinal = rutaNormalizada
+    else:
+        # rutaFinal = quitarContrabarrasAgregarBarraFinal(selec)
+        rutaFinal = selec.replace(os.sep, '/')
+    print('Ruta elegida: %s' % (rutaFinal))
+    return rutaFinal
+
+
+# ==============================================================================
+def preguntarRutaCarto(rutaInicial):
+    rutaNormalizada = os.path.abspath(rutaInicial)
+    # rutaNormalizada = os.path.normpath(rutaInicial)
+    # rutaNormalizada = quitarContrabarrasAgregarBarraFinal(rutaNormalizada)
+    rutaNormalizada = rutaNormalizada.replace(os.sep, '/')
+    selec = input('\nEscribir la ruta base de los ficheros cartograficos (shp, tif, etc; p. ej. C:/data/carto/): (por defecto: %s) ' % rutaNormalizada)
+    if selec == '':
+        rutaFinal = rutaNormalizada
+    else:
+        # rutaFinal = quitarContrabarrasAgregarBarraFinal(selec)
+        rutaFinal = selec.replace(os.sep, '/')
+    print('Ruta elegida: %s' % (rutaFinal))
+    return rutaFinal
+
+
+# ==============================================================================
+def elegirSubcarpetas(USERmiRutaRaiz):
+    print('\nElegir directorios:')
+    print('        (0) Solo los ficheros que cuelgan directamente de %s' % USERmiRutaRaiz)
+    print('        (1) Las subcarpetas "2010_NW", "2010_NE", "2014_SW" y "2010_SE"')
+    print('        (2) Las subcarpetas "2010_NW_las", "2010_NE_las", "2014_SW_las" y "2010_SE_las"')
+    print('        (3) Solo la subcarpeta "2014_SW"')
+    print('        (4) Solo la subcarpeta "2010_SE"')
+    print('        (6) Ficheros de subcarpetas Zona1 y Zona2, que cuelgan de %s2009' % USERmiRutaRaiz)
+    print('        (7) Ficheros de subcarpetas Zona1 y Zona2, que cuelgan de %s2017' % USERmiRutaRaiz)
+    print('        (8) Ficheros de subcarpetas Zona1 y Zona2, que cuelgan de %s2009 y %s2017' % (USERmiRutaRaiz, USERmiRutaRaiz))
+    print('        (9) Todos los ficheros de todas las subcarpetas que cuelgan de %s (sin implementar)' % USERmiRutaRaiz)
+    print('(1) y (3) tienen todos los ficheros y (2) solo ficheros ya descomprimidos.')
+    selec = input('\nSelecciona las subcarpetas a procesar (0)')
+    if selec.upper() == '1':
+        listaDirsLaz = ['2010_NW', '2010_NE', '2014_SW', '2010_SE']
+    elif selec.upper() == '2':
+        GLO.GLBLdescomprimirLaz = False
+        listaDirsLaz = ['2010_NW_las', '2010_NE_las', '2014_SW_las', '2010_SE_las']
+    elif selec.upper() == '3':
+        listaDirsLaz = ['2014_SW']
+    elif selec.upper() == '4':
+        listaDirsLaz = ['2010_SE']
+    elif selec.upper() == '6':
+        listaDirsLaz = ['2009/Zona1', '2009/Zona2']
+    elif selec.upper() == '7':
+        listaDirsLaz = ['2017/Zona1', '2017/Zona2']
+    elif selec.upper() == '8':
+        listaDirsLaz = ['2009/Zona1', '2009/Zona2', '2017/Zona1', '2017/Zona2']
+    elif selec.upper() == '9':
+        listaDirsLaz = ['']
+    else:
+        listaDirsLaz = ['']
+    return listaDirsLaz
+
+
+# ==============================================================================
+def foo1():
+    pass
+
+# ==============================================================================
 if __name__ == "__main__" and False:
     # ...............................................................................
     class PCA:
@@ -2632,9 +3894,8 @@ crossed = partial(color, style='crossed')
 
 
 # ==============================================================================
-def foo():
+def foo2():
     pass
-
 
 
 # Basura

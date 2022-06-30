@@ -54,7 +54,7 @@ TV = ' ' * 3
 
 # ==============================================================================
 myModule = __name__.split('.')[-1]
-myLog = clidconfig.creaLog(consLogYaCreado=False, myModule=myModule, myPath='../data/log', myVerbose=__verbose__)
+myLog = clidconfig.creaLog(consLogYaCreado=False, myModule=myModule, myPath='../data/log', myVerbose=__verbose__, myVerboseFile=__verbose__)
 # print(f'cartolidar.__main__->')
 # print(f'{TB}-> myLog.name: {myLog.name}')
 # print(f'{TB}-> myLog.level: {myLog.level}')

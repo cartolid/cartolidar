@@ -57,11 +57,11 @@ TV = ' ' * 3
 
 # ==============================================================================
 if '--cargadoClidconfig' in sys.argv:
-    moduloCargado = True
-    print(f'\nclidconfig->x> moduloCargado: {moduloCargado}; sys.argv: {sys.argv}')
+    moduloPreviamenteCargado = True
+    print(f'\nclidconfig->x> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
 else:
-    moduloCargado = False
-    print(f'\nclidconfig->x> modulo Cargado: {moduloCargado}; sys.argv: {sys.argv}')
+    moduloPreviamenteCargado = False
+    print(f'\nclidconfig->x> modulo Cargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
     sys.argv.append('--cargadoClidconfig')
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
@@ -72,15 +72,17 @@ else:
     sys.argv.append('--idProceso')
     sys.argv.append(ARGS_idProceso)
 # ==============================================================================
-if type(ARGS_idProceso) == str:
+if type(ARGS_idProceso) == int:
+    MAIN_idProceso = ARGS_idProceso
+elif type(ARGS_idProceso) == str:
     try:
         MAIN_idProceso = int(ARGS_idProceso)
     except:
-        print(f'clidconfig-> ATENCION: revisar asignacion de idProceso.')
+        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
         print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
         print(f'sys.argv: {sys.argv}')
 else:
-    MAIN_idProceso = ARGS_idProceso
+    MAIN_idProceso = 0
     print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
     print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
     print(f'sys.argv: {sys.argv}')
@@ -110,17 +112,30 @@ def infoUsuario(verbose=False):
 myModule = __name__.split('.')[-1]
 myUser = infoUsuario()
 # ==============================================================================
-def creaLog(consLogYaCreado=False, myModule='module', myPath='.', myVerbose=False, myQuiet=False):
-    if myVerbose == 3:
-        logLevel = logging.DEBUG
-    elif myVerbose == 2:
-        logLevel = logging.INFO
-    elif myVerbose == 1:
-        logLevel = logging.WARNING
+def creaLog(consLogYaCreado=False, myModule='module', myPath='.', myVerbose=0, myVerboseFile=0, myQuiet=False):
+    myVerboseCons = myVerbose
+
+    if myVerboseFile == 3:
+        logLevelFile = logging.DEBUG
+    elif myVerboseFile == 2:
+        logLevelFile = logging.INFO
+    elif myVerboseFile == 1:
+        logLevelFile = logging.WARNING
     elif not myQuiet:
-        logLevel = logging.ERROR
+        logLevelFile = logging.ERROR
     else:
-        logLevel = logging.CRITICAL
+        logLevelFile = logging.CRITICAL
+
+    if myVerboseCons == 3:
+        logLevelCons = logging.DEBUG
+    elif myVerboseCons == 2:
+        logLevelCons = logging.INFO
+    elif myVerboseCons == 1:
+        logLevelCons = logging.WARNING
+    elif not myQuiet:
+        logLevelCons = logging.ERROR
+    else:
+        logLevelCons = logging.CRITICAL
 
     if myPath == '':
         myLogPath = myPath
@@ -195,7 +210,7 @@ def creaLog(consLogYaCreado=False, myModule='module', myPath='.', myVerbose=Fals
     fileLog = logging.FileHandler(thisLogFile, mode='w')
     # fileLog.terminator = ''
     fileLog.set_name(myModule)
-    fileLog.setLevel(logging.DEBUG)
+    fileLog.setLevel(logLevelFile)
     fileLog.setFormatter(formatterFile)
     fileLog.addFilter(myFilter)
     # logging.getLogger().addHandler(fileLog)
@@ -206,7 +221,7 @@ def creaLog(consLogYaCreado=False, myModule='module', myPath='.', myVerbose=Fals
         # https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler.terminator
         # consLog.terminator = ''  # Sustituye al valor por defecto que es '\n'
         consLog.setFormatter(formatterCons)
-        consLog.setLevel(logLevel)
+        consLog.setLevel(logLevelCons)
         # logging.getLogger().addHandler(consLog)
         myLog.addHandler(consLog)
     # ==============================================================================
@@ -380,7 +395,7 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
     return callingModulePrevio, callingModuleInicial
 
 # ==============================================================================
-if not moduloCargado:
+if not moduloPreviamenteCargado:
     print('\ncartolidar-> AVISO: creando myLog')
     myLog = iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
@@ -774,7 +789,7 @@ def initConfigDicts(idProceso=MAIN_idProceso):
     #    -> Guardados en su formato especifico (str, int, float o bool)
     #    -> Eligiendo el valor principal o alternativo
     GLOBALconfigDict = {}
-    if CONFIGverbose and __verbose__ > 3 and not moduloCargado:
+    if CONFIGverbose and __verbose__ > 3 and not moduloPreviamenteCargado:
         print('clidconfig-> Mostrando parametros de configuracion del xls:')
     for nombreParametroDeConfiguracion in configTextDict.keys():
         # configTextDict[nombreParametroDeConfiguracion] -> [tipoVariable, valorPrincipal, valorAlternativo, grupoParametros, descripcionParametro, usoParametro]
@@ -853,7 +868,7 @@ def initConfigDicts(idProceso=MAIN_idProceso):
             valorParametroDeConfiguracionEXTRA2,
             valorParametroDeConfiguracionEXTRA3,
         ]
-        if CONFIGverbose and __verbose__ > 3 and not moduloCargado:
+        if CONFIGverbose and __verbose__ > 3 and not moduloPreviamenteCargado:
             print('\t{}-> {}'.format(nombreParametroDeConfiguracion, GLOBALconfigDict[nombreParametroDeConfiguracion]))
 
     return GLOBALconfigDict
@@ -2139,7 +2154,7 @@ def leerCambiarVariablesGlobales(
         print('\nclidconfig-> Fichero de configuracion no encontrado:', configFileNameCfg)
         print("\t-> Revisar la linea ~2523 de clidconfig.py, para que se cree el .cfg si callingModuleInicial == 'cartolidar' or ...")
         sys.exit(0)
-        #return False
+        # return False
 
     try:
         config.read(configFileNameCfg)
@@ -2985,7 +3000,7 @@ clidconfig-> Secuencia de carga de variables de configuracion:
                   En principio solo se carga la primera vez que lo llamo
                   (cosa que ocurre desde clidaux y no desde cartolidar, que llama primero a clidaux).
                 Incluyo todas las configuraciones extra, ademas de la general.''')
-    idProceso=MAIN_idProceso,
+    idProceso=MAIN_idProceso
     # Leo los parametros de configuracion de cartolidar.xml y los cargo en diccionarios
     if CONFIGverbose:
         print('clidconfig-> Para leer el fichero de configuracion xlsx lanzo initConfigDicts<> (se hace copia con idProceso: {})'.format(idProceso))

@@ -87,17 +87,26 @@ TW = ' ' * 2
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
     ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+else:
+    # ARGS_idProceso = str(random.randint(1, 999998))
+    ARGS_idProceso = '999999'
+    sys.argv.append('--idProceso')
+    sys.argv.append(ARGS_idProceso)
+# ==============================================================================
+if type(ARGS_idProceso) == int:
+    MAIN_idProceso = ARGS_idProceso
+elif type(ARGS_idProceso) == str:
     try:
         MAIN_idProceso = int(ARGS_idProceso)
     except:
-        sys.stderr.write(f'clidconfig-> ATENCION: revisar asignacion de idProceso.\n')
-        sys.stderr.write(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}\n')
-        sys.stderr.write(f'sys.argv: {sys.argv}\n')
+        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
+        print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+        print(f'sys.argv: {sys.argv}')
 else:
-    # MAIN_idProceso = random.randint(1, 999998)
     MAIN_idProceso = 0
-    sys.argv.append('--idProceso')
-    sys.argv.append(MAIN_idProceso)
+    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
+    print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+    print(f'sys.argv: {sys.argv}')
 # ==============================================================================
 
 
