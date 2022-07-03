@@ -110,7 +110,7 @@ MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
 # MAIN_PROJ_DIR = MAIN_FILE_DIR
 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a FILE_DIR = pathlib.Path(__file__).parent
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
 MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
 if 'cartolidar' in MAIN_RAIZ_DIR:
     MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))

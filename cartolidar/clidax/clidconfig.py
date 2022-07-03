@@ -113,14 +113,15 @@ MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
 # MAIN_PROJ_DIR = MAIN_FILE_DIR
 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a FILE_DIR = pathlib.Path(__file__).parent
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
 MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
 if 'cartolidar' in MAIN_RAIZ_DIR:
     MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
 else:
     MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
 # Directorio desde el que se lanza la app (estos dos coinciden):
-MAIN_BASE_DIR = os.path.abspath('.')
+# MAIN_BASE_DIR = os.path.abspath('.')
+MAIN_BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
 MAIN_THIS_DIR = os.getcwd()
 # ==============================================================================
 # Unidad de disco si MAIN_ENTORNO = 'windows'
@@ -410,10 +411,10 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
         rutaAlternativa = True
         try:
             MAIN_HOME_DIR = str(pathlib.Path.home())
-            MAIN_CFG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
-            print(f'\tSe intenta la ruta alternativa: {MAIN_CFG_DIR}')
-            mainLogFile = os.path.join(MAIN_CFG_DIR, f'clidbase.log')
-            thisLogFile = os.path.join(MAIN_CFG_DIR, f'{myModule}.log')
+            MAIN_LOG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
+            print(f'\tSe intenta la ruta alternativa: {MAIN_LOG_DIR}')
+            mainLogFile = os.path.join(MAIN_LOG_DIR, f'clidbase.log')
+            thisLogFile = os.path.join(MAIN_LOG_DIR, f'{myModule}.log')
             if not os.path.exists(mainLogFile):
                 controlConfigFile = open(mainLogFile, mode='w')
                 controlConfigFile.close()
@@ -424,7 +425,7 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
             print(f'\tOk log file: {mainLogFile}')
             print(f'\tOk log file: {thisLogFile}')
         except:
-            print(f'\tTampoco se puede escribir en la ruta {MAIN_CFG_DIR}')
+            print(f'\tTampoco se puede escribir en la ruta {MAIN_LOG_DIR}')
             MAIN_HOME_DIR = str(pathlib.Path.home())
             mainLogFile = os.path.join(MAIN_HOME_DIR, f'clidbase.log')
             thisLogFile = os.path.join(MAIN_HOME_DIR, f'{myModule}.log')
@@ -2119,7 +2120,8 @@ def normalize(c):
 # ==============================================================================
 def getConfigFileName(idProceso, LOCL_verbose=0):
     rutaAlternativa = False
-    MAIN_BASE_DIR = os.path.abspath('.')
+    # MAIN_BASE_DIR = os.path.abspath('.')
+    MAIN_BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
     if not 'site-packages' in MAIN_BASE_DIR:
         MAIN_CFG_DIR = MAIN_BASE_DIR
     else:

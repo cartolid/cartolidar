@@ -142,9 +142,9 @@ MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
 # MAIN_PROJ_DIR = MAIN_FILE_DIR
 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
 MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
-if 'clidbase' in MAIN_RAIZ_DIR:
+if 'cartolidar' in MAIN_RAIZ_DIR:
     MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
 else:
     MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
@@ -2245,7 +2245,6 @@ def completarVariablesGlobales(
     if GLO.MAINrutaOutput is None or GLO.MAINrutaOutput == 'None' or GLO.MAINrutaOutput == '':
         GLO.MAINrutaOutput = os.path.abspath(os.path.join(
             GLO.MAINmiRutaRais,
-            '..',
             'cartolidout'
         ))
 
@@ -3206,7 +3205,7 @@ def casosEspecialesParaMAINrutaOutput(
         if LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH':
             LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
-                '..',
+                # '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     LCLobjetivoSiReglado,
@@ -3216,7 +3215,7 @@ def casosEspecialesParaMAINrutaOutput(
         elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_COLOREAR_RGBI':
             LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
-                '..',
+                # '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     'COLOREAR_RGBI',
@@ -3226,7 +3225,7 @@ def casosEspecialesParaMAINrutaOutput(
         elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI':
             LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
-                '..',
+                # '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     'COLOREAR_RGBI_H29',
@@ -3239,7 +3238,7 @@ def casosEspecialesParaMAINrutaOutput(
         elif not LCLcuadrante is None:
             LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
-                '..',
+                # '..',
                 'cartolidout_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     LCLobjetivoSiReglado
@@ -3249,7 +3248,7 @@ def casosEspecialesParaMAINrutaOutput(
         elif LCLobjetivoSiReglado == 'GENERAL':
             LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
-                '..',
+                # '..',
                 'cartolidout'
             ))
             print(f'clidaux-> 8 Asignando LCLrutaOutput: {LCLrutaOutput}')
@@ -3266,7 +3265,7 @@ def casosEspecialesParaMAINrutaOutput(
     ):
         LCLrutaOutput = os.path.abspath(os.path.join(
             LCLmiRutaRais,
-            '..',
+            # '..',
             'cartolidout_{}'.format(
                 (LCLcuadrante)[:2].upper()
             )
