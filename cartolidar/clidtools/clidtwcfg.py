@@ -128,7 +128,7 @@ elif type(ARGS_idProceso) == str:
     try:
         MAIN_idProceso = int(ARGS_idProceso)
     except:
-        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
+        print(f'clidtwcfg-> ATENCION: revisar asignacion de idProceso.')
         print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
         print(f'sys.argv: {sys.argv}')
 else:

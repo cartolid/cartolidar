@@ -1,32 +1,77 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 '''
-Module included in cartolidar project (clidtools package)
+Module included in cartolidar project (clidtfr package)
 cartolidar: tools for Lidar processing focused on Spanish PNOA datasets
 
-clidhead is aux module for reading the header of lidar files (LAS format)
+clidhead includes a class (LasHeadClass) for reading the header of lidar files (LAS format)
 
 @author:     Jose Bengoa
 @copyright:  2022 @clid
 @license:    GNU General Public License v3 (GPLv3)
 @contact:    cartolidar@gmail.com
 '''
+# from __future__ import division, print_function
+# from __future__ import unicode_literals
 
-import sys
 import os
+import sys
+import pathlib
 import time
 import datetime
-import struct
+# import types
+# import csv
+import re
 import math
+# import random
+# import platform
 import inspect
-try:
-    from configparser import RawConfigParser
-except ImportError:  # Python 2
-    from ConfigParser import RawConfigParser
+# import traceback
+# import subprocess
+# import argparse
+from configparser import RawConfigParser
+import logging
+# import importlib
+import struct
+# import shutil
+# import gc
 
+# Paquetes de terceros
 import numpy as np
+import psutil
 
 
+# ==============================================================================
+if '--cargadoClidhead' in sys.argv:
+    moduloPreviamenteCargado = True
+    print(f'\nclidhead->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+else:
+    moduloPreviamenteCargado = False
+    print(f'\nclidhead->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    sys.argv.append('--cargadoClidhead')
+# ==============================================================================
+if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
+    ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+else:
+    # ARGS_idProceso = str(random.randint(1, 999998))
+    ARGS_idProceso = '999999'
+    sys.argv.append('--idProceso')
+    sys.argv.append(ARGS_idProceso)
+# ==============================================================================
+if type(ARGS_idProceso) == int:
+    MAIN_idProceso = ARGS_idProceso
+elif type(ARGS_idProceso) == str:
+    try:
+        MAIN_idProceso = int(ARGS_idProceso)
+    except:
+        print(f'clidhead-> ATENCION: revisar asignacion de idProceso.')
+        print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+        print(f'sys.argv: {sys.argv}')
+else:
+    MAIN_idProceso = 0
+    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
+    print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+    print(f'sys.argv: {sys.argv}')
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -45,42 +90,127 @@ if '-q' in sys.argv:
 else:
     __quiet__ = 0
 # ==============================================================================
+
+# ==============================================================================
+# ============================ Variables GLOBALES ==============================
+# ==============================================================================
 # TB = '\t'
-TB = ' ' * 11
+TB = ' ' * 13
 TV = ' ' * 3
 TW = ' ' * 2
 # ==============================================================================
 
 # ==============================================================================
-if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
-    ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
-else:
-    # ARGS_idProceso = str(random.randint(1, 999998))
-    ARGS_idProceso = '999999'
-    sys.argv.append('--idProceso')
-    sys.argv.append(ARGS_idProceso)
+# ============================== Variables MAIN ================================
 # ==============================================================================
-if type(ARGS_idProceso) == int:
-    MAIN_idProceso = ARGS_idProceso
-elif type(ARGS_idProceso) == str:
+# Directorio que depende del entorno:
+MAIN_HOME_DIR = str(pathlib.Path.home())
+# Directorios de la aplicacion:
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
+# MAIN_PROJ_DIR = MAIN_FILE_DIR
+# Cuando estoy en un modulo dentro de un paquete (subdirectorio):
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a FILE_DIR = pathlib.Path(__file__).parent
+MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
+if 'cartolidar' in MAIN_RAIZ_DIR:
+    MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
+else:
+    MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
+# Directorio desde el que se lanza la app (estos dos coinciden):
+MAIN_BASE_DIR = os.path.abspath('.')
+MAIN_THIS_DIR = os.getcwd()
+# ==============================================================================
+# Unidad de disco si MAIN_ENTORNO = 'windows'
+MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
+# ==============================================================================
+if MAIN_FILE_DIR[:12] == '/LUSTRE/HOME':
+    MAIN_ENTORNO = 'calendula'
+    MAIN_PC = 'calendula'
+elif MAIN_FILE_DIR[:8] == '/content':
+    MAIN_ENTORNO = 'colab'
+    MAIN_PC = 'colab'
+else:
+    MAIN_ENTORNO = 'windows'
     try:
-        MAIN_idProceso = int(ARGS_idProceso)
+        if MAIN_DRIVE[0] == 'D':
+            MAIN_PC = 'Casa'
+        else:
+            MAIN_PC = 'JCyL'
     except:
-        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
-        print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
-        print(f'sys.argv: {sys.argv}')
+        MAIN_ENTORNO = 'calendula'
+        MAIN_PC = 'calendula'
+# ==============================================================================
+
+# ==============================================================================
+# Ver https://peps.python.org/pep-0008/#module-level-dunder-names
+# Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
+# ==============================================================================
+VERSIONFILE = os.path.abspath('_version.py')
+if not os.path.exists(VERSIONFILE):
+    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
+    if not os.path.exists(VERSIONFILE):
+        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
+        if not os.path.exists(VERSIONFILE):
+            VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
+if os.path.exists(VERSIONFILE):
+    verstrline = open(VERSIONFILE, "rt").read()
+    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        # __version__ = mo.groups()[0]
+        __version__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
+    VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __date__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "..."')
+    VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __updated__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "..."')
+    VSRE = r"^__copyright__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __copyright__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
 else:
-    MAIN_idProceso = 0
-    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
-    print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
-    print(f'sys.argv: {sys.argv}')
+    __version__ = '0.0'
+    __date__ = '2016-2022'
+    __updated__ = '2022'
+    __copyright__ = '@clid 2016-22'
 # ==============================================================================
 
 
 # ==============================================================================
+# Duplico esta funcion de clidaux para no importar clidaux
+def infoUsuario(verbose=False):
+    try:
+        esteUsuario = psutil.users()[0].name
+        if verbose:
+            print('clidconfig-> Usuario:', esteUsuario)
+    except:
+        esteUsuario = psutil.users()
+        if verbose:
+            print('clidconfig-> Users:', esteUsuario)
+    if not isinstance(esteUsuario, str) or esteUsuario == '':
+        esteUsuario = 'local'
+    return esteUsuario
+
+
+# ==============================================================================
+# Duplico esta funcion de clidaux para no importar clidaux
 def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
-    # myLog.debug('->->inspect_stack  ', inspect_stack
-    # myLog.debug('->->inspect.stack()', inspect.stack())
+    # print('->->->inspect_stack  ', inspect_stack
+    # print('->->->inspect.stack()', inspect.stack())
     if len(inspect_stack) > 1:
         try:
             esteModuloFile0 = inspect_stack[0][1]
@@ -90,11 +220,12 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
             esteModuloName0 = inspect.getmodulename(esteModuloFile0)
             esteModuloName1 = inspect.getmodulename(esteModuloFile1)
         except:
-            myLog.error('\tclidcarto-> Error identificando el modulo 1')
+            print(f'{TB}clidhead-> Error identificando el modulo 1')
             return 'desconocido1', 'desconocido1'
     else:
-        myLog.warning('\tclidcarto-> No hay modulos que identificar')
-        return 'desconocido2', 'desconocido2'
+        if verbose:
+            print(f'{TB}clidhead-> No hay modulos que identificar')
+        return 'noHayModuloPrevio', 'esteModulo'
 
     if not esteModuloName0 is None:
         esteModuloName = esteModuloName0
@@ -108,7 +239,7 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
     callingModulePrevio = ''
     callingModuleInicial = ''
     if verbose:
-        myLog.info('\tclidcarto-> El modulo {} ({}) ha sido'.format(esteModuloName, esteModuloNum), end=' ')
+        print(f'{TB}clidhead-> El modulo {esteModuloName} ({esteModuloNum}) ha sido', end=' ')
     for llamada in inspect_stack[stackSiguiente:]:
         if 'cartolid' in llamada[1] or 'clid' in llamada[1] or 'qlid' in llamada[1]:
             callingModule = inspect.getmodulename(llamada[1])
@@ -116,49 +247,146 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
                 callingModulePrevio = callingModule
             callingModuleInicial = callingModule
             # if callingModule != 'clidaux' and callingModule != 'callingModule':
-                # myLog.debug('clidcarto-> llamado por', llamada[1:3], end=' ')
+                # print('clidhead-> llamado por', llamada[1:3], end=' ')
             if verbose:
-                myLog.info('importado desde: {} ({})'.format(callingModule, llamada[2]), end='; ')
+                print(f'importado desde: {callingModule} ({llamada[2]})', end='; ')
     if verbose:
-        myLog.info('')
+        print('')
     return callingModulePrevio, callingModuleInicial
+
+
+# ==============================================================================
+def iniciaConsLog(myModule='clidhead', myVerbose=False, myQuiet=False):
+    if myVerbose == 3:
+        logLevel = logging.DEBUG  # 10
+    elif myVerbose == 2:
+        logLevel = logging.INFO  # 20
+    elif myVerbose == 1:
+        logLevel = logging.WARNING  # 30
+    elif not __quiet__:
+        logLevel = logging.ERROR
+    else:
+        logLevel = logging.CRITICAL
+    # ==============================================================================
+    # class ContextFilter(logging.Filter):
+    #     """
+    #     This is a filter which injects contextual information into the log.
+    #     """
+    #
+    #     def filter(self, record):
+    #         record.thisUser = myUser
+    #         record.thisFile = myModule[:10]
+    #         return True
+    # myFilter = ContextFilter()
+    # ==============================================================================
+    # formatter1 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
+    # formatterFile = logging.Formatter(formatter1, style='{', datefmt='%d-%m-%y %H:%M:%S')
+    formatterCons = logging.Formatter('{message}', style='{')
+    
+    myLog = logging.getLogger(myModule)
+    if sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+        # qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:
+        #  python -m cartolidar
+        # En __main__.py ya se ha confiigurado el logging.basicConfig()
+        # if myModule == __name__.split('.')[-1]:
+        #     print(f'{myModule}-> En __main.py se va a crear el loggin de consola para todos los modulos en __main__.py')
+        # else:
+        #     print(f'{myModule}-> Ya se ha creado el loggin de consola para todos los modulos en __main__.py')
+        pass
+    consLog = logging.StreamHandler()
+    consLog.setFormatter(formatterCons)
+    consLog.setLevel(logLevel)
+    myLog.setLevel(logLevel)
+    myLog.addHandler(consLog)
+    return myLog
+
+
+# ==============================================================================
+def foo0():
+    pass
+
+# ==============================================================================
+CONFIGverbose = __verbose__ > 2
+if CONFIGverbose:
+    print(f'\nclidhead-> AVISO: CONFIGverbose True; __verbose__: {__verbose__}')
+# ==============================================================================
+if CONFIGverbose:
+    print(f'\nclidaux-> Cargando clidhead...')
+    print(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
+    print(f'{TB}-> Revisando la pila de llamadas...')
+callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
+if CONFIGverbose:
+    print(f'{TB}{TV}-> callingModulePrevio:  {callingModulePrevio}')
+    print(f'{TB}{TV}-> callingModuleInicial: {callingModuleInicial}')
 # ==============================================================================
 
 # ==============================================================================
-CONFIGverbose = False
+myUser = infoUsuario()
+myModule = __name__.split('.')[-1]
+# ==============================================================================
+if not moduloPreviamenteCargado or True:
+    print('\nclidconfig-> AVISO: creando myLog (ConsLog)')
+    myLog = iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+# ==============================================================================
 if CONFIGverbose:
-    print(f'clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
-    print('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
-callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=CONFIGverbose)
-if CONFIGverbose:
-    print(f'clidcarto-> Pila de llamadas revisada-> callingModulePrevio: {callingModulePrevio} callingModuleInicial: {callingModuleInicial}')
+    myLog.debug(f'{"":_^80}')
+    myLog.debug(f'clidhead-> Debug & alpha version info:')
+    myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
+    myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
+    myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
+    myLog.debug(f'{TB}-> __name__:         <{__name__}>')
+    myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
+    myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso}>')
+        # myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
+    myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
+    myLog.debug(f'{"":=^80}')
 # ==============================================================================
 
 # ==============================================================================
-if callingModuleInicial != 'clidclas' and callingModuleInicial != 'clidtools':
-    try:
-        # from cartolidar.clidax.clidconfig import GLO
-        from cartolidar.clidax import clidconfig
-        from cartolidar.clidnb import clidnaux
-    except:
-        sys.stderr.write(f'clidhead-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-        sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....')
-        # from clidax.clidconfig import GLO
-        from clidax import clidconfig
-        from clidnb import clidnaux
-    configVarsDict = clidconfig.leerCambiarVariablesGlobales(
-        idProceso=MAIN_idProceso
-    )
-    GLO = clidconfig.VariablesGlobales(configVarsDict)
-else:
+if callingModuleInicial == 'clidtools' or callingModuleInicial == 'clidclas':
+    # No se usa el fichero de configuracion clidbase.slx cuando el modulo inicial es:
+    #   clidtools: modulos auxiliares de cartolidar, que pueden ejecutarse de forma autonoma
+    #   clidclas: modulo para lanzar el entrenamiento de forma autonoma
     class Object(object):
         pass
     GLO = Object()
     GLO.GLBLverbose = False
     GLO.GLBLcoordMinMaxAcordesConBloque = True
-    GLO.MAINversionClid = '0.0a4'
-    GLO.__version__ = '0.0a4'
-    GLO.MAINcopyright = 'Bengoa 2016-22'
+    GLO.MAIN_copyright = 'Bengoa 2016-22'
+    MAIN_controlFileLas = None
+    MAIN_controlFileGral = None
+else:
+    if os.getcwd().endswith('cartolidar\cartolidar') or os.getcwd().endswith('cartolidar/cartolidar'):
+        if CONFIGverbose:
+            sys.stdout.write('\nclidhead-> Importando clidconfig desde cartolidar.clidax\n')
+        from cartolidar.clidax import clidconfig
+        if CONFIGverbose:
+            sys.stdout.write(f'\nclidhead-> Ok clidconfig importado de cartolidar.clidax (1)')
+        from cartolidar.clidnb import clidnaux
+    else:
+        try:
+            if CONFIGverbose:
+                sys.stdout.write('\nclidhead-> Importando clidconfig desde cartolidar.clidax\n')
+            from cartolidar.clidax import clidconfig
+            if CONFIGverbose:
+                sys.stdout.write(f'\nclidhead-> Ok clidconfig importado de cartolidar.clidax (1)')
+            from cartolidar.clidnb import clidnaux
+        except:
+            if True:
+            # try:
+                if CONFIGverbose:
+                    sys.stdout.write(f'\nclidhead-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
+                from clidax import clidconfig
+                if CONFIGverbose:
+                    sys.stdout.write(f'\nclidhead-> Ok clidconfig importado del clidax local (2)')
+            from clidnb import clidnaux
+    configVarsDict = clidconfig.leerCambiarVariablesGlobales(
+        idProceso=MAIN_idProceso
+    )
+    GLO = clidconfig.VariablesGlobales(configVarsDict)
+    MAIN_controlFileLas = clidconfig.controlFileLas
+    MAIN_controlFileGral = clidconfig.controlFileGral
+
 GLO.MAIN_idProceso = MAIN_idProceso
 
 if not hasattr(GLO, 'MAIN_ENTORNO'):
@@ -184,32 +412,6 @@ if not hasattr(GLO, 'GLBLmetrosCelda'):
     GLO.GLBLmetrosCelda = 10
 # ==============================================================================
 
-# ==============================================================================
-__version__ = GLO.MAINversion
-__date__ = GLO.MAINdate
-__updated__ = GLO.MAINupdated
-# ==============================================================================
-
-# ==============================================================================
-myModule = __name__.split('.')[-1]
-myUser = clidconfig.infoUsuario()
-# ==============================================================================
-myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
-# ==============================================================================
-myLog.debug('{:_^80}'.format(''))
-myLog.debug('clidhead-> Debug & alpha version info:')
-# myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
-myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
-myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
-myLog.debug(f'{TB}-> __name__:         <{__name__}>')
-myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
-myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso}>')
-myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
-myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
-myLog.debug(f'{TB}-> Modulo desde el que se importa: <{callingModulePrevio}>')
-myLog.debug(f'{TB}-> Modulo ejecutado inicialmente:  <{callingModuleInicial}>')
-myLog.debug('{:=^80}'.format(''))
-# ==============================================================================
 
 # Funcion copiada de clidaux.py, pera no tener que importar ese modulo
 # ==============================================================================o
@@ -224,23 +426,24 @@ def printMsg(mensaje, outputFileLas=True, verbose=True, newLine=True, end=None):
             end=''
             print(mensaje)
     try:
-        if outputFileLas and clidconfig.controlFileLas:
+        if outputFileLas and MAIN_controlFileLas:
             try:
-                clidconfig.controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
+                MAIN_controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
             except:
-                if clidconfig.controlFileGral:
-                    clidconfig.controlFileGral.write('Error writing control file (1).\n')
+                if MAIN_controlFileGral:
+                    MAIN_controlFileGral.write('Error writing control file (1).\n')
         else:
-            clidconfig.controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
+            MAIN_controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
     except:
         pass
+
 
 # Funcion copiada de clidaux.py, pera no tener que importar ese modulo
 # ==============================================================================o
 def buscarDirectorioDeTrabajo():
     MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
     directorioActual = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
-    filenameAPP = os.path.join(directorioActual, 'cartolidar.py')
+    filenameAPP = os.path.join(directorioActual, 'clidbase.py')
     if os.path.exists(filenameAPP):
         directorioDeTrabajo = directorioActual
     else:
@@ -248,7 +451,7 @@ def buscarDirectorioDeTrabajo():
         # directorioPadre = quitarContrabarrasAgregarBarraFinal(directorioPadre)
         directorioPadre = (directorioPadre).replace(os.sep, '/')
 
-        filenameAPP = os.path.join(directorioPadre, 'cartolidar.py')
+        filenameAPP = os.path.join(directorioPadre, 'clidbase.py')
         if os.path.exists(filenameAPP):
             directorioDeTrabajo = directorioPadre
         else:
@@ -276,12 +479,12 @@ def buscarDirectorioDataExt():
         if dataFiles:
             return dataExtPath
         else:
-            print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+            print(f'clidhead-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
             directorioDeTrabajo = buscarDirectorioDeTrabajo()
             print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
             return directorioDeTrabajo
     else:
-        print(f'clidaux-> La ruta {dataExtPath} no es valida.')
+        print(f'clidhead-> La ruta {dataExtPath} no es valida.')
         directorioDeTrabajo = buscarDirectorioDeTrabajo()
         print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
         return directorioDeTrabajo
@@ -302,7 +505,7 @@ class LasHeadClass(object):
             metersBlock=2000,
             metersCell=10,
             # fileCoordYear='', # No utilizo fileCoordYear como propiedad de esta clase sino que uso
-                                # el valor obtenido en cartolidar.py que tiene en cuenta el nombre y
+                                # el valor obtenido en clidbase.py que tiene en cuenta el nombre y
                                 # las coordenadas de la cabecera xSupIzda ySupIzda
             LCLordenColoresInput=None,
             verbose=False,
@@ -1710,7 +1913,7 @@ class LasHeadClass(object):
                     print('\nclidhead-> Rango de coordenadas del fichero lidar superior a la dimension del bloque debido a la transformacion de coordenadas de h29 a h30')
                 else:
                     print('\nclidhead-> ATENCION: el rango de coordenadas del fichero lidar es superior a la dimension del bloque')
-                    print('clidhead-> Cambiar la variable de configuracion GLBLmetrosBloque en cartolidar.xml o usar otro fichero las')
+                    print('clidhead-> Cambiar la variable de configuracion GLBLmetrosBloque en clidbase.xml o usar otro fichero las')
                 print(
                     '\t->', round((self.xmax - self.xmin), 2),
                     '>', self.metersBlock,
@@ -1724,7 +1927,7 @@ class LasHeadClass(object):
                 # if not self.coordenadasTransformadasDe29a30:
                 if not self.TRNShuso29:
                     print('clidhead-> Se recomienda cambiar GLBLmetrosBloque a', math.ceil(max(self.ymax - self.ymin, self.xmax - self.xmin)), 'metros')
-                    print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en cartolidar.xml')
+                    print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en clidbase.xml')
                     print('{:o^80}'.format(' Fin - revisar errores '))
                     sys.exit(0)
                 print('{:=^80}'.format(''))
@@ -1758,7 +1961,7 @@ class LasHeadClass(object):
                 (self.xmax - self.xmin) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
                 or (self.ymax - self.ymin) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
             ):
-                print('clidhead-> Alguna dimension del lasFile es superior al GLBLmetrosBloque (establecido en cartolidar.xml)')
+                print('clidhead-> Alguna dimension del lasFile es superior al GLBLmetrosBloque (establecido en clidbase.xml)')
                 print('\t-> Valor actual de GLBLmetrosBloque:', GLO.GLBLmetrosBloque, 'm.')
                 print('\t-> Rango de coord x:', (self.xmax - self.xmin), 'Rango de coord y:', (self.ymax - self.ymin))
                 if GLO.MAIN_ENTORNO == 'windows':
@@ -1766,14 +1969,14 @@ class LasHeadClass(object):
                     rptaMantener = False if selec.upper() == 'N' else True
                     if not rptaMantener:
                         print('clidhead-> Se finaliza la aplicacion')
-                        print('\t-> Se cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en cartolidar.xml')
+                        print('\t-> Se cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en clidbase.xml')
                         print('{:=^80}'.format(' Fin - revisar errores '))
                         sys.exit(0)
             else:
                 if self.verbose:
                     print('{:!^80}'.format(''))
                     print('clidhead-> ATENCION: el rango de coordenadas del lasFile es inferior a la dimension del bloque (dimension -lado- estandar de fichero lidar):')
-                    print('\t-> Si ocurre con todos los ficheros, cambiar la variable de configuracion GLBLmetrosBloque en cartolidar.xml o usar otro fichero las')
+                    print('\t-> Si ocurre con todos los ficheros, cambiar la variable de configuracion GLBLmetrosBloque en clidbase.xml o usar otro fichero las')
                     print('{:!^80}'.format(''))
                     print('\tself.xmin: {:0.2f}'.format(self.xmin))
                     print('\tself.xmax: {:0.2f}'.format(self.xmax))
@@ -1786,7 +1989,7 @@ class LasHeadClass(object):
                         self.metersBlock,
                         'x',
                         self.metersBlock,
-                        'metros (variables de configuracion en cartolidar.xml)',
+                        'metros (variables de configuracion en clidbase.xml)',
                     )
                 if min(self.xmax - self.xmin, self.ymax - self.ymin) < 500:
                     if self.verbose:
@@ -1799,7 +2002,7 @@ class LasHeadClass(object):
                         rptaCambiar = False if selec.upper() == 'N' else True
                         if not rptaCambiar:
                             print('clidhead-> Se finaliza la aplicacion')
-                            print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en cartolidar.xml')
+                            print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en clidbase.xml')
                             print('{:o^80}'.format(' Fin - revisar errores '))
                             sys.exit(0)
                     rptaCambiar = True
@@ -1810,7 +2013,7 @@ class LasHeadClass(object):
                     if GLO.GLBLadapatarMetrosBloque:
                         GLBNmetrosBloque = int(GLO.GLBLmetrosCelda * math.ceil(min(self.xmax - self.xmin, self.ymax - self.ymin) / GLO.GLBLmetrosCelda))
                         if self.verbose:
-                            print('clidhead-> Se recomienda cambiar la variable de configuracion GLBLmetrosBloque en cartolidar.xml')
+                            print('clidhead-> Se recomienda cambiar la variable de configuracion GLBLmetrosBloque en clidbase.xml')
                             print('\tSe modifica para esta ejecucion el parametro GLBLmetrosBloque')
                             print('\tSe cambia el parametro GLBLmetrosBloque para esta ejecucion. Nuevo valor:', GLBNmetrosBloque, 'metros.')
                         else:
@@ -1862,7 +2065,7 @@ class LasHeadClass(object):
         # Asigned coordinates of up left corner after the lasFile name (and year)
         self.fileCoordYear, self.xSupIzdaDelNombre, self.ySupIzdaDelNombre, self.fileYear = getFileCoordFromName(self.infileConRuta)
         # No utilizo fileCoordYear como propiedad de esta clase sino que uso
-        # el valor obtenido en cartolidar.py que tiene en cuenta el nombre y
+        # el valor obtenido en clidbase.py que tiene en cuenta el nombre y
         # las coordenadas de la cabecera xSupIzda ySupIzda
         # Ademas en ese modulo se chequea la coherencia coordenadas de nombre y cabecera
         if False:
@@ -2290,12 +2493,12 @@ class LasHeadClass(object):
 #             LCLnMaxPtosCeldaArrayPredimensionadaTodos = GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos
 
         try:
-            from cartolidar.clidnb import clidndat
+            from cartolidar.clidfr import cliddata
         except:
             sys.stderr.write(f'clidhead-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
             sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....')
-            from clidnb import clidndat
-        myLasData = clidndat.LasData(self)
+            from clidfr import cliddata
+        myLasData = cliddata.LasData(self)
         myLasData.nPtosAleer = self.numptrecords
         myLasData.sampleLas = 1
 #         self.LCLnMaxPtosCeldaArrayPredimensionadaTodos = LCLnMaxPtosCeldaArrayPredimensionadaTodos
@@ -3094,11 +3297,12 @@ class NewLasHeadClass(object):
 
         self.verbose = verbose
         self.filesignature = 'LASF'
-        self.miSoftware = 'CartoLid v%s. %s' % (GLO.MAINversionClid, GLO.MAINcopyright)
+        self.miSoftware = f'CartoLid v {__version__}. {GLO.MAIN_copyright}'
         self.gensoftware = self.miSoftware[:31].ljust(32, '\x00')
         if verbose:
-            print('clidhead-> Software original:', self.myOldLasHead.headDict['gensoftware'])
-            print('clidhead-> Nuevo Software:   ', self.gensoftware.rstrip('\x00'))
+            print(f'clidhead-> Software original: {self.myOldLasHead.headDict["gensoftware"]}')
+            nuevoSoftware = self.gensoftware.rstrip('\x00') # No se permite \ dentro del f-format
+            print(f'clidhead-> Nuevo Software:    {nuevoSoftware}')
 
         # ======================================================================
         # Uso estos valores para:
@@ -3810,4 +4014,4 @@ its Field Name                              Description
 
 
 if __name__ == '__main__':
-    import cartolidar
+    import clidbase

@@ -112,8 +112,8 @@ else:
 
 # ==============================================================================
 def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
-    # myLog.debug('->->inspect_stack  ', inspect_stack
-    # myLog.debug('->->inspect.stack()', inspect.stack())
+    # sys.stdout.write('->->inspect_stack  ', inspect_stack
+    # sys.stdout.write('->->inspect.stack()', inspect.stack())
     if len(inspect_stack) > 1:
         try:
             esteModuloFile0 = inspect_stack[0][1]
@@ -123,10 +123,10 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
             esteModuloName0 = inspect.getmodulename(esteModuloFile0)
             esteModuloName1 = inspect.getmodulename(esteModuloFile1)
         except:
-            myLog.error('\tclidcarto-> Error identificando el modulo 1')
+            sys.stderr.write('\tclidcarto-> Error identificando el modulo 1\n')
             return 'desconocido1', 'desconocido1'
     else:
-        myLog.warning('\tclidcarto-> No hay modulos que identificar')
+        sys.stdout.write('\tclidcarto-> No hay modulos que identificar\n')
         return 'desconocido2', 'desconocido2'
 
     if not esteModuloName0 is None:
@@ -141,24 +141,22 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
     callingModulePrevio = ''
     callingModuleInicial = ''
     if verbose:
-        myLog.info('\tclidcarto-> El modulo {} ({}) ha sido'.format(esteModuloName, esteModuloNum), end=' ')
+        sys.stdout.write(f'\tclidcarto-> El modulo {esteModuloName} ({esteModuloNum}) ha sido ')
     for llamada in inspect_stack[stackSiguiente:]:
         if 'cartolid' in llamada[1] or 'clid' in llamada[1] or 'qlid' in llamada[1]:
             callingModule = inspect.getmodulename(llamada[1])
             if callingModule != esteModuloName and callingModulePrevio == '':
                 callingModulePrevio = callingModule
             callingModuleInicial = callingModule
-            # if callingModule != 'clidaux' and callingModule != 'callingModule':
-                # myLog.debug('clidcarto-> llamado por', llamada[1:3], end=' ')
             if verbose:
-                myLog.info('importado desde: {} ({})'.format(callingModule, llamada[2]), end='; ')
+                sys.stdout.write(f'importado desde: {callingModule} ({llamada[2]}); ')
     if verbose:
-        myLog.info('')
+        sys.stdout.write('\n')
     return callingModulePrevio, callingModuleInicial
 # ==============================================================================
 
 # ==============================================================================
-CONFIGverbose = False
+CONFIGverbose = __verbose__ > 2
 if CONFIGverbose:
     print(f'clidcarto-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
     print('clidcarto-> Cargando clidaux; reviso la pila de llamadas')
@@ -201,10 +199,10 @@ except:
 #         # clidnaux se incorporara proximamente de cartolid a cartolidar
 #         from cartolidar.clidnb import clidnaux
 #     except:
-#         myLog.warning('clidcarto-> ATENCION: error al cargar clidnaux desde clidcarto ')
-#         myLog.warning('\t-> Modulo inicial: <{}>'.format(callingModuleInicial))
-#         myLog.warning('\t-> Modificar el codigo para que no importe clidnaux')
-#         myLog.warning('\t   cuando se llama desde este modulo inicial.')
+#         sys.stdout.write('clidcarto-> ATENCION: error al cargar clidnaux desde clidcarto ')
+#         sys.stdout.write('\t-> Modulo inicial: <{}>'.format(callingModuleInicial))
+#         sys.stdout.write('\t-> Modificar el codigo para que no importe clidnaux')
+#         sys.stdout.write('\t   cuando se llama desde este modulo inicial.')
 
 # ==============================================================================
 # if (
@@ -217,12 +215,7 @@ except:
 #     or callingModuleInicial == 'clidmerge' or callingModuleInicial == 'qlidmerge'
 #     or callingModuleInicial == 'clidgis'
 # ):
-if (
-    callingModuleInicial != 'cartolidar'
-    and callingModuleInicial != 'clidaux'
-    and callingModuleInicial != 'clidclas'
-    # and callingModuleInicial != 'clidtry':
-):
+if callingModuleInicial == 'clidtools' or callingModuleInicial == 'clidclas':
     # sys.stdout.write('clidcarto-> Modulo importado desde', os.getcwd(), 'No se cargan las variables globales de cartolid.xls\n')
     class Object(object):
         pass
@@ -250,18 +243,19 @@ myUser = clidconfig.infoUsuario()
 # ==============================================================================
 myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
-myLog.debug('{:_^80}'.format(''))
-myLog.debug('clidcarto-> Debug & alpha version info:')
-# myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
-myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
-myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
-myLog.debug(f'{TB}-> __name__:         <{__name__}>')
-myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
-myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso}>')
-myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
-myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
-myLog.debug(f'{TB}-> Modulo desde el que se importa: <{callingModulePrevio}>')
-myLog.debug(f'{TB}-> Modulo ejecutado inicialmente:  <{callingModuleInicial}>')
+if CONFIGverbose:
+    myLog.debug('{:_^80}'.format(''))
+    myLog.debug('clidcarto-> Debug & alpha version info:')
+    # myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
+    myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
+    myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
+    myLog.debug(f'{TB}-> __name__:         <{__name__}>')
+    myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
+    myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso}>')
+    # myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
+    myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
+    myLog.debug(f'{TB}-> Modulo desde el que se importa: <{callingModulePrevio}>')
+    myLog.debug(f'{TB}-> Modulo ejecutado inicialmente:  <{callingModuleInicial}>')
 
 # myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
 
@@ -418,7 +412,7 @@ class CartoRefVector(object):
     def leerArraysGuardadasVuelta01_cartoRefVector(self, npzFileNameArraysVuelta0a1, LCLverbose=False):
         self.LCLverbose = LCLverbose
         if GLO.GLBLverbose or self.LCLverbose:
-            myLog.info(f'\t-> clidndat-> Leyendo npz: {npzFileNameArraysVuelta0a1}')
+            myLog.info(f'\t-> clidcarto-> Leyendo npz: {npzFileNameArraysVuelta0a1}')
         if os.path.exists(npzFileNameArraysVuelta0a1):
             try:
                 npzArraysVuelta01 = np.load(npzFileNameArraysVuelta0a1, allow_pickle=True)
@@ -2239,7 +2233,7 @@ class CartoRefRaster(object):
     def leerArraysGuardadasVuelta01_cartoRefRaster(self, npzFileNameArraysVuelta0a1, LCLverbose=False):
         self.LCLverbose = LCLverbose
         if GLO.GLBLverbose or self.LCLverbose:
-            print('\t-> clidndat-> Leyendo npz:', npzFileNameArraysVuelta0a1)
+            print('\t-> clidcarto-> Leyendo npz:', npzFileNameArraysVuelta0a1)
         if os.path.exists(npzFileNameArraysVuelta0a1):
             try:
                 npzArraysVuelta01 = np.load(npzFileNameArraysVuelta0a1, allow_pickle=True)

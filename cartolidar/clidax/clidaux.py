@@ -3,39 +3,46 @@
 '''
 Created on 17/05/2017
 
-@author: benmarjo
+@author: JB
 # -*- coding: latin-1 -*-
 '''
-from __future__ import division, print_function
-from __future__ import unicode_literals
+# from __future__ import division, print_function
+# from __future__ import unicode_literals
 
 import os
 import sys
+import pathlib
 import time
 from datetime import datetime, timedelta
-import math
-import random
-import traceback
-import struct
-import platform, subprocess
-import inspect
-import collections
 import types # Ver https://docs.python.org/2/library/types.html
-import gc
+# import csv
+import re
+import math
+# import random
+import platform
+import inspect
+import traceback
+import subprocess
+# import argparse
+# from configparser import RawConfigParser
+import logging
+# import importlib
+import struct
 import shutil
-import pathlib
+import gc
 import socket
-# Paquetes para progress:
-from functools import partial
-from collections import deque
-
+import collections
 
 # Paquetes de terceros
-import psutil
 import numpy as np
 import numba
 import scipy
 from _ast import Or
+try:
+    import psutil
+    psutilOk = True
+except:
+    psutilOk = False
 # from scipy.spatial.distance import pdist
 
 try:
@@ -59,12 +66,16 @@ except:
 
 
 # ==============================================================================
+if __name__ == '__main__':
+    print('\nclidaux-> ATENCION: este modulo no se puede ejecutar de forma autonoma')
+    sys.exit(0)
+# ==============================================================================
 if '--cargadoClidaux' in sys.argv:
     moduloPreviamenteCargado = True
-    print(f'\nclidaux->x> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    print(f'\nclidaux->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
 else:
     moduloPreviamenteCargado = False
-    print(f'\nclidaux->x> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    print(f'\nclidaux->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
     sys.argv.append('--cargadoClidaux')
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
@@ -86,11 +97,9 @@ elif type(ARGS_idProceso) == str:
         print(f'sys.argv: {sys.argv}')
 else:
     MAIN_idProceso = 0
-    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
+    print(f'clidaux-> ATENCION: revisar codigo de idProceso.')
     print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
     print(f'sys.argv: {sys.argv}')
-# ==============================================================================
-
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -109,9 +118,18 @@ if '-q' in sys.argv:
 else:
     __quiet__ = 0
 # ==============================================================================
+
+# ==============================================================================
+# ============================ Variables GLOBALES ==============================
+# ==============================================================================
 # TB = '\t'
 TB = ' ' * 10
 TV = ' ' * 3
+TW = ' ' * 2
+# ==============================================================================
+# ATENCION: las2las no me funciona para descomprimir en memoria
+TRNSdescomprimirConlaszip = True
+TRNSdescomprimirConlas2las = False
 # ==============================================================================
 
 # ==============================================================================
@@ -121,12 +139,15 @@ TV = ' ' * 3
 MAIN_HOME_DIR = str(pathlib.Path.home())
 # DIrectorios de la aplicacion:
 MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Cuando estoy en un modulo principal (cartolidar.py o cartolider.py):
+# Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
 # MAIN_PROJ_DIR = MAIN_FILE_DIR
 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..')) # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
 MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
-MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
+if 'clidbase' in MAIN_RAIZ_DIR:
+    MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
+else:
+    MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
 # Directorio desde el que se lanza la app (estos dos coinciden):
 MAIN_BASE_DIR = os.path.abspath('.')
 MAIN_THIS_DIR = os.getcwd()
@@ -137,11 +158,15 @@ MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
 if MAIN_FILE_DIR[:12] == '/LUSTRE/HOME':
     MAIN_ENTORNO = 'calendula'
     MAIN_PC = 'calendula'
+    MAIN_RAIS_DIR = MAIN_RAIZ_DIR
 elif MAIN_FILE_DIR[:8] == '/content':
     MAIN_ENTORNO = 'colab'
     MAIN_PC = 'colab'
+    MAIN_RAIS_DIR = MAIN_RAIZ_DIR
 else:
     MAIN_ENTORNO = 'windows'
+    # MAIN_RAIS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '..'))
+    MAIN_RAIS_DIR = MAIN_RAIZ_DIR
     try:
         if MAIN_DRIVE[0] == 'D':
             MAIN_PC = 'Casa'
@@ -150,6 +175,356 @@ else:
     except:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
+# ==============================================================================
+
+# ==============================================================================
+# Ver https://peps.python.org/pep-0008/#module-level-dunder-names
+# Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
+# ==============================================================================
+VERSIONFILE = os.path.abspath('_version.py')
+if not os.path.exists(VERSIONFILE):
+    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
+    if not os.path.exists(VERSIONFILE):
+        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
+        if not os.path.exists(VERSIONFILE):
+            VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
+if os.path.exists(VERSIONFILE):
+    verstrline = open(VERSIONFILE, "rt").read()
+    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        # __version__ = mo.groups()[0]
+        __version__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
+    VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __date__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "..."')
+    VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __updated__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "..."')
+    VSRE = r"^__copyright__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __copyright__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+else:
+    __version__ = '0.0'
+    __date__ = '2016-2022'
+    __updated__ = '2022'
+    __copyright__ = '@clid 2016-22'
+# ==============================================================================
+
+
+# ==============================================================================
+# Version original de la funcion
+def infoUsuario(verbose=False):
+    if psutilOk:
+        try:
+            esteUsuario = psutil.users()[0].name
+            if verbose:
+                print('clidaux-> Usuario:', esteUsuario)
+        except:
+            esteUsuario = psutil.users()
+            if verbose:
+                print('clidaux-> Users:', esteUsuario)
+        if not isinstance(esteUsuario, str) or esteUsuario == '':
+            esteUsuario = 'local'
+    else:
+        esteUsuario = 'SinUsuario'
+    return esteUsuario
+
+
+# ==============================================================================
+# Version original de la funcion
+def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
+    # print('->->->inspect_stack  ', inspect_stack
+    # print('->->->inspect.stack()', inspect.stack())
+    if len(inspect_stack) > 1:
+        try:
+            esteModuloFile0 = inspect_stack[0][1]
+            esteModuloNum0 = inspect_stack[0][2]
+            esteModuloFile1 = inspect_stack[1][1]
+            esteModuloNum1 = inspect_stack[1][2]
+            esteModuloName0 = inspect.getmodulename(esteModuloFile0)
+            esteModuloName1 = inspect.getmodulename(esteModuloFile1)
+        except:
+            print(f'{TB}clidaux-> Error identificando el modulo 1')
+            return 'desconocido1', 'desconocido1'
+    else:
+        if verbose:
+            print(f'{TB}clidaux-> No hay modulos que identificar')
+        return 'noHayModuloPrevio', 'esteModulo'
+
+    if not esteModuloName0 is None:
+        esteModuloName = esteModuloName0
+        esteModuloNum = esteModuloNum0
+        stackSiguiente = 1
+    else:
+        esteModuloName = esteModuloName1
+        esteModuloNum = esteModuloNum1
+        stackSiguiente = 2
+
+    callingModulePrevio = ''
+    callingModuleInicial = ''
+    if verbose:
+        print(f'{TB}clidaux-> El modulo {esteModuloName} ({esteModuloNum}) ha sido', end=' ')
+    for llamada in inspect_stack[stackSiguiente:]:
+        if 'cartolid' in llamada[1] or 'clid' in llamada[1] or 'qlid' in llamada[1]:
+            callingModule = inspect.getmodulename(llamada[1])
+            if callingModule != esteModuloName and callingModulePrevio == '':
+                callingModulePrevio = callingModule
+            callingModuleInicial = callingModule
+            # if callingModule != 'clidaux' and callingModule != 'callingModule':
+                # print('clidaux-> llamado por', llamada[1:3], end=' ')
+            if verbose:
+                print(f'importado desde: {callingModule} ({llamada[2]})', end='; ')
+    if verbose:
+        print('')
+    return callingModulePrevio, callingModuleInicial
+
+
+# ==============================================================================
+def iniciaConsLog(myModule='clidaux', myVerbose=False, myQuiet=False):
+    if myVerbose == 3:
+        logLevel = logging.DEBUG  # 10
+    elif myVerbose == 2:
+        logLevel = logging.INFO  # 20
+    elif myVerbose == 1:
+        logLevel = logging.WARNING  # 30
+    elif not __quiet__:
+        logLevel = logging.ERROR
+    else:
+        logLevel = logging.CRITICAL
+    # ==============================================================================
+    # class ContextFilter(logging.Filter):
+    #     """
+    #     This is a filter which injects contextual information into the log.
+    #     """
+    #
+    #     def filter(self, record):
+    #         record.thisUser = myUser
+    #         record.thisFile = myModule[:10]
+    #         return True
+    # myFilter = ContextFilter()
+    # ==============================================================================
+    # formatter1 = '{asctime}|{name:10s}|{levelname:8s}|{thisUser:8s}|> {message}'
+    # formatterFile = logging.Formatter(formatter1, style='{', datefmt='%d-%m-%y %H:%M:%S')
+    formatterCons = logging.Formatter('{message}', style='{')
+    
+    myLog = logging.getLogger(myModule)
+    if sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+        # qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:
+        #  python -m cartolidar
+        # En __main__.py ya se ha confiigurado el logging.basicConfig()
+        # if myModule == __name__.split('.')[-1]:
+        #     print(f'{myModule}-> En __main.py se va a crear el loggin de consola para todos los modulos en __main__.py')
+        # else:
+        #     print(f'{myModule}-> Ya se ha creado el loggin de consola para todos los modulos en __main__.py')
+        pass
+    consLog = logging.StreamHandler()
+    consLog.setFormatter(formatterCons)
+    consLog.setLevel(logLevel)
+    myLog.setLevel(logLevel)
+    myLog.addHandler(consLog)
+    return myLog
+
+
+# ==============================================================================
+def foo0():
+    pass
+
+# ==============================================================================
+CONFIGverbose = __verbose__ > 2
+if CONFIGverbose:
+    print(f'\nclidaux-> AVISO: CONFIGverbose True; __verbose__: {__verbose__}')
+# ==============================================================================
+
+# ==============================================================================
+myUser = infoUsuario()
+myModule = __name__.split('.')[-1]
+# ==============================================================================
+if not moduloPreviamenteCargado or True:
+    print('\nclidaux-> AVISO: creando myLog (ConsLog)')
+    myLog = iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+    # print('myLog.getEffectiveLevel:', myLog.getEffectiveLevel())
+    # print('myLog.Level:', myLog.level)
+# ==============================================================================
+if CONFIGverbose:
+    myLog.debug(f'{"":_^80}')
+    myLog.debug(f'clidaux-> Debug & alpha version info:')
+    myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
+    myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
+    myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
+    myLog.debug(f'{TB}-> __name__:         <{__name__}>')
+    myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
+    myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso:006}>')
+    # myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
+    myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
+    myLog.debug(f'{"":=^80}')
+# ==============================================================================
+
+# ==============================================================================
+if CONFIGverbose:
+    myLog.debug(f'\nclidaux-> Cargando clidaux...')
+    myLog.debug(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
+    myLog.debug(f'{TB}-> Revisando la pila de llamadas...')
+callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
+if CONFIGverbose:
+    myLog.debug(f'{TB}{TV}-> callingModulePrevio:  {callingModulePrevio}')
+    myLog.debug(f'{TB}{TV}-> callingModuleInicial: {callingModuleInicial}')
+# ==============================================================================
+
+
+# ==============================================================================
+if CONFIGverbose:
+    sys.stdout.write(f'\nclidaux-> Importando clidconfig desde clidaux, a su vez importado desde {callingModulePrevio} (modulo inicial: {callingModuleInicial})')
+# if True:
+    # https://stackoverflow.com/questions/61234609/how-to-import-python-package-from-another-directory
+    # https://realpython.com/python-import/
+    # https://blog.ionelmc.ro/2014/05/25/python-packaging/
+    sys.path.insert(0, os.path.join(MAIN_PROJ_DIR, 'cartolidar/clidax'))
+try:
+    if CONFIGverbose:
+        sys.stdout.write('\nclidaux-> Importando clidconfig desde cartolidar.clidax\n')
+    from cartolidar.clidax import clidconfig
+    if CONFIGverbose:
+        sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (1)')
+except:
+    try:
+        if CONFIGverbose:
+            sys.stdout.write(f'\nclidaux-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
+        from clidax import clidconfig
+        if CONFIGverbose:
+            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado del clidax local (2)')
+    except:
+        # Alternativa para cuando el modulo inicial es este u otro modulo de este package:
+        import clidconfig
+        if CONFIGverbose:
+            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado directamente (modulo inicial en el mismo package que clidconfig) (3)')
+
+# ==============================================================================
+MAINusuario = infoUsuario(False)
+# ==============================================================================
+nuevosParametroConfiguracion = {}
+nuevosParametroConfiguracion['MAIN_copyright'] = [__copyright__, 'str', '', 'GrupoMAIN', __copyright__]
+nuevosParametroConfiguracion['MAIN_version'] = [__version__, 'str', '', 'GrupoMAIN', __version__]
+nuevosParametroConfiguracion['MAINusuario'] = [MAINusuario, 'GrupoMAIN', '', 'str']
+nuevosParametroConfiguracion['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'GrupoMAIN', '', 'str']
+nuevosParametroConfiguracion['MAINmiRutaRaiz'] = [MAIN_RAIZ_DIR, 'GrupoMAIN', '', 'str']
+nuevosParametroConfiguracion['MAIN_idProceso'] = [MAIN_idProceso, 'GrupoMAIN', '', 'str']
+nuevosParametroConfiguracion['MAIN_ENTORNO'] = [MAIN_ENTORNO, 'GrupoMAIN', '', 'str']
+nuevosParametroConfiguracion['MAIN_PC'] = [MAIN_PC, 'GrupoMAIN', '', 'str']
+nuevosParametroConfiguracion['MAIN_DRIVE'] = [MAIN_DRIVE, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_HOME_DIR'] = [MAIN_HOME_DIR, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_BASE_DIR'] = [MAIN_BASE_DIR, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'GrupoDirsFiles', '', 'str']
+# ==============================================================================
+
+# ==============================================================================
+print(f'\nclidaux-> Se cargan las variables globales.')
+print(f'{TB}-> __name__:        {__name__}')
+print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
+print(f'{TB}-> Ruta de trabajo: {os.getcwd()}')
+# ==============================================================================
+if CONFIGverbose:
+    print(f'\nclidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (con o sin nuevosParametroConfiguracion) para leer los parametros de configuracion del fichero cfg')
+GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
+    nuevosParametroConfiguracion,
+    idProceso=MAIN_idProceso,
+    inspect_stack=inspect.stack(),
+    verbose=CONFIGverbose,
+)
+if CONFIGverbose:
+    print(f'clidaux-> B Cargando parametros de configuracion GLOBALconfigDict en GLO')
+GLO = clidconfig.VariablesGlobales(GLOBALconfigDict)
+if CONFIGverbose:
+    print(f'clidaux-> C ok. GLO.GLBLverbose: {GLO.GLBLverbose}; CONFIGverbose: {CONFIGverbose}; __verbose__: {__verbose__}')
+    print(f'clidaux-> C ok. GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
+GLO.MAIN_idProceso = MAIN_idProceso
+# ==============================================================================
+
+# ==============================================================================
+# if callingModuleInicial == 'generax' or os.getcwd().endswith('gens'):
+#     print(f'\nclidaux-> NO se cargan las variables globales. Modulo importado desde la ruta: {os.getcwd()} -> Inicial: {callingModuleInicial}')
+#     print(f'{TB}-> __name__:        {__name__}')
+#     print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
+#     print(f'{TB}-> Ruta de trabajo: {os.getcwd()}')
+#
+#     class Object(object):
+#         pass
+#
+#     GLO = Object()
+#     GLO.GLBLficheroLasTemporal = ''
+#     GLO.GLBLverbose = True
+# ==============================================================================
+
+
+# ==============================================================================
+if callingModuleInicial == 'clidflow':
+    printMsgToFile = False
+else:
+    printMsgToFile = True
+# ==============================================================================o
+def printMsg(mensaje='', outputFileLas=True, verbose=True, newLine=True, end=None):
+    if verbose:
+        if not end is None:
+            print(mensaje, end=end)
+        elif not newLine:
+            end=''
+            print(mensaje, end=end)
+        else:
+            end=''
+            print(mensaje)
+    if printMsgToFile:
+        try:
+            if outputFileLas and clidconfig.controlFileLas:
+                try:
+                    clidconfig.controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
+                except:
+                    if clidconfig.controlFileGral:
+                        clidconfig.controlFileGral.write('Error writing control file (1).\n')
+            else:
+                clidconfig.controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
+        except:
+            print('clidaux-> printMsg: no hay acceso a controlFileLas ni controlFileGral.')
+            pass
+
+
+# ==============================================================================
+# #Puedo usar esta funcion para mensajes individuales y globales
+# def mostrarMensaje(mensaje, outputFileLas=True, verbose=True, newLine=True):
+#     if verbose:
+#         if newLine:
+#             print( mensaje )
+#         else:
+#             print( mensaje, )
+#     if outputFileLas and clidconfig.controlFileLas:
+#         try:
+#             clidconfig.controlFileLas.write(str(mensaje) + '\n' if newLine else ' ')
+#         except:
+#             if clidconfig.controlFileGral:
+#                 clidconfig.controlFileGral.write('Error writing control file (1).\n')
+#     else:
+#         try:
+#             clidconfig.controlFileGral.write(str(mensaje) + '\n' if newLine else ' ')
+#         except:
+#             print( 'Error writing control file (2).' )
+
 
 # ==============================================================================
 def mensajeError(program_name):
@@ -191,383 +566,6 @@ def mensajeError(program_name):
     # sys.stderr.write('\nFormato estandar del traceback:\n')
     # sys.stderr.write(traceback.format_exc())
     return (lineError, descError, typeError)
-
-
-# ==============================================================================
-def showCallingModules(inspect_stack=inspect.stack(), verbose=True):
-    # print('->->->inspect_stack  ', inspect_stack
-    # print('->->->inspect.stack()', inspect.stack())
-    if len(inspect_stack) > 1:
-        try:
-            esteModuloFile0 = inspect_stack[0][1]
-            esteModuloNum0 = inspect_stack[0][2]
-            esteModuloFile1 = inspect_stack[1][1]
-            esteModuloNum1 = inspect_stack[1][2]
-            esteModuloName0 = inspect.getmodulename(esteModuloFile0)
-            esteModuloName1 = inspect.getmodulename(esteModuloFile1)
-        except:
-            print('\tclidaux-> Error identificando el modulo 1')
-            return 'desconocido1', 'desconocido1'
-    else:
-        print('\tclidaux-> No hay modulos que identificar')
-        return 'noHayModuloPrevio', 'esteModulo'
-
-    if not esteModuloName0 is None:
-        esteModuloName = esteModuloName0
-        esteModuloNum = esteModuloNum0
-        stackSiguiente = 1
-    else:
-        esteModuloName = esteModuloName1
-        esteModuloNum = esteModuloNum1
-        stackSiguiente = 2
-
-    callingModulePrevio = ''
-    callingModuleInicial = ''
-    if verbose:
-        print('\tclidaux-> El modulo {} ({}) ha sido'.format(esteModuloName, esteModuloNum), end=' ')
-    for llamada in inspect_stack[stackSiguiente:]:
-        if 'cartolid' in llamada[1] or 'clid' in llamada[1] or 'qlid' in llamada[1]:
-            callingModule = inspect.getmodulename(llamada[1])
-            if callingModule != esteModuloName and callingModulePrevio == '':
-                callingModulePrevio = callingModule
-            callingModuleInicial = callingModule
-            # if callingModule != 'clidaux' and callingModule != 'callingModule':
-                # print('clidaux-> llamado por', llamada[1:3], end=' ')
-            if verbose:
-                print('importado desde: {} ({})'.format(callingModule, llamada[2]), end='; ')
-    if verbose:
-        print()
-    return callingModulePrevio, callingModuleInicial
-
-
-# ==============================================================================
-CONFIGverbose = __verbose__ > 2
-if CONFIGverbose:
-    print(f'\nclidaux-> Cargando clidaux...')
-    print(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
-    print(f'{TB}-> Revisando la pila de llamadas...')
-callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
-if CONFIGverbose:
-    print(f'{TB}{TV}-> callingModulePrevio:  {callingModulePrevio}')
-    print(f'{TB}{TV}-> callingModuleInicial: {callingModuleInicial}')
-# ==============================================================================
-
-
-# ==============================================================================
-if (
-    callingModuleInicial == 'generax'
-    or os.getcwd().endswith('gens')
-    or (callingModuleInicial==  '__main__' and 'cartolidar' in sys.argv[0])  # sys.argv[0].endswith('__main__.py')
-    # or callingModuleInicial == 'cartolidar'
-    or callingModuleInicial == 'qlidtwins' or callingModuleInicial == 'clidtwins'
-    or callingModuleInicial == 'qlidmerge' or callingModuleInicial == 'clidmerge'
-    or callingModuleInicial == 'runpy'
-    or callingModuleInicial == '__init__'
-    or callingModuleInicial.startswith('test_')
-    # or callingModuleInicial != 'clidtools'
-):
-    print(f'\nclidaux-> NO se cargan las variables globales. Modulo importado desde la ruta: {os.getcwd()} -> Inicial: {callingModuleInicial}')
-    print(f'{TB}-> __name__:        {__name__}')
-    print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
-    print(f'{TB}-> Ruta de trabajo: {os.getcwd()}')
-
-    class Object(object):
-        pass
-
-    GLO = Object()
-    GLO.GLBLficheroLasTemporal = ''
-    GLO.GLBLverbose = True
-
-else:
-    print(f'\nclidaux-> SI se cargan las variables globales.')
-    print(f'{TB}-> __name__:        {__name__}')
-    print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
-    print(f'{TB}-> Ruta de trabajo: {os.getcwd()}')
-
-    if __name__ == '__main__': # callingModuleInicial != 'clidaux'
-        print('clidaux-> Modulo cargado directamente. os.getcwd():', os.getcwd(), time.asctime(time.localtime(time.time())))
-#         try:
-        if True:
-            # https://stackoverflow.com/questions/61234609/how-to-import-python-package-from-another-directory
-            # https://realpython.com/python-import/
-            # https://blog.ionelmc.ro/2014/05/25/python-packaging/
-            # print('clidaux-> Pre sys.path:  {}'.format(sys.path))
-            path = str(pathlib.Path(pathlib.Path(__file__).parent.absolute()).parent.absolute())
-            # print('clidaux-> Incluyo el dir padre1 de este modulo en el path: {}'.format(os.path.abspath(path)))
-            sys.path.insert(0, path)
-            # Esto equivale a lo anterior:
-            # print('clidaux-> Incluyo el dir padre2 de este modulo en el path: {}'.format(os.path.abspath('..')))
-            # sys.path.insert(0, '..')
-            # print('clidaux-> Post sys.path: {}'.format(sys.path))
-            from clidax import clidconfig # No necesita ningun otro modulo de cartolid
-            # print('clidaux-> clidconfig import ok')
-            # from clidml import clidmachine # Necesita: clidconfig
-            # print('clidaux-> clidmachine import ok')
-            from clidio import clidhead # Necesita clidconfig, clidnaux, (clidndat si uso infoLasPoints<>)
-            # print('clidaux-> clidhead import ok')
-            from clidio import clidlax # Necesita clidconfig, clidnaux, clidhead, clidpoint (a su vez necesita clidconfig) 
-            # print('clidaux-> clidlax import ok')
-            # Modulos que se cargan con clidaux (directa o indirectamente): clidconfig, clidlax, clidnaux, clidhead, clidpoint (clidndat si uso infoLasPoints<>)
-            # clidlax y clidnaux (si verbse) importan clidaux
-            # print('clidaux-> clidconfig, clidmachine, clidhead & clidlax importados ok directamente desde clidaux')
-            print('clidaux-> clidconfig, clidhead & clidlax importados ok directamente desde clidaux')
-            print('\t-> clidnaux, clidpoint & clidndat importados ok desde modulos importados por clidaux')
-#         except:
-#             print('clidaux-> Error al importar modulos de otro subpackage. Se intenta con rutas referidas al directorio desde el que se ejecuta la app')
-#             # Esta opcion es peor porque depende del directorio desde el que se llama a clidaux.py
-#             print('clidaux-> Antes he incluido el dir padre1 de este modulo en el path:  {}'.format(os.path.abspath(path)))
-#             print('clidaux-> Ahora incluyo el dir padre2 (..) de este modulo en el path: {}'.format(os.path.abspath('..')))
-#             print('clidaux-> Tb incluyo este dir (./cartolid/clidax) en el path:         {}'.format(os.path.abspath('./cartolid/clidax')))
-#             print('clidaux-> Post1 sys.path (antes): {}'.format(sys.path))
-#             sys.path.insert(0, os.path.abspath('..'))
-#             sys.path.insert(0, os.path.abspath('./cartolid/clidax'))
-#             print('clidaux-> Post2 sys.path (ahora): {}'.format(sys.path))
-#             from clidax import clidconfig # No necesita ningun otro modulo de cartolid
-#             from clidml import clidmachine # Necesita: clidconfig
-#             from clidio import clidhead # Necesita clidconfig, clidnaux, (clidndat si uso infoLasPoints<>)
-#             from clidio import clidlax # Necesita clidconfig, clidnaux, clidhead, clidpoint (a su vez necesita clidconfig) 
-#             # Modulos que se cargan con clidaux (directa o indirectamente): clidconfig, clidhead, clidlax, clidnaux, clidpoint (clidndat si uso infoLasPoints<>)
-#             # clidlax y clidnaux (si verbse) importan clidaux
-
-        # ==============================================================================
-        MAINusuario = clidconfig.infoUsuario(False)
-        # ==============================================================================
-        nuevosParametroConfiguracion = {}
-        nuevosParametroConfiguracion['MAINcopyright'] = ['2016-2021', 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAINusuario'] = [MAINusuario, 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAINmiRutaRaiz'] = [MAIN_RAIZ_DIR, 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAIN_idProceso'] = [MAIN_idProceso, 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAIN_ENTORNO'] = [MAIN_ENTORNO, 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAIN_PC'] = [MAIN_PC, 'GrupoMAIN', '', 'str']
-        nuevosParametroConfiguracion['MAIN_DRIVE'] = [MAIN_DRIVE, 'GrupoDirsFiles', '', 'str']
-        nuevosParametroConfiguracion['MAIN_HOME_DIR'] = [MAIN_HOME_DIR, 'GrupoDirsFiles', '', 'str']
-        nuevosParametroConfiguracion['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'GrupoDirsFiles', '', 'str']
-        nuevosParametroConfiguracion['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'GrupoDirsFiles', '', 'str']
-        nuevosParametroConfiguracion['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'GrupoDirsFiles', '', 'str']
-        nuevosParametroConfiguracion['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'GrupoDirsFiles', '', 'str']
-        nuevosParametroConfiguracion['MAIN_BASE_DIR'] = [MAIN_BASE_DIR, 'GrupoDirsFiles', '', 'str']
-        nuevosParametroConfiguracion['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'GrupoDirsFiles', '', 'str']
-
-    else:
-        nuevosParametroConfiguracion = {}
-        if callingModuleInicial != 'clidaux' and callingModuleInicial != 'clidtools' and callingModuleInicial != '__main__':
-            if CONFIGverbose or True:
-                print(f'clidaux-> Importando clidconfig desde clidaux, a su vez importado desde {callingModulePrevio} (modulo inicial: {callingModuleInicial})')
-            try:
-                import clidconfig
-            except:
-                from clidax import clidconfig
-            # print('clidaux-> Ok clidmachine importado desde clidaux')
-        elif callingModuleInicial == '__main__':
-            try:
-                from cartolidar.clidax import clidconfig
-            except:
-                from clidax import clidconfig
-        else:
-            try:
-                from clidax import clidconfig
-            except:
-                import clidconfig
-    # ==============================================================================
-
-    if __name__ == '__main__' or (callingModuleInicial != 'clidaux' and callingModuleInicial != 'clidtools'):
-        if CONFIGverbose:
-            print(f'\nclidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (con o sin nuevosParametroConfiguracion) para leer los parametros de configuracion del fichero cfg')
-        GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
-            nuevosParametroConfiguracion,
-            idProceso=MAIN_idProceso,
-            inspect_stack=inspect.stack(),
-            verbose=CONFIGverbose,
-        )
-        if CONFIGverbose:
-            print(f'clidaux-> B Cargando parametros de configuracion GLOBALconfigDict en GLO')
-        GLO = clidconfig.VariablesGlobales(GLOBALconfigDict)
-        if CONFIGverbose:
-            print(f'clidaux-> C ok. GLO.GLBLverbose: {GLO.GLBLverbose}; CONFIGverbose: {CONFIGverbose}; __verbose__: {__verbose__}')
-        GLO.MAIN_idProceso = MAIN_idProceso
-
-
-if callingModuleInicial == 'cartolider':
-    printMsgToFile = False
-else:
-    printMsgToFile = True
-
-
-# ==============================================================================
-myModule = __name__.split('.')[-1]
-myUser = clidconfig.infoUsuario()
-# ==============================================================================
-if not moduloPreviamenteCargado:
-    print('\ncartolidar-> AVISO: creando myLog')
-    myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
-# ==============================================================================
-myLog.debug('{:_^80}'.format(''))
-myLog.debug('clidaux-> Debug & alpha version info:')
-myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
-myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
-myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
-myLog.debug(f'{TB}-> __name__:         <{__name__}>')
-myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
-myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso:006}>')
-myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
-myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
-myLog.debug(f'{"":=^80}')
-# ==============================================================================
-
-# print('\nclidaux-> cargando clidaux. GLO:', GLO)
-# ==============================================================================
-# Dejo esto por si quiero ver como funciona la pila de llamadas segun desde donde se cargue este modulo
-if False:
-    mostrarModuloInicial = True
-    mostrarPilaDeLlamadas = False
-    if mostrarModuloInicial:
-        import inspect
-        callingModuleActual = inspect.getmodulename(inspect.stack()[0][1])
-        try:
-            if len(inspect.stack()) > 1:
-                callingModuleInicial = inspect.getmodulename(inspect.stack()[-1][1])
-                callingModulePrevio = 'desconocido'
-                for nOrden, llamada in enumerate(inspect.stack()[1:]):
-                    #print('\t->', nOrden, llamada[1])
-                    if not llamada[1].startswith('<frozen'):
-                        callingModulePrevio = inspect.getmodulename(llamada[1])
-                        break
-            else:
-                callingModuleInicial = callingModuleActual
-                callingModulePrevio = 'Modulo no importado desde otro modulo'
-        except:
-            callingModuleInicial = 'Desconocido'
-            callingModulePrevio = 'Desconocido'
-        print('clidaux-> Este modulo:                   ', callingModuleActual)
-        print('clidaux-> Modulo desde el que se importa:', callingModulePrevio)
-        print('clidaux-> Modulo ejecutado inicialmente: ', callingModuleInicial)
-    if mostrarPilaDeLlamadas:
-        print('clidaux-> Secuencia de llamadas:')
-        for nOrden, llamada in enumerate(inspect.stack()):
-            if not llamada[1].startswith('<frozen'):
-                print('\t->', nOrden, llamada[1])
-            if 'cartolid' in llamada[1]:
-                callerFile = inspect.getmodulename(llamada[1])
-                if callerFile != 'callingModule':
-                    # print('llamado por', llamada[1:3], end=' ')
-                    print('\t\t-> called from: %s (%i)' % (callerFile, llamada[2]))
-
-
-# ==============================================================================
-# Dejo esto por si quiero ver como funciona la pila de llamadas segun desde donde se cargue este modulo
-if False:
-    mostrarModuloInicial = True
-    mostrarPilaDeLlamadas = False
-    if mostrarModuloInicial:
-        # import inspect
-        if len(inspect.stack()) > 1:
-            try:
-                callingModuleActual = inspect.getmodulename(inspect.stack()[0][1])
-                callingModuleInicial = inspect.getmodulename(inspect.stack()[-1][1])
-                callingModulePrevio = 'desconocido'
-                for nOrden, llamada in enumerate(inspect.stack()[1:]):
-                    #print('\t->', nOrden, llamada[1])
-                    if not llamada[1].startswith('<frozen'):
-                        callingModulePrevio = inspect.getmodulename(llamada[1])
-                        break
-            except:
-                print('Error al identificar el modulo')
-        else:
-            callingModuleActual = 'Este modulo'
-            callingModuleInicial = 'Este modulo'
-            callingModulePrevio = 'Modulo no importado desde otro modulo'
-        print('clidaux-> Este modulo:                   ', callingModuleActual)
-        print('clidaux-> Modulo desde el que se importa:', callingModulePrevio)
-        print('clidaux-> Modulo ejecutado inicialmente: ', callingModuleInicial)
-    if mostrarPilaDeLlamadas:
-        print('clidaux-> Secuencia de llamadas:')
-        for nOrden, llamada in enumerate(inspect.stack()):
-            if not llamada[1].startswith('<frozen'):
-                print('\t->', nOrden, llamada[1])
-            if 'cartolid' in llamada[1]:
-                callerFile = inspect.getmodulename(llamada[1])
-                if callerFile != 'callingModule':
-                    # print('llamado por', llamada[1:3], end=' ')
-                    print('\t\t-> called from: %s (%i)' % (callerFile, llamada[2]))
-else:
-    callingModuleInicial = 'sinUso'
-# ==============================================================================
-
-# ==============================================================================
-# print('os.getcwd():', os.getcwd())
-if __name__ == '__main__':
-
-    # ==============================================================================
-    if MAIN_ENTORNO != 'calendula':
-        # En casa tengo graphviz en esta ruta y necesito incluirla en el path
-        rutaGraphviz = MAIN_DRIVE + '/_App/Graphviz/bin/'
-        os.environ["PATH"] += os.pathsep + rutaGraphviz
-        # En JCyL esto no es necesario porque graphiz lo tengo instalado desde anaconda
-    # ==============================================================================
-    # Con esta opcion elijo a donde se dirije la salida de matplotlib (backend):
-    # Ver uso de los posibles backends en: https://matplotlib.org/3.3.3/api/matplotlib_configuration_api.html
-    #  ->non-interactive backends: agg, cairo, pdf, pgf, ps, svg, template
-    #  ->interactive backends: GTK3Agg, GTK3Cairo, MacOSX, nbAgg, Qt4Agg, Qt4Cairo, Qt5Agg, Qt5Cairo, TkAgg, TkCairo, WebAgg, WX, WXAgg, WXCairo
-    # Ver detalles sobre los backends en: https://matplotlib.org/3.3.3/tutorials/introductory/usage.html#backends
-    # Por ejemplo: -AGG     png     raster graphics -- high quality images using the Anti-Grain Geometry engine
-    # Use non-interactive mode in scripts in which you want to generate one or more figures and display them before ending or generating a new set of figures. In that case, use show() to display the figure(s) and to block execution until you have manually destroyed them
-    # ==============================================================================
-
-
-
-# ooooooooooooooooooo Utilizacion de liblas (obsoleto) oooooooooooooooooooooooooo
-'''
-usar_liblas = False
-if usar_liblas:
-    #Para usar liblas hay que tener algunas variables de entorno apuntando a C:/OSGeo4W o C:/OSGeo4W64
-    #Yo creo que la version de OSGeo4W debe ser la de 32 bits (no la de 64 bits)
-    #Esto se puede hacer en un .bat:
-    #    SET OSGEO4W_ROOT=C:/OSGeo4W
-    #    SET GDAL_DATA=%OSGEO4W_ROOT%/share/gdal
-    #    SET PROJ_LIB=%OSGEO4W_ROOT%/share/proj
-    #    SET PYTHONPATH=%OSGEO4W_ROOT%/pymod;%PYTHONPATH%
-    try:
-        #import liblas
-        from liblas import file as lasfile
-        from liblas import header
-        #from liblas import point
-        importLiblas = True
-        print( 'import liblas: Ok' )
-    except:
-        importLiblas = False
-        print( 'import liblas: Error. liblas no disponible' )
-else:
-    importLiblas = False
-if importLiblas:
-    if usar_liblas:
-        print( 'Libreria liblas no disponible. Procesar sin unsar esta libreria' )
-        #quit()
-        sys.exit()
-else:
-    #Clase ficticia (emula a la lasfile pero sin respuesta). Solo para que el eclipse no marque errores.
-    class lasfile():
-        def __init__(self):
-            self.header =    None
-            self.point =    None
-        def File(self, outfile, mode='w', header='None'):
-            pass
-'''
-
-
-# ==============================================================================o
-def infoUsuario(verbose):
-    try:
-        USERusuario = psutil.users()[0].name
-        if verbose:
-            print('clidaux-> Usuario:', USERusuario)
-    except:
-        USERusuario = psutil.users()
-        if verbose:
-            print('clidaux-> Users:', USERusuario)
-    if not isinstance(USERusuario, str) or USERusuario == '':
-        USERusuario = 'PC1'
-    return USERusuario
 
 
 # ==============================================================================o
@@ -821,7 +819,7 @@ def mostrar_directorios():
 def buscarDirectorioDeTrabajo():
     MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
     directorioActual = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))  # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
-    filenameAPP = os.path.join(directorioActual, 'cartolidar.py')
+    filenameAPP = os.path.join(directorioActual, 'clidbase.py')
     if os.path.exists(filenameAPP):
         directorioDeTrabajo = directorioActual
     else:
@@ -829,7 +827,7 @@ def buscarDirectorioDeTrabajo():
         # directorioPadre = quitarContrabarrasAgregarBarraFinal(directorioPadre)
         directorioPadre = (directorioPadre).replace(os.sep, '/')
 
-        filenameAPP = os.path.join(directorioPadre, 'cartolidar.py')
+        filenameAPP = os.path.join(directorioPadre, 'clidbase.py')
         if os.path.exists(filenameAPP):
             directorioDeTrabajo = directorioPadre
         else:
@@ -908,8 +906,6 @@ try:
             def OLS(self, endog=None, exog=None):
                 foo = Foo()
                 return foo
-
-
 except:
     pass
 # ==============================================================================o
@@ -1169,52 +1165,6 @@ def deep_getsizeof(o, ids):
 # ==============================================================================o
 def procesoActivo():
     return psutil.Process(os.getpid())
-
-
-# ==============================================================================o
-def printMsg(mensaje='', outputFileLas=True, verbose=True, newLine=True, end=None):
-    if verbose:
-        if not end is None:
-            print(mensaje, end=end)
-        elif not newLine:
-            end=''
-            print(mensaje, end=end)
-        else:
-            end=''
-            print(mensaje)
-    if printMsgToFile:
-        try:
-            if outputFileLas and clidconfig.controlFileLas:
-                try:
-                    clidconfig.controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
-                except:
-                    if clidconfig.controlFileGral:
-                        clidconfig.controlFileGral.write('Error writing control file (1).\n')
-            else:
-                clidconfig.controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
-        except:
-            print('clidaux-> printMsg: no hay acceso a controlFileLas ni controlFileGral.')
-            pass
-
-
-# #Puedo usar esta funcion para mensajes individuales y globales
-# def mostrarMensaje(mensaje, outputFileLas=True, verbose=True, newLine=True):
-#     if verbose:
-#         if newLine:
-#             print( mensaje )
-#         else:
-#             print( mensaje, )
-#     if outputFileLas and clidconfig.controlFileLas:
-#         try:
-#             clidconfig.controlFileLas.write(str(mensaje) + '\n' if newLine else ' ')
-#         except:
-#             if clidconfig.controlFileGral:
-#                 clidconfig.controlFileGral.write('Error writing control file (1).\n')
-#     else:
-#         try:
-#             clidconfig.controlFileGral.write(str(mensaje) + '\n' if newLine else ' ')
-#         except:
-#             print( 'Error writing control file (2).' )
 
 
 # ==============================================================================o
@@ -1747,6 +1697,107 @@ def lasToolsDEM(infileConRuta):
 
 
 # ==============================================================================o
+def buscarLaszip(LCLverbose=False):
+    laszip_binary_encontrado = True
+    laszip_binary = os.path.join(MAIN_RAIZ_DIR, 'laszip', 'laszip.exe')
+    if not os.path.exists(laszip_binary):
+        laszip_binary = os.path.join(MAIN_PROJ_DIR, 'laszip', 'laszip.exe')
+        if not os.path.exists(laszip_binary):
+            if TRNSdescomprimirConlaszip and TRNSdescomprimirConlas2las:
+                laszip_names = ('laszip.exe', 'laszip', 'las2las.exe', 'las2las')
+            elif TRNSdescomprimirConlaszip and not TRNSdescomprimirConlas2las:
+                laszip_names = ('laszip.exe', 'laszip')
+            elif TRNSdescomprimirConlas2las:
+                laszip_names = ('las2las.exe', 'las2las')
+            else:
+                laszip_names = ('laszip-cli', 'laszip-cli.exe')
+
+            laszip_binary_encontrado = False
+            for binary in laszip_names:
+                in_path = [os.path.isfile(os.path.join(x, binary)) for x in os.environ["PATH"].split(os.pathsep)]
+                # print('clidaux-> path: {}'.format(os.environ["PATH"].split(os.pathsep)))
+                # print('clidaux-> Buscando {} {}'.format(any(in_path), in_path))
+                if any(in_path):
+                    laszip_binary = binary
+                    laszip_binary_encontrado = True
+                    break
+    
+            if not laszip_binary_encontrado:
+                if LCLverbose:
+                    print("clidaux-> No se ha encontrado ningun binario de laszip (%s) en el path; busco en mis directorios" % ", ".join(laszip_names))
+                if TRNSdescomprimirConlaszip:
+                    if LCLverbose:
+                        print('\t-> Buscando {}'.format(os.path.abspath('./laszip/laszip.exe')))
+    
+                    if os.path.exists(os.path.abspath('./laszip/laszip.exe')):
+                        laszip_binary_encontrado = True
+                        if LCLverbose:
+                            print('\t-> Utilizo  {}'.format(os.path.abspath('./laszip/laszip.exe')))
+                        laszip_binary = os.path.abspath('./laszip/laszip')
+                    elif os.path.exists('C:/_app/LAStools/bin/laszip.exe'):
+                        laszip_binary_encontrado = True
+                        if LCLverbose:
+                            print('\t-> Utilizo  {}'.format('C:/_app/LAStools/bin/laszip.exe'))
+                        laszip_binary = os.path.abspath('C:/_app/LAStools/bin/laszip')
+                    elif os.path.exists(MAIN_DRIVE + '/_app/LAStools/bin/laszip.exe'):
+                        laszip_binary_encontrado = True
+                        if LCLverbose:
+                            print('\t-> Utilizo  {}'.format(MAIN_DRIVE + '/_app/LAStools/bin/laszip.exe'))
+                        laszip_binary = os.path.abspath(MAIN_DRIVE + '/_app/LAStools/bin/laszip')
+                if not laszip_binary_encontrado and TRNSdescomprimirConlas2las:
+                    if (
+                        os.path.exists('./laszip/las2las.exe')
+                        and os.path.exists('./laszip/LASzip.dll')
+                    ):
+                        laszip_binary_encontrado = True
+                        laszip_binary = os.path.abspath('./laszip/las2las')
+                    elif (
+                        os.path.exists('C:/_app/LAStools/bin/las2las.exe')
+                        and os.path.exists('C:/_app/LAStools/laszip/dll/LASzip.dll')
+                    ):
+                        laszip_binary_encontrado = True
+                        laszip_binary ='C:/_app/LAStools/bin/las2las.exe'
+                    elif (
+                        os.path.exists(MAIN_DRIVE + '/_app/LAStools/bin/las2las.exe')
+                        and os.path.exists(MAIN_DRIVE + '/_app/LAStools/laszip/dll/LASzip.dll')
+                    ):
+                        laszip_binary_encontrado = True
+                        laszip_binary =MAIN_DRIVE + '/_app/LAStools/bin/las2las.exe'
+                    else:
+                        print('No se encuentran los ficheros LDA2LAS.exe, LASzip.dll y/o relacionados. Solucionar el problema y empezar de nuevo')
+                        sys.exit(0)
+                elif False:
+                    # Esto es antiguo: miro si hay acceso a LDA2LAS.exe y las dll que necesita (laszip.dll y otros)
+                    if (
+                        os.path.exists('LDA2LAS.exe')
+                        and os.path.exists('LASzip.dll')
+                        and os.path.exists('MSVCRTD.DLL')
+                        and os.path.exists('MFC42D.DLL')
+                        and os.path.exists('MSVCP60D.DLL')
+                    ):
+                        laszip_binary = 'LDA2LAS'
+                    elif (
+                        os.path.exists('./laszip/LDA2LAS.exe')
+                        and os.path.exists('./laszip/LASzip.dll')
+                        and os.path.exists('./laszip/MSVCRTD.DLL')
+                        and os.path.exists('./laszip/MFC42D.DLL')
+                        and os.path.exists('./laszip/MSVCP60D.DLL')
+                    ):
+                        laszip_binary = os.path.abspath('./laszip/LDA2LAS')
+                    elif os.path.exists('C:/FUSION/LDA2LAS.exe') and os.path.exists('C:\FUSION\LASzip.dll'):
+                        laszip_binary = 'c:/fusion/LDA2LAS'
+                    elif os.path.exists('C:/_app/FUSION/LDA2LAS.exe') and os.path.exists('C:/_app/FUSION/LASzip.dll'):
+                        laszip_binary = 'c:/_app/fusion/LDA2LAS'
+                    elif os.path.exists(MAIN_DRIVE + '/_App/FUSION/LDA2LAS.exe') and os.path.exists(MAIN_DRIVE + '/_App/FUSION/LASzip.dll'):
+                        laszip_binary = MAIN_DRIVE + '/_App/FUSION/LDA2LAS'
+                    else:
+                        print('No se encuentran los ficheros LDA2LAS.exe, LASzip.dll y/o relacionados. Solucionar el problema y empezar de nuevo')
+                        sys.exit(0)
+
+    return (laszip_binary, laszip_binary_encontrado)
+
+
+# ==============================================================================o
 def comprimeLaz(
         infileConRuta,
         eliminarLasFile=False,
@@ -1770,11 +1821,9 @@ def comprimeLaz(
         try:
             os.makedirs(rutaLazCompleta)
         except:
-            print('clidaux-> ATENCION: no se ha podido crear la ruta:', rutaLazCompleta)
-            sys.exit(0)
+            print(f'clidaux-> AVISO: no se ha podido crear la ruta: {rutaLazCompleta} -> No se genera lazFile.')
+            return False
 
-    #TRNSdescomprimirConlaszip = True
-    #TRNSdescomprimirConlas2las = False
     if MAIN_ENTORNO == 'calendula':
         # laszip_binary = 'las2las'
         laszip_binary = 'laszip'
@@ -1782,7 +1831,12 @@ def comprimeLaz(
         outfileLazConRuta = (os.path.join(rutaLazCompleta, outfileLaz))
     elif MAIN_ENTORNO == 'windows':
         # laszip_binary = '{}/_clid/cartolid/laszip/laszip'.format(MAIN_PROJ_DIR)
-        laszip_binary = os.path.join(MAIN_PROJ_DIR, 'laszip', 'laszip.exe')
+        (laszip_binary, laszip_binary_encontrado) = buscarLaszip(LCLverbose=LCLverbose)
+
+        if not laszip_binary_encontrado:
+            print('\nclidaux-> AVISO: no se ha encontrado un binario para comprimir (no se genera lazFile).')
+            return False
+
         outfileLaz = (infile.replace('.las', '.laz')).replace('.LAS', '.laz')
         outfileLazConRuta = os.path.join(rutaLazCompleta, outfileLaz)
         # print('\t-> Compresor: {}'.format(laszip_binary))
@@ -1823,9 +1877,6 @@ def descomprimeLaz(
     infile = os.path.basename(infileConRuta)
     rutaLazCompleta = os.path.dirname(infileConRuta)
 
-    # ATENCION: las2las no me funciona para descomprimir en memoria
-    TRNSdescomprimirConlaszip = True
-    TRNSdescomprimirConlas2las = False
     if MAIN_ENTORNO == 'calendula':
         laszip_binary_encontrado = True
         # laszip_binary = 'las2las'
@@ -1837,97 +1888,7 @@ def descomprimeLaz(
         # ======================================================================
         # ======================================================================
         # 
-        if TRNSdescomprimirConlaszip and TRNSdescomprimirConlas2las:
-            laszip_names = ('laszip.exe', 'laszip', 'las2las.exe', 'las2las')
-        elif TRNSdescomprimirConlaszip and not TRNSdescomprimirConlas2las:
-            laszip_names = ('laszip.exe', 'laszip')
-        elif TRNSdescomprimirConlas2las:
-            laszip_names = ('las2las.exe', 'las2las')
-        else:
-            laszip_names = ('laszip-cli', 'laszip-cli.exe')
-
-        laszip_binary = ''
-        laszip_binary_encontrado = False
-        for binary in laszip_names:
-            in_path = [os.path.isfile(os.path.join(x, binary)) for x in os.environ["PATH"].split(os.pathsep)]
-            # print('clidaux-> path: {}'.format(os.environ["PATH"].split(os.pathsep)))
-            # print('clidaux-> Buscando {} {}'.format(any(in_path), in_path))
-            if any(in_path):
-                laszip_binary = binary
-                laszip_binary_encontrado = True
-                break
-        if not laszip_binary_encontrado:
-            if LCLverbose:
-                print("clidaux-> No se ha encontrado ningun binario de laszip (%s) en el path; busco en mis directorios" % ", ".join(laszip_names))
-            if TRNSdescomprimirConlaszip:
-                if LCLverbose:
-                    print('\t-> Buscando {}'.format(os.path.abspath('./laszip/laszip.exe')))
-
-                if os.path.exists(os.path.abspath('./laszip/laszip.exe')):
-                    laszip_binary_encontrado = True
-                    if LCLverbose:
-                        print('\t-> Utilizo  {}'.format(os.path.abspath('./laszip/laszip.exe')))
-                    laszip_binary = os.path.abspath('./laszip/laszip')
-                elif os.path.exists('C:/_app/LAStools/bin/laszip.exe'):
-                    laszip_binary_encontrado = True
-                    if LCLverbose:
-                        print('\t-> Utilizo  {}'.format('C:/_app/LAStools/bin/laszip.exe'))
-                    laszip_binary = os.path.abspath('C:/_app/LAStools/bin/laszip')
-                elif os.path.exists(MAIN_DRIVE + '/_app/LAStools/bin/laszip.exe'):
-                    laszip_binary_encontrado = True
-                    if LCLverbose:
-                        print('\t-> Utilizo  {}'.format(MAIN_DRIVE + '/_app/LAStools/bin/laszip.exe'))
-                    laszip_binary = os.path.abspath(MAIN_DRIVE + '/_app/LAStools/bin/laszip')
-            if not laszip_binary_encontrado and TRNSdescomprimirConlas2las:
-                if (
-                    os.path.exists('./laszip/las2las.exe')
-                    and os.path.exists('./laszip/LASzip.dll')
-                ):
-                    laszip_binary_encontrado = True
-                    laszip_binary = os.path.abspath('./laszip/las2las')
-                elif (
-                    os.path.exists('C:/_app/LAStools/bin/las2las.exe')
-                    and os.path.exists('C:/_app/LAStools/laszip/dll/LASzip.dll')
-                ):
-                    laszip_binary_encontrado = True
-                    laszip_binary ='C:/_app/LAStools/bin/las2las.exe'
-                elif (
-                    os.path.exists(MAIN_DRIVE + '/_app/LAStools/bin/las2las.exe')
-                    and os.path.exists(MAIN_DRIVE + '/_app/LAStools/laszip/dll/LASzip.dll')
-                ):
-                    laszip_binary_encontrado = True
-                    laszip_binary =MAIN_DRIVE + '/_app/LAStools/bin/las2las.exe'
-                else:
-                    print('No se encuentran los ficheros LDA2LAS.exe, LASzip.dll y/o relacionados. Solucionar el problema y empezar de nuevo')
-                    sys.exit(0)
-            elif False:
-                # Esto es antiguo: miro si hay acceso a LDA2LAS.exe y las dll que necesita (laszip.dll y otros)
-                if (
-                    os.path.exists('LDA2LAS.exe')
-                    and os.path.exists('LASzip.dll')
-                    and os.path.exists('MSVCRTD.DLL')
-                    and os.path.exists('MFC42D.DLL')
-                    and os.path.exists('MSVCP60D.DLL')
-                ):
-                    laszip_binary = 'LDA2LAS'
-                elif (
-                    os.path.exists('./laszip/LDA2LAS.exe')
-                    and os.path.exists('./laszip/LASzip.dll')
-                    and os.path.exists('./laszip/MSVCRTD.DLL')
-                    and os.path.exists('./laszip/MFC42D.DLL')
-                    and os.path.exists('./laszip/MSVCP60D.DLL')
-                ):
-                    laszip_binary = os.path.abspath('./laszip/LDA2LAS')
-                elif os.path.exists('C:/FUSION/LDA2LAS.exe') and os.path.exists('C:\FUSION\LASzip.dll'):
-                    laszip_binary = 'c:/fusion/LDA2LAS'
-                elif os.path.exists('C:/_app/FUSION/LDA2LAS.exe') and os.path.exists('C:/_app/FUSION/LASzip.dll'):
-                    laszip_binary = 'c:/_app/fusion/LDA2LAS'
-                elif os.path.exists(MAIN_DRIVE + '/_App/FUSION/LDA2LAS.exe') and os.path.exists(MAIN_DRIVE + '/_App/FUSION/LASzip.dll'):
-                    laszip_binary = MAIN_DRIVE + '/_App/FUSION/LDA2LAS'
-                else:
-                    print('No se encuentran los ficheros LDA2LAS.exe, LASzip.dll y/o relacionados. Solucionar el problema y empezar de nuevo')
-                    sys.exit(0)
-
+        (laszip_binary, laszip_binary_encontrado) = buscarLaszip(LCLverbose=LCLverbose)
 
     if not laszip_binary_encontrado:
         print('\nclidaux-> ATENCION: no se ha encontrado un binario para descomprimir')
@@ -1999,7 +1960,7 @@ def descomprimeLaz(
         # if MAIN_ENTORNO == 'windows':
         #     ejecutar = laszip_binary + ' ' + infileConRuta + ' ' + outfileLasConRuta
         #     if GLO.GLBLverbose:
-        #         print('\tcartolidar.%0.6i->' % GLO.MAIN_idProceso + 'Descomprimiendo con', laszip_binary)
+        #         print('\tclidaux.%0.6i->' % GLO.MAIN_idProceso + 'Descomprimiendo con', laszip_binary)
         #         print('\t\t', ejecutar)
         #     os.system(ejecutar)
 
@@ -2175,7 +2136,7 @@ def completarVariablesGlobales(
     # Si hay ARGScodCuadrante, prevalece sobre el que figure en el fichero de configuracion xls (y se incorpora a la configuracion)
 
     # ==========================================================================
-    MAINusuario = clidconfig.infoUsuario(False)
+    MAINusuario = infoUsuario(False)
     # ==========================================================================
 
 
@@ -2200,7 +2161,8 @@ def completarVariablesGlobales(
     if MAIN_ENTORNO == 'calendula':
         GLO.MAINmiRutaRais = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
     else:
-        GLO.MAINmiRutaRais = GLO.MAINmiRutaRaiz
+        GLO.MAINmiRutaRais = MAIN_RAIS_DIR
+        # GLO.MAINmiRutaRais = GLO.MAINmiRutaRaiz
     GLO.MAINmiRutaProyecto = MAIN_PROJ_DIR
     # ==========================================================================
 
@@ -2211,7 +2173,7 @@ def completarVariablesGlobales(
     # Sitio por defecto para MAINrutaLaz
     # No se recorren subcarpetas de MAINrutaLaz salvo que lo establezca el MAINprocedimiento
     if rutaLazCompleta != '':
-        # Solo cuando se inicia con cartolider
+        # Solo cuando se inicia con clidflow
         GLO.MAINrutaLaz = rutaLazCompleta
     else:
         if GLO.MAINrutaLaz is None or GLO.MAINrutaLaz == 'None' or GLO.MAINrutaLaz == '':
@@ -2219,9 +2181,9 @@ def completarVariablesGlobales(
                 GLO.MAINmiRutaRais,
                 'laz'
             )
-            # print('cartolidar-> 1 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+            # print('clidaux-> 1 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
         else:
-            # print('cartolidar-> 2a GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+            # print('clidaux-> 2a GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
             if ':' in GLO.MAINrutaLaz:
                 GLO.MAINrutaLaz = GLO.MAINrutaLaz
             else:
@@ -2231,7 +2193,7 @@ def completarVariablesGlobales(
                         GLO.MAINrutaLaz
                     )
                 )
-            # print('cartolidar-> 2b GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+            # print('clidaux-> 2b GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
             # if MAIN_ENTORNO == 'calendula':
             #     print(
             #         '\t-> Como MAIN_ENTORNO == calendula -> Mas adelante se cambia a',
@@ -2245,7 +2207,7 @@ def completarVariablesGlobales(
         LCLcuadrante
     )
     # ==========================================================================
-    # print('cartolidar-> 4 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+    # print('clidaux-> 4 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
 
     # ==========================================================================
     # ========================== MAINrutaCarto ================================
@@ -2264,7 +2226,7 @@ def completarVariablesGlobales(
             )
             if not os.path.isdir(MAINrutaCarto2):
                 myLog.warning(f'{"":+^80}')
-                myLog.warning(f'cartolidar-> ATENCION: No se ha localizado el directorio data/carto con informacion cartografica de apoyo.')
+                myLog.warning(f'clidaux-> ATENCION: No se ha localizado el directorio data/carto con informacion cartografica de apoyo.')
                 myLog.warning(f'{TB}Directorios buscados:')
                 myLog.warning(f'{TB}{TV}{MAINrutaCarto1}')
                 myLog.warning(f'{TB}{TV}{MAINrutaCarto2}')
@@ -2281,10 +2243,11 @@ def completarVariablesGlobales(
     # ========================== MAINrutaOutput ================================
     # ==========================================================================
     if GLO.MAINrutaOutput is None or GLO.MAINrutaOutput == 'None' or GLO.MAINrutaOutput == '':
-        GLO.MAINrutaOutput = os.path.join(
+        GLO.MAINrutaOutput = os.path.abspath(os.path.join(
             GLO.MAINmiRutaRais,
-            '../cartolidout'
-        )
+            '..',
+            'cartolidout'
+        ))
 
     # ==========================================================================
     GLO.MAINrutaOutput = casosEspecialesParaMAINrutaOutput(
@@ -2465,13 +2428,13 @@ def completarVariablesGlobales(
                 finLstPngs = iniLstPngs + intNumPngs
                 txtLstPngs = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[iniLstPngs: finLstPngs]
             else:
-                print('cartolidar-> ATENCION: revisar el nombre del modelo entrenado (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidMiniSubCelEntrenado))
+                print('clidaux-> ATENCION: revisar el nombre del modelo entrenado (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidMiniSubCelEntrenado))
                 intNumPngs = 0
                 txtLstPngs = ''
 
             MAIN_COD_18_16N_04_MODELOENTRENADO_MINI = 'cartolidMiniSubCel{}{}'.format(txtDataset, txtNumPngs)
             MAIN_LISTA_PNGS_MODELOENTRENADO_MINI = 'X{}'.format(txtLstPngs)
-            # print('cartolidar-> MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:', MAIN_COD_18_16N_04_MODELOENTRENADO_MINI)
+            # print('clidaux-> MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:', MAIN_COD_18_16N_04_MODELOENTRENADO_MINI)
             # print('txtDataset:', txtDataset)
             # print('txtNumPngs:', txtNumPngs)
             # print('txtLstPngs:', txtLstPngs)
@@ -2495,7 +2458,7 @@ def completarVariablesGlobales(
                 finLstPngs = iniLstPngs + intNumPngs
                 txtLstPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[iniLstPngs: finLstPngs]
             else:
-                print('cartolidar-> ATENCION: revisar el nombre del modelo entrenadoA (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
+                print('clidaux-> ATENCION: revisar el nombre del modelo entrenadoA (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
                 intNumPngs = 0
                 txtLstPngs = ''
             MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
@@ -2507,7 +2470,7 @@ def completarVariablesGlobales(
             MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA = 'cartolidCartoSingu_'
             MAIN_LISTA_PNGS_MODELOENTRENADO_CART_ = 'X123456'
             MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA = 'X123456'
-        # print('cartolidar-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA)
+        # print('clidaux-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA)
         # print('txtDataset:', txtDataset)
         # print('txtNumPngs:', txtNumPngs)
         # print('txtLstPngs:', txtLstPngs)
@@ -2530,7 +2493,7 @@ def completarVariablesGlobales(
                 finLstPngs = iniLstPngs + intNumPngs
                 txtLstPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[iniLstPngs: finLstPngs]
             else:
-                print('cartolidar-> ATENCION: revisar el nombre del modelo entrenadoB (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
+                print('clidaux-> ATENCION: revisar el nombre del modelo entrenadoB (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
                 intNumPngs = 0
                 txtLstPngs = ''
             MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
@@ -2538,7 +2501,7 @@ def completarVariablesGlobales(
         else:
             MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = 'cartolidCartoSingu_'
             MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB = 'X123456'
-        # print('cartolidar-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB)
+        # print('clidaux-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB)
         # print('txtDataset:', txtDataset)
         # print('txtNumPngs:', txtNumPngs)
         # print('txtLstPngs:', txtLstPngs)
@@ -2591,7 +2554,7 @@ def completarVariablesGlobales(
         )
     ):
         print(f'\n{"":_^80}')
-        print('cartolidar-> Verificando modelos entrenados disponibles para el cuadrante {} (identificador completo: {}):'.format((LCLcuadrante[:2]).upper(), LCLcuadrante))
+        print('clidaux-> Verificando modelos entrenados disponibles para el cuadrante {} (identificador completo: {}):'.format((LCLcuadrante[:2]).upper(), LCLcuadrante))
         print('\t-> GLBLmodeloCartolidMiniSubCelEntrenado:    {}'.format(GLO.GLBLmodeloCartolidMiniSubCelEntrenado))
         print('\t-> GLBLmodeloCartolidCartoSinguEntrenadoA:   {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
         print('\t-> GLBLmodeloCartolidCartoSinguEntrenadoB:   {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoB))
@@ -2602,7 +2565,7 @@ def completarVariablesGlobales(
         if not GLO.GLBLmodeloCartolidMiniSubCelEntrenado is None:
             if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
                 print(
-                    'cartolidar-> ATENCION 1: el modelo <{}> no esta disponible para el cuadrante {}'.format(
+                    'clidaux-> ATENCION 1: el modelo <{}> no esta disponible para el cuadrante {}'.format(
                         GLO.GLBLmodeloCartolidMiniSubCelEntrenado,
                         '{}_'.format((LCLcuadrante[:2]).upper()),
                     )
@@ -2617,7 +2580,7 @@ def completarVariablesGlobales(
         if not GLO.GLBLmodeloCartolidCartoSinguEntrenadoA is None:
             if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
                 print(
-                    'cartolidar-> ATENCION 2: el modelo <{}> no esta disponible para el cuadrante {}'.format(
+                    'clidaux-> ATENCION 2: el modelo <{}> no esta disponible para el cuadrante {}'.format(
                         GLO.GLBLmodeloCartolidCartoSinguEntrenadoA,
                         '{}_'.format((LCLcuadrante[:2]).upper()),
                     )
@@ -2659,7 +2622,7 @@ def completarVariablesGlobales(
             if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLnombreFicheroConModeloParaInferencia:
                 # Solo necesito el modelo para inferencia si voy a CREAR_LAZ
                 print(
-                    'cartolidar-> ATENCION 4: el modelo <{}> no esta disponible para el cuadrante {}'.format(
+                    'clidaux-> ATENCION 4: el modelo <{}> no esta disponible para el cuadrante {}'.format(
                         GLO.GLBLnombreFicheroConModeloParaInferencia,
                         '{}_'.format((LCLcuadrante[:2]).upper()),
                     )
@@ -2777,7 +2740,7 @@ def completarVariablesGlobales(
     ]
 
     if GLO.GLBLverbose:
-        print('cartolidar-> paramConfigAdicionalesGLBL:')
+        print('clidaux-> paramConfigAdicionalesGLBL:')
         for nuevoParametro in paramConfigAdicionalesGLBL.keys():
             print('\t{:>40}: {}'.format(nuevoParametro, paramConfigAdicionalesGLBL[nuevoParametro]))
 
@@ -2876,10 +2839,10 @@ def casosEspecialesParaMAINrutaLaz(
                             # La segunda vez trabajo sobre esos lasFiles clasificados para mejorarlos
                             rutaLazCompleta = os.path.join(GLO.MAINrutaLaz, listaDirsLaz[0], 'lazNewCLR')
                             if len(listaDirsLaz) == 1 and os.path.isdir(rutaLazCompleta):
-                                print('cartolidar-> Aviso: Uso lazNewCLR para usar lasFiles provisionalmente clasificados y disponer de clase del miniSubCel')
+                                print('clidaux-> Aviso: Uso lazNewCLR para usar lasFiles provisionalmente clasificados y disponer de clase del miniSubCel')
                                 listaSubDirsLaz = ['lazNewCLR']
                             else:
-                                print('cartolidar-> Aviso: No se ha encontrado la ruta de lasFiles pro-clasificados: {}'.format(rutaLazCompleta))
+                                print('clidaux-> Aviso: No se ha encontrado la ruta de lasFiles pro-clasificados: {}'.format(rutaLazCompleta))
                                 print('\t-> listaDirsLaz: {}'.format(listaDirsLaz))
                                 # listaSubDirsLaz = ['RGBI_H29']
                                 # listaSubDirsLaz = ['RGBI_laz_H29', 'RGBI_laz']
@@ -2919,7 +2882,7 @@ def casosEspecialesParaMAINrutaLaz(
             # Por el momento, esto solo lo uso para AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI
             for nSubDir, subDirLaz in enumerate(listaSubDirsLaz):
                 if '_H29' in subDirLaz.upper():
-                    print(f'\ncartolidar-> ATENCION: revisar este codigo para adaptarlo a la lista de directorios que quiero recorrer:')
+                    print(f'\nclidaux-> ATENCION: revisar este codigo para adaptarlo a la lista de directorios que quiero recorrer:')
                     print(f'\t-> GLO.MAINprocedimiento: {GLO.MAINprocedimiento}')
                     print(f'\t-> listaSubDirsLaz:       {listaSubDirsLaz}')
                     sys.exit(0)
@@ -2930,7 +2893,7 @@ def casosEspecialesParaMAINrutaLaz(
         or LCLprocedimiento.startswith('AUTOMATICO_EN_CALENDULA')
     ):
         # Se usan los valores establecidos por defecto
-        print('cartolidar-> ATENCION: ESTO ES PROVISIONAL:')
+        print('clidaux-> ATENCION: ESTO ES PROVISIONAL:')
         if (LCLcuadrante)[:2].upper() == 'CE':
             listaDirsLaz = ['lasfile-ce']
         elif (LCLcuadrante)[:2].upper() == 'NE':
@@ -2946,8 +2909,8 @@ def casosEspecialesParaMAINrutaLaz(
         else:
             listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
         listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-        print('cartolidar-> listaDirsLaz:    {}'.format(listaDirsLaz))
-        print('cartolidar-> listaSubDirsLaz: {}'.format(listaSubDirsLaz))
+        print('clidaux-> listaDirsLaz:    {}'.format(listaDirsLaz))
+        print('clidaux-> listaSubDirsLaz: {}'.format(listaSubDirsLaz))
         pass
     elif LCLprocedimiento == 'PRECONFIGURADO_SINRUTA':
         bloqueElegido = 0
@@ -3217,7 +3180,7 @@ def casosEspecialesParaMAINrutaLaz(
         print('\nRevisar el nombre del procedimiento en cartolid.xlm. MAINprocedimiento:', LCLprocedimiento)
         sys.exit()
 
-    # print('cartolidar-> 3b LCLrutaLaz:', LCLrutaLaz)
+    # print('clidaux-> 3b LCLrutaLaz:', LCLrutaLaz)
 
     return LCLrutaLaz, listaDirsLaz, listaSubDirsLaz
 
@@ -3241,53 +3204,58 @@ def casosEspecialesParaMAINrutaOutput(
         or LCLobjetivoSiReglado == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI'
     ):
         if LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH':
-            LCLrutaOutput = os.path.join(
+            LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
+                '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     LCLobjetivoSiReglado,
                     'completo'
                 )
-            )
+            ))
         elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_COLOREAR_RGBI':
-            LCLrutaOutput = os.path.join(
+            LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
+                '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     'COLOREAR_RGBI',
                     'completo'
                 )
-            )
+            ))
         elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI':
-            LCLrutaOutput = os.path.join(
+            LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
+                '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     'COLOREAR_RGBI_H29',
                     'completo'
                 )
-            )
+            ))
         elif not GLO.MAINrutaOutput is None:
             LCLrutaOutput = GLO.MAINrutaOutput
-            print(f'cartolidar-> 6 Asignando LCLrutaOutput: {LCLrutaOutput}')
+            print(f'clidaux-> 6 Asignando LCLrutaOutput: {LCLrutaOutput}')
         elif not LCLcuadrante is None:
-            LCLrutaOutput = os.path.join(
+            LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
+                '..',
                 'cartolidout_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
                     LCLobjetivoSiReglado
                 )
-            )
-            print(f'cartolidar-> 7 Asignando LCLrutaOutput: {LCLrutaOutput}')
+            ))
+            print(f'clidaux-> 7 Asignando LCLrutaOutput: {LCLrutaOutput}')
         elif LCLobjetivoSiReglado == 'GENERAL':
-            LCLrutaOutput = os.path.join(
+            LCLrutaOutput = os.path.abspath(os.path.join(
                 LCLmiRutaRais,
+                '..',
                 'cartolidout'
-            )
-            print(f'cartolidar-> 8 Asignando LCLrutaOutput: {LCLrutaOutput}')
+            ))
+            print(f'clidaux-> 8 Asignando LCLrutaOutput: {LCLrutaOutput}')
         else:
             LCLrutaOutput = GLO.MAINrutaOutput
-            print(f'cartolidar-> 9 Asignando LCLrutaOutput: {LCLrutaOutput}')
+            print(f'clidaux-> 9 Asignando LCLrutaOutput: {LCLrutaOutput}')
         if not LCLcuadrante is None:
             LCLrutaOutput = (LCLrutaOutput).replace('_XX', '_{}'.format((LCLcuadrante)[:2].upper()))
         # print('\t{:.<25}: {}'.format('MAINrutaOutput (adaptado)', LCLrutaOutput))
@@ -3296,12 +3264,13 @@ def casosEspecialesParaMAINrutaOutput(
         or LCLrutaOutput == 'None'
         or LCLrutaOutput == ''
     ):
-        LCLrutaOutput = os.path.join(
+        LCLrutaOutput = os.path.abspath(os.path.join(
             LCLmiRutaRais,
+            '..',
             'cartolidout_{}'.format(
                 (LCLcuadrante)[:2].upper()
             )
-        )
+        ))
         LCLrutaOutput = (LCLrutaOutput).replace('_XX', '_{}'.format((LCLcuadrante)[:2].upper()))
         print('\t{:.<25}: {}'.format('MAINrutaOutput (adaptado)', LCLrutaOutput))
     else:
@@ -3418,141 +3387,6 @@ def elegirSubcarpetas(USERmiRutaRaiz):
 
 
 # ==============================================================================
-def foo1():
-    pass
-
-# ==============================================================================
-if __name__ == "__main__" and False:
-    # ...............................................................................
-    class PCA:
-        def __init__(self, A, fraction=0.90):
-            # __version__ = "2010-04-14 apr"
-            # __author_email__ = "denis-bz-py at t-online dot de"
-            assert 0 <= fraction <= 1
-            # A = U . diag(d) . Vt, O( m n^2 ), lapack_lite --
-            self.U, self.d, self.Vt = np.linalg.svd(A, full_matrices=False)
-            assert np.all(self.d[:-1] >= self.d[1:])  # sorted
-            self.eigen = self.d ** 2
-            self.sumvariance = np.cumsum(self.eigen)
-            self.sumvariance /= self.sumvariance[-1]
-            self.npc = np.searchsorted(self.sumvariance, fraction) + 1
-            self.dinv = np.array([1 / d if d > self.d[0] * 1e-6 else 0 for d in self.d])
-    
-            # dot = np.dot
-            # import bz.numpyutil as nu
-            # dot = nu.pdot
-    
-    
-        def pc(self):
-            """ e.g. 1000 x 2 U[:, :npc] * d[:npc], to plot etc. """
-            n = self.npc
-            return self.U[:, :n] * self.d[:n]
-    
-        # These 1-line methods may not be worth the bother;
-        # then use U d Vt directly --
-    
-        def vars_pc(self, x):
-            n = self.npc
-            return self.d[:n] * np.dot(self.Vt[:n], x.T).T  # 20 vars -> 2 principal
-    
-        def pc_vars(self, p):
-            n = self.npc
-            return np.dot(self.Vt[:n].T, (self.dinv[:n] * p).T).T  # 2 PC -> 20 vars
-    
-        def pc_obs(self, p):
-            n = self.npc
-            return np.dot(self.U[:, :n], p.T)  # 2 principal -> 1000 obs
-    
-        def obs_pc(self, obs):
-            n = self.npc
-            return np.dot(self.U[:, :n].T, obs).T  # 1000 obs -> 2 principal
-    
-        def obs(self, x):
-            return self.pc_obs(self.vars_pc(x))  # 20 vars -> 2 principal -> 1000 obs
-    
-        def vars(self, obs):
-            return self.pc_vars(self.obs_pc(obs))  # 1000 obs -> 2 principal -> 20 vars
-    
-    
-    class Center:
-        """A -= A.mean() /= A.std(), inplace -- use A.copy() if need be
-        uncenter(x) == original A . x
-        """
-    
-        # mttiw
-        def __init__(self, A, axis=0, scale=True, verbose=1):
-            self.mean = A.mean(axis=axis)
-            if verbose:
-                print("Center -= A.mean:", self.mean)
-            A -= self.mean
-            if scale:
-                std = A.std(axis=axis)
-                self.std = np.where(std, std, 1.0)
-                if verbose:
-                    print("Center /= A.std:", self.std)
-                A /= self.std
-            else:
-                self.std = np.ones(A.shape[-1])
-            self.A = A
-    
-        def uncenter(self, x):
-            return np.dot(self.A, x * self.std) + np.dot(x, self.mean)
-
-
-    import sys
-
-    csv = "iris4.csv"  # wikipedia Iris_flower_data_set
-    # 5.1,3.5,1.4,0.2    # ,Iris-setosa ...
-    N = 1000
-    K = 20
-    fraction = 0.90
-    seed = 1
-    ejecutable = "\n".join(sys.argv[1:])  # N= ...
-    exec(ejecutable)
-    np.random.seed(seed)
-    np.set_printoptions(1, threshold=100, suppress=True)  # .1f
-    try:
-        A = np.genfromtxt(csv, delimiter=",")
-        N, K = A.shape
-    except IOError:
-        A = np.random.normal(size=(N, K))  # gen correlated ?
-
-    print("csv: %s    N: %d    K: %d    fraction: %.2g" % (csv, N, K, fraction))
-    Center(A)
-    print("A:", A)
-
-    print(
-        "PCA ...",
-    )
-    p = PCA(A, fraction=fraction)
-    print("npc:", p.npc)
-    print("% variance:", p.sumvariance * 100)
-
-    print("Vt[0], weights that give PC 0:", p.Vt[0])
-    print("A . Vt[0]:", np.dot(A, p.Vt[0]))
-    print("pc:", p.pc())
-
-    print("\nobs <-> pc <-> x: with fraction=1, diffs should be ~ 0")
-    x = np.ones(K)
-    # x = np.ones(( 3, K ))
-    print("x:", x)
-    pc = p.vars_pc(x)  # d' Vt' x
-    print("vars_pc(x):", pc)
-    print("back to ~ x:", p.pc_vars(pc))
-
-    Ax = np.dot(A, x.T)
-    pcx = p.obs(x)  # U' d' Vt' x
-    print("Ax:", Ax)
-    print("A'x:", pcx)
-    print("max |Ax - A'x|: %.2g" % np.linalg.norm(Ax - pcx, np.inf))
-
-    b = Ax  # ~ back to original x, Ainv A x
-    back = p.vars(b)
-    print("~ back again:", back)
-    print("max |back - x|: %.2g" % np.linalg.norm(back - x, np.inf))
-
-
-# ==============================================================================
 def borrarFicheroDeConfiguracionTemporal():
 
     if GLO.GLBLeliminarTilesTrasProcesado:
@@ -3581,565 +3415,3 @@ def borrarFicheroDeConfiguracionTemporal():
         print('clidaux-> Eliminando {}'.format(configFileNameXlsx))
         os.remove(configFileNameXlsx)
 
-
-# ==============================================================================
-# Progress bar copiado literal de: https://github.com/verigak/progress
-HIDE_CURSOR = '\x1b[?25l'
-SHOW_CURSOR = '\x1b[?25h'
-# ==============================================================================
-class Infinite(object):
-    file = sys.stderr
-    sma_window = 10         # Simple Moving Average window
-    check_tty = True
-    hide_cursor = True
-
-    def __init__(self, message='', **kwargs):
-        self.index = 0
-        try:
-            self.start_ts = time.monotonic()
-        except:
-            self.start_ts = time.time.monotonic()
-        self.avg = 0
-        self._avg_update_ts = self.start_ts
-        self._ts = self.start_ts
-        self._xput = deque(maxlen=self.sma_window)
-        for key, val in kwargs.items():
-            setattr(self, key, val)
-
-        self._max_width = 0
-        self._hidden_cursor = False
-        self.message = message
-
-        if self.file and self.is_tty():
-            if self.hide_cursor:
-                print(HIDE_CURSOR, end='', file=self.file)
-                self._hidden_cursor = True
-        self.writeln('')
-
-    def __del__(self):
-        if self._hidden_cursor:
-            print(SHOW_CURSOR, end='', file=self.file)
-
-    def __getitem__(self, key):
-        if key.startswith('_'):
-            return None
-        return getattr(self, key, None)
-
-    @property
-    def elapsed(self):
-        try:
-            return int(time.monotonic() - self.start_ts)
-        except:
-            return int(time.time.monotonic() - self.start_ts)
-
-    @property
-    def elapsed_td(self):
-        return timedelta(seconds=self.elapsed)
-
-    def update_avg(self, n, dt):
-        if n > 0:
-            xput_len = len(self._xput)
-            self._xput.append(dt / n)
-            try:
-                now = time.monotonic()
-            except:
-                now = time.time.monotonic()
-            # update when we're still filling _xput, then after every second
-            if (xput_len < self.sma_window or
-                    now - self._avg_update_ts > 1):
-                self.avg = sum(self._xput) / len(self._xput)
-                self._avg_update_ts = now
-
-    def update(self):
-        pass
-
-    def start(self):
-        pass
-
-    def writeln(self, line):
-        if self.file and self.is_tty():
-            width = len(line)
-            if width < self._max_width:
-                # Add padding to cover previous contents
-                line += ' ' * (self._max_width - width)
-            else:
-                self._max_width = width
-            print('\r' + line, end='', file=self.file)
-            self.file.flush()
-
-    def finish(self):
-        if self.file and self.is_tty():
-            print(file=self.file)
-            if self._hidden_cursor:
-                print(SHOW_CURSOR, end='', file=self.file)
-                self._hidden_cursor = False
-
-    def is_tty(self):
-        try:
-            return self.file.isatty() if self.check_tty else True
-        except AttributeError:
-            msg = "%s has no attribute 'isatty'. Try setting check_tty=False." % self
-            raise AttributeError(msg)
-
-    def next(self, n=1):
-        try:
-            now = time.monotonic()
-        except:
-            now = time.time.monotonic()
-        dt = now - self._ts
-        self.update_avg(n, dt)
-        self._ts = now
-        self.index = self.index + n
-        self.update()
-
-    def iter(self, it):
-        self.iter_value = None
-        with self:
-            for x in it:
-                self.iter_value = x
-                yield x
-                self.next()
-        del self.iter_value
-
-    def __enter__(self):
-        self.start()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.finish()
-
-
-# ==============================================================================
-class Progress(Infinite):
-    def __init__(self, *args, **kwargs):
-        super(Progress, self).__init__(*args, **kwargs)
-        self.max = kwargs.get('max', 100)
-
-    @property
-    def eta(self):
-        return int(math.ceil(self.avg * self.remaining))
-
-    @property
-    def eta_td(self):
-        return timedelta(seconds=self.eta)
-
-    @property
-    def percent(self):
-        return self.progress * 100
-
-    @property
-    def progress(self):
-        if self.max == 0:
-            return 0
-        return min(1, self.index / self.max)
-
-    @property
-    def remaining(self):
-        return max(self.max - self.index, 0)
-
-    def start(self):
-        self.update()
-
-    def goto(self, index):
-        incr = index - self.index
-        self.next(incr)
-
-    def iter(self, it):
-        try:
-            self.max = len(it)
-        except TypeError:
-            pass
-
-        self.iter_value = None
-        with self:
-            for x in it:
-                self.iter_value = x
-                yield x
-                self.next()
-        del self.iter_value
-
-
-# ==============================================================================
-class Bar(Progress):
-    width = 32
-    suffix = '%(index)d/%(max)d'
-    bar_prefix = ' |'
-    bar_suffix = '| '
-    empty_fill = ' '
-    fill = '#'
-    color = None
-
-    def update(self):
-        filled_length = int(self.width * self.progress)
-        empty_length = self.width - filled_length
-
-        message = self.message % self
-        bar = color(self.fill * filled_length, fg=self.color)
-        empty = self.empty_fill * empty_length
-        suffix = self.suffix % self
-        line = ''.join([message, self.bar_prefix, bar, empty, self.bar_suffix,
-                        suffix])
-        self.writeln(line)
-
-
-class ChargingBar(Bar):
-    suffix = '%(percent)d%%'
-    bar_prefix = ' '
-    bar_suffix = ' '
-    empty_fill = '∙'
-    fill = '█'
-
-
-class FillingSquaresBar(ChargingBar):
-    empty_fill = '▢'
-    fill = '▣'
-
-
-class FillingCirclesBar(ChargingBar):
-    empty_fill = '◯'
-    fill = '◉'
-
-
-class IncrementalBar(Bar):
-    if sys.platform.startswith('win'):
-        phases = (u' ', u'▌', u'█')
-    else:
-        phases = (' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█')
-
-    def update(self):
-        nphases = len(self.phases)
-        filled_len = self.width * self.progress
-        nfull = int(filled_len)                      # Number of full chars
-        phase = int((filled_len - nfull) * nphases)  # Phase of last char
-        nempty = self.width - nfull                  # Number of empty chars
-
-        message = self.message % self
-        bar = color(self.phases[-1] * nfull, fg=self.color)
-        current = self.phases[phase] if phase > 0 else ''
-        empty = self.empty_fill * max(0, nempty - len(current))
-        suffix = self.suffix % self
-        line = ''.join([message, self.bar_prefix, bar, current, empty,
-                        self.bar_suffix, suffix])
-        self.writeln(line)
-
-
-class PixelBar(IncrementalBar):
-    phases = ('⡀', '⡄', '⡆', '⡇', '⣇', '⣧', '⣷', '⣿')
-
-
-class ShadyBar(IncrementalBar):
-    phases = (' ', '░', '▒', '▓', '█')
-
-
-# ==============================================================================
-def color(s, fg=None, bg=None, style=None):
-    COLORS = ('black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan',
-              'white')
-    STYLES = ('bold', 'faint', 'italic', 'underline', 'blink', 'blink2',
-              'negative', 'concealed', 'crossed')
-    sgr = []
-
-    if fg:
-        if fg in COLORS:
-            sgr.append(str(30 + COLORS.index(fg)))
-        elif isinstance(fg, int) and 0 <= fg <= 255:
-            sgr.append('38;5;%d' % int(fg))
-        else:
-            raise Exception('Invalid color "%s"' % fg)
-
-    if bg:
-        if bg in COLORS:
-            sgr.append(str(40 + COLORS.index(bg)))
-        elif isinstance(bg, int) and 0 <= bg <= 255:
-            sgr.append('48;5;%d' % bg)
-        else:
-            raise Exception('Invalid color "%s"' % bg)
-
-    if style:
-        for st in style.split('+'):
-            if st in STYLES:
-                sgr.append(str(1 + STYLES.index(st)))
-            else:
-                raise Exception('Invalid style "%s"' % st)
-
-    if sgr:
-        prefix = '\x1b[' + ';'.join(sgr) + 'm'
-        suffix = '\x1b[0m'
-        return prefix + s + suffix
-    else:
-        return s
-
-
-# ==============================================================================
-# Foreground shortcuts
-black = partial(color, fg='black')
-red = partial(color, fg='red')
-green = partial(color, fg='green')
-yellow = partial(color, fg='yellow')
-blue = partial(color, fg='blue')
-magenta = partial(color, fg='magenta')
-cyan = partial(color, fg='cyan')
-white = partial(color, fg='white')
-
-# Style shortcuts
-bold = partial(color, style='bold')
-faint = partial(color, style='faint')
-italic = partial(color, style='italic')
-underline = partial(color, style='underline')
-blink = partial(color, style='blink')
-blink2 = partial(color, style='blink2')
-negative = partial(color, style='negative')
-concealed = partial(color, style='concealed')
-crossed = partial(color, style='crossed')
-
-
-# ==============================================================================
-def foo2():
-    pass
-
-
-# Basura
-# c:/fusion/gridsurfacecreate "338-4630_groundfilter.dtm" 10 M M 1 0 0 0 PNOA_2010_LOTE4_CYL_338-4630_ORT-CLA-COL.LAS
-# funcion3+" "+str(parametros3_1)+" "+entrada3_1+" "+str(parametros3_2)+" "+salida3+" "+ entrada3_2
-# c:/fusion/gridmetrics /minht:0.25 /nointensity 338-4630_groundfilter.dtm 0.25 10 338-4630_metric.csv PNOA_2010_LOTE4_CYL_338-4630_ORT-CLA-COL.LAS
-# ==============================================================================
-'''
-from osgeo import ogr, osr, gdal
-from gdalconst import *
-import gdalnumeric
-
-#Atencion al orden de carga:
-#1. C:\\Python27\\Lib\\site-packages\\GDAL-1.11.2-py2.7.egg-info (este es el gdal con GEOS)
-#2. C:\_app\gdal
-#3. C:\_app\gdal\gdalplugins (para acceder a las dll:
-
-# Si carga:
-#     C:\Python27\lib\site-packages\osgeo\_gdal.pyd
-# No tiene acceso a:
-#     C:\_app\GDAL\gdalplugins\gdal_BAG.dll
-#     C:\_app\GDAL\gdalplugins\gdal_BAG.dll
-#     C:\_app\GDAL\gdalplugins\gdal_FITS.dll
-#     C:\_app\GDAL\gdalplugins\gdal_FITS.dll
-#     C:\_app\GDAL\gdalplugins\gdal_GMT.dll
-#     C:\_app\GDAL\gdalplugins\gdal_GMT.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF4.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF4.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF4Image.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF4Image.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF5.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF5.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF5Image.dll
-#     C:\_app\GDAL\gdalplugins\gdal_HDF5Image.dll
-#     C:\_app\GDAL\gdalplugins\gdal_KEA.dll
-#     C:\_app\GDAL\gdalplugins\gdal_KEA.dll
-#     C:\_app\GDAL\gdalplugins\gdal_netCDF.dll
-#     C:\_app\GDAL\gdalplugins\gdal_netCDF.dll
-
-
-CAPA_CYL = r'O:/Sigmena/Carto/DIV_ADMI/GENERAL/auton_ign_e25_etrs89.shp'
-inputDatasetVector = ogr.Open(CAPA_CYL, False)
-for layer in inputDatasetVector:
-    print( 'Layer: "%s"' % (layer.GetName()) )
-ogrInputLayer = inputDatasetVector.GetLayer(0)
-print( 'inputLayer.GetSpatialRef():', type(ogrInputLayer.GetSpatialRef()) #<class 'osgeo.osr.SpatialReference'>    )
-print( ogrInputLayer.GetSpatialRef() #PROJCS["ETRS89_UTM_zone_30N_N_E", etc. )
-print( 'Poligonos en la capa CyL', ogrInputLayer.GetFeatureCount() )
-ogrInputLayer.ResetReading()
-feature = ogrInputLayer.GetNextFeature()
-if feature is None:
-    print( 'Error de feature' )
-fid = feature.GetFID()
-print( 'First feature:', fid )
-geom = feature.GetGeometryRef()
-print( 'geom:', type(geom), dir(geom) )
-#['AddGeometry', 'AddGeometryDirectly', 'AddPoint', 'AddPoint_2D', 'Area', 'AssignSpatialReference', 'Boundary', 'Buffer', 'Centroid', 'Clone', 'CloseRings', 'Contains', 'ConvexHull', 'Crosses', 'Destroy', 'Difference', 'Disjoint', 'Distance', 'Empty', 'Equal', 'Equals', 'ExportToGML', 'ExportToJson', 'ExportToKML', 'ExportToWkb', 'ExportToWkt', 'FlattenTo2D', 'GetArea', 'GetBoundary', 'GetCoordinateDimension', 'GetDimension', 'GetEnvelope', 'GetEnvelope3D', 'GetGeometryCount', 'GetGeometryName', 'GetGeometryRef', 'GetGeometryType', 'GetPoint', 'GetPointCount', 'GetPoint_2D', 'GetPoints', 'GetSpatialReference', 'GetX', 'GetY', 'GetZ', 'Intersect', 'Intersection', 'Intersects', 'IsEmpty', 'IsRing', 'IsSimple', 'IsValid', 'Length', 'Overlaps', 'PointOnSurface', 'Segmentize', 'SetCoordinateDimension', 'SetPoint', 'SetPoint_2D', 'Simplify', 'SimplifyPreserveTopology', 'SymDifference', 'SymmetricDifference', 'Touches', 'Transform', 'TransformTo', 'Union', 'UnionCascaded', 'Within', 'WkbSize', '__class__', '__del__', '__delattr__', '__dict__', '__doc__', '__format__', '__getattr__', '__getattribute__', '__hash__', '__init__', '__iter__', '__module__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '__swig_destroy__', '__swig_getmethods__', '__swig_setmethods__', '__weakref__', 'next', 'this']
-
-print( '1.', 'geom.GetCoordinateDimension:', type(geom.GetCoordinateDimension()), geom.GetCoordinateDimension() #<type 'int'> 2 )
-#print( '2.', 'geom.GetEnvelope:', type(geom.GetEnvelope()), geom.GetEnvelope() #<type 'tuple'> )
-#print( '3.', 'geom.Boundary:', type(geom.Boundary()), geom.Boundary() #<class 'osgeo.ogr.Geometry'> )
-#['AddGeometry', 'AddGeometryDirectly', 'AddPoint', 'AddPoint_2D', 'Area', 'AssignSpatialReference', 'Boundary', 'Buffer', 'Centroid', 'Clone', 'CloseRings', 'Contains', 'ConvexHull', 'Crosses', 'Destroy', 'Difference', 'Disjoint', 'Distance', 'Empty', 'Equal', 'Equals', 'ExportToGML', 'ExportToJson', 'ExportToKML', 'ExportToWkb', 'ExportToWkt', 'FlattenTo2D', 'GetArea', 'GetBoundary', 'GetCoordinateDimension', 'GetDimension', 'GetEnvelope', 'GetEnvelope3D', 'GetGeometryCount', 'GetGeometryName', 'GetGeometryRef', 'GetGeometryType', 'GetPoint', 'GetPointCount', 'GetPoint_2D', 'GetPoints', 'GetSpatialReference', 'GetX', 'GetY', 'GetZ', 'Intersect', 'Intersection', 'Intersects', 'IsEmpty', 'IsRing', 'IsSimple', 'IsValid', 'Length', 'Overlaps', 'PointOnSurface', 'Segmentize', 'SetCoordinateDimension', 'SetPoint', 'SetPoint_2D', 'Simplify', 'SimplifyPreserveTopology', 'SymDifference', 'SymmetricDifference', 'Touches', 'Transform', 'TransformTo', 'Union', 'UnionCascaded', 'Within', 'WkbSize', '__class__', '__del__', '__delattr__', '__dict__', '__doc__', '__format__', '__getattr__', '__getattribute__', '__hash__', '__init__', '__iter__', '__module__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '__swig_destroy__', '__swig_getmethods__', '__swig_setmethods__', '__weakref__', 'next', 'this']
-#LINESTRING (460014.72542665247 4670908.0633002184,460267.40251024353 4670906.7403835505,460270.04834357958 4670672.5841333121,460013.40250998444 4670680.5216333196,460014.72542665247 4670908.0633002184)
-#print( '4.', 'geom.GetBoundary:', type(geom.GetBoundary()), geom.GetBoundary() #<class 'osgeo.ogr.Geometry'> )
-#['AddGeometry', 'AddGeometryDirectly', 'AddPoint', 'AddPoint_2D', 'Area', 'AssignSpatialReference', 'Boundary', 'Buffer', 'Centroid', 'Clone', 'CloseRings', 'Contains', 'ConvexHull', 'Crosses', 'Destroy', 'Difference', 'Disjoint', 'Distance', 'Empty', 'Equal', 'Equals', 'ExportToGML', 'ExportToJson', 'ExportToKML', 'ExportToWkb', 'ExportToWkt', 'FlattenTo2D', 'GetArea', 'GetBoundary', 'GetCoordinateDimension', 'GetDimension', 'GetEnvelope', 'GetEnvelope3D', 'GetGeometryCount', 'GetGeometryName', 'GetGeometryRef', 'GetGeometryType', 'GetPoint', 'GetPointCount', 'GetPoint_2D', 'GetPoints', 'GetSpatialReference', 'GetX', 'GetY', 'GetZ', 'Intersect', 'Intersection', 'Intersects', 'IsEmpty', 'IsRing', 'IsSimple', 'IsValid', 'Length', 'Overlaps', 'PointOnSurface', 'Segmentize', 'SetCoordinateDimension', 'SetPoint', 'SetPoint_2D', 'Simplify', 'SimplifyPreserveTopology', 'SymDifference', 'SymmetricDifference', 'Touches', 'Transform', 'TransformTo', 'Union', 'UnionCascaded', 'Within', 'WkbSize', '__class__', '__del__', '__delattr__', '__dict__', '__doc__', '__format__', '__getattr__', '__getattribute__', '__hash__', '__init__', '__iter__', '__module__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '__swig_destroy__', '__swig_getmethods__', '__swig_setmethods__', '__weakref__', 'next', 'this']
-#LINESTRING (460014.72542665247 4670908.0633002184,460267.40251024353 4670906.7403835505,460270.04834357958 4670672.5841333121,460013.40250998444 4670680.5216333196,460014.72542665247 4670908.0633002184)
-#print( '5.', 'geom.GetDimension:', type(geom.GetDimension()), geom.GetDimension() #<type 'int'> 2 )
-#print( '6.', 'geom.GetGeometryRef:', type(geom.GetGeometryRef()), dir(geom.GetGeometryRef()) geom.GetGeometryRef() )
-#print( '7.', 'geom.Length():', type(geom.Length()), geom.Length() )
-
-pts = geom.GetGeometryRef(0)
-print( 'pts:', type(pts), dir(pts) )
-print( 'Numero de puntos del perimetro CyL:', pts.GetPointCount() )
-
-#for miPto in range(pts.GetPointCount()):
-#for miPto in range(pts.GetPointCount()):
-#    #print( miPto, type(pts.GetX(miPto)), pts.GetX(miPto), pts.GetY(miPto) #<type 'float'> )
-#    perimetro.append((pts.GetX(miPto), pts.GetY(miPto))) #Agrega una tupla de dos valores, X e Y
-inputDatasetVector.Destroy()
-#quit()'''
-
-
-# Ver Reading Raster Data en: http://www.gdal.org/gdal_tutorial.html
-# Ver la Class Dataset en: http://gdal.org/python/osgeo.gdal.Dataset-class.html
-# Aqui se recoge el metodo ReadRaster() de esta clase:
-#    ReadRaster(self, xoff, yoff, xsize, ysize, buf_xsize=None, buf_ysize=None, buf_type=None, band_list=None, buf_pixel_space=None, buf_line_space=None, buf_band_space=None)
-'''
- 786 -        def ReadRaster(self, xoff, yoff, xsize, ysize, 
- 787                                         buf_xsize = None, buf_ysize = None, buf_type = None, 
- 788                                         band_list = None, 
- 789                                         buf_pixel_space = None, buf_line_space = None, buf_band_space = None ): 
- 790     
- 791                    if band_list is None: 
- 792                            band_list = range(1,self.RasterCount+1) 
- 793                    if buf_xsize is None: 
- 794                            buf_xsize = xsize; 
- 795                    if buf_ysize is None: 
- 796                            buf_ysize = ysize; 
- 797     
- 798                    if buf_type is None: 
- 799                            buf_type = self.GetRasterBand(1).DataType; 
- 800     
- 801                    return _gdal.Dataset_ReadRaster1(self, xoff, yoff, xsize, ysize, 
- 802                                                                                            buf_xsize, buf_ysize, buf_type, 
- 803                                                                                            band_list, buf_pixel_space, buf_line_space, buf_band_space ) 
-'''
-'''
- 753 -        def ReadRaster1(self, *args, **kwargs): 
- 754                    """ 
- 755                    ReadRaster1(self, int xoff, int yoff, int xsize, int ysize, int buf_xsize = None,    
- 756                            int buf_ysize = None, GDALDataType buf_type = None,    
- 757                            int band_list = 0, int buf_pixel_space = None,    
- 758                            int buf_line_space = None,    
- 759                            int buf_band_space = None) -> CPLErr 
- 760                    """ 
- 761                    return _gdal.Dataset_ReadRaster1(self, *args, **kwargs) 
-'''
-
-# There are a few ways to read raster data, but the most common is via the GDALRasterBand::RasterIO() method.
-# This method will automatically take care of data type conversion, up/down sampling and windowing.
-# The following code will read the first scanline of data into a similarly sized buffer, converting it to floating point as part of the operation.
-#    Rpta = band.ReadRaster(xoff, yoff, xsize, ysize, buf_xsize = None, buf_ysize = None, buf_type = None):
-# Ejemplo para leer una linea:
-#    scanline = band.ReadRaster( 0, 0, band.XSize, 1, \
-#                                                            band.XSize, 1, GDT_Float32 )
-# Note that the returned scanline is of type string, and contains xsize*4 bytes of raw binary floating point data.
-# This can be converted to Python values using the struct module from the standard library:
-#    import struct
-#    tuple_of_floats = struct.unpack('f' * b2.XSize, scanline)
-'''
-The RasterIO call takes the following arguments.
-CPLErr GDALRasterBand::RasterIO( GDALRWFlag eRWFlag,
-                                                                 int nXOff, int nYOff, int nXSize, int nYSize,
-                                                                 void * pData, int nBufXSize, int nBufYSize,
-                                                                 GDALDataType eBufType,
-                                                                 int nPixelSpace,
-                                                                 int nLineSpace )
-Note that the same RasterIO() call is used to read, or write based on the setting of eRWFlag (either GF_Read or GF_Write).
-The nXOff, nYOff, nXSize, nYSize argument describe the window of raster data on disk to read (or write).
-It doesn't have to fall on tile boundaries though access may be more efficient if it does.
-The pData is the memory buffer the data is read into, or written from.
-It's real type must be whatever is passed as eBufType, such as GDT_Float32, or GDT_Byte.
-The RasterIO() call will take care of converting between the buffer's data type and the data type of the band.
-Note that when converting floating point data to integer RasterIO() round down, 
-and when converting source values outside the legal range of the output the nearest legal value is used. 
-This implies, for instance, that 16bit data read into a GDT_Byte buffer will map all values greater than 255 to 255, the data is not scaled!
-The nBufXSize and nBufYSize values describe the size of the buffer. 
-When loading data at full resolution this would be the same as the window size. 
-However, to load a reduced resolution overview this could be set to smaller than the window on disk. 
-In this case the RasterIO() will utilize overviews to do the IO more efficiently if the overviews are suitable.
-The nPixelSpace, and nLineSpace are normally zero indicating that default values should be used. 
-However, they can be used to control access to the memory data buffer, 
-allowing reading into a buffer containing other pixel interleaved data for instance
-'''
-
-'''
-Se puede usar:
-    ReadRaster() y struct.unpack()
-    ReadAsArray() y numpy()
-
-
-De: http://gis.stackexchange.com/questions/46893/how-do-i-get-the-pixel-value-of-a-gdal-raster-under-an-ogr-point-without-numpy
-from osgeo import gdal,ogr
-import struct
-
-src_filename = '/tmp/test.tif'
-shp_filename = '/tmp/test.shp'
-
-src_ds=gdal.Open(src_filename) 
-gt=src_ds.GetGeoTransform()
-rb=src_ds.GetRasterBand(1)
-
-ds=ogr.Open(shp_filename)
-lyr=ds.GetLayer()
-for feat in lyr:
-        geom = feat.GetGeometryRef()
-        mx,my=geom.GetX(), geom.GetY()    #coord in map units
-
-        #Convert from map to pixel coordinates.
-        #Only works for geotransforms with no rotation.
-        pointX = int((mx - gt[0]) / gt[1]) #x pixel
-        pointY = int((my - gt[3]) / gt[5]) #y pixel
-
-        structval=rb.ReadRaster(pointX,pointY,1,1,buf_type=gdal.GDT_UInt16) #Assumes 16 bit int aka 'short'
-        intval = struct.unpack('h' , structval) #use the 'short' format code (2 bytes) not int (4 bytes)
-
-        print( intval[0] #intval is a tuple, length=1 as we only asked for 1 pixel value )
-
-
-
-#Alternatively, since the reason you gave for not using numpy was to avoid reading the entire array in using ReadAsArray(), below is an example that uses numpy and does not read the entire raster in.
-
-from osgeo import gdal,ogr
-import struct
-
-src_filename = '/tmp/test.tif'
-shp_filename = '/tmp/test.shp'
-
-src_ds=gdal.Open(src_filename) 
-gt=src_ds.GetGeoTransform()
-rb=src_ds.GetRasterBand(1)
-
-ds=ogr.Open(shp_filename)
-lyr=ds.GetLayer()
-for feat in lyr:
-        geom = feat.GetGeometryRef()
-        mx,my=geom.GetX(), geom.GetY()    #coord in map units
-
-        #Convert from map to pixel coordinates.
-        #Only works for geotransforms with no rotation.
-        pointX = int((mx - gt[0]) / gt[1]) #x pixel
-        pointY = int((my - gt[3]) / gt[5]) #y pixel
-
-        intval=rb.ReadAsArray(pointX,pointY,1,1)
-        print intval[0] #intval is a numpy array, length=1 as we only asked for 1 pixel value
-        
-'''
-
-'''
-def mad_based_outlier(miLista, thresh=10):
-    if type(miLista) != numpy.ndarray:
-        miArray = numpy.array(miLista)
-    print(type(miLista))
-    print(type(miArray))
-    if len(miArray.shape) == 1:
-        miArray = miArray[:,None]
-    median = numpy.median(miArray, axis=0)
-    diff = numpy.sqrt(numpy.sum((miArray - median)**2, axis=-1))
-    #Esto es una especie de desviacion tipica respecto a la mediana (en vez de rpto a la media):
-    med_abs_deviation = numpy.median(diff)
-    #Rango semi intercuartilar para la distribucion normal = 0.6745 * desviacion tipica = (Q3 - Q1) / 2
-    #Considero outliers los que superan 10 veces ese rango
-    modified_z_score = 0.6745 * diff / med_abs_deviation
-    return modified_z_score > thresh
-
-def mascara(data, selectors):
-    # compress('ABCDEF', [1,0,1,0,1,1]) --> A C E F
-    return (d for d, s in zip(data, selectors) if s)
-
-for r in range(10):
-    x = [1, 5, 6, 8, 9, 8, 7, 50]
-    y = mad_based_outlier(x,r)
-    print(x)
-    #print(y)
-    outliers = mascara(x, y)
-    print(outliers)
-'''

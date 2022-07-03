@@ -5,9 +5,9 @@
 # include cartolidar/__main__.py
 # include cartolidar/qlidtwins.py
 cartolidar/qlidmerge.py
-cartolidar/cartolidar.py
-cartolidar/cartolider.py
-cartolidar/cartolidar.xls
+cartolidar/clidbase.py
+cartolidar/clidflow.py
+cartolidar/clidbase.xls
 cartolidar/reClasificador.csv
 cartolidar/listaBloquesSelec.cfg
 
@@ -18,10 +18,10 @@ cartolidar/listaBloquesSelec.cfg
 # include cartolidar/clidax/clidconfig.py
 # include cartolidar/clidax/clidraster.py
 cartolidar/clidax/clidcluster.py
+cartolidar/clidax/clidextras.py
 cartolidar/clidax/clidgis.py
 cartolidar/clidax/clidshow.py
 
-# include cartolidar/clidio/clidhead.py
 cartolidar/clidio/clidlat.py
 cartolidar/clidio/clidlax.py
 cartolidar/clidio/clidpoint.py
@@ -38,7 +38,6 @@ cartolidar/clidml/clidtrain.py
 
 cartolidar/clidnb/__init__.py
 cartolidar/clidnb/clidnaux.py
-cartolidar/clidnb/clidndat.py
 cartolidar/clidnb/clidnv0.py
 cartolidar/clidnb/clidnv1.py
 cartolidar/clidnb/clidnv2k.py
@@ -59,6 +58,10 @@ cartolidar/clidnb/clidnv6.py
 # include cartolidar/clidtools/clidtwinx.py
 cartolidar/clidtools/clidmerge.py
 
+cartolidar/clidfr/__init__.py
+# include cartolidar/clidfr/clidhead.py
+cartolidar/clidfr/clidndat.py
+
 tests/pruebas.py
 
 # Ficheros auxiliares que no incluyo en el repositorio
@@ -77,7 +80,7 @@ pruebas*.py
 Ayuda.txt
 README_extras.txt
 cartolidar/clid.bat
-cartolidar/cartolidar.cfg
+cartolidar/clidbase.cfg
 cartolidar/qlidtwins.cfg
 qlidtwins_LeRoble.cfg
 qlidtwins_SgPino.cfg
@@ -91,7 +94,7 @@ qlidtwins.args
 *.xls
 *.xlsx
 *.xlsm
-# cartolidar.cfg, clidtwins.cfg, etc.
+# clidbase.cfg, clidtwins.cfg, etc.
 *.cfg
 # clidtwins.args, etc.
 *.args

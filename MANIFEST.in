@@ -5,9 +5,9 @@ include cartolidar/__main__.py
 include cartolidar/qlidtwins.py
 
 exclude cartolidar/qlidmerge.py
-exclude cartolidar/cartolidar.py
-exclude cartolidar/cartolider.py
-exclude cartolidar/cartolidar.xls
+exclude cartolidar/clidbase.py
+exclude cartolidar/clidflow.py
+exclude cartolidar/clidbase.xls
 exclude cartolidar/reClasificador.csv
 exclude cartolidar/listaBloquesSelec.cfg
 
@@ -18,11 +18,11 @@ include cartolidar/clidax/clidcarto.py
 include cartolidar/clidax/clidconfig.py
 include cartolidar/clidax/clidraster.py
 exclude cartolidar/clidax/clidcluster.py
+exclude cartolidar/clidax/clidextras.py
 exclude cartolidar/clidax/clidgis.py
 exclude cartolidar/clidax/clidshow.py
 
 include cartolidar/clidio/*.py
-include cartolidar/clidio/clidhead.py
 exclude cartolidar/clidio/clidlat.py
 exclude cartolidar/clidio/clidlax.py
 exclude cartolidar/clidio/clidpoint.py
@@ -40,7 +40,6 @@ exclude cartolidar/clidml/clidtrain.py
 include cartolidar/clidnb/*.py
 exclude cartolidar/clidnb/__init__.py
 exclude cartolidar/clidnb/clidnaux.py
-exclude cartolidar/clidnb/clidndat.py
 exclude cartolidar/clidnb/clidnv0.py
 exclude cartolidar/clidnb/clidnv1.py
 exclude cartolidar/clidnb/clidnv2k.py
@@ -62,6 +61,11 @@ include cartolidar/clidtools/clidtwins.py
 include cartolidar/clidtools/clidtwinx.py
 exclude cartolidar/clidtools/clidmerge.py
 
+include cartolidar/clidfr/*.py
+include cartolidar/clidfr/__init__.py
+include cartolidar/clidfr/clidhead.py
+exclude cartolidar/clidfr/clidndat.py
+
 global-exclude tests/pruebas*.*
 
 include data/*.*
@@ -79,6 +83,9 @@ global-exclude *.pyc
 global-exclude *.back
 global-exclude *.txt
 global-exclude *.log
+global-exclude *.xls
+global-exclude *.xlsx
+global-exclude *.xlsm
 global-exclude *.cfg
 global-exclude *.args
 global-exclude *.bat

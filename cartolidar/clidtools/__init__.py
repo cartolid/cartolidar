@@ -15,24 +15,49 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 @deffield    updated: 2022-06-01
 '''
 
+import os
 import sys
+import re
 import logging
 
 # Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
+try:
     from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
     from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
     from cartolidar.clidtools.clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
-# except:
-#     from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
-#     from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
-#     from .clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
+except:
+    from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
+    from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
+    from .clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
 
 # from . import clidtwins # Inlcuye DasoLidarSource, mostrarListaDrivers, etc.
 # from . import clidtwcfg # Incluye GLO, que es una variable publica del modulo clidtwcfg
 
 
+# ==============================================================================
+VERSIONFILE = os.path.abspath('../../_version.py')
+verstrline = open(VERSIONFILE, "rt").read()
+VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    # __version__ = mo.groups()[0]
+    __version__ = mo.group(1)
+else:
+    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
+VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    __date__ = mo.group(1)
+else:
+    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"')
+VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
+mo = re.search(VSRE, verstrline, re.M)
+mo = re.search(VSRE, verstrline, re.M)
+if mo:
+    __updated__ = mo.group(1)
+else:
+    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"')
 # ==============================================================================
 # __all__ = [
 #     'clidtwins',
@@ -47,9 +72,7 @@ __all__ = [
 # No se importa nada con: from qlidtwins import *
 __all__ = []
 # ==============================================================================
-__version__ = GLO.__version__
-__date__ = GLO.__date__
-__updated__ = GLO.__updated__
+
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -88,7 +111,7 @@ elif not __quiet__:
 else:
     consoleLog.setLevel(logging.CRITICAL)
 consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(thisModule)
+myLog = logging.getLogger(consLogYaCreado=False, myModule=thisModule, myVerboseFile=2, myVerbose=__verbose__)
 myLog.addHandler(consoleLog)
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))

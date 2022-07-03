@@ -105,34 +105,55 @@ except Exception as excpt:
 # ==============================================================================
 # ========================== Variables globales ================================
 # ==============================================================================
-# Actualizar version en clidtwcfg.py
-# __version__ = GLO.__version__
-# __date__ = GLO.__date__
-# __updated__ = GLO.__updated__
-VERSIONFILE = '../_version.py'
-verstrline = open(VERSIONFILE, "rt").read()
-VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    # __version__ = mo.groups()[0]
-    __version__ = mo.group(1)
-else:
-    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
-VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    __date__ = mo.group(1)
-else:
-    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"')
-VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    __updated__ = mo.group(1)
-else:
-    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"')
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ==============================================================================
+# Ver https://peps.python.org/pep-0008/#module-level-dunder-names
+# Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
+# ==============================================================================
+VERSIONFILE = os.path.abspath('_version.py')
+if not os.path.exists(VERSIONFILE):
+    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
+    if not os.path.exists(VERSIONFILE):
+        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
+        if not os.path.exists(VERSIONFILE):
+            VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
+if os.path.exists(VERSIONFILE):
+    verstrline = open(VERSIONFILE, "rt").read()
+    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        # __version__ = mo.groups()[0]
+        __version__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
+    VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __date__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "..."')
+    VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __updated__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "..."')
+    VSRE = r"^__copyright__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __copyright__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+else:
+    __version__ = '0.0'
+    __date__ = '2016-2022'
+    __updated__ = '2022'
+    __copyright__ = '@clid 2016-22'
+# ==============================================================================
+
 # No se importa nada con: from qlidtwins import *
 __all__ = []
 # ==============================================================================
@@ -231,31 +252,14 @@ elif type(ARGS_idProceso) == str:
     try:
         MAIN_idProceso = int(ARGS_idProceso)
     except:
-        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
+        print(f'qlidtwins-> ATENCION: revisar asignacion de idProceso.')
         print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
         print(f'sys.argv: {sys.argv}')
 else:
     MAIN_idProceso = 0
-    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
+    print(f'qlidtwins-> ATENCION: revisar codigo de idProceso.')
     print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
     print(f'sys.argv: {sys.argv}')
-# ==============================================================================
-
-
-if False:
-    # Provisional en version alpha: usar mas adelante para indicar el progreso
-    try:
-        from cartolidar.clidax.clidaux import Bar
-    except:
-        if __verbose__ == 3:
-            myLog.warning(f'qlidtwins-> Se importa clidaux desde clidax del directorio local {os.getcwd()}/clidtools')
-            myLog.warning(f'{TB}No hay vesion de cartolidar instalada en site-packages.')
-        from clidax.clidaux import Bar
-    
-    bar = Bar('Procesando', max=100)
-    for i in range(100):
-        bar.next()
-    bar.finish()
 # ==============================================================================
 
 
