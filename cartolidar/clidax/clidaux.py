@@ -795,7 +795,7 @@ def mostrarEntornoDeTrabajo(verbosePlus=False):
 
 
 # ==============================================================================o
-def mostrar_directorios():
+def mostrar_directorios(verbosePlus=False):
     print(f'\n{"":_^80}')
     print('clidaux-> Modulos y directorios de la aplicacion:')
     print('\t-> Modulos de la aplicacion:')

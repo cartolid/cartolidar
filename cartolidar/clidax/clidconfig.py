@@ -1080,6 +1080,7 @@ def initConfigDicts(idProceso=MAIN_idProceso):
         if CONFIGverbose and __verbose__ > 3 and not moduloPreviamenteCargado:
             print(f'{TB}{nombreParametroDeConfiguracion}-> {GLOBALconfigDict[nombreParametroDeConfiguracion]}')
 
+
     return GLOBALconfigDict
 
 
@@ -1258,9 +1259,9 @@ class VariablesGlobales(object):
             if objetivoEjecucion < len(self.configVarsDict[nombreParametroDeConfiguracion]):
                 setattr(self, nombreParametroDeConfiguracion, self.configVarsDict[nombreParametroDeConfiguracion][objetivoEjecucion])
             else:
-                if LCLverbose:
-                    print(f'{TB}-> No tiene valor especifico para {nombreParametroDeConfiguracion}')
-                    print(f'{TB}-> Se adopta el valor para objetivo general. {self.configVarsDict[nombreParametroDeConfiguracion][0]}') 
+                if LCLverbose and nombreParametroDeConfiguracion != 'configFileNameCfg':
+                    print(f'{TB}-> El parametro {nombreParametroDeConfiguracion} no tiene valor especifico para el objetivo de ejecucion {objetivoEjecucion}')
+                    print(f'{TB}-> Se adopta el valor correspondiente al objetivo general: {self.configVarsDict[nombreParametroDeConfiguracion][0]}') 
                 setattr(self, nombreParametroDeConfiguracion, self.configVarsDict[nombreParametroDeConfiguracion][0])
 
 
@@ -1633,8 +1634,8 @@ class VariablesGlobales(object):
             self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] = int(self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] / 2)
         if self.configVarsDict['GLBLminDePtosParaAjustarPlanoBasalCielo'][0] < 3 or self.configVarsDict['GLBLminDePtosParaAjustarPlanoMajor'][0] < 3:
             if LCLverbose:
-                print('\tclidconfig-> Corregir GLBLminDePtosParaAjustarPlanoBasalCielo o GLBLminDePtosParaAjustarPlanoMajor')
-                print('\tclidconfig-> El numero minimo de puntos para ajustar debe ser mayor de 3')
+                print(f'{TW}clidconfig-> Corregir GLBLminDePtosParaAjustarPlanoBasalCielo o GLBLminDePtosParaAjustarPlanoMajor')
+                print(f'{TW}clidconfig-> El numero minimo de puntos para ajustar debe ser mayor de 3')
             return False
 
         if (
@@ -1643,7 +1644,7 @@ class VariablesGlobales(object):
             and not self.configVarsDict['GLBLalmacenarPuntosComoByteString'][0]
         ):
             if LCLverbose:
-                print('\tclidconfig-> Si se usa numba y no se usa Dtype, solo se puede guardar con GLBLalmacenarPuntosComoByteString = True -> Se cambia a True')
+                print(f'{TW}clidconfig-> Si se usa numba y no se usa Dtype, solo se puede guardar con GLBLalmacenarPuntosComoByteString = True -> Se cambia a True')
             try:
                 selec = input('\tclidconfig-> Confirmar el cambio de GLBLalmacenarPuntosComoByteString a True (S/n)')
                 self.configVarsDict['GLBLalmacenarPuntosComoByteString'][0] = False if selec.upper() == 'N' else True
@@ -1661,7 +1662,7 @@ class VariablesGlobales(object):
         if self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] > 0 and not self.configVarsDict['GLBLselecPasadasConClasificacion'][0]:
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
                 if LCLverbose:
-                    print('\tclidconfig-> -> la pasada elegida debe tener puntos suelo -> se cambia la opcion GLBLselecPasadasConClasificacion a True')
+                    print(f'{TW}clidconfig-> -> la pasada elegida debe tener puntos suelo -> se cambia la opcion GLBLselecPasadasConClasificacion a True')
             try:
                 selec = input('\tclidconfig-> Confirmar el cambio de GLBLselecPasadasConClasificacion a True (S/n)')
                 self.configVarsDict['GLBLselecPasadasConClasificacion'][0] = False if selec.upper() == 'N' else True
@@ -1680,7 +1681,7 @@ class VariablesGlobales(object):
         if self.configVarsDict['GLBLusarNumba'][0] and (self.configVarsDict['GLBLusarSklearn'][0] or self.configVarsDict['GLBLusarStatsmodels'][0]):
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
                 if LCLverbose:
-                    print('\tclidconfig-> Cuando se usa Numba los ajustes se hacen con algebra matricial y no con SkLearn o Statsmodels.')
+                    print(f'{TW}clidconfig-> Cuando se usa Numba los ajustes se hacen con algebra matricial y no con SkLearn o Statsmodels.')
             try:
                 selec = input('\tclidconfig-> Confirmar el cambio de GLBLusarSklearn y GLBLusarStatsmodels a False (S/n)')
                 rpta = True if selec.upper() == 'N' else False
@@ -1691,7 +1692,7 @@ class VariablesGlobales(object):
                 self.configVarsDict['GLBLusarStatsmodels'][0] = False
             if rpta == False:
                 if LCLverbose:
-                    print('\tclidconfig-> GLBLusarSklearn o GLBLusarStatsmodels = True -> Opcion no permitida con GLBLusarNumba True')
+                    print(f'{TW}clidconfig-> GLBLusarSklearn o GLBLusarStatsmodels = True -> Opcion no permitida con GLBLusarNumba True')
                 return False
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
                 if LCLverbose:
@@ -1700,11 +1701,11 @@ class VariablesGlobales(object):
 
 
         if self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0]:
-            print('\tclidconfig-> GLBLguardarPuntosSueloEnArrayPredimensionada = True-> Guardar los puntos duplicados')
+            print(f'{TW}clidconfig-> GLBLguardarPuntosSueloEnArrayPredimensionada = True-> Guardar los puntos duplicados')
             print('\t(pasada seleccionada por angulo y pasada seleccionada por tener puntos suelo) consume extra de RAM')
             try:
                 # selec = input('\tclidconfig-> Confirmas que quieres usar ese array (S/n)')
-                print('\tclidconfig-> Confirmas que quieres usar ese array (S/n)')
+                print(f'{TW}clidconfig-> Confirmas que quieres usar ese array (S/n)')
                 selec = 'S'
                 self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0] = False if selec.upper() == 'N' else True
             except:
@@ -1743,7 +1744,7 @@ class VariablesGlobales(object):
             and self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] == 0
         ):
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
-                print('\tclidconfig-> -> Se ajusta plano a los puntos suelo pero:')
+                print(f'{TW}clidconfig-> -> Se ajusta plano a los puntos suelo pero:')
                 print(f'{TB}{TV}No se guardan en array los puntos de la pasada con puntos suelo porque')
                 print(f'{TB}{TV}ocupa demasiada memoria, por lo que se usan siempre los puntos de la pasada Psel.')
                 print(f'{TB}{TV}La pasada Psel se selecciona por angulo de incidencia sin requerir que tenga puntos clasificados suelo')
@@ -1801,23 +1802,23 @@ class VariablesGlobales(object):
                 )
             if self.configVarsDict['GLBLselecPasadaConMasPuntosSuelo'][0]:
                 if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
-                    print('\tclidconfig-> Se selecciona la misma pasada para puntos suelo y para puntos basales')
+                    print(f'{TW}clidconfig-> Se selecciona la misma pasada para puntos suelo y para puntos basales')
             elif self.configVarsDict['GLBLselecPasadasConClasificacion'][0]:
                 if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
-                    print('\tclidconfig-> Si solo hay una pasada con puntos clasificados, se selecciona la misma pasada para puntos suelo y para puntos basales')
+                    print(f'{TW}clidconfig-> Si solo hay una pasada con puntos clasificados, se selecciona la misma pasada para puntos suelo y para puntos basales')
                     print(
-                        '\tclidconfig-> Si hay varias, en las celdas con mas de una pasada, la pasada seleccionada (para puntos basales) puede ser distinta de la seleccionada para puntos suelo:'
+                        f'{TW}clidconfig-> Si hay varias, en las celdas con mas de una pasada, la pasada seleccionada (para puntos basales) puede ser distinta de la seleccionada para puntos suelo:'
                     )
-                    print('\tclidconfig->     Para puntos suelo: la que teniendo puntos clasificados tenga mas puntos suelo')
-                    print('\tclidconfig->     Para puntos basales: la que teniendo puntos clasificados tenga menor angulo medio')
+                    print(f'{TW}clidconfig->     Para puntos suelo: la que teniendo puntos clasificados tenga mas puntos suelo')
+                    print(f'{TW}clidconfig->     Para puntos basales: la que teniendo puntos clasificados tenga menor angulo medio')
             else:
                 if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
                     print(
-                        '\tclidconfig-> En las celdas con mas de una pasada, la pasada seleccionada para puntos basales puede ser distinta de la seleccionada para puntos suelo'
+                        f'{TW}clidconfig-> En las celdas con mas de una pasada, la pasada seleccionada para puntos basales puede ser distinta de la seleccionada para puntos suelo'
                     )
-                    print('\tclidconfig->     Para puntos suelo: la que tenga mas puntos suelo')
-                    print('\tclidconfig->     Para puntos basales: la que tenga menor angulo medio')
-                    print('\tclidconfig-> AVISO: se trabaja solo con celdas seleccionadas para puntos basales: algunas pueden no tener puntos suelo')
+                    print(f'{TW}clidconfig->     Para puntos suelo: la que tenga mas puntos suelo')
+                    print(f'{TW}clidconfig->     Para puntos basales: la que tenga menor angulo medio')
+                    print(f'{TW}clidconfig-> AVISO: se trabaja solo con celdas seleccionadas para puntos basales: algunas pueden no tener puntos suelo')
 
         if self.configVarsDict['GLBLgrabarPropiedadTime'][0] and self.configVarsDict['GLBLalmacenarPuntosComoCompactNpDtype'][0]:
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
@@ -2145,7 +2146,10 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
     if len(sys.argv) == 0:
         print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
         sys.exit(0)
-    elif sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
+    elif (
+        sys.argv[0].endswith('clidbase.py')
+        or (sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0])
+    ):
         # print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
         # print('\t  python -m cartolidar')
         configFileNameSinPath = 'clidbase.cfg'
@@ -2241,11 +2245,6 @@ def guardarVariablesGlobales(
     # else:
     #     time.sleep(5)
 
-    if CONFIGverbose and LCLverbose:
-        print('\tclidconfig-> Guardo los paramConfig en fichero cfg (inicial) con guardarVariablesGlobales.')
-        print('\tclidconfig-> Reviso la pila de llamadas por si llamara a esta funcion de nuevo')
-        _, _ = showCallingModules(inspect_stack=inspect_stack, verbose=CONFIGverbose)
-
     configFileNameCfg = getConfigFileName(idProceso)
     if os.path.exists(configFileNameCfg):
         try:
@@ -2253,6 +2252,12 @@ def guardarVariablesGlobales(
         except:
             print('No se elimina el fichero', configFileNameCfg, 'porque debe haberse eliminado por otro proceso')
             time.sleep(5)
+
+    if CONFIGverbose or LCLverbose:
+        print(f'\tclidconfig-> Guardo los paramConfig en fichero cfg (inicial) con guardarVariablesGlobales:')
+        print(f'{TB}{configFileNameCfg}')
+        print(f'\tclidconfig-> Reviso la pila de llamadas por si llamara a esta funcion de nuevo')
+        _, _ = showCallingModules(inspect_stack=inspect_stack, verbose=CONFIGverbose)
 
     config = RawConfigParser()
     config.optionxform = str  # Avoid change to lowercase
@@ -2332,6 +2337,9 @@ def guardarVariablesGlobales(
         print('\nclidconfig-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion:', configFileNameCfg)
         print('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
 
+    if CONFIGverbose or LCLverbose:
+        print(f'\tclidconfig-> Ok creado fichero: {configFileNameCfg}')
+
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 def leerCambiarVariablesGlobales(
@@ -2346,8 +2354,8 @@ def leerCambiarVariablesGlobales(
     configFileNameCfg = getConfigFileName(idProceso, LOCL_verbose=2)
 
     if CONFIGverbose or verbose:
-        print('\tclidconfig-> Leo los paramConfig del cfg (lo actualizo si tengo nuevosParametroConfiguracion) con leerCambiarVariablesGlobales<>')
-        print('\tclidconfig-> Reviso la pila de llamadas para ver desde que modulo estoy cargando los paramConfig del cfg')
+        print(f'{TW}clidconfig-> Leo los paramConfig del cfg (lo actualizo si tengo nuevosParametroConfiguracion) con leerCambiarVariablesGlobales<>')
+        print(f'{TW}clidconfig-> Reviso la pila de llamadas para ver desde que modulo estoy cargando los paramConfig del cfg')
         _, _ = showCallingModules(inspect_stack=inspect_stack, verbose=CONFIGverbose)
 
     config = RawConfigParser()
@@ -2355,12 +2363,14 @@ def leerCambiarVariablesGlobales(
 
     if not os.path.exists(configFileNameCfg):
         print('\nclidconfig-> Fichero de configuracion no encontrado:', configFileNameCfg)
-        print("\t-> Revisar la linea ~2523 de clidconfig.py, para que se cree el .cfg si callingModuleInicial == 'clidbase' or ...")
+        print('\t-> Revisar la linea ~2523 de clidconfig.py, para que se cree el .cfg si callingModuleInicial == "clidbase" or ...')
+        callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=True)
+        print('\t-> callingModulePrevio:', callingModulePrevio, 'callingModuleInicial:', callingModuleInicial)
         sys.exit(0)
         # return False
 
     if CONFIGverbose or verbose:
-        print('\tclidconfig-> >>>5 Leyendo cfg:', configFileNameCfg)
+        print(f'{TW}clidconfig-> >>>5 Leyendo cfg: {configFileNameCfg}')
     numObjetivosExtraMax = 0
     LOCALconfigDict = {}
     try:
@@ -2470,7 +2480,7 @@ def leerCambiarVariablesGlobales(
 
 
     if CONFIGverbose or verbose:
-        print('\tclidconfig-> >>>6 nuevosParametroConfiguracion:', nuevosParametroConfiguracion)
+        print(f'{TW}clidconfig-> >>>6 nuevosParametroConfiguracion: {nuevosParametroConfiguracion}')
     # Estos parametros llegan como dict de listas de valores (no como listas de textos, que es lo que ocurre con la listaParametroConfiguracion leida del cfg)        
     if nuevosParametroConfiguracion != {}:
         for nombreParametroDeConfiguracion in nuevosParametroConfiguracion.keys():
@@ -2559,11 +2569,17 @@ def leerCambiarVariablesGlobales(
                 )
 
         if CONFIGverbose or verbose:
-            print('\tclidconfig-> Guardando los nuevos parametros en:', configFileNameCfg)
+            print(f'{TW}clidconfig-> Guardando los nuevos parametros en: {configFileNameCfg}')
 
         os.remove(configFileNameCfg)
         with open(configFileNameCfg, mode='w+') as configfile:
             config.write(configfile)
+
+        if CONFIGverbose or verbose:
+            if os.path.exists(configFileNameCfg):
+                print(f'{TB}-> Ok fichero cfg actualizado con los nuevos parametros.')
+            else:
+                print(f'{TB}-> Aviso: error al crear {configFileNameCfg} con los nuevos parametros.')
 
     return LOCALconfigDict
 
@@ -3225,6 +3241,7 @@ clidconfig-> Secuencia de carga de variables de configuracion:
         print(f'\t-> al que puedo acceder desde el resto de los modulos importando este modulo')
 
     GLO = VariablesGlobales(GLOBALconfigDict)
+
     if CONFIGverbose:
         print(f'clidconfig-> #4a GLO.GLBLverbose:                   {GLO.GLBLverbose}')
 
@@ -3265,3 +3282,4 @@ clidconfig-> Secuencia de carga de variables de configuracion:
 else:
     # print('clidconfig-> No se cargan las variables globales de clidbase')
     pass
+

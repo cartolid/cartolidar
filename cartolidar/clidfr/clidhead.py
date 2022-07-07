@@ -1265,10 +1265,21 @@ class LasHeadClass(object):
         # ======================================================================
 
         # Basic checking of las file, nCeldas and coordinates from fileName:
+        if self.verbose or __verbose__:
+            printMsg(f'\nclidhead-> Coordenadas del lasfile segun cabecera antes de checkLasfile:')
+            printMsg(f'{TB}-> myLasHead.xmin: {self.xmin}')
+            printMsg(f'{TB}-> myLasHead.ymin: {self.ymin}')
+            printMsg(f'{TB}-> myLasHead.xmax: {self.xmax}')
+            printMsg(f'{TB}-> myLasHead.ymax: {self.ymax}')
         self.checkLasfile()
         # print('------------------>clidhead-> infile***ConRutaLazZ:', self.infileConRuta)
-        if self.verbose:
-            printMsg('{:=^80}'.format(''))
+        if self.verbose or __verbose__:
+            printMsg(f'clidhead-> Coordenadas del lasfile segun cabecera despues de checkLasfile:')
+            printMsg(f'{TB}-> myLasHead.xmin: {self.xmin}')
+            printMsg(f'{TB}-> myLasHead.ymin: {self.ymin}')
+            printMsg(f'{TB}-> myLasHead.xmax: {self.xmax}')
+            printMsg(f'{TB}-> myLasHead.ymax: {self.ymax}')
+            printMsg(f'{"":=^80}')
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -1775,45 +1786,57 @@ class LasHeadClass(object):
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-    def adjustCornersCoordinates(self, sizeToAdjust, envolvente=False):
+    def adjustCornersCoordinates(self, sizeToAdjust, envolvente=False, margenAdmisible=0):
         if sizeToAdjust > 0 and self.xmin % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Xmin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
                 print('\tBefore: %0.2f' % self.xmin, end=' ')
-            if envolvente:
-                self.xmin = float(sizeToAdjust * math.floor(self.xmin / sizeToAdjust))
+            if self.xmin % sizeToAdjust <= margenAdmisible or self.xmin % sizeToAdjust >= sizeToAdjust - margenAdmisible:
+                self.xmin = float(sizeToAdjust * round(self.xmin / sizeToAdjust, 0))
             else:
-                self.xmin = float(sizeToAdjust * math.ceil(self.xmin / sizeToAdjust))
+                if envolvente:
+                    self.xmin = float(sizeToAdjust * math.floor(self.xmin / sizeToAdjust))
+                else:
+                    self.xmin = float(sizeToAdjust * math.ceil(self.xmin / sizeToAdjust))
             if self.verbose:
                 print('\tAfter: %0.2f' % self.xmin)
         if sizeToAdjust > 0 and self.ymin % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Ymin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
                 print('\tBefore: %0.2f' % self.ymin, end=' ')
-            if envolvente:
-                self.ymin = float(sizeToAdjust * math.floor(self.ymin / sizeToAdjust))
+            if self.ymin % sizeToAdjust <= margenAdmisible or self.ymin % sizeToAdjust >= sizeToAdjust - margenAdmisible:
+                self.ymin = float(sizeToAdjust * round(self.ymin / sizeToAdjust, 0))
             else:
-                self.ymin = float(sizeToAdjust * math.ceil(self.ymin / sizeToAdjust))
+                if envolvente:
+                    self.ymin = float(sizeToAdjust * math.floor(self.ymin / sizeToAdjust))
+                else:
+                    self.ymin = float(sizeToAdjust * math.ceil(self.ymin / sizeToAdjust))
             if self.verbose:
                 print('\tAfter: %0.2f' % self.ymin)
         if sizeToAdjust > 0 and self.ymax % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Ymax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
                 print('\tBefore: %0.2f' % self.ymax, end=' ')
-            if envolvente:
-                self.ymax = float(sizeToAdjust * math.ceil(self.ymax / sizeToAdjust))
+            if self.ymax % sizeToAdjust <= margenAdmisible or self.ymax % sizeToAdjust >= sizeToAdjust - margenAdmisible:
+                self.ymax = float(sizeToAdjust * round(self.ymax / sizeToAdjust, 0))
             else:
-                self.ymax = float(sizeToAdjust * math.floor(self.ymax / sizeToAdjust))
+                if envolvente:
+                    self.ymax = float(sizeToAdjust * math.ceil(self.ymax / sizeToAdjust))
+                else:
+                    self.ymax = float(sizeToAdjust * math.floor(self.ymax / sizeToAdjust))
             if self.verbose:
                 print('\tAfter: %0.2f' % self.ymax)
         if sizeToAdjust > 0 and self.xmax % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Xmax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
                 print('\tBefore: %0.2f' % self.xmax, end=' ')
-            if envolvente:
-                self.xmax = float(sizeToAdjust * math.ceil(self.xmax / sizeToAdjust))
+            if self.xmax % sizeToAdjust <= margenAdmisible or self.xmax % sizeToAdjust >= sizeToAdjust - margenAdmisible:
+                self.xmax = float(sizeToAdjust * round(self.xmax / sizeToAdjust, 0))
             else:
-                self.xmax = float(sizeToAdjust * math.floor(self.xmax / sizeToAdjust))
+                if envolvente:
+                    self.xmax = float(sizeToAdjust * math.ceil(self.xmax / sizeToAdjust))
+                else:
+                    self.xmax = float(sizeToAdjust * math.floor(self.xmax / sizeToAdjust))
             if self.verbose:
                 print('\tAfter: %0.2f' % self.xmax)
         self.xSupIzda = self.xmin
@@ -1948,15 +1971,18 @@ class LasHeadClass(object):
                 or (self.ymax - self.ymin) < self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
             ) or GLO.GLBLcoordMinMaxAcordesConBloque:
                 # El lasFile se ajusta +- a la dimension prevista por GLBLmetrosBloque
-                if (self.xmax - self.xmin) <= self.metersBlock and (self.ymax - self.ymin) <= self.metersBlock:
-                    self.adjustCornersCoordinates(self.metersBlock, envolvente=True)
+                if (self.xmax - self.xmin) >= self.metersBlock + 1 or (self.ymax - self.ymin) >= self.metersBlock + 1:
+                    envolvente = True
+                    self.adjustCornersCoordinates(self.metersBlock, envolvente=True, margenAdmisible=1)
                 else:
-                    self.adjustCornersCoordinates(self.metersBlock, envolvente=False)
+                    envolvente = False
+                    self.adjustCornersCoordinates(self.metersBlock, envolvente=False, margenAdmisible=1)
                 LCLmetrosBloqueX = GLO.GLBLmetrosBloque
                 LCLmetrosBloqueY = GLO.GLBLmetrosBloque
                 if self.verbose:
                     print('\nclidhead-> 1 Adjusting corners with block size:', self.metersBlock, 'm')
                     print('clidhead->   xmin, xmax, ymin, ymax:', self.xmin, self.xmax, self.ymin, self.ymax)
+                    print(f'clidhead->   envolvente: {envolvente}')
             elif (
                 (self.xmax - self.xmin) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
                 or (self.ymax - self.ymin) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
@@ -2046,10 +2072,21 @@ class LasHeadClass(object):
         # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
         # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-        self.adjustCornersCoordinates(self.metersCell, envolvente=True)
+        if (
+            (self.xmin % self.metersCell < 0.9 and self.xmin % self.metersCell > 0)
+            or self.xmax % self.metersCell >= 0.1
+            or (self.ymin % self.metersCell < 0.9 and self.ymin % self.metersCell > 0)
+            or self.ymax % self.metersCell >= 0.1
+        ):
+            envolvente = True
+            self.adjustCornersCoordinates(self.metersCell, envolvente=True, margenAdmisible=0.1)
+        else:
+            envolvente = False
+            self.adjustCornersCoordinates(self.metersCell, envolvente=False, margenAdmisible=0.1)
         if self.verbose:
             print('\nclidhead-> Ajustando esquinas a {} m (bis)'.format(self.metersCell))
             print('\txmin, xmax, ymin, ymax:', self.xmin, self.xmax, self.ymin, self.ymax)
+            print(f'\t-> envolvente: {envolvente}')
         self.nCeldasX = int(math.ceil(float(LCLmetrosBloqueX) / GLO.GLBLmetrosCelda))
         self.nCeldasY = int(math.ceil(float(LCLmetrosBloqueY) / GLO.GLBLmetrosCelda))
         self.metrosBloqueX = int(math.ceil(self.xmax - self.xmin))

@@ -1772,7 +1772,7 @@ class LasData(object):
 
 
 
-        # Si los distribuimos por celdas (excluyendo los que exceden GLBLnMaxPtosCeldaTlrTlpPrevioExtremo -numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales-)
+        # Si los distribuimos por celdas (excluyendo los que exceden GLBLnMaxPtosCeldaTlrTlpPrevioExtremo - numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales-)
         # obtenemos:
         #    self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] -> Sfl: Sin filtrar outliers y n max ptos por pasada (aunque maximo ~10000 or celda)
         # Si los separamos por pasadas y excluimos:
@@ -3982,10 +3982,10 @@ class LasData(object):
         for nY in range(self.nCeldasY):
             for nX in range(self.nCeldasX):
                 sumaCeldasNumPuntosTlrTlcTlpTlvSinFiltrar += self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY]
-        clidaux.printMsg(
-            '    Numero ptos descartados por mas de %i en la celda:   %i puntos (numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales)'
-            % (GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo, self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales)
-        )
+        # clidaux.printMsg(
+        #     '    Numero ptos descartados por mas de %i en la celda:   %i puntos (numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales)'
+        #     % (GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo, self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales)
+        # )
         clidaux.printMsg(
             '      Normalmente numPuntosValidosDentroDelBloque (%i) es igual a sum(aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar) (%i) porque el limite total de puntos chequeados (GLBLnMaxPtosCeldaTlrTlpPrevioExtremo) es muy alto (%i)'
             % (self.numPuntosValidosDentroDelBloque, sumaCeldasNumPuntosTlrTlcTlpTlvSinFiltrar, GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo)
@@ -4019,7 +4019,8 @@ class LasData(object):
                 sumaCeldasNumPuntosTlrTlcTlpOk += self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]
         clidaux.printMsg('  Debe coincidir con                                      %i: sum(self.aCeldasNumPuntosTlrTlcTlpOk):' % sumaCeldasNumPuntosTlrTlcTlpOk)
         clidaux.printMsg(
-            '  Debe coincidir con                                      %i: self.nPtosAleer (/self.sampleLas) - (self.numPuntosDescartadosPorPasadaTransversal + self.numPuntosDescartadosPorCoordenadasErroneas + self.numPuntosDescartadosPorFueraDeBloque + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales + self.numPuntosDescartadosPorOutlier + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos)'
+            '  Debe coincidir con                                      %i: self.nPtosAleer (/self.sampleLas) - (self.numPuntosDescartadosPorPasadaTransversal + self.numPuntosDescartadosPorCoordenadasErroneas + self.numPuntosDescartadosPorFueraDeBloque + self.numPuntosDescartadosPorOutlier + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos)'
+            # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
             % (
                 int(self.nPtosAleer / self.sampleLas)
                 - (
@@ -4027,10 +4028,10 @@ class LasData(object):
                     + self.numPuntosDescartadosPorCoordenadasNulas
                     + self.numPuntosDescartadosPorCoordenadasErroneas
                     + self.numPuntosDescartadosPorFueraDeBloque
-                    + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
+                    # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
                     + self.numPuntosDescartadosPorOutlier
                     + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes
-                    + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos
+                    # + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos
                 )
             )
         )
@@ -4040,19 +4041,19 @@ class LasData(object):
             + self.numPuntosDescartadosPorPasadaTransversal
             + self.numPuntosDescartadosPorCoordenadasErroneas
             + self.numPuntosDescartadosPorFueraDeBloque
-            + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
+            # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
             + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes
             + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos
             + self.numPuntosDescartadosPorOutlier
         )
-        if self.numPuntosNoLeidosPorInterrumpirInterpretacion > 0:
-            clidaux.printMsg('cliddata-> Lectura interrumpida; quedan sin leer:              %i puntos' % (self.numPuntosNoLeidosPorInterrumpirInterpretacion))
-        else:
-            if self.numPuntosValidosTotalesUsables != self.numPuntosCargadosEnLaRAM - self.numPuntosNoValidosNosuables:
-                clidaux.printMsg(
-                    'cliddata-> ATENCION: revisar numero de puntos validos usables: %i puntos'
-                    % (self.numPuntosCargadosEnLaRAM - self.numPuntosNoValidosNosuables)
-                )
+        # if self.numPuntosNoLeidosPorInterrumpirInterpretacion > 0:
+        #     clidaux.printMsg('cliddata-> Lectura interrumpida; quedan sin leer:              %i puntos' % (self.numPuntosNoLeidosPorInterrumpirInterpretacion))
+        # else:
+        #     if self.numPuntosValidosTotalesUsables != self.numPuntosCargadosEnLaRAM - self.numPuntosNoValidosNosuables:
+        #         clidaux.printMsg(
+        #             'cliddata-> ATENCION: revisar numero de puntos validos usables: %i puntos'
+        #             % (self.numPuntosCargadosEnLaRAM - self.numPuntosNoValidosNosuables)
+        #         )
 
         if GLO.GLBLalmacenarPuntosComoNumpyDtype:
             clidaux.printMsg(
@@ -4253,10 +4254,10 @@ class LasData(object):
                     '\t\tHay %5i celdas con mas de los %i puntos que se leen como max en cada celda (todas las pasadas)'
                     % (self.nCeldasConDemasiadosPuntosTlrTlp, GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo)
                 )
-                clidaux.printMsg(
-                    '\t\t\t %i puntos descartados por exceder el maximo de puntos por celda'
-                    % self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
-                )
+                # clidaux.printMsg(
+                #     '\t\t\t %i puntos descartados por exceder el maximo de puntos por celda'
+                #     % self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
+                # )
             else:
                 clidaux.printMsg('\t\t-> No hay celdas con mas de los %i puntos que se leen como max en cada celda (todas las pasadas) (GLBLnMaxPtosCeldaTlrTlpPrevioExtremo)' % (GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo))
 
