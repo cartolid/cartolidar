@@ -22,41 +22,42 @@ Introduction
 ------------
 
 CartoLidar is a collection of tools to process lidar files ("las" and "laz") and 
-generate other products related to forestry and natural environment management.
+generate useful information for forestry and natural environment management (dasoLidar variables, DLVs).
 
-This project is in alpha version and includes only the "clidtwins" tool.
+This project is in alpha version and for now only includes the "clidtwins" tool.
 
 "clidtwins" searchs for similar areas to a reference one in terms of dasoLidar variables (DLVs)
 
 DLV: Lidar variables that describe or characterize forest or land cover structure.
 
-> CartoLidar es una colecciÛn de herramientas destinadas a procesar ficheros lidar 
+> CartoLidar es una colecci√≥n de herramientas destinadas a procesar ficheros lidar 
 > ("las" y "laz") para clasificar los puntos mediante inteligencia artificial (GANs)
-> y generar ficheros r·ster con DEM y DLVs.
+> y generar ficheros r√°ster con DEM y DLVs.
 > 
 > GAN (Generative Adversarial Networks): arquitectura de DL basada en redes neuronales en la que
-> se optimiza simultanemante un discriminador y un generador para obtener im·genes verosÌmiles
+> se optimiza simultanemante un discriminador y un generador para obtener im√°genes veros√≠miles
 > a partir de inputs que, en este caso, no son aleatorios (sino variables lidar).
 > 
 > DEM (Digital Elevation Model): modelos digitales de elevaciones (MDT, MDS)
 > 
-> DLV (Daso Lidar Variables): variables dasoLidar, que representan diversos 
-> aspectos de la estructura de una formaciÛn arbolada, arbustiva o de matorral.
+> DLV (DasoLidar Variables): variables dasom√©tricas, que representan diversos 
+> aspectos de la estructura de una formaci√≥n arbolada, arbustiva o de matorral
+> como son la altura dominante, la cobertura, etc.
 > 
-> CartoLidar tambiÈn incluye herramientas adicionales para generar otros 
-> productos de utilidad en selvicultura y otras areas de gestiÛn del medio 
-> natural a partir de los ficheros r·ster con las DLVs. 
+> CartoLidar tambi√©n incluye herramientas adicionales para generar otros 
+> productos de utilidad en selvicultura y otras areas de gesti√≥n del medio 
+> natural a partir de los ficheros r√°ster con las DLVs. 
 > 
-> El proyecto est· en fase alpha e incluye ˙nicamente la herramienta adicional "clidtwins". 
-> Las herramientas de procesado de ficheros Lidar (clasificaciÛn de puntos, generaciÛn de DEM y DLVs)) 
-> se incorporar· a github a partir del cuarto trimestre de 2022.
+> El proyecto est√° en fase alpha e incluye √∫nicamente la herramienta adicional "clidtwins". 
+> Las herramientas de procesado de ficheros Lidar (clasificaci√≥n de puntos, generaci√≥n de DEM y DLVs)) 
+> se incorporar√° a github a partir del cuarto trimestre de 2022.
 > 
-> La herramienta clidtwins est· destinada a buscar zonas similares a una(s) 
-> de referencia en tÈrminos de determinadas variables dasoLidar (DLVs).
+> La herramienta clidtwins est√° destinada a buscar zonas similares a una(s) 
+> de referencia en t√©rminos de determinadas variables dasoLidar (DLVs).
 
 
 \+ info: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
-(p·gina en construcciÛn)
+(p√°gina en construcci√≥n)
 
 
 Install
@@ -108,7 +109,7 @@ This alpha version includes only qlidtwins tools, wich make use of clidtwins pac
 
 >Se inicia el menu principal con las herramientas disponibles en cartolidar.
 >
->Inicialmente solo est· disponible la herramienta qlidtwins que utliza el paquete clidtwins.
+>Inicialmente solo est√° disponible la herramienta qlidtwins que utliza el paquete clidtwins.
 
 [options] 
 <pre>
