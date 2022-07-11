@@ -4,6 +4,7 @@
 # include cartolidar/*.py
 # include cartolidar/__main__.py
 # include cartolidar/qlidtwins.py
+# include cartolidar/_version.py
 cartolidar/qlidmerge.py
 cartolidar/clidbase.py
 cartolidar/clidflow.py

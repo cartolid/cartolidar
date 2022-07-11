@@ -43,28 +43,34 @@ if not os.path.exists(VERSIONFILE):
         VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
         if not os.path.exists(VERSIONFILE):
             VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
-verstrline = open(VERSIONFILE, "rt").read()
-VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    # __version__ = mo.groups()[0]
-    __version__ = mo.group(1)
-else:
-    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
-VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    __date__ = mo.group(1)
-else:
-    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"')
-VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
-mo = re.search(VSRE, verstrline, re.M)
-mo = re.search(VSRE, verstrline, re.M)
-if mo:
-    __updated__ = mo.group(1)
-else:
-    raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"')
+try:
+    verstrline = open(VERSIONFILE, "rt").read()
+    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        # __version__ = mo.groups()[0]
+        __version__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
+    VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __date__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"')
+    VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
+    mo = re.search(VSRE, verstrline, re.M)
+    mo = re.search(VSRE, verstrline, re.M)
+    if mo:
+        __updated__ = mo.group(1)
+    else:
+        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"')
+except:
+    print(f'clidtools.__init__-> no se ha podido leer {VERSIONFILE}')
+    __version__ = '0.0a0'
+    __date__ = '2022-07-01'
+    __updated__ = '2016-2022'
 # ==============================================================================
 # __all__ = [
 #     'clidtwins',

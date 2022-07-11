@@ -29,7 +29,7 @@ print('\npackages encontrados:', packages)
 # import versioneer
 
 # Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
-VERSIONFILE = '_version.py'
+VERSIONFILE = 'cartolidar/_version.py'
 verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VSRE, verstrline, re.M)
