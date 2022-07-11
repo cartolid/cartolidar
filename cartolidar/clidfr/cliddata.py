@@ -34,6 +34,7 @@ try:
     from cartolidar.clidax import clidaux
     # from cartolidar.clidax.clidconfig import GLO
     from cartolidar.clidax import clidconfig
+    from cartolidar.clidfr import clidhead
     from cartolidar.clidnb import clidnaux
 except:
     sys.stderr.write(f'cliddata-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
@@ -41,12 +42,22 @@ except:
     from clidax import clidaux
     # from clidax.clidconfig import GLO
     from clidax import clidconfig
+    from clidfr import clidhead
     from clidnb import clidnaux
 
 try:
     from cartolidar.clidnb import clidnv0
 except:
     print('cliddata-> No se importan clidnv0 por no estar disponible todavia')
+
+# ==============================================================================
+# ========================== Variables globales ================================
+# ==============================================================================
+# TB = '\t'
+TB = ' ' * 11
+TV = ' ' * 3
+TW = ' ' * 2
+# ==============================================================================
 
 configVarsDict = clidconfig.leerCambiarVariablesGlobales(inspect_stack=inspect.stack())
 GLO = clidconfig.VariablesGlobales(configVarsDict)
@@ -139,6 +150,220 @@ class LasData(object):
             self.numPuntosCargadosEnLaRAM = len(self.ficheroCompletoEnLaRAM) / self.myLasHead.pointreclen
 
         self.infile.close()
+
+
+    # ==========================================================================
+    def leerLasDataLazLas(
+            self,
+            infileRgxConRuta,
+            fileCoordYear,
+            LCLordenColoresInput,
+        ):
+        TRNShuso29 = clidaux.chequearHuso29(fileCoordYear)
+        clidaux.printMsg(f'\n{"":_^80}')
+        clidaux.printMsg(f'{" Fase previa-1 ":_^80}')
+        clidaux.printMsg(f'{" Lectura del fichero lidar (lasFile o lazFile) ":_^80}')
+        clidaux.printMsg(f'{"":=^80}')
+        if GLO.GLBLverbose:
+            clidaux.printMsg(f'cliddata.{fileCoordYear}-> Leyendo el contenido de {self.myLasHead.infileConRuta}')
+        if infileRgxConRuta[-4:].lower() == '.las':
+            # clidaux.printMsg('\n---------------->cliddata-> infileLasConRuta_ (rgx): {}'.format(infileRgxConRuta))
+            self.readLasData()
+        elif infileRgxConRuta[-4:].lower() == '.laz':
+            if GLO.GLBLdescomprimirLazEnMemoria:
+                # ==============================================================
+                lasDataMem = clidaux.descomprimeLaz(
+                    infileRgxConRuta,
+                    descomprimirLazEnMemoria=GLO.GLBLdescomprimirLazEnMemoria
+                )
+                # clidaux.printMsg('\ncliddata-> lasDataMem: {} {}'.format(type(lasDataMem), len(lasDataMem)))
+                # ==============================================================
+                if GLO.GLBLverbose:
+                    clidaux.printMsg('cliddata.{}-> Leyendo la cabecera del fichero laz descomprimido en memoria'.format(fileCoordYear))
+
+                # ATENCION: Recalculo las propiedades de la cabecera con el fichero descomprimido en memoria
+                # porque el fichero comprimido tiene un offset de 335 en lugar de 229 por el VLR de laszip 
+                # Se puede abreviar a cambiar solo esa propiedad
+                # clidaux.printMsg('\n---------------->cliddata-> infileRgxConRuta10:       {}'.format(infileRgxConRuta))
+                # clidaux.printMsg('\n---------------->cliddata-> lasDataMem:               {} {}'.format(type(lasDataMem), len(lasDataMem)))
+                self.myLasHead = clidhead.LasHeadClass(
+                    infileRgxConRuta,
+                    lasDataMem=lasDataMem,
+                    metersBlock=GLO.GLBLmetrosBloque,
+                    metersCell=GLO.GLBLmetrosCelda,
+                    LCLordenColoresInput=LCLordenColoresInput,
+                    verbose=GLO.GLBLverbose,
+                    TRNShuso29=TRNShuso29,
+                    )
+                if not self.myLasHead.readOk:
+                    return
+
+                if (
+                    (len(lasDataMem) - self.myLasHead.headDict['offset']) / self.myLasHead.pointreclen != self.myLasHead.numptrecords
+                ):
+                    clidaux.printMsg('\ncliddata-> ATENCION: las cuentas NO cuadran con el offset:')
+                    clidaux.printMsg(
+                        '\t-> len(lasDataMem): {}; Calculado por el num. de puntos: {}; Diferencia: {}'.format(
+                            len(lasDataMem),
+                            (self.myLasHead.headDict['offset'] + (self.myLasHead.pointreclen * self.myLasHead.numptrecords)),
+                            len(lasDataMem) - (self.myLasHead.headDict['offset'] + (self.myLasHead.pointreclen * self.myLasHead.numptrecords))
+                        )
+                    )
+
+                if GLO.GLBLverbose:
+                    clidaux.printMsg(f'cliddata.{fileCoordYear}-> Cargando en un ndArray los puntos del fichero descomprimido en memoria')
+                    clidaux.printMsg(f'{TB}-> A. len(lasDataMem): {len(lasDataMem)}')
+                    clidaux.printMsg(f'{TB}-> B. offset:          {self.myLasHead.headDict["offset"]}')
+                    clidaux.printMsg(f'{TB}-> C. pointreclen:     {self.myLasHead.pointreclen}')
+                    clidaux.printMsg(f'{TB}-> D. numptrecords:    {self.myLasHead.numptrecords}')
+                    clidaux.printMsg(f'{TB}-> (A - B) / C:        {(len(lasDataMem) - self.myLasHead.headDict["offset"]) / self.myLasHead.pointreclen}')
+                # https://numpy.org/doc/stable/reference/generated/numpy.frombuffer.html
+
+                try:
+                    if self.myLasHead.numptrecords <= len(lasDataMem):
+                        self.ficheroCompletoEnLaRAM = np.frombuffer(
+                            lasDataMem,
+                            dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
+                            count=self.myLasHead.numptrecords,
+                            offset=self.myLasHead.headDict['offset'])
+                    else:
+                        clidaux.printMsg(
+                            'cliddata-> ATENCION: revisar por que lasDataMem tiene menos registros ({}) que los previstos: {}; offset: {}'.format(
+                                len(lasDataMem),
+                                self.myLasHead.numptrecords,
+                                self.myLasHead.headDict['offset']
+                            )
+                        )
+                        self.ficheroCompletoEnLaRAM = np.frombuffer(
+                            lasDataMem,
+                            dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
+                            count=self.myLasHead.numptrecords,
+                            offset=self.myLasHead.headDict['offset'])
+                except:
+                    clidaux.printMsg(
+                        'cliddata-> Error en frombuffer() lasDataMem: {}; dtype: {}; count: {}; offset: {}'.format(
+                            len(lasDataMem),
+                            self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
+                            self.myLasHead.numptrecords,
+                            self.myLasHead.headDict['offset'],
+                        )
+                    )
+                    self.myLasHead.readOk = False
+                    return
+                    # sys.exit(0)
+                # ==================================================================
+                self.numPuntosCargadosEnLaRAM = len(self.ficheroCompletoEnLaRAM)
+                # ==================================================================
+                TRNSchequearUsoDeBytesIO = False
+                if TRNSchequearUsoDeBytesIO:
+                    # Alternativa descartada: io.BytesIO()
+                    # https://docs.python.org/3/library/io.html#in-memory-streams
+                    #  It is also possible to use a str or bytes-like object as a file for both reading and writing
+                    #    https://docs.python.org/3/glossary.html#term-bytes-like-object
+                    #      This includes all bytes, bytearray, and array.array objects, as well as many common memoryview objects.
+                    #      Bytes-like objects can be used for various operations that work with binary data;
+                    #      these include compression, saving to a binary file, and sending over a socket.
+                    #  BytesIO can be used like a file opened in binary mode. Both provide full read-write capabilities with random access.
+                    #    https://docs.python.org/3/library/io.html#io.BytesIO
+                    import io
+                    lasDataBinaryStream = io.BytesIO(lasDataMem)
+                    clidaux.printMsg('cliddata-> lasDataBinaryStream: {}'.format(type(lasDataBinaryStream)))
+                    # clidaux.printMsg(dir(lasDataBinaryStream)) # 'close', 'closed', 'detach', 'fileno', 'flush', 'getbuffer', 'getvalue', 'isatty', 'read', 'read1', 'readable', 'readinto', 'readinto1', 'readline', 'readlines', 'seek', 'seekable', 'tell', 'truncate', 'writable', 'write', 'writelines']
+                    if False:
+                        miCabecera = lasDataBinaryStream.read(227)
+                        clidaux.printMsg('cliddata-> miCabecera leida con read(<class "_io.BytesIO"">): {}'.format(type(miCabecera), miCabecera))
+        
+                    # self.ficheroCompletoEnLaRAM = np.fromfile(
+                    #     lasDataBinaryStream,
+                    #     dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
+                    #     count=self.myLasHead.numptrecords,
+                    #     offset=self.myLasHead.headDict['offset']) # io.UnsupportedOperation: fileno
+                # ==================================================================
+    
+                # ==================================================================
+                TRNSchequearUsoDeMemoryview = False
+                if TRNSchequearUsoDeMemoryview:
+                    # Alternativa si necesitara un comportamiento distinto a bytes: memoryview()
+                    # https://docs.python.org/dev/library/stdtypes.html#memoryview
+                    # https://stackoverflow.com/questions/18655648/what-exactly-is-the-point-of-memoryview-in-python
+                    lasDataView = memoryview(lasDataMem)
+                    lasDataViewPoints = lasDataView[self.myLasHead.headDict['offset']:]
+                    totalPointBytes = self.myLasHead.pointreclen * self.myLasHead.numptrecords
+                    clidaux.printMsg('\n________________________________________________________________________________')
+                    clidaux.printMsg('ooooooooooooooooo Propiedades de lasDataMem y lasDataView oooooooooooooooooooooo')
+                    clidaux.printMsg('cliddata-> lasDataMem:                {}\t{}'.format(type(lasDataMem), len(lasDataMem))) # <class 'bytes'>
+                    clidaux.printMsg('cliddata-> lasDataView:               {}\t{}'.format(type(lasDataView), len(lasDataView))) # <class 'memoryview'>
+                    clidaux.printMsg('cliddata-> lasDataView == lasDataMem: {}'.format(lasDataView == lasDataMem)) # True
+        
+                    # Uso de np.frombuffer() con memoryview, con dos dtypes:
+                    LCLficheroCompletoEnLaRAM = np.frombuffer(
+                        lasDataView,
+                        dtype=np.uint8
+                    )
+                    clidaux.printMsg('cliddata-> np.frombuffer(lasDataView, dtype=np.uint8): {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM))) # <class 'numpy.ndarray'> 160615413
+                    LCLficheroCompletoEnLaRAM = np.frombuffer(
+                        lasDataViewPoints,
+                        dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
+                        count=self.myLasHead.numptrecords
+                    )
+                    clidaux.printMsg('cliddata-> np.frombuffer(lasDataViewPoints, dtype=myLasHead.formatoDtypePointFormatXXNotacionNpDtype): {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM))) # <class 'numpy.ndarray'> 4723976
+        
+                    # Propiedades de memoryview()
+                    # memoryview objects allow Python code to access the internal data of an object that supports the buffer protocol without copying.
+                    # https://docs.python.org/dev/library/stdtypes.html#memoryview
+                    # https://bugs.python.org/issue19014
+                    clidaux.printMsg('\n00 c_contiguous: {} {}'.format(type(lasDataView), len(lasDataView)))
+                    clidaux.printMsg('01 c_contiguous: {}'.format(lasDataView.c_contiguous))
+                    clidaux.printMsg('02 f_contiguous: {}'.format(lasDataView.f_contiguous))
+                    clidaux.printMsg('03 contiguous: {}'.format(lasDataView.contiguous))
+                    clidaux.printMsg('04 format: {}'.format(lasDataView.format))
+                    clidaux.printMsg('05 itemsize: {}'.format(lasDataView.itemsize))
+                    clidaux.printMsg('06 nbytes: {}'.format(lasDataView.nbytes))
+                    clidaux.printMsg('07 ndim: {}'.format(lasDataView.ndim))
+                    clidaux.printMsg('08 readonly: {}'.format(lasDataView.readonly))
+                    clidaux.printMsg('09 shape: {}'.format(lasDataView.shape))
+                    clidaux.printMsg('10 strides: {}'.format(lasDataView.strides))
+                    clidaux.printMsg('11 suboffsets: {}'.format(lasDataView.suboffsets))
+                    # obj The underlying object of the memoryview:
+                    clidaux.printMsg('12 obj {} {}'.format(type(lasDataView.obj), lasDataView.obj[:20])) # <class 'bytes'>
+                    # tobytes(order=None) -> Return the data in the buffer as a bytestring. This is equivalent to calling the bytes constructor on the memoryview.
+                    #  https://docs.python.org/dev/library/stdtypes.html#memoryview.tobytes
+                    clidaux.printMsg('13 tobytes {} {}'.format(type(lasDataView.tobytes()), len(lasDataView.tobytes()))) # <class 'bytes'>
+                    # cast(format[, shape]) -> Cast a memoryview to a new format or shape.
+                    #  https://docs.python.org/dev/library/stdtypes.html#memoryview.cast
+                    clidaux.printMsg('14 cast() {} {}'.format(type(lasDataView.cast('b')), len(lasDataView.cast('b')))) #<class 'memoryview'>
+                    try:
+                        LCLficheroCompletoEnLaRAM = np.frombuffer(lasDataView.tobytes())
+                        clidaux.printMsg('13a frombuffer {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM)))
+                    except:
+                        clidaux.printMsg('13a Error en np.frombuffer(lasDataView.tobytes())')
+                    try:
+                        LCLficheroCompletoEnLaRAM = np.frombuffer(lasDataView.cast('b'))
+                        clidaux.printMsg('14a frombuffer {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM)))
+                    except:
+                        clidaux.printMsg('14a Error en np.frombuffer(lasDataView.cast("b"))')
+                    clidaux.printMsg('________________________________________________________________________________')
+                # ==================================================================
+    
+            else:
+                infileLasConRuta = clidaux.descomprimeLaz(infileRgxConRuta, descomprimirLazEnMemoria=False)
+                # ATENCION: recalculo las propiedades de la cabecera con el fichero descomprimido en memoria
+                # porque el fichero comprimido tiene un offset de 335 en lugar de 229 por el VLR de laszip 
+                # Se puede abreviar a cambiar solo esa propiedad
+                # clidaux.printMsg('\n---------------->cliddata-> infileLasConRuta11 (rgx): {}'.format(infileLasConRuta))
+                self.myLasHead = clidhead.LasHeadClass(
+                    infileLasConRuta,
+                    lasDataMem=None,
+                    metersBlock=GLO.GLBLmetrosBloque,
+                    metersCell=GLO.GLBLmetrosCelda,
+                    LCLordenColoresInput=LCLordenColoresInput,
+                    verbose=GLO.GLBLverbose,
+                    TRNShuso29=TRNShuso29,
+                )
+                # Obtengo self.ficheroCompletoEnLaRAM:
+                self.readLasData()
+        else:
+            clidaux.printMsg(f'cliddata-> ATENCION: extension del fichero no las ni laz: revisar codigo')
 
 
     # ==========================================================================
@@ -1346,6 +1571,7 @@ class LasData(object):
     def prepararOutputFiles(self):
         self.aFiles = {}
         totalFicheros = 0
+        print(f'cliddata-> Creando output files con cabecera:')
         for fileSinRuta in self.dictFilesSinConRuta.keys():
             # ==================================================================
             miFileName = self.dictFilesSinConRuta[fileSinRuta]
@@ -1397,7 +1623,7 @@ class LasData(object):
             yInfIzda = self.myLasHead.ymin
 
             if GLO.GLBLverbose:
-                print('cliddata-> Creando output files con cabecera:', totalFicheros, fileSinRuta, self.dictFilesSinConRuta[fileSinRuta])
+                print(f'{TB}-> Creando: {totalFicheros} {fileSinRuta} {self.dictFilesSinConRuta[fileSinRuta]}')
 
             if (
                 str(fileSinRuta) == 'MultiTilesMiniSubCelLasClassPredicha'
@@ -2824,10 +3050,10 @@ class LasData(object):
             self.arrayTiposDePlanoPorCuadricula[nTP][1] = listaTiposDePlano[nTP][1]
             self.arrayTiposDePlanoPorCuadricula[nTP][2] = listaTiposDePlano[nTP][2]
         if GLO.GLBLverbose:
-            print( '\ncliddata->    ->->->->->->->->self.arrayTiposDePlanoPorCuadricula', self.arrayTiposDePlanoPorCuadricula)
+            print(f'\ncliddata-> self.arrayTiposDePlanoPorCuadricula: {self.arrayTiposDePlanoPorCuadricula}')
             for nTP in range(len(self.arrayTiposDePlanoPorCuadricula)):
                 tipoPlano = self.arrayTiposDePlanoPorCuadricula[nTP][1].decode('utf-8')
-                print( 'cliddata->        ->->', self.arrayTiposDePlanoPorCuadricula[nTP][1], tipoPlano)
+                print(f'{TB}-> {tipoPlano} -> {self.arrayTiposDePlanoPorCuadricula[nTP][2]}')
 
         self.nCeldasConMatrizSingular = 0
         self.aCeldasAjustableMds = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int8).reshape(self.nCeldasX, self.nCeldasY)
@@ -7745,18 +7971,18 @@ class LasData(object):
                 # ==============================================================
                 if escribirLote == 'guardarNucleosDeCartoRef':
                     if GLO.GLBLgrabarNucleosDeCartoRef and cartoRefClass.usarVectorRef:
-                        print('\tcliddata.&{}-> Guardando nucleos urbanos de cartografia de referencia'.format(fileCoordYear))
+                        print('\tcliddata.&{}-> SI se guardan los nucleos urbanos de cartografia de referencia.'.format(fileCoordYear))
                         self.guardarNucleosDeCartoRef(cartoRefClass.aCeldasLandUseCover)
                     else:
-                        print('\tcliddata.&{}-> No se guardan nucleos urbanos de cartografia de referencia'.format(fileCoordYear))
+                        print('\tcliddata.&{}-> No se guardan los nucleos urbanos de cartografia de referencia.'.format(fileCoordYear))
 
                 # ==============================================================
                 elif escribirLote == 'guardarSingUseDeCartoRef':
                     if GLO.GLBLgrabarSingUseDeCartoRef and cartoRefClass.usarVectorRef:
-                        print('\tcliddata.&{}-> Guardando usos singulares de cartografia de referencia?'.format(fileCoordYear))
+                        print('\tcliddata.&{}-> SI se guardan los usos singulares de cartografia de referencia.'.format(fileCoordYear))
                         self.guardarSingUseDeCartoRef(cartoRefClass.aCeldasLandUseCover)
                     else:
-                        print('\tcliddata.&{}-> NO se guardan usos singulares de cartografia de referencia'.format(fileCoordYear))
+                        print('\tcliddata.&{}-> NO se guardan usos singulares de cartografia de referencia.'.format(fileCoordYear))
 
                 # ==============================================================
                 elif escribirLote == 'guardarIndicesIRGBIrISubCelda':

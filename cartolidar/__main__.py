@@ -13,8 +13,8 @@ import sys
 import os
 from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
-import logging
 import traceback
+# import logging
 
 from cartolidar.clidax import clidconfig
 

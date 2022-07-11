@@ -38,15 +38,15 @@ try:
     gdalOk = True
 except:
     gdalOk = False
-    sys.stdout.write('clidcarto-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo\n')
-    sys.exit(0)
+    sys.stdout.write('clidcarto-> No se ha podido cargar gdal directamente, se intenta de la carpeta osgeo...\n')
 if not gdalOk:
     try:
         from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
+        sys.stdout.write('            gdal importado ok de la carpeta osgeo...\n')
         gdalOk = True
     except:
         gdalOk = False
-        sys.stdout.write('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo\n')
+        sys.stdout.write('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo.\n')
         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
@@ -1736,7 +1736,7 @@ class CartoRefVector(object):
         # ======================================================================
 
         if GLO.GLBLverbose or __verbose__:
-            print('\tclidcarto->> Se van a crear %i x %i tiles' % (numTilesRows, numTilesCols))
+            print(f'{TW}clidcarto->> Se van a crear {numTilesRows} x {numTilesCols} tiles')
             print('\t\tLCLtileSizeMetros:', LCLtileSizeMetros,
                   'LCLtileSemiSolapeMetros:', LCLtileSemiSolapeMetros,
                   'GLBNtileSemiSolapePixelsSubCelda:', GLBNtileSemiSolapePixelsSubCelda
@@ -1899,32 +1899,41 @@ class CartoRefVector(object):
                 funX = iniX + usoSingRecorteShape[1]
                 if tileRecorte[iniY:funY, iniX:funX].shape == usoSingRecorteShape:
                     tileRecorte[iniY:funY, iniX:funX] = mainUsoSingular[recorteIniY : recorteIniY + finY - iniY, recorteIniX : recorteIniX + finX - iniX]
+                    if GLO.GLBLverbose:
+                        print(f'{TW}clidcarto-> Info sobre el recorte de cartoRef usosSing.')
                 else:
-                    print(f'clidcarto-> ATENCION: REVISAR LIMITES DE LAS CAPAS DE REFERENCIA 1.')
+                    self.tilesRecortadosOk = False
+                    print(f'{TW}clidcarto-> ATENCION: REVISAR LIMITES DE LAS CAPAS DE REFERENCIA 1.')
+
                 if tileRecorte[iniY:funY, iniX:funX].shape != usoSingRecorteShape or GLO.GLBLverbose:
                     print(f'{TB}-> nRow: {nRow}, nCol: {nCol}:')
-                    print(f'{TB}-> tileRecorte.shape: {tileRecorte[iniY:finY, iniX:finX].shape} != usoSingRecorteShape: {usoSingRecorteShape}')
-                    print(f'{TB}-> Algunos datos para verificar los calculos:')
-                    print(f'{TB}{TV}-> miRasterRefMinXY: {self.miRasterRefMinXY}')
-                    print(f'{TB}{TV}-> [x&y]InfIzdaTile: {xInfIzdaTile} {yInfIzdaTile}')
-                    print(f'{TB}{TV}-> nPixelsRasterRef[X&Y]: {nPixelsRasterRefX} {nPixelsRasterRefY}')
-                    print(f'{TB}{TV}-> GLBNtileSizeEnPixelsRasterR[x&y]: {GLBNtileSizeEnPixelsRasterRx} {GLBNtileSizeEnPixelsRasterRy}')
-                    print(f'{TB}{TV}-> GLO.GLBLmetrosBloque:    {GLO.GLBLmetrosBloque}')
-                    print(f'{TB}{TV}-> numTilesCols[Rows&Cols]: {numTilesCols} {numTilesRows}')
-                    print(f'{TB}{TV}-> GLBNtileKernelMetros:    {GLBNtileKernelMetros}')
-                    print(f'{TB}{TV}-> LCLtileSizeMetros:       {LCLtileSizeMetros}')
-                    print(f'{TB}{TV}-> LCLtileSemiSolapeMetros: {LCLtileSemiSolapeMetros}')
-                    print(f'{TB}{TV}-> margen[X&Y]sobre_Metros: {margenXsobresalienteMetros} {margenYsobresalienteMetros}')
-                    print(f'{TB}{TV}-> recorteIni[X&Y]:   {recorteIniX} {recorteIniY}')
-                    print(f'{TB}{TV}-> recorteFin[X&Y]:   {recorteIniX + finX - iniX} {recorteIniY + finY - iniY}')
-                    print(f'{TB}{TV}-> recorteIni[X&Y]1m: {recorteIniX1m} {recorteIniY1m}')
-                    print(f'{TB}{TV}-> recorteFin[X&Y]1m: {recorteIniX1m + finX1m - iniX1m} {recorteIniY1m + finY1m - iniY1m}')
-                    print(f'{TB}{TV}-> iniY: {iniY}, finY: {finY}, iniX: {iniX}, finX: {finX}')
-                    print(f'{TB}{TV}-> tileRecorte.shape: {tileRecorte.shape}')
-                    print(f'{TB}{TV}-> usoSingRecorteShape: {usoSingRecorteShape}')
-                    print(f'{TB}{TV}-> funX: {funX}; funY: {funY}')
-                    self.tilesRecortadosOk = False
+                    if tileRecorte[iniY:funY, iniX:funX].shape != usoSingRecorteShape:
+                        print(f'{TB}-> ATENCION: tileRecorte.shape: {tileRecorte[iniY:finY, iniX:finX].shape} != usoSingRecorteShape: {usoSingRecorteShape}')
+                    else:
+                        print(f'{TB}-> OK: tileRecorte.shape: {tileRecorte[iniY:finY, iniX:finX].shape} == usoSingRecorteShape: {usoSingRecorteShape}')
+                    print(f'{TW}{TB}-> Algunos datos para verificar los calculos:')
+                    print(f'{TW}{TB}{TV}-> miRasterRefMinXY: {self.miRasterRefMinXY}')
+                    print(f'{TW}{TB}{TV}-> [x&y]InfIzdaTile: {xInfIzdaTile} {yInfIzdaTile}')
+                    print(f'{TW}{TB}{TV}-> nPixelsRasterRef[X&Y]: {nPixelsRasterRefX} {nPixelsRasterRefY}')
+                    print(f'{TW}{TB}{TV}-> GLBNtileSizeEnPixelsRasterR[x&y]: {GLBNtileSizeEnPixelsRasterRx} {GLBNtileSizeEnPixelsRasterRy}')
+                    print(f'{TW}{TB}{TV}-> GLO.GLBLmetrosBloque:    {GLO.GLBLmetrosBloque}')
+                    print(f'{TW}{TB}{TV}-> numTilesCols[Rows&Cols]: {numTilesCols} {numTilesRows}')
+                    print(f'{TW}{TB}{TV}-> GLBNtileKernelMetros:    {GLBNtileKernelMetros}')
+                    print(f'{TW}{TB}{TV}-> LCLtileSizeMetros:       {LCLtileSizeMetros}')
+                    print(f'{TW}{TB}{TV}-> LCLtileSemiSolapeMetros: {LCLtileSemiSolapeMetros}')
+                    print(f'{TW}{TB}{TV}-> margen[X&Y]sobre_Metros: {margenXsobresalienteMetros} {margenYsobresalienteMetros}')
+                    print(f'{TW}{TB}{TV}-> recorteIni[X&Y]:   {recorteIniX} {recorteIniY}')
+                    print(f'{TW}{TB}{TV}-> recorteFin[X&Y]:   {recorteIniX + finX - iniX} {recorteIniY + finY - iniY}')
+                    print(f'{TW}{TB}{TV}-> recorteIni[X&Y]1m: {recorteIniX1m} {recorteIniY1m}')
+                    print(f'{TW}{TB}{TV}-> recorteFin[X&Y]1m: {recorteIniX1m + finX1m - iniX1m} {recorteIniY1m + finY1m - iniY1m}')
+                    print(f'{TW}{TB}{TV}-> iniY: {iniY}, finY: {finY}, iniX: {iniX}, finX: {finX}')
+                    print(f'{TW}{TB}{TV}-> tileRecorte.shape: {tileRecorte.shape}')
+                    print(f'{TW}{TB}{TV}-> usoSingRecorteShape: {usoSingRecorteShape}')
+                    print(f'{TW}{TB}{TV}-> funX: {funX}; funY: {funY}')
+
+                if tileRecorte[iniY:funY, iniX:funX].shape != usoSingRecorteShape:
                     continue
+
                 if (
                     GLO.GLBLcrearTilesTargetDeCartoRefSoloSiHaySingUseSuficientes
                     and (

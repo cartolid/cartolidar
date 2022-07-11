@@ -47,10 +47,10 @@ if __name__ == '__main__':
 # ==============================================================================
 if '--cargadoClidconfig' in sys.argv:
     moduloPreviamenteCargado = True
-    print(f'\nclidconfig->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    # print(f'\nclidconfig->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
 else:
     moduloPreviamenteCargado = False
-    print(f'\nclidconfig->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    # print(f'\nclidconfig->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
     sys.argv.append('--cargadoClidconfig')
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
@@ -471,7 +471,8 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
             style='{',
             datefmt='%d-%m-%y %H:%M:%S',
             # datefmt='%d-%b-%y %H:%M:%S',
-            level=logging.DEBUG,
+            level=logLevelFile,
+            # level=logging.DEBUG,
             # level=logging.INFO,
             # level=logging.WARNING,
             # level=logging.ERROR,
@@ -2146,10 +2147,7 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
     if len(sys.argv) == 0:
         print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
         sys.exit(0)
-    elif (
-        sys.argv[0].endswith('clidbase.py')
-        or (sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0])
-    ):
+    elif (sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]):
         # print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
         # print('\t  python -m cartolidar')
         configFileNameSinPath = 'clidbase.cfg'
@@ -2373,9 +2371,10 @@ def leerCambiarVariablesGlobales(
         print(f'{TW}clidconfig-> >>>5 Leyendo cfg: {configFileNameCfg}')
     numObjetivosExtraMax = 0
     LOCALconfigDict = {}
-    try:
+    # try:
+    if True:
         config.read(configFileNameCfg)
-        if (CONFIGverbose or verbose) and GLO.GLBLmostrarVariablesDeConfiguracion == 'GrupoMAIN':
+        if CONFIGverbose or verbose:
             print('clidconfig-> Configuracion ({}):'.format(configFileNameCfg))
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
@@ -2415,9 +2414,8 @@ def leerCambiarVariablesGlobales(
                             valObjetivosExtra.append(valorConfig(listaParametroConfiguracion[0], tipoVariable=listaParametroConfiguracion[1]))
                     LOCALconfigDict[nombreParametroDeConfiguracion].extend(valObjetivosExtra)
 
-                if GLO.GLBLmostrarVariablesDeConfiguracion and grupoParametroConfiguracion == 'GrupoMAIN':
-                    if verbose:
-                        print(f'{TB}{TV}clidconfig-> >>>5 numObjetivosExtra: {numObjetivosExtra}, Max: {numObjetivosExtraMax}, >>> {nombreParametroDeConfiguracion}, {LOCALconfigDict[nombreParametroDeConfiguracion]}')
+                if (CONFIGverbose or verbose) and grupoParametroConfiguracion == 'GrupoMAIN':
+                    print(f'{TB}{TV}clidconfig-> >>>5 numObjetivosExtra: {numObjetivosExtra}, Max: {numObjetivosExtraMax}, >>> {nombreParametroDeConfiguracion}, {LOCALconfigDict[nombreParametroDeConfiguracion]}')
 
         LOCALconfigDict['configFileNameCfg'] = [
             configFileNameCfg,
@@ -2429,54 +2427,54 @@ def leerCambiarVariablesGlobales(
             print(f'\tclidconfig-> Parametros leidos ok del fichero cfg: {LOCALconfigDict["configFileNameCfg"]}')
 
         # configLeidoDelCfgOk = True
-    except Exception as excpt:
-        program_name = 'clidconfig.py'
-        print(f'\n{program_name}-> Error Exception en clidconfig-> {excpt}\n')
-        # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        if verbose > 1:
-            print()
-            # print(f'exc_obj ({type(exc_obj)}): <<{str(exc_obj)}>>')
-            # print(dir(exc_obj)) # 'args', 'characters_written', 'errno', 'filename', 'filename2', 'strerror', 'winerror', 'with_traceback'
-            try:
-                numeroError = exc_obj.errno
-            except:
-                numeroError = -1
-            print(f'numError:  {numeroError}')      # 13
-            print(f'filename:  {exc_obj.filename}')
-            print(f'filename2: {exc_obj.filename2}')
-            try:
-                print(f'strerror:  {exc_obj.strerror}')
-            except:
-                print(f'strerror_: {exc_obj}')
-            # print(f'with_traceback: {exc_obj.with_traceback}')  # <built-in method
-            print()
-            print(f'filename {exc_tb.tb_frame.f_code.co_filename}')
-            print(f'lineno   {exc_tb.tb_lineno}')
-            print(f'function {exc_tb.tb_frame.f_code.co_name}')
-            print(f'type     {exc_type.__name__}')
-            # print(f'message  {exc_obj.message}')  # or see traceback._some_str()
-            print()
-
-        fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-        funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
-        lineError = exc_tb.tb_lineno
-        typeError = exc_type.__name__
-        try:
-            descError = exc_obj.strerror
-        except:
-            descError = exc_obj
-        sys.stderr.write(f'\nContribuya a este programa remitiendo este error al desarrollador (cartolidar@gmail.com):\n')
-        sys.stderr.write(f'\tError en     {fileNameError}\n')
-        sys.stderr.write(f'\tFuncion:     {funcError}\n')
-        sys.stderr.write(f'\tLinea:       {lineError}\n')
-        sys.stderr.write(f'\tDescripcion: {descError}\n') # = {exc_obj}
-        sys.stderr.write(f'\tTipo:        {typeError}\n')
-
-        print('clidconfig-> Error al leer la configuracion del fichero:', configFileNameCfg)
-        # configLeidoDelCfgOk = False
-
-        sys.exit(0)
+    # except Exception as excpt:
+    #     program_name = 'clidconfig.py'
+    #     print(f'\n{program_name}-> Error Exception en clidconfig-> {excpt}\n')
+    #     # https://stackoverflow.com/questions/1278705/when-i-catch-an-exception-how-do-i-get-the-type-file-and-line-number
+    #     exc_type, exc_obj, exc_tb = sys.exc_info()
+    #     if verbose > 1:
+    #         print()
+    #         # print(f'exc_obj ({type(exc_obj)}): <<{str(exc_obj)}>>')
+    #         # print(dir(exc_obj)) # 'args', 'characters_written', 'errno', 'filename', 'filename2', 'strerror', 'winerror', 'with_traceback'
+    #         try:
+    #             numeroError = exc_obj.errno
+    #         except:
+    #             numeroError = -1
+    #         print(f'numError:  {numeroError}')      # 13
+    #         print(f'filename:  {exc_obj.filename}')
+    #         print(f'filename2: {exc_obj.filename2}')
+    #         try:
+    #             print(f'strerror:  {exc_obj.strerror}')
+    #         except:
+    #             print(f'strerror_: {exc_obj}')
+    #         # print(f'with_traceback: {exc_obj.with_traceback}')  # <built-in method
+    #         print()
+    #         print(f'filename {exc_tb.tb_frame.f_code.co_filename}')
+    #         print(f'lineno   {exc_tb.tb_lineno}')
+    #         print(f'function {exc_tb.tb_frame.f_code.co_name}')
+    #         print(f'type     {exc_type.__name__}')
+    #         # print(f'message  {exc_obj.message}')  # or see traceback._some_str()
+    #         print()
+    #
+    #     fileNameError = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    #     funcError = os.path.split(exc_tb.tb_frame.f_code.co_name)[1]
+    #     lineError = exc_tb.tb_lineno
+    #     typeError = exc_type.__name__
+    #     try:
+    #         descError = exc_obj.strerror
+    #     except:
+    #         descError = exc_obj
+    #     sys.stderr.write(f'\nContribuya a este programa remitiendo este error al desarrollador (cartolidar@gmail.com):\n')
+    #     sys.stderr.write(f'{TB}Error en     {fileNameError}\n')
+    #     sys.stderr.write(f'{TB}Funcion:     {funcError}\n')
+    #     sys.stderr.write(f'{TB}Linea:       {lineError}\n')
+    #     sys.stderr.write(f'{TB}Descripcion: {descError}\n') # = {exc_obj}
+    #     sys.stderr.write(f'{TB}Tipo:        {typeError}\n')
+    #
+    #     sys.stderr.write(f'clidconfig-> Error al leer la configuracion del fichero: {configFileNameCfg}\n')
+    #     # configLeidoDelCfgOk = False
+    #
+    #     sys.exit(0)
 
 
     if CONFIGverbose or verbose:
@@ -2550,10 +2548,10 @@ def leerCambiarVariablesGlobales(
                 LOCALconfigDict[nombreParametroDeConfiguracion].extend(valObjetivosExtra)
 
             if verbose:
-                print('Nuevo Valor de: {} -> {}'.format(nombreParametroDeConfiguracion, listaConcatenada))
-                print('Nuevo Valor ok: {} -> {}'.format(nombreParametroDeConfiguracion, config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion).split('|+|')))
+                # print(f'{TB}Nuevo Valor de: {nombreParametroDeConfiguracion} -> {listaConcatenada}')
+                print(f'{TB}Nuevo Valor ok: {nombreParametroDeConfiguracion} -> {config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion).split("|+|")}')
 
-            if GLO.GLBLmostrarVariablesDeConfiguracion and grupoParametroConfiguracion == 'GrupoMAIN':
+            if (CONFIGverbose or verbose) and grupoParametroConfiguracion == 'GrupoMAIN':
                 # print(f'{TB}{TV}clidconfig-> >>>6 {configFileNameCfg}, {nombreParametroDeConfiguracion}, {listaNuevosParametroConfiguracion}')
                 print(
                     '\tclidconfig-> >>>6 Nuevo parametro del grupo',

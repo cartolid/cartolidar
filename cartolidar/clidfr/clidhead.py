@@ -95,11 +95,11 @@ else:
 # ============================ Variables GLOBALES ==============================
 # ==============================================================================
 # TB = '\t'
-TB = ' ' * 13
+TB = ' ' * 11
 TV = ' ' * 3
 TW = ' ' * 2
 # ==============================================================================
-
+ 
 # ==============================================================================
 # ============================== Variables MAIN ================================
 # ==============================================================================
@@ -508,9 +508,9 @@ class LasHeadClass(object):
                                 # el valor obtenido en clidbase.py que tiene en cuenta el nombre y
                                 # las coordenadas de la cabecera xSupIzda ySupIzda
             LCLordenColoresInput=None,
-            verbose=False,
             TRNShuso29=False,
             coordenadasTransformadasDe29a30=False,
+            verbose=False,
         ):
         """
         Class with info about lasFile
@@ -1093,9 +1093,24 @@ class LasHeadClass(object):
         self.formatoDtypePointFormat10NotacionNpDtype = np.dtype(self.formatoDtypePointFormat10NotacionOneChar)
         # ======================================================================
 
-        if GLO.GLBLverbose:
-            print('clidhead-> pf8 self.formatoDtypePointFormat99NotacionOneChar:', self.formatoDtypePointFormat99NotacionOneChar)
-            print('clidhead-> pf8 self.formatoDtypePointFormat99NotacionNpDtype:', self.formatoDtypePointFormat99NotacionNpDtype)
+        # if GLO.GLBLverbose:
+        #     print(f'clidhead-> Descripcion del formato formatoDtype:')
+        #     print(f'{TB}-> pf8 self.formatoDtypePointFormat99NotacionOneChar: {self.formatoDtypePointFormat99NotacionOneChar}')
+        #     # [('x', '=I'), ('y', '=I'), ('z', '=I'), ('intensity', 'H'), ('return_grp', 'B'), ('extra_grp', 'B'), ('classification', 'B'),
+        #     # ('user_data', 'b'), ('scan_angle_rank', 'h'), ('point_source_ID', 'H'), ('raw_time', 'd'), ('red', 'H'), ('green', 'H'), ('blue', 'H'), ('nir', 'H'),
+        #     # ('lasClassAsignadaASPRS19', 'B'), ('lasClassAsignadaTRKTS99', 'B'), ('lasClassPredichaMiniSubCel', 'B'), ('lasClassPredichaConvolucion', 'B'),
+        #     # ('lasClassPredichaTreeASPRS19', 'B'), ('lasClassPredichaTreeTRKTS99', 'B'), ('lasClassPredichaNlnASPRS19', 'B'), ('usoSingular', 'B'),
+        #     # ('nucleoUrbano', 'B'), ('landCover', 'B'), ('geoTipo', 'B'), ('cartoExtra', 'B'), ('distanciaEnDmHastaEdificio', 'B'), ('usoSingularPredicho', 'B'),
+        #     # ('usoSingularPredichoA', 'B'), ('usoSingularPredichoB', 'B'), ('cotaCmSobreMdb', 'h'), ('cotaCmMdf', '=I'), ('cotaCmSobreMdfConvol16bits', 'h'),
+        #     # ('cotaCmSobreMdfConual16bits', 'h'), ('cotaCmSobreMdfManual16bits', 'h'), ('esMiniMaxiSubCel', 'B'), ('esMiniMaxiCel', 'B'), ('esApice', 'B'), ('xH30', '=I'), ('yH30', '=I')]
+        #     print(f'{TB}-> pf8 self.formatoDtypePointFormat99NotacionNpDtype: {self.formatoDtypePointFormat99NotacionNpDtype}')
+        #     # [('x', '<u4'), ('y', '<u4'), ('z', '<u4'), ('intensity', '<u2'), ('return_grp', 'u1'), ('extra_grp', 'u1'), ('classification', 'u1'),
+        #     # ('user_data', 'i1'), ('scan_angle_rank', '<i2'), ('point_source_ID', '<u2'), ('raw_time', '<f8'), ('red', '<u2'), ('green', '<u2'), ('blue', '<u2'), ('nir', '<u2'),
+        #     # ('lasClassAsignadaASPRS19', 'u1'), ('lasClassAsignadaTRKTS99', 'u1'), ('lasClassPredichaMiniSubCel', 'u1'), ('lasClassPredichaConvolucion', 'u1'),
+        #     # ('lasClassPredichaTreeASPRS19', 'u1'), ('lasClassPredichaTreeTRKTS99', 'u1'), ('lasClassPredichaNlnASPRS19', 'u1'), ('usoSingular', 'u1'),
+        #     # ('nucleoUrbano', 'u1'), ('landCover', 'u1'), ('geoTipo', 'u1'), ('cartoExtra', 'u1'), ('distanciaEnDmHastaEdificio', 'u1'), ('usoSingularPredicho', 'u1'),
+        #     # ('usoSingularPredichoA', 'u1'), ('usoSingularPredichoB', 'u1'), ('cotaCmSobreMdb', '<i2'), ('cotaCmMdf', '<u4'), ('cotaCmSobreMdfConvol16bits', '<i2'), 
+        #     # ('cotaCmSobreMdfConual16bits', '<i2'), ('cotaCmSobreMdfManual16bits', '<i2'), ('esMiniMaxiSubCel', 'u1'), ('esMiniMaxiCel', 'u1'), ('esApice', 'u1'), ('xH30', '<u4'), ('yH30', '<u4')]
 
         self.miPtoNpArrayRecord = np.zeros(1 * 1 * 1, dtype=np.dtype(self.formatoDtypePointFormatXXNotacionNpDtype)).reshape(1, 1, 1)
         self.miPtoNpRecordPointFormatXX = self.miPtoNpArrayRecord[0, 0, 0]
@@ -1135,11 +1150,11 @@ class LasHeadClass(object):
         self.formatoDtypePointCustomizadoNotacionNpDtype = np.dtype(self.formatoDtypePointCustomizadoNotacionOneChar)
         # ======================================================================
 
-        if GLO.GLBLverbose:
-            print('clidhead-> pf8 self.formatoDtypePointCustomizadoNotacionOneChar:', self.formatoDtypePointCustomizadoNotacionOneChar)
-            # [('x', 'd'), ('y', 'd'), ('z', 'd'), ('clase', 'B'), ('retN', 'B'), ('cotaMds', 'f'), ('cotaMdb', 'f'), ('cotaMdf', 'f'), ('lasClassAsignada', 'B'), ('lasClassInferida', 'B')]
-            print('clidhead-> pf8 self.formatoDtypePointCustomizadoNotacionNpDtype:', self.formatoDtypePointCustomizadoNotacionNpDtype)
-            # [('x', '<f8'), ('y', '<f8'), ('z', '<f8'), ('clase', 'u1'), ('retN', 'u1'), ('cotaMds', '<f4'), ('cotaMdb', '<f4'), ('cotaMdf', '<f4'), ('lasClassAsignada', 'u1'), ('lasClassInferida', 'u1')]
+        # if GLO.GLBLverbose:
+        #     print(f'{TB}-> pf8 self.formatoDtypePointCustomizadoNotacionOneChar: {self.formatoDtypePointCustomizadoNotacionOneChar}')
+        #     # [('x', 'd'), ('y', 'd'), ('z', 'd'), ('clase', 'B'), ('retN', 'B'), ('cotaMds', 'f'), ('cotaMdb', 'f'), ('cotaMdf', 'f'), ('lasClassAsignada', 'B'), ('lasClassInferida', 'B')]
+        #     print(f'{TB}-> pf8 self.formatoDtypePointCustomizadoNotacionNpDtype: {self.formatoDtypePointCustomizadoNotacionNpDtype}')
+        #     # [('x', '<f8'), ('y', '<f8'), ('z', '<f8'), ('clase', 'u1'), ('retN', 'u1'), ('cotaMds', '<f4'), ('cotaMdb', '<f4'), ('cotaMdf', '<f4'), ('lasClassAsignada', 'u1'), ('lasClassInferida', 'u1')]
 
         # ======================================================================
         # ================= Formato dtype de las extraVariables ================
@@ -1326,7 +1341,7 @@ class LasHeadClass(object):
         else:
             try:
                 if GLO.GLBLverbose or self.verbose:
-                    print('clidhead.{:006}-> Se va a abrir el fichero: {}'.format(GLO.MAIN_idProceso, self.infileConRuta))
+                    print('clidhead-> Se va a abrir el fichero: {}'.format(self.infileConRuta))
                 self.ficheroLas = open(self.infileConRuta, "rb")
                 if GLO.GLBLverbose or self.verbose:
                     print('\tLeyendo el fichero abierto. Se lee el byte 104'.format(self.infileConRuta))
@@ -1634,27 +1649,24 @@ class LasHeadClass(object):
 
         if self.verbose:
             if self.lasDataMem is None:
-                printMsg('\nclidhead-> Modalidad de lectura del fichero laz/las: lectura de fichero con read()')
+                printMsg('clidhead-> Modalidad de lectura del fichero laz/las: lectura de fichero con read()')
             else:
-                printMsg('\nclidhead-> Modalidad de lectura del fichero laz/las: lectura de lasDataMem con acceso por puntero')
-                printMsg('\t-> lasDataMem es un <bytes> generado al descomprimir el laz y luego convertido a <memoryview> (self.ficheroLas)')
-                printMsg('\t-> La lectura se hace accediendo al <memoryview> (self.ficheroLas) y agegando el trozo leido (readMemView) a un <bytes> (self.headBin)')
+                printMsg('clidhead-> Modalidad de lectura del fichero laz/las: lectura de lasDataMem con acceso por puntero')
+                printMsg(f'{TB}-> lasDataMem es un <bytes> generado al descomprimir el laz y luego convertido a <memoryview> (self.ficheroLas)')
+                printMsg(f'{TB}-> La lectura se hace accediendo al <memoryview> (self.ficheroLas) y agegando el trozo leido (readMemView) a un <bytes> (self.headBin)')
                 # self.lasDataMem: <class 'bytes'>
                 # self.ficheroLas: <class 'memoryview'>
                 # readMemView: <class 'memoryview'>
                 # self.headBin: <class 'bytes'>
-                printMsg(
-                    '\t-> type(self.lasDataMem): {}, type(self.ficheroLas): {}, type(self.headBin): {}, len(self.headBin): {}'.format(
-                        type(self.lasDataMem), type(self.ficheroLas), type(self.headBin), len(self.headBin)
-                    )
-                )
+                printMsg(f'{TB}-> type(self.lasDataMem): {type(self.lasDataMem)}, type(self.ficheroLas): {type(self.ficheroLas)}')
+                printMsg(f'{TB}-> type(self.headBin): {type(self.headBin)}, len(self.headBin): {len(self.headBin)}')
 
         self.sumaBytesVLR = 0
         if self.headDict[propiedadNumVLR] > 0:
             if self.verbose:
-                printMsg('\nclidhead-> Numero de variable lenght records: ' + str(self.headDict[propiedadNumVLR]))
+                printMsg(f'\nclidhead-> Numero de variable lenght records: {self.headDict[propiedadNumVLR]}')
                 # print('clidhead-> self.lasHeaderFieldListVersionsDict.keys():', self.lasHeaderFieldListVersionsDict.keys())
-                printMsg('Campos de LasFormat_1_2_vlrecord:' + str(self.lasHeaderFieldListVersionsDict[grupoLasHeadFields]))
+                printMsg(f'{TB}-> Campos de LasFormat_1_2_vlrecord: {self.lasHeaderFieldListVersionsDict[grupoLasHeadFields]}')
 
             for nVlrecord in range(self.headDict[propiedadNumVLR]):
                 if True:
@@ -1704,20 +1716,13 @@ class LasHeadClass(object):
 
                         if self.verbose:
                             printMsg(
-                                '\t4-> Bytes: {}-{}; TipoVLR: {}; NumVLR: {}; NombreVLR: {}; Valor: {}'.format(
-                                    str(prePosicion),
-                                    str(postPosicion),
-                                    tipoVLR,
-                                    str(nVlrecord),
-                                    myField,
-                                    str(value),
-                                )
+                                f'{TB}{TV}4-> Bytes: {str(prePosicion)}-{str(postPosicion)}; TipoVLR: {tipoVLR}; NumVLR: {str(nVlrecord)}; NombreVLR: {myField}; Valor: {str(value)}'
                             )
                         self.headDict['%s%s_%i' % (idTipoVLR, myField, nVlrecord)] = value
                         setattr(self, '%s%s_%i' % (idTipoVLR, myField, nVlrecord), value)
                         # self.headDict['textoVRL_%i' % nVlrecord] = value
                     if self.verbose:
-                        print('clidhead-> Variable lenght record num:', nVlrecord, 'leido ok')
+                        print(f'clidhead-> Variable lenght record num: {nVlrecord} leido ok')
 #                 except:
 #                     printMsg('clidhead-> WARNING w4b')
 #                     printMsg('Ha habido un problema al leer el vlrecord {}'.format(nVlrecord))
@@ -1742,7 +1747,7 @@ class LasHeadClass(object):
                 setattr(self, '%sVRL_%i' % (idTipoVLR, nVlrecord), value)
 
                 if self.verbose:
-                    printMsg('clidhead-> Parte variable (contenido) del vlrecord ' + str(nVlrecord) + ': ' + str(readBytes))
+                    printMsg(f'{TB}-> Parte variable (contenido) del vlrecord {nVlrecord}: {readBytes}')
         else:
             self.headDict['Reserved'] = 0
             self.headDict['UserID'] = ''
@@ -1790,7 +1795,7 @@ class LasHeadClass(object):
         if sizeToAdjust > 0 and self.xmin % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Xmin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.xmin, end=' ')
+                print(f'{TB}Before: {self.xmin:0.2f}', end=' ')
             if self.xmin % sizeToAdjust <= margenAdmisible or self.xmin % sizeToAdjust >= sizeToAdjust - margenAdmisible:
                 self.xmin = float(sizeToAdjust * round(self.xmin / sizeToAdjust, 0))
             else:
@@ -1799,11 +1804,11 @@ class LasHeadClass(object):
                 else:
                     self.xmin = float(sizeToAdjust * math.ceil(self.xmin / sizeToAdjust))
             if self.verbose:
-                print('\tAfter: %0.2f' % self.xmin)
+                print(f'{TB}After: {self.xmin:0.2f}')
         if sizeToAdjust > 0 and self.ymin % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Ymin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.ymin, end=' ')
+                print(f'{TB}Before: {self.ymin:0.2f}', end=' ')
             if self.ymin % sizeToAdjust <= margenAdmisible or self.ymin % sizeToAdjust >= sizeToAdjust - margenAdmisible:
                 self.ymin = float(sizeToAdjust * round(self.ymin / sizeToAdjust, 0))
             else:
@@ -1812,11 +1817,11 @@ class LasHeadClass(object):
                 else:
                     self.ymin = float(sizeToAdjust * math.ceil(self.ymin / sizeToAdjust))
             if self.verbose:
-                print('\tAfter: %0.2f' % self.ymin)
+                print(f'{TB}After: {self.ymin:0.2f}')
         if sizeToAdjust > 0 and self.ymax % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Ymax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.ymax, end=' ')
+                print(f'{TB}Before: {self.ymax:0.2f}', end=' ')
             if self.ymax % sizeToAdjust <= margenAdmisible or self.ymax % sizeToAdjust >= sizeToAdjust - margenAdmisible:
                 self.ymax = float(sizeToAdjust * round(self.ymax / sizeToAdjust, 0))
             else:
@@ -1825,11 +1830,11 @@ class LasHeadClass(object):
                 else:
                     self.ymax = float(sizeToAdjust * math.floor(self.ymax / sizeToAdjust))
             if self.verbose:
-                print('\tAfter: %0.2f' % self.ymax)
+                print(f'{TB}After: {self.ymax:0.2f}')
         if sizeToAdjust > 0 and self.xmax % sizeToAdjust != 0:
             if self.verbose:
                 print('clidhead-> Ajustando Xmax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.xmax, end=' ')
+                print(f'{TB}Before: {self.xmax:0.2f}', end=' ')
             if self.xmax % sizeToAdjust <= margenAdmisible or self.xmax % sizeToAdjust >= sizeToAdjust - margenAdmisible:
                 self.xmax = float(sizeToAdjust * round(self.xmax / sizeToAdjust, 0))
             else:
@@ -1838,7 +1843,7 @@ class LasHeadClass(object):
                 else:
                     self.xmax = float(sizeToAdjust * math.floor(self.xmax / sizeToAdjust))
             if self.verbose:
-                print('\tAfter: %0.2f' % self.xmax)
+                print(f'{TB}After: {self.xmax:0.2f}')
         self.xSupIzda = self.xmin
         self.ySupIzda = self.ymax
         self.xInfDcha = self.xmax
@@ -2100,7 +2105,14 @@ class LasHeadClass(object):
 
         # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
         # Asigned coordinates of up left corner after the lasFile name (and year)
-        self.fileCoordYear, self.xSupIzdaDelNombre, self.ySupIzdaDelNombre, self.fileYear = getFileCoordFromName(self.infileConRuta)
+        (
+            self.fileCoordYear,
+            self.xSupIzdaDelNombre,
+            self.ySupIzdaDelNombre,
+            self.fileYear
+        ) = getFileCoordFromName(
+            self.infileConRuta
+        )
         # No utilizo fileCoordYear como propiedad de esta clase sino que uso
         # el valor obtenido en clidbase.py que tiene en cuenta el nombre y
         # las coordenadas de la cabecera xSupIzda ySupIzda
@@ -2472,7 +2484,7 @@ class LasHeadClass(object):
                     print('clidhead->  ', fieldname.rjust(25), '->', value.decode('latin-1'))
                 else:
                     # print( 'clidhead-> ->', str(self.headDict['Description_%i' % nVlrecord].rstrip('\x00')) , '<-')
-                    print('clidhead->    longitud'.rjust(25), '->', len(value))
+                    print('clidhead->  ', 'longitud'.rjust(25), '->', len(value))
                     try:
                         valorDecodificado = value.decode('latin-1')
                         print('clidhead->  ', fieldname.rjust(25), '->', valorDecodificado)
@@ -2545,7 +2557,12 @@ class LasHeadClass(object):
         # ======================================================================oooo
         # oooooooooooooooooooooooo Lectura del fichero las oooooooooooooooooooooooooo
         # ======================================================================oooo
-        myLasData.readLasData(byREFAlmacenarPuntosComoNumpyDtype=True)  # Fuerzo almacenarPuntosComoNumpyDtype
+        # myLasData.readLasData(byREFAlmacenarPuntosComoNumpyDtype=True)  # Fuerzo almacenarPuntosComoNumpyDtype
+        myLasData.leerLasDataLazLas(
+            self.infileConRuta,
+            self.fileCoordYear,
+            self.LCLordenColoresInput,
+        )
         # oooooooooo Muestro para verificacion el numero de puntos leidos ooooooooooo
         myLasData.numPuntosValidosTotalesSegunCabecera = self.headDict['numptrecords']
         # print( 'clidhead-> Numero de puntos segun la cabecera del las:', myLasData.numPuntosValidosTotalesSegunCabecera )
@@ -2557,16 +2574,18 @@ class LasHeadClass(object):
             else:
                 printMsg('clidhead-> Puntos a leer (segun XML):             %i puntos' % GLO.GLBLnumeroDePuntosAleer)
             printMsg('clidhead-> Puntos cargados en la RAM:             %i puntos' % myLasData.numPuntosCargadosEnLaRAM)
-            printMsg(
-                'clidhead-> Segun el num de bytes del fichero hay: %0.5f puntos (fichero de %0.2f Mb)'
-                % (
-                    ((os.path.getsize(self.infileConRuta) - self.headDict['offset']) / self.pointreclen),
-                    os.path.getsize(self.infileConRuta) / 1e6,
+            if self.infileConRuta[-4:].lower == '.las':
+                printMsg(
+                    'clidhead-> Segun el num de bytes del fichero hay: %0.5f puntos (fichero de %0.2f Mb)'
+                    % (
+                        ((os.path.getsize(self.infileConRuta) - self.headDict['offset']) / self.pointreclen),
+                        os.path.getsize(self.infileConRuta) / 1e6,
+                    )
                 )
-            )
-            printMsg(
-                'clidhead->                                        El num de puntos segun num de bytes calculado figura con decimales para ver si cuadra.'
-            )
+                printMsg(
+                    'clidhead->                                        El num de puntos segun num de bytes calculado figura con decimales para ver si cuadra.'
+                )
+
             if not GLO.GLBLalmacenarPuntosComoNumpyDtype:
                 printMsg(
                     'clidhead-> Segun el num de bytes cargados en memoria, hay: %0.1f puntos' % (len(myLasData.ficheroCompletoEnLaRAM) / self.pointreclen)
@@ -3093,17 +3112,25 @@ def crearArraysPropPto(pointformat, lasPointFieldPropertiesList=None, propIndivi
 
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-def getFileCoordFromName(infile, fileYear=''):
+# Duplico esta funcion es la original; la tengo duplicada en clidbase.py
+def getFileCoordFromName(
+        infile,
+        fileYearPorDefecto='0000'
+    ):
     fileCoord = '000_0000'
     fileYear = '0000'
     for char1 in range(len(infile) - 4 - 8):
-        fileCoord_ = infile[char1: char1 + 3] + '_' + infile[char1 + 4: char1 + 8]
+        # fileCoord_ = infile[char1: char1 + 3] + '_' + infile[char1 + 4: char1 + 8]
         if (
             (infile[char1: char1 + 4]).isdigit()
             and (char1 < 4 or not (infile[char1 - 4: char1 - 1]).isdigit())
             and (char1 == 0 or (infile[char1 - 1]) in ['-', '_'])
             and (infile[char1 + 4]) in ['-', '_', '.']
         ):
+            # El fichero tiene la anualidad pero no las coordenadas cuando:
+            #     Hay cuatro caracteres digitos no precedidos por otros 4 digitos
+            #     Y estan precedidos y seguidos por '_' o '-' (salvo que sean los 4 primeros o 4 ultimos)
+            fileCoord = '000_0000'
             fileYear = infile[char1: char1 + 4]
         elif (
             (infile[char1: char1 + 3]).isdigit()
@@ -3112,7 +3139,14 @@ def getFileCoordFromName(infile, fileYear=''):
             and (char1 == 0 or (infile[char1 - 1]) in ['-', '_'])
             and (infile[char1 + 8]) in ['-', '_', '.']
         ):
+            # El fichero tiene las coordenadascuando:
+            #    El nombre incluye el patron XXX_YYYY o XXX-YYY
+            #     Y estan precedidos y seguidos por '_' o '-' (salvo que sean los 4 primeros o 4 ultimos)
             fileCoord = infile[char1: char1 + 3] + '_' + infile[char1 + 4: char1 + 8]
+            # Ademas tiene la anualidad si despues de las coordenadas:
+            #     Hay cuatro caracteres digitos
+            #     Y estan precedidos y seguidos por '_' o '-'
+            fileYear = '0000'
             if len(infile) - 4 - 4 > char1 + 9:
                 for char2 in range(char1 + 9, len(infile) - 4 - 4):
                     if (
@@ -3124,18 +3158,20 @@ def getFileCoordFromName(infile, fileYear=''):
                         break
             break
 
+    if fileYear == '0000':
+        fileYear = fileYearPorDefecto
     fileCoordYear = fileCoord + '_' + str(fileYear)
 
     try:
         xSupIzdaDelNombre = int(fileCoord[:3]) * 1000
         ySupIzdaDelNombre = int(fileCoord[4:8]) * 1000
-        # print( 'clidhead-> xSupIzda, ySupIzda (de acuerdo al nombre del fichero)        ', xSupIzdaDelNombre, ySupIzdaDelNombre )
+        # print( 'clidbase-> xSupIzda, ySupIzda (de acuerdo al nombre del fichero)        ', xSupIzdaDelNombre, ySupIzdaDelNombre )
     except:
         xSupIzdaDelNombre = 0
         ySupIzdaDelNombre = 0
 
     if fileCoord == '000_0000':
-        print( 'clidhead-> AVISO: No se ha podido extraer las coordenadas del nombre fichero: %s; fileCoord: %s; fileYear: %s' % (infile, fileCoord, fileYear) )
+        print( 'clidbase-> AVISO: No se ha podido extraer las coordenadas del nombre fichero: %s; fileCoord: %s; fileYear: %s' % (infile, fileCoord, fileYear) )
 
     return fileCoordYear, xSupIzdaDelNombre, ySupIzdaDelNombre, fileYear
 
@@ -3608,6 +3644,8 @@ class NewLasHeadClass(object):
         else:
             print('clidhead-> ATENCION se propone un valor de pointreclen incorecto (%i). Deberia ser: %i' % (pointreclen, nBytesPorPuntoCheck))
             self.pointreclen = pointreclen
+        self.nBytesPorPunto = self.pointreclen
+
         # ======================================================================
         # oooooo IMPORTANTE: formato dtype del pointformat seleccionado ooooooooo
         # ======================================================================
@@ -3713,6 +3751,7 @@ class NewLasHeadClass(object):
         nuevoOffset = self.headersize
         # ======================================================================
         if self.vlrPropios:
+            # Para tipo de punto 8 (lasFormat 1.4) el formatoSRS es 'WKT' obligado
             if self.formatoSRS == 'WKT':
                 nuevoNumvlrecords = 1
                 # No es valido con LASF formar 1.2
@@ -3739,26 +3778,28 @@ class NewLasHeadClass(object):
 
         if self.vlrHeredados:
             nuevoNumvlrecords += self.myOldLasHead.numvlrecords
-            nuevoOffset += self.myOldLasHead.offset - self.myOldLasHead.headersize
+            offsetDeVLRsOriginal = self.myOldLasHead.offset - self.myOldLasHead.headersize
+            nuevoOffset += offsetDeVLRsOriginal
+            if verbose:
+                print(f'clidhead-> Se incluyen los VLRs del fichero original que suman un offset de {offsetDeVLRsOriginal} bytes.')
 
         if self.bytesExtras:
-            nuevoOffset = nuevoOffset + self.nBytesExtras
+            nuevoOffset += self.nBytesExtras
             if verbose:
-                print('clidhead-> Offset del fichero original:', self.myOldLasHead.headDict['offset'])
-                print('clidhead-> Offset del fichero creado:  ', nuevoOffset)
+                print(f'clidhead-> nBytesExtras que se suman al offset: {self.nBytesExtras}.')
 
         self.numvlrecords = nuevoNumvlrecords
         self.offset = nuevoOffset
 
         # ======================================================================
         if verbose:
-            print('clidhead-> nuevoHeaderSize calculado:        ', nuevoHeaderSize)
-            print('clidhead-> headersize del fichero original:  ', self.myOldLasHead.headersize)
-            print('clidhead-> headersize del fichero creado:    ', self.headersize)
-            print('clidhead-> Offset del fichero original:      ', self.myOldLasHead.offset)
-            print('clidhead-> Offset del fichero creado:        ', self.offset)
-            print('clidhead-> numvlrecords del fichero original:', self.myOldLasHead.numvlrecords)
-            print('clidhead-> numvlrecords del fichero creado:  ', self.numvlrecords)
+            print(f'clidhead-> nuevoHeaderSize calculado:         {nuevoHeaderSize}')
+            print(f'clidhead-> headersize del fichero original:   {self.myOldLasHead.headersize}')
+            print(f'clidhead-> headersize del fichero creado:     {self.headersize}')
+            print(f'clidhead-> Offset del fichero original:       {self.myOldLasHead.offset}')
+            print(f'clidhead-> Offset del fichero creado:         {self.offset}')
+            print(f'clidhead-> numvlrecords del fichero original: {self.myOldLasHead.numvlrecords}')
+            print(f'clidhead-> numvlrecords del fichero creado:   {self.numvlrecords}')
         # ======================================================================
 
         # ======================================================================

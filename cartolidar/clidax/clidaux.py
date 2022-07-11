@@ -572,13 +572,14 @@ def mensajeError(program_name):
 def mostrarVersionesDePythonEnElRegistro(verbose):
     import pytz
 
+    print(f'\n{"":_^80}')
     epoch = datetime(1601, 1, 1, tzinfo=pytz.utc)
     # Ver: https://docs.python.org/2/library/winreg.html
     if sys.version_info[0] == 2:
-        print('Consultando versiones de python en el registro (Python2)')
+        print(f'clidaux-> Consultando versiones de python en el registro (Python2)')
         import _winreg as winreg
     else:
-        print('Consultando versiones de python en el registro (Python3)')
+        print(f'clidaux-> Consultando versiones de python en el registro (Python3)')
         import winreg
 
     # key = "HKEY_CURRENT_USER/Environment"
@@ -588,52 +589,52 @@ def mostrarVersionesDePythonEnElRegistro(verbose):
         try:
             key3 = winreg.OpenKey(key2, 'Python')
         except:
-            print('El registro no tiene la clave SOFTWARE/Python/PythonCore')
+            print(f'{TB}-> El registro no tiene la clave SOFTWARE/Python/PythonCore')
 
         key4txts = ['ContinuumAnalytics', 'PythonCore']
         for key4txt in key4txts:
             try:
                 key4 = winreg.OpenKey(key3, key4txt)
                 infoKey4 = winreg.QueryInfoKey(key4)
-                print('Clave: HKEY_LOCAL_MACHINE.SOFTWARE.Python.' + key4txt)
+                print(f'{TB}-> Clave: HKEY_LOCAL_MACHINE.SOFTWARE.Python.{key4txt}')
                 for indexValue4 in range(infoKey4[1]):
-                    print('\tValor', indexValue4, winreg.EnumValue(key4, indexValue4))
+                    print(f'{TB}-> \tValor {indexValue4} {winreg.EnumValue(key4, indexValue4)}')
                 if infoKey4[0] > 0:
-                    print('Versiones de python:')
+                    print(f'{TB}-> Versiones de python:')
                 for indexKey4 in range(infoKey4[0]):
                     sub_key4 = winreg.EnumKey(key4, indexKey4)
                     key5 = winreg.OpenKey(key4, sub_key4)
                     infoKey5 = winreg.QueryInfoKey(key5)
                     installdatetime = epoch + timedelta(microseconds=infoKey5[2] / 10)
-                    print('Version:', indexKey4, sub_key4, 'Instalado:', installdatetime, '->Claves:', infoKey5[0], 'Valores:', infoKey5[1])
+                    print(f'{TB}-> Version: {indexKey4} {sub_key4}, Instalado: {installdatetime}, ->Claves: {infoKey5[0]}, Valores: {infoKey5[1]}')
                     if verbose:
                         if infoKey5[1] != 0:
                             for indexValue5 in range(infoKey5[1]):
-                                print('\tValor', indexValue5, winreg.EnumValue(key5, indexValue5))
+                                print(f'{TB}-> \tValor {indexValue5} {winreg.EnumValue(key5, indexValue5)}')
                         for indexKey5 in range(infoKey5[0]):
                             sub_key5 = winreg.EnumKey(key5, indexKey5)
                             key6 = winreg.OpenKey(key5, sub_key5)
                             infoKey6 = winreg.QueryInfoKey(key6)
                             installdatetime = epoch + timedelta(microseconds=infoKey6[2] / 10)
-                            print('\tClave', indexKey5, sub_key5, 'Instalado:', installdatetime, '->Claves:', infoKey6[0], 'Valores:', infoKey6[1])
+                            print(f'{TB}-> \tClave {indexKey5} {sub_key5}, Instalado: {installdatetime}, ->Claves: {infoKey6[0]}, Valores: {infoKey6[1]}')
                             if infoKey6[1] >= 1:
                                 for indexValue6 in range(infoKey6[1]):
-                                    print('\t\tValor', indexValue6, winreg.EnumValue(key6, indexValue6))
+                                    print(f'{TB}-> \t\tValor {indexValue6} {winreg.EnumValue(key6, indexValue6)}')
                             if infoKey6[0] != 0:
                                 for indexKey6 in range(infoKey6[0]):
                                     sub_key6 = winreg.EnumKey(key6, indexKey6)
                                     key7 = winreg.OpenKey(key6, sub_key6)
                                     infoKey7 = winreg.QueryInfoKey(key7)
                                     installdatetime = epoch + timedelta(microseconds=infoKey7[2] / 10)
-                                    print('\t\tClave', indexKey6, sub_key6, 'Instalado:', installdatetime, '->Claves:', infoKey7[0], 'Valores:', infoKey7[1])
+                                    print(f'{TB}-> \t\tClave {indexKey6} {sub_key6}, Instalado: {installdatetime}, ->Claves: {infoKey7[0]}, Valores: {infoKey7[1]}')
 
                                     if infoKey7[1] >= 1:
                                         for indexValue7 in range(infoKey7[1]):
-                                            print('\t\t\tValor', indexValue7, winreg.EnumValue(key7, indexValue7))
+                                            print(f'{TB}-> \t\t\tValor {indexValue7} {winreg.EnumValue(key7, indexValue7)}')
 
             except:
-                print('No hay', key4txt, 'en HKEY_LOCAL_MACHINE.SOFTWARE.Python')
-
+                print(f'No hay {key4txt} en HKEY_LOCAL_MACHINE.SOFTWARE.Python')
+    print(f'{"":=^80}')
 
 
 # ==============================================================================o
@@ -1428,6 +1429,57 @@ def coordenadasDeBloque(miHead, metrosBloque, metrosCelda):
     return {'xInfIzda': xInfIzda, 'yInfIzda': yInfIzda, 'xSupIzda': xSupIzda, 'ySupIzda': ySupIzda, 'xSupDcha': xSupDcha, 'ySupDcha': ySupDcha}
 
 
+# ==============================================================================o
+def chequearHuso29(fileCoordYearFromName):
+    # Lo mejor es dejar GLO.MAINhuso == 0 y asigno el huso en funcion de las coordenadas
+    # Mantengo el huso 30 en el caso de que incluya _H29_ en GLO.MAINprocedimiento
+    #  Esto solo lo hago cuando tengo los lasFiles en una carpeta especial (por ejemplo IRC_H29 en vez de IRC)
+    if GLO.MAINhuso == 0:
+        if int(fileCoordYearFromName[:3]) >= 650: # or '_H29_' in GLO.MAINprocedimiento:
+            TRNShuso29 = True
+        else:
+            TRNShuso29 = False
+    elif GLO.MAINhuso == 29:
+        TRNShuso29 = True
+    else:
+        TRNShuso29 = False
+    return TRNShuso29
+
+
+# ==============================================================================o
+def renombraFicheros(
+        rutaLazCompleta,
+        infileSinRuta,
+        fileCoordYear='',
+        listaFicheros=None,
+    ):
+    infileConRuta = os.path.join(rutaLazCompleta, infileSinRuta)
+    # Convierte los nombres de los ficheros al formato XXX_YYYY_AAAA.las
+    # AAAA es la GLO.MAINanualidad y es opcional
+    if len(infileSinRuta) == 17 and infileSinRuta[4] =='_' and infileSinRuta[9] =='_':
+        # Nombre de fichero de xxx_yyyy_AAAA.las
+        nuevoInfile = infileSinRuta
+        if not listaFicheros is None:
+            listaFicheros.write(nuevoInfile + '\t<-\t' + infileSinRuta + '\n')
+        return
+    elif len(infileSinRuta) == 12 and infileSinRuta[4] =='_' and infileSinRuta[9] =='_' and GLO.MAINanualidad != '0000':
+        # Nombre de fichero de tipo xxx_yyyy.las
+        nuevoInfile = infileSinRuta[:8] + '_' + GLO.MAINanualidad + infileSinRuta[-4:]
+    elif fileCoordYear:
+        nuevoInfile = fileCoordYear + infileSinRuta[-4:]
+        nuevoInfileConRuta = os.path.join(rutaLazCompleta, nuevoInfile)
+    else:
+        return
+    try:
+        os.rename(infileConRuta, nuevoInfileConRuta)
+    except:
+        print('Error en %s -> %s' % (infileSinRuta, nuevoInfile))
+        sys.exit()
+    if not listaFicheros is None:
+        listaFicheros.write(nuevoInfile + '\t<-\t' + infileSinRuta + '\n')
+    return
+
+
 def creaDirectorio(rutaDirectorio):
     # Parecido a os.makedirs(), pero que este no crea todo el arbol de directorios,
     # sino solo intenta crear el directorio y su padre.
@@ -1449,16 +1501,11 @@ def creaRutaDeFichero(rutaFichero):
     rutaDirectorio = os.path.dirname(os.path.realpath(rutaFichero))
     miFileNameSinPath = os.path.basename(os.path.realpath(rutaFichero))
     if not os.path.exists(rutaDirectorio):
-        print(
-            '\tclidaux-> Creando ruta {} para {}'.format(
-                rutaDirectorio,
-                miFileNameSinPath
-            )
-        )
+        print(f'{TB}{TV}clidaux-> Creando ruta {rutaDirectorio} para {miFileNameSinPath}')
         try:
             os.makedirs(rutaDirectorio)
         except:
-            print('clidaux-> No se ha podido crear el directorio %s' % (rutaDirectorio))
+            print(f'\nclidaux-> ATENCION: No se ha podido crear el directorio {rutaDirectorio}')
             sys.exit()
 
 
@@ -2887,9 +2934,15 @@ def casosEspecialesParaMAINrutaLaz(
                     sys.exit(0)
                 listaSubDirsLaz[nSubDir] = subDirLaz + '_H29'
 
+    elif LCLprocedimiento.startswith('LAS_INFO_ASK_LASDIR'):
+        # LCLrutaLaz = preguntarRutaLaz(os.path.join(GLO.MAINmiRutaRaiz, 'laz2/'))
+        LCLrutaLaz = preguntarRutaLaz(GLO.MAINrutaLaz)
+    elif LCLprocedimiento == 'LAS_INFO_BASE_LASDIR':
+        LCLrutaLaz = GLO.MAINrutaLaz
     elif (
         LCLprocedimiento.startswith('AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA')
         or LCLprocedimiento.startswith('AUTOMATICO_EN_CALENDULA')
+        or LCLprocedimiento.startswith('LAS_INFO')
     ):
         # Se usan los valores establecidos por defecto
         print('clidaux-> ATENCION: ESTO ES PROVISIONAL:')
@@ -2910,7 +2963,6 @@ def casosEspecialesParaMAINrutaLaz(
         listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
         print('clidaux-> listaDirsLaz:    {}'.format(listaDirsLaz))
         print('clidaux-> listaSubDirsLaz: {}'.format(listaSubDirsLaz))
-        pass
     elif LCLprocedimiento == 'PRECONFIGURADO_SINRUTA':
         bloqueElegido = 0
         if not LCLrutaLaz:
@@ -3169,12 +3221,6 @@ def casosEspecialesParaMAINrutaLaz(
         input('Lo desarrollo en raster2vector de clidcluster.py (antes GIS/cluster.py, renombrado a cluster_old_VerCartolid_clidax.py')
         sys.exit()
 
-    elif LCLprocedimiento.startswith('LAS_INFO'):
-        if LCLprocedimiento.startswith('LAS_INFO_ASK'):
-            # LCLrutaLaz = preguntarRutaLaz(os.path.join(GLO.MAINmiRutaRaiz, 'laz2/'))
-            LCLrutaLaz = preguntarRutaLaz(GLO.MAINrutaLaz)
-        else:
-            LCLrutaLaz = GLO.MAINrutaLaz
     else:
         print('\nRevisar el nombre del procedimiento en cartolid.xlm. MAINprocedimiento:', LCLprocedimiento)
         sys.exit()
