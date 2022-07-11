@@ -1,4 +1,4 @@
-__version__ = '0.0a8'
+__version__ = '0.0a9'
 __date__ = '2016-2022'
 __updated__ = '2022-07-11'
 __copyright__ = '@clid 2016-22'

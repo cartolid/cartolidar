@@ -38,19 +38,20 @@ except:
     psutilOk = False
 
 try:
-    import gdal, ogr, gdalconst
-    # import osr, gdalnumeric
+    import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
 except:
     gdalOk = False
-
-# try:
-#     from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-#     gdalOk = True
-# except:
-#     gdalOk = False
-#     sys.stderr.write('clidtwinp-> Tampoco se ha podido cargar desde la carpeta osgeo')
-#     sys.exit(0)
+    sys.stdout.write('clidtwinp-> No se ha podido cargar gdal directamente, se intenta de la carpeta osgeo...\n')
+if not gdalOk:
+    try:
+        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
+        sys.stdout.write('            gdal importado ok de la carpeta osgeo...\n')
+        gdalOk = True
+    except:
+        gdalOk = False
+        sys.stdout.write('clidtwinp-> Tampoco se ha podido cargar desde la carpeta osgeo.\n')
+        sys.exit(0)
 
 # Recuperar la captura de errores de importacion en la version beta
 # try:

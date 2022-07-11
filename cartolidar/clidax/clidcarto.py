@@ -235,8 +235,6 @@ else:
     GLO = clidconfig.VariablesGlobales(configVarsDict)
 GLO.MAIN_idProceso = MAIN_idProceso
 
-GLBNsubCeldasPorCelda = int(GLO.GLBLmetrosCelda / GLO.GLBLmetrosSubCelda)
-
 # ==============================================================================
 myModule = __name__.split('.')[-1]
 myUser = clidconfig.infoUsuario()
@@ -1564,12 +1562,17 @@ class CartoRefVector(object):
     # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def crearTilesTargetFromVector(
         self,
-        LCLtileSizeMetros=GLO.GLBLtileSizeMetros,
-        LCLtileSemiSolapeMetros=GLO.GLBLtileSemiSolapeMetros,
+        LCLtileSizeMetros=None,
+        LCLtileSemiSolapeMetros=None,
         interpolarValores=False,
         LCLmantenerTilesGuardados=False,
         TRNStilesRefuerzo=False,
     ):
+        if LCLtileSizeMetros is None:
+            LCLtileSizeMetros = GLO.GLBLtileSizeMetros
+        if LCLtileSemiSolapeMetros is None:
+            LCLtileSemiSolapeMetros = GLO.GLBLtileSemiSolapeMetros
+
         # Generar tiles a partir de una capa originalmente vectorial
         mapUsoSingular = np.zeros(256, dtype=np.uint8)
 
@@ -2693,11 +2696,16 @@ class CartoRefRaster(object):
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def crearTilesTargetFromRaster(
         self,
-        LCLtileSizeMetros=GLO.GLBLtileSizeMetros,
-        LCLtileSemiSolapeMetros=GLO.GLBLtileSemiSolapeMetros,
+        LCLtileSizeMetros=None,
+        LCLtileSemiSolapeMetros=None,
         interpolarValores=False,
         LCLmantenerTilesGuardados=False
     ):
+        if LCLtileSizeMetros is None:
+            LCLtileSizeMetros = GLO.GLBLtileSizeMetros
+        if LCLtileSemiSolapeMetros is None:
+            LCLtileSemiSolapeMetros = GLO.GLBLtileSemiSolapeMetros
+
 
         # Generar tiles a partir de una capa originalmente raster
         if GLO.GLBLverbose or __verbose__:
@@ -4153,6 +4161,7 @@ def crearTilesTargetReDepurados(
         LCLmantenerTilesGuardados=False,
     ):
 
+    GLBNsubCeldasPorCelda = int(GLO.GLBLmetrosCelda / GLO.GLBLmetrosSubCelda)
     # ==========================================================================
     # Calculo dimensiones para tiles de subCeldas y de celdillas (metricos)
     GLBNtileSizeEnPixelsSubCelda = int(math.ceil(GLO.GLBLtileSizeMetros / GLO.GLBLmetrosSubCelda)) # -> 128 ($256)
@@ -4652,6 +4661,7 @@ def crearTilesInputTarget(
     # nXcentral = int(myLasData.aSubCeldasPuntoMiniSubCel_Tlp.shape[0] / 2)
     # nYcentral = int(myLasData.aSubCeldasPuntoMiniSubCel_Tlp.shape[0] / 2)
 
+    GLBNsubCeldasPorCelda = int(GLO.GLBLmetrosCelda / GLO.GLBLmetrosSubCelda)
     # ==========================================================================
     # Calculo dimensiones para tiles de subCeldas y de celdillas (metricos)
     GLBNtileSizeEnPixelsSubCelda = int(math.ceil(GLO.GLBLtileSizeMetros / GLO.GLBLmetrosSubCelda)) # -> 128 ($256)

@@ -24,18 +24,25 @@ import logging
 try:
     from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
     from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
-    from cartolidar.clidtools.clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
+    from cartolidar.clidtools.clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
 except:
     from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
     from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
-    from .clidtwins import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwins
+    from .clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
 
 # from . import clidtwins # Inlcuye DasoLidarSource, mostrarListaDrivers, etc.
 # from . import clidtwcfg # Incluye GLO, que es una variable publica del modulo clidtwcfg
 
 
 # ==============================================================================
-VERSIONFILE = os.path.abspath('../../_version.py')
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+VERSIONFILE = os.path.abspath('_version.py')
+if not os.path.exists(VERSIONFILE):
+    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
+    if not os.path.exists(VERSIONFILE):
+        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
+        if not os.path.exists(VERSIONFILE):
+            VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
 verstrline = open(VERSIONFILE, "rt").read()
 VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
 mo = re.search(VSRE, verstrline, re.M)
@@ -111,7 +118,8 @@ elif not __quiet__:
 else:
     consoleLog.setLevel(logging.CRITICAL)
 consoleLog.setFormatter(formatter0)
-myLog = logging.getLogger(consLogYaCreado=False, myModule=thisModule, myVerboseFile=2, myVerbose=__verbose__)
+myModule = 'clidconfig'
+myLog = logging.getLogger(myModule)
 myLog.addHandler(consoleLog)
 # ==============================================================================
 myLog.debug('{:_^80}'.format(''))
