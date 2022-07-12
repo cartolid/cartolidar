@@ -38,20 +38,20 @@ try:
     from cartolidar.clidtools.clidtwins import DasoLidarSource
     from cartolidar.clidtools.clidtwinx import comprobarTipoMasaDeCapaVectorial
 except ModuleNotFoundError:
-    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-    sys.stderr.write('\t-> Se importan paquetes de cartolidar desde qlidtwins del directorio local {os.getcwd()}/clidtools.')
+    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+    sys.stderr.write('\t-> Se importan paquetes de cartolidar desde qlidtwins del directorio local {os.getcwd()}/clidtools.\n')
     from clidax import clidconfig
     from clidtools import clidtwcfg
     from clidtools.clidtwcfg import GLO
     from clidtools.clidtwins import DasoLidarSource
     from clidtools.clidtwinx import comprobarTipoMasaDeCapaVectorial
-# except ModuleNotFoundError:
-#     sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
-#     sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
-#     sys.stderr.write(f'              $ python -m cartolidar\n')
-#     sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
-#     sys.stderr.write(f'              $ python qlidtwins -h\n')
-#     sys.exit(0)
+except ModuleNotFoundError:
+    sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
+    sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
+    sys.stderr.write(f'              $ python -m cartolidar\n')
+    sys.stderr.write(f'          Para ver las opciones de qlidtwins en linea de comandos:\n')
+    sys.stderr.write(f'              $ python qlidtwins -h\n')
+    sys.exit(0)
 except SystemError as excpt:
     program_name = 'qlidtwins.py'
     sys.stderr.write(f'\n{program_name}-> Error SystemError:\n{excpt}', exc_info=True)
@@ -110,47 +110,62 @@ MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Ver https://peps.python.org/pep-0008/#module-level-dunder-names
 # Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
 # ==============================================================================
-VERSIONFILE = os.path.abspath('_version.py')
+VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
 if not os.path.exists(VERSIONFILE):
-    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
+    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
     if not os.path.exists(VERSIONFILE):
-        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
+        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
         if not os.path.exists(VERSIONFILE):
-            VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
+            VERSIONFILE = os.path.abspath('_version.py')
 if os.path.exists(VERSIONFILE):
-    verstrline = open(VERSIONFILE, "rt").read()
-    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        # __version__ = mo.groups()[0]
-        __version__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
-    VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        __date__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "..."')
-    VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        __updated__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "..."')
-    VSRE = r"^__copyright__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        __copyright__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+    try:
+        verstrline = open(VERSIONFILE, "rt").read()
+        VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            # __version__ = mo.groups()[0]
+            __version__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"\n')
+            __version__ = '0.0a0'
+        VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            __date__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"\n')
+            __date__ = '2016-2022'
+        VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            __updated__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"\n')
+            __updated__ = '2022-07-01'
+        VSRE = r"^__copyright__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            __copyright__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+            __copyright__ = '@clid 2016-22'
+    except:
+        sys.stderr.write(f'clidtools.__init__-> no se ha podido leer {VERSIONFILE}\n')
+        __version__ = '0.0a0'
+        __date__ = '2016-2022'
+        __updated__ = '2022-07-01'
+        __copyright__ = '@clid 2016-22'
 else:
-    __version__ = '0.0'
+    __version__ = '0.0a0'
     __date__ = '2016-2022'
-    __updated__ = '2022'
+    __updated__ = '2022-07-01'
     __copyright__ = '@clid 2016-22'
 # ==============================================================================
 

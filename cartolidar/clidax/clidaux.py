@@ -46,13 +46,21 @@ except:
 # from scipy.spatial.distance import pdist
 
 try:
-    # print(os.path.abspath(os.curdir))
     # print(os.environ['PATH'])
-    import gdal, ogr, osr
+    from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
 except:
-    print('clidaux-> Error importando gdal directamente, se intenta from osgeo')
+    print('clidaux-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
     gdalOk = False
+if not gdalOk:
+    try:
+        import gdal, ogr, osr, gdalnumeric, gdalconst
+        sys.stdout.write('           gdal importado ok con "import gdal".\n')
+        gdalOk = True
+    except:
+        gdalOk = False
+        print('clidaux-> Error importando gdal.')
+        # sys.exit(0)
 
 # if not gdalOk:
 #     try:
@@ -180,48 +188,65 @@ else:
 # ==============================================================================
 # Ver https://peps.python.org/pep-0008/#module-level-dunder-names
 # Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
+# Lectura de VERSIONFILE en clidbase.py, clidflow.py, qlidtwins.py,
+#     clidax.config.py, clidax.clidaux.py, clidfr.clidhead.py, clidtools.__init__.py 
 # ==============================================================================
-VERSIONFILE = os.path.abspath('_version.py')
+VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
 if not os.path.exists(VERSIONFILE):
-    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '_version.py'))
+    VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
     if not os.path.exists(VERSIONFILE):
-        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', '_version.py'))
+        VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
         if not os.path.exists(VERSIONFILE):
-            VERSIONFILE = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..', '_version.py'))
+            VERSIONFILE = os.path.abspath('_version.py')
 if os.path.exists(VERSIONFILE):
-    verstrline = open(VERSIONFILE, "rt").read()
-    VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        # __version__ = mo.groups()[0]
-        __version__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
-    VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        __date__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "..."')
-    VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        __updated__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "..."')
-    VSRE = r"^__copyright__ = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
-    mo = re.search(VSRE, verstrline, re.M)
-    if mo:
-        __copyright__ = mo.group(1)
-    else:
-        raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+    try:
+        verstrline = open(VERSIONFILE, "rt").read()
+        VSRE = r"^__version__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            # __version__ = mo.groups()[0]
+            __version__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __version__ = "a.b.c"\n')
+            __version__ = '0.0a0'
+        VSRE = r"^__date__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            __date__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __date__ = "year1-year2"\n')
+            __date__ = '2016-2022'
+        VSRE = r"^__updated__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            __updated__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __updated__ = "date"\n')
+            __updated__ = '2022-07-01'
+        VSRE = r"^__copyright__ = ['\"]([^'\"]*)['\"]"
+        mo = re.search(VSRE, verstrline, re.M)
+        mo = re.search(VSRE, verstrline, re.M)
+        if mo:
+            __copyright__ = mo.group(1)
+        else:
+            # raise RuntimeError(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+            sys.stderr.write(f'Revisar fichero {VERSIONFILE} -> Debe incluir la linea __copyright__ = "..."')
+            __copyright__ = '@clid 2016-22'
+    except:
+        sys.stderr.write(f'clidtools.__init__-> no se ha podido leer {VERSIONFILE}\n')
+        __version__ = '0.0a0'
+        __date__ = '2016-2022'
+        __updated__ = '2022-07-01'
+        __copyright__ = '@clid 2016-22'
 else:
-    __version__ = '0.0'
+    __version__ = '0.0a0'
     __date__ = '2016-2022'
-    __updated__ = '2022'
+    __updated__ = '2022-07-01'
     __copyright__ = '@clid 2016-22'
 # ==============================================================================
 

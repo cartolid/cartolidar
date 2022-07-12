@@ -46,35 +46,37 @@ except:
 # Con esto resuelvo el error al cargar gdal, que ocurre en eclipse pero no el cmd.
 # En eclipse busca antes en algun diretorio que tiene un gdal que no es que quiero usar (el de OSGeo4W64)
 try:
-    import gdal, ogr, osr, gdalnumeric, gdalconst
+    # print(os.environ['PATH'])
+    from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
 except:
+    print('clidflow-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
     gdalOk = False
-    sys.stdout.write('clidraster-> No se ha podido cargar gdal directamente, se intenta de la carpeta osgeo...\n')
 if not gdalOk:
     try:
-        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-        sys.stdout.write('             gdal importado ok de la carpeta osgeo...\n')
+        import gdal, ogr, osr, gdalnumeric, gdalconst
+        sys.stdout.write('           gdal importado ok con "import gdal".\n')
         gdalOk = True
     except:
         gdalOk = False
-        sys.stdout.write('clidraster-> Tampoco se ha podido cargar desde la carpeta osgeo.\n')
+        print('clidflow-> Error importando gdal.')
         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
 gdal.UseExceptions()
 
 # Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
+try:
+# if True:
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidcarto
     # Se importan los parametros de configuracion por defecto por si
     # se carga esta clase sin aportar algun parametro de configuracion
-# except:
-#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-#     sys.stderr.write('\t-> Se importa clidcarto desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
-#     from clidax import clidcarto
+except:
+    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+    sys.stderr.write('\t-> Se importa clidcarto desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+    from clidax import clidconfig
+    from clidax import clidcarto
 
 # ==============================================================================
 # Verbose provisional para la version alpha
@@ -302,11 +304,16 @@ def crearRasterTiff(
     #  https://github.com/OSGeo/gdal/issues/1546
     #  https://gis.stackexchange.com/questions/201061/python-gdal-api-transformosr-coordinatetransformation
     #  https://www.programcreek.com/python/example/97606/osgeo.osr.CoordinateTransformation
-    srs_25829 = gdal.osr.SpatialReference()
+    try:
+        srs_25829 = osr.SpatialReference()
+        srs_25830 = osr.SpatialReference()
+        ct_25829_to_25830 = osr.CoordinateTransformation(srs_25829, srs_25830)
+    except:
+        srs_25829 = gdal.osr.SpatialReference()
+        srs_25830 = gdal.osr.SpatialReference()
+        ct_25829_to_25830 = gdal.osr.CoordinateTransformation(srs_25829, srs_25830)
     srs_25829.ImportFromEPSG(25829)
-    srs_25830 = gdal.osr.SpatialReference()
     srs_25830.ImportFromEPSG(25830)
-    ct_25829_to_25830 = osr.CoordinateTransformation(srs_25829, srs_25830)
     hayBloquesH29 = False
 
     # ==========================================================================

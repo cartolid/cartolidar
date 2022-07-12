@@ -37,21 +37,24 @@ try:
 except:
     psutilOk = False
 
+# ==============================================================================
 try:
-    import gdal, ogr, osr, gdalnumeric, gdalconst
+    # print(os.environ['PATH'])
+    from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
 except:
+    print('clidtwins-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
     gdalOk = False
-    sys.stdout.write('clidtwins-> No se ha podido cargar gdal directamente, se intenta de la carpeta osgeo...\n')
 if not gdalOk:
     try:
-        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-        sys.stdout.write('            gdal importado ok de la carpeta osgeo...\n')
+        import gdal, ogr, osr, gdalnumeric, gdalconst
+        sys.stdout.write('           gdal importado ok con "import gdal".\n')
         gdalOk = True
     except:
         gdalOk = False
-        sys.stdout.write('clidtwins-> Tampoco se ha podido cargar desde la carpeta osgeo.\n')
+        print('clidtwins-> Error importando gdal.')
         sys.exit(0)
+# ==============================================================================
 
 '''
 configuracion original que da error:
@@ -99,23 +102,23 @@ except:
 
 
 # Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
+try:
+# if True:
     # from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools import clidtwinx
     from cartolidar.clidtools import clidtwinp
     from cartolidar.clidtools import clidtwinb
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidraster
-# except:
-#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-#     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
-#     from clidtools.clidtwcfg import GLO
-#     from clidtools import clidtwinx
-#     from clidtools import clidtwinp
-#     from clidtools import clidtwinb
-#     from clidax import clidconfig
-#     from clidax import clidraster
+except:
+    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+    from clidtools.clidtwcfg import GLO
+    from clidtools import clidtwinx
+    from clidtools import clidtwinp
+    from clidtools import clidtwinb
+    from clidax import clidconfig
+    from clidax import clidraster
 
 
 # Alternativa, si necesitara algun otro ingreciente de clidtwcfg:
@@ -1211,6 +1214,8 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 LCL_rutaAscRaizBase = str(pathlib.Path.home())
             if not os.path.isdir(LCL_rutaAscRaizBase):
                 myLog.error(f'\nclidtwins-> ATENCION: ruta {LCL_rutaAscRaizBase} no disponible, se interrumpe la ejecucion.')
+                myLog.error(f'{TB}-> Esta ruta se especifica en el fichero de configuracion.')
+                myLog.error(f'{TB}-> En esta ruta estan los ficheros con las capas vectoriales y raster requeridas para el procesado.')
                 sys.exit(0)
         else:
             LCL_rutaAscRaizBase = None

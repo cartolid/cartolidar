@@ -35,13 +35,13 @@ except:
 import numpy as np
 
 # Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
+try:
+# if True:
     from cartolidar.clidax import clidconfig
-# except:
-#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-#     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
-#     from clidax import clidconfig
+except:
+    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+    from clidax import clidconfig
 
 
 # ==============================================================================

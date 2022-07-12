@@ -18,5 +18,9 @@ if __name__ == '__main__':
         print('\nSe ha elegido ejecutar clidtwuins de forma interactiva')
         # import clidtwins
         from clidtools.clidtwins import DasoLidarSource
-        print('Metodos de DasoLidarSource: {}'.format(dir(DasoLidarSource)))
+        # print('Metodos de DasoLidarSource: {}'.format(dir(DasoLidarSource)))
+    elif nOpcionElegida == 1:
+        print('\nOpcion clidmerge no disponible por el momento.')
+    else:
+        print('\nElegir una de las opciones disponibles.')
     print('Fin de clidtools')

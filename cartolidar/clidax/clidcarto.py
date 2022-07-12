@@ -34,19 +34,20 @@ from PIL import Image
 # Para que funcione GDAL en eclipse he hecho esto:
 # En Windows->Preferences->Pydev->Interpreters->Python interpreter->Pestanna environment -> INlcuir PATH = C:/OSGeo4W64/bin
 try:
-    import gdal, ogr, osr, gdalnumeric, gdalconst
+    # print(os.environ['PATH'])
+    from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
 except:
+    print('clidcarto-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
     gdalOk = False
-    sys.stdout.write('clidcarto-> No se ha podido cargar gdal directamente, se intenta de la carpeta osgeo...\n')
 if not gdalOk:
     try:
-        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-        sys.stdout.write('            gdal importado ok de la carpeta osgeo...\n')
+        import gdal, ogr, osr, gdalnumeric, gdalconst
+        sys.stdout.write('           gdal importado ok con "import gdal".\n')
         gdalOk = True
     except:
         gdalOk = False
-        sys.stdout.write('clidcarto-> Tampoco se ha podido cargar desde la carpeta osgeo.\n')
+        print('clidcarto-> Error importando gdal.')
         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
@@ -215,7 +216,11 @@ except:
 #     or callingModuleInicial == 'clidmerge' or callingModuleInicial == 'qlidmerge'
 #     or callingModuleInicial == 'clidgis'
 # ):
-if callingModuleInicial == 'clidtools' or callingModuleInicial == 'clidclas':
+if (
+    callingModuleInicial == 'clidtools'
+    or callingModuleInicial == 'qlidtwins'
+    or callingModuleInicial == 'clidclas'
+):
     # sys.stdout.write('clidcarto-> Modulo importado desde', os.getcwd(), 'No se cargan las variables globales de cartolid.xls\n')
     class Object(object):
         pass
@@ -234,6 +239,8 @@ else:
     )
     GLO = clidconfig.VariablesGlobales(configVarsDict)
 GLO.MAIN_idProceso = MAIN_idProceso
+# if not 'GLBLnoData' in dir(GLO):
+#     GLO.GLBLnoData = 0
 
 # ==============================================================================
 myModule = __name__.split('.')[-1]

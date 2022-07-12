@@ -37,34 +37,37 @@ try:
 except:
     psutilOk = False
 
+# ==============================================================================
 try:
-    import gdal, ogr, osr, gdalnumeric, gdalconst
+    # print(os.environ['PATH'])
+    from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
 except:
+    print('clidtwinb-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
     gdalOk = False
-    sys.stdout.write('clidtwinb-> No se ha podido cargar gdal directamente, se intenta de la carpeta osgeo...\n')
 if not gdalOk:
     try:
-        from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
-        sys.stdout.write('            gdal importado ok de la carpeta osgeo...\n')
+        import gdal, ogr, osr, gdalnumeric, gdalconst
+        sys.stdout.write('           gdal importado ok con "import gdal".\n')
         gdalOk = True
     except:
         gdalOk = False
-        sys.stdout.write('clidtwinb-> Tampoco se ha podido cargar desde la carpeta osgeo.\n')
+        print('clidtwinb-> Error importando gdal.')
         sys.exit(0)
+# ==============================================================================
 
 # Recuperar la captura de errores de importacion en la version beta
-# try:
-if True:
+try:
+# if True:
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidraster
     from cartolidar.clidtools.clidtwcfg import GLO
-# except:
-#     sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-#     sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
-#     from clidax import clidconfig
-#     from clidax import clidraster
-#     from clidtools.clidtwcfg import GLO
+except:
+    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+    from clidax import clidconfig
+    from clidax import clidraster
+    from clidtools.clidtwcfg import GLO
 
 
 # GLO.GLBLcompilaConNumbaPorDefecto = False
@@ -821,8 +824,10 @@ def rellenarLocalClusterNb(
                 # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
                 print('clidtwinb-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
             elif contadorAvisosCluster == 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
-                print('clidtwinb-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster.')
+                # myLog.debug(f'{TB}{TV}-> No se muestran mas.')
+                print('clidtwinb-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster.')
+                print('         -> No se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
