@@ -1,6 +1,7 @@
 #!/usr/bin/env/python
-# -*- coding: UTF-8 -*-
+# -*- coding: cp1252 -*-
 """Installation script for cartolidar
+# -*- coding: UTF-8 -*-
 """
 
 import os

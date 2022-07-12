@@ -220,6 +220,9 @@ if (
     callingModuleInicial == 'clidtools'
     or callingModuleInicial == 'qlidtwins'
     or callingModuleInicial == 'clidclas'
+    or callingModuleInicial == 'runpy'
+    or callingModuleInicial == '__init__'
+    or callingModuleInicial == '__main__'
 ):
     # sys.stdout.write('clidcarto-> Modulo importado desde', os.getcwd(), 'No se cargan las variables globales de cartolid.xls\n')
     class Object(object):
@@ -239,9 +242,33 @@ else:
     )
     GLO = clidconfig.VariablesGlobales(configVarsDict)
 GLO.MAIN_idProceso = MAIN_idProceso
-# if not 'GLBLnoData' in dir(GLO):
-#     GLO.GLBLnoData = 0
-
+mostrarCallingModuleInicial = False
+if not 'GLBLverbose' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLverbose = False
+if not 'GLBLmetrosSubCelda' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLmetrosSubCelda = 2.0
+if not 'GLBLmetrosCelda' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLmetrosCelda = 10.0
+if not 'GLBLtileSizeMetros' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLtileSizeMetros = 512
+if not 'GLBLtileSemiSolapeMetros' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLtileSemiSolapeMetros = 6
+if not 'GLBLnoData' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLnoData = -9999
+if not 'GLBLnoData8bits' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLnoData8bits = 255
+if not 'GLBLrasterPixelSize' in dir(GLO):
+    mostrarCallingModuleInicial = True
+    GLO.GLBLrasterPixelSize = 10
+if mostrarCallingModuleInicial:
+    print(f'clidcarto-> callingModuleInicial: {callingModuleInicial}')
 # ==============================================================================
 myModule = __name__.split('.')[-1]
 myUser = clidconfig.infoUsuario()
@@ -628,12 +655,12 @@ class CartoRefVector(object):
             '{}.{}'.format(self.nombreCapaInputVector, driverExt)
         )
         if not gdalOk:
-            myLog.error(f'{TB}clidcarto-> Gdal no disponible; no se puede leer {self.nombreConPathCapaInputVector}')
+            myLog.error(f'clidcarto-> Gdal no disponible; no se puede leer {self.nombreConPathCapaInputVector}')
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return
         if not os.path.exists(self.nombreConPathCapaInputVector):
-            myLog.error(f'{TB}clidcarto-> AVISO no esta disponible el fichero {self.nombreConPathCapaInputVector}')
+            myLog.error(f'clidcarto-> AVISO no esta disponible el fichero {self.nombreConPathCapaInputVector}')
             self.usarVectorRef = 0
             self.inputVectorRefLayer = None
             return

@@ -26,7 +26,9 @@ generate useful information for forestry and natural environment management (das
 
 This project is in alpha version and for now only includes the "clidtwins" tool.
 
-"clidtwins" searchs for similar areas to a reference one in terms of dasoLidar variables (DLVs)
+"clidtwins" searchs for similar areas to a reference one in terms of dasoLidar variables (DLVs).
+
+This tool requires, as input, raster files with dasoLidar variables in asc format.
 
 DLV: Lidar variables that describe or characterize forest or land cover structure.
 
@@ -103,13 +105,21 @@ a) Run cartolidar package:
 ```
 python -m cartolidar [options]
 ```
-It starts the main menu with the avaliable tools.
+It starts the main menu with the avaliable tools (or executes the selected option if -o flag is used).
+
+Before runing the tool it's necesary to prepare the required inputs for the selected tool.
+
+See required inputs below.
 
 This alpha version includes only qlidtwins tools, wich make use of clidtwins package.
 
->Se inicia el menu principal con las herramientas disponibles en cartolidar.
+>Se inicia el menu principal con las herramientas disponibles en cartolidar (o ejecuta una herramienta específica si se indica con la opción -o).
 >
->Inicialmente solo está disponible la herramienta qlidtwins que utliza el paquete clidtwins.
+>Antes de ejecutar una herramienta se deben de preparar los inputs que requiere esa herramienta.
+>
+>Ver mas abajo info sobre los inputs que require cada herramienta (normalmente capas vectoriales o raster).
+>
+>Inicialmente solo está disponible la herramienta qlidtwins (esta herramienta es un ejemplo de uso del módulo clidtwins).
 
 [options] 
 <pre>
@@ -173,14 +183,16 @@ In this case, there are no options: it runs with qlidtwins.cfg configuration (if
 
 Required inputs
 ----
-Read [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/) for details.
+See [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/) for details.
 
-clidtwins reads files in "asc" format (single vector layers) each with a dasoLidar variable (DLV).
+This tool requires raster files with dasoLidarVariables that are used to look for areas similar to a reference one.
+
+clidtwins reads raster files ("asc" format) each with a dasoLidar variable (DLV): one file <=> one DLV.
 
 > Those files have to be named as: XXX_YYYY_\*IdFileType\*.asc where:
 > - XXX, YYYY are UTM coordinates (miles) that identifies the location (the block).
 >   - XXX, YYYY are usually the upper-left corner of a 2x2 km square area
-> - \*IdFileType\* is any string that includes a DVL identifier (like alt95, fcc05, etc.).
+> - \*IdFileType\* is any text that includes a file-type (DVL) identifier (like alt95, fcc05, etc.).
 > 
 > Example: 318_4738_alt95.asc and 320_4738_alt95.asc are two files with alt95 variable (blocks: 318_4738 and 320_4738).
 > 
@@ -188,9 +200,11 @@ clidtwins reads files in "asc" format (single vector layers) each with a dasoLid
 > 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
 
 
-It's also advisable to include a layer with forest type codes.
+It's also advisable to include a layer with forest type codes (forest-type = combination of forest species).
 
-> TODO: describe procedure
+> - This forest-type layer is a vector layer (shp or gpkg)
+> - It has to include one field that has the forest type code (type int).
+> - Spanish Forest Map (MFE) is usefull for this function. Requires a numeric field wuth forest-type codes.
 
 
 
@@ -225,8 +239,11 @@ myDasolidar.searchSourceFiles(
     LCL_rutaAscRaizBase='C:/myAscFiles',
 )
 ```
-This method creates a property named inFilesListAllTypes. It is a list for every DLV,
-each with the list of found file tuples for that file type.
+This method creates a property named "inFilesListAllTypes":
+```
+myDasolidar.inFilesListAllTypes
+```
+It is a list that includes, for every DLV, one list of found files corresponding to that DLV.
 It only includes files of blocks that have all the file types (one file type = one DLV).
 Every file tuple consist of a file path and file name.
 

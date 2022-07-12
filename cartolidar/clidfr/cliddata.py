@@ -4297,11 +4297,11 @@ class LasData(object):
     def chequeaNumeroDePuntosPorCelda(self):
         self.maxNumPuntosPorCelda = 0
         self.celdasSinPuntos = 0
+        self.celdasConPocosPuntosTotales = 0
+        self.nCeldasConMasDeMidLimPuntos = 0
         self.nCeldasConMasDeLowLimPuntos = 0
         self.nCeldasConMasDeHigLimPuntos = 0
-        self.nCeldasConMasDeMaxLimPuntos = 0
-        self.nCeldasConMasDeMidLimPuntos = 0
-        self.celdasConPocosPuntosTotales = 0
+        # self.nCeldasConMasDeMaxLimPuntos = 0
         self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda = 0
         self.nCeldasConDemasiadosPuntosTlrTlp = 0
         self.nCeldasConDemasiadosPuntosTlrPas = 0
@@ -4320,38 +4320,70 @@ class LasData(object):
                     print('cliddata-> Demasiados puntos (mas de 2**16/2 = 32768) en', nX, nY, self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY])
                     input('cliddata-> ATENCION: Redimensionar aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar')
                     quit()
-                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] == 0:
-                    self.celdasSinPuntos += 1
-                    if self.celdasSinPuntos <= 5:
-                        clidaux.printMsg(
-                            '\tcliddata->Celda nX: %03i, nY: %03i: No tiene puntos (posible agua; puede haber mas). Coord del centro: x:%i; y:%i'
-                            % (
-                                nX,
-                                nY,
-                                int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                                int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
-                            )
-                        )
-                    elif self.celdasSinPuntos == 6:
-                        clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas sin puntos')
 
-                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > LCL_lowLimit:
+                if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] < GLO.GLBLminimoDePuntosTotales:
+                    self.celdasConPocosPuntosTotales += 1
+                    if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] == 0:
+                        self.celdasSinPuntos += 1
+                        if self.celdasSinPuntos <= 5:
+                            clidaux.printMsg(
+                                '\tcliddata->Celda nX: %03i, nY: %03i: No tiene puntos (posible agua; puede haber mas). Coord del centro: x:%i; y:%i'
+                                % (
+                                    nX,
+                                    nY,
+                                    int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                                    int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                                )
+                            )
+                        elif self.celdasSinPuntos == 6:
+                            clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas sin puntos')
+                    else:
+                        if self.celdasConPocosPuntosTotales <= 5:
+                            clidaux.printMsg(
+                                '\tcliddata->Celda nX: %03i, nY: %03i: Tiene pocos puntos (puede haber mas). Coord del centro: x:%i; y:%i'
+                                % (
+                                    nX,
+                                    nY,
+                                    int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                                    int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                                )
+                            )
+                        elif self.celdasConPocosPuntosTotales == 6:
+                            clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con pocos puntos')
+
+
+                # En principio self.LCLnMaxPtosCeldaArrayPredimensionadaTodos es igual que GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos
+                # Pero creo que puede diferir porque puedo ampliar el limite a la vista de los percentiles de numero de puntos.
+                if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > self.LCLnMaxPtosCeldaArrayPredimensionadaTodos:
+                    self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda += 1
+                    # if self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda == 1:
+                    #    clidaux.printMsg('\t\t-> Celda (%i %i) con %i puntos (solo se guardan %i puntos en el array; el resto no se usan en el procesado)' % (nX, nY, self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrarPlus[nX, nY], self.LCLnMaxPtosCeldaArrayPredimensionadaTodos) )
+
+                # Limite de puntos en el array predimensionada (LCL_lowLimit)
+                # y limite indicador de mala distribucion de puntos (LCL_higLimit)
+                if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > LCL_lowLimit: # 1000
                     self.nCeldasConMasDeLowLimPuntos += 1
-                    if self.nCeldasConMasDeLowLimPuntos <= 5:
+                    if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > LCL_higLimit: # 2000
+                        self.nCeldasConMasDeHigLimPuntos += 1
+                        if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo: # 10000
+                            self.nCeldasConDemasiadosPuntosTlrTlp += 1
+                            # if self.nCeldasConDemasiadosPuntosTlrTlp == 1:
+                            #    clidaux.printMsg('\t\t-> Celda (%i %i) con %i puntos (mas de %i puntos)' % (nX, nY, self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY], GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo) )
+                if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo: # 10000
+                    if self.nCeldasConDemasiadosPuntosTlrTlp <= 5:
                         clidaux.printMsg(
                             '\tcliddata->Celda nX: %03i, nY: %03i: Tiene mas de %i puntos (puede haber mas). Coord del centro: x:%i; y:%i'
                             % (
                                 nX,
                                 nY,
-                                LCL_lowLimit,
+                                GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo,
                                 int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
                                 int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                             )
                         )
-                    elif self.nCeldasConMasDeLowLimPuntos == 6:
-                        clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con mas de %i puntos' % LCL_lowLimit)
-                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > LCL_higLimit:
-                    self.nCeldasConMasDeHigLimPuntos += 1
+                    elif self.nCeldasConDemasiadosPuntosTlrTlp == 6:
+                        clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con mas de %i puntos' % LCL_higLimit)
+                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > LCL_higLimit: # 2000
                     if self.nCeldasConMasDeHigLimPuntos <= 5:
                         clidaux.printMsg(
                             '\tcliddata->Celda nX: %03i, nY: %03i: Tiene mas de %i puntos (puede haber mas). Coord del centro: x:%i; y:%i'
@@ -4365,47 +4397,39 @@ class LasData(object):
                         )
                     elif self.nCeldasConMasDeHigLimPuntos == 6:
                         clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con mas de %i puntos' % LCL_higLimit)
-                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrPas:
-                    self.nCeldasConMasDeMidLimPuntos += 1
-                    if self.nCeldasConMasDeMidLimPuntos <= 5:
+                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > LCL_lowLimit: # 1000
+                    if self.nCeldasConMasDeLowLimPuntos <= 5:
                         clidaux.printMsg(
                             '\tcliddata->Celda nX: %03i, nY: %03i: Tiene mas de %i puntos (puede haber mas). Coord del centro: x:%i; y:%i'
                             % (
                                 nX,
                                 nY,
-                                GLO.GLBLnMaxPtosCeldaTlrPas,
+                                LCL_lowLimit,
                                 int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
                                 int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                             )
                         )
-                    elif self.nCeldasConMasDeMidLimPuntos == 6:
-                        clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con mas de %i puntos (limite de puntos que se guardan de cada pasada: GLBLnMaxPtosCeldaTlrPas)' % GLO.GLBLnMaxPtosCeldaTlrPas)
-                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos:
-                    self.nCeldasConMasDeMaxLimPuntos += 1
-                    if self.nCeldasConMasDeMaxLimPuntos <= 5:
-                        clidaux.printMsg(
-                            '\tcliddata->Celda nX: %03i, nY: %03i: Tiene mas de %i puntos (puede haber mas). Coord del centro: x:%i; y:%i'
-                            % (
-                                nX,
-                                nY,
-                                GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos,
-                                int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                                int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
-                            )
-                        )
-                    elif self.nCeldasConMasDeMaxLimPuntos == 6:
-                        clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con mas de %i puntos (limite de puntos que se guardan en cada celda: GLBLnMaxPtosCeldaArrayPredimensionadaTodos)' % GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos)
+                    elif self.nCeldasConMasDeLowLimPuntos == 6:
+                        clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con mas de %i puntos' % LCL_lowLimit)
 
-                if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] < GLO.GLBLminimoDePuntosTotales:
-                    self.celdasConPocosPuntosTotales += 1
-                elif self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > self.LCLnMaxPtosCeldaArrayPredimensionadaTodos:
-                    self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda += 1
-                    # if self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda == 1:
-                    #    clidaux.printMsg('\t\t-> Celda (%i %i) con %i puntos (solo se guardan %i puntos en el array; el resto no se usan en el procesado)' % (nX, nY, self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrarPlus[nX, nY], self.LCLnMaxPtosCeldaArrayPredimensionadaTodos) )
-                if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo:
-                    self.nCeldasConDemasiadosPuntosTlrTlp += 1
-                    # if self.nCeldasConDemasiadosPuntosTlrTlp == 1:
-                    #    clidaux.printMsg('\t\t-> Celda (%i %i) con %i puntos (mas de %i puntos)' % (nX, nY, self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY], GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo) )
+                # Uso el limite de puntos en una pasada como umbral adicional para reflejar
+                # la distribucion del numero de puntos (todas las pasadas) por celda.
+                # Podria ahorrarmelo porque no expresa nada concreto (ya tengo mis percentiles)
+                if self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrPas: # 700
+                    self.nCeldasConMasDeMidLimPuntos += 1
+                    # if self.nCeldasConMasDeMidLimPuntos <= 5:
+                    #     clidaux.printMsg(
+                    #         '\tcliddata->Celda nX: %03i, nY: %03i: Tiene mas de %i puntos (puede haber mas). Coord del centro: x:%i; y:%i'
+                    #         % (
+                    #             nX,
+                    #             nY,
+                    #             GLO.GLBLnMaxPtosCeldaTlrPas,
+                    #             int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                    #             int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                    #         )
+                    #     )
+                    # elif self.nCeldasConMasDeMidLimPuntos == 6:
+                    #     clidaux.printMsg('\t\t\t-> Hay mas de 5 celdas con mas de %i puntos (limite de puntos que se guardan de cada pasada: GLBLnMaxPtosCeldaTlrPas)' % GLO.GLBLnMaxPtosCeldaTlrPas)
 
                 for reCuentaPasadas in range(self.numTotalPasadas):
                     if self.aCeldasNumPuntosTlrTlcEcpOk[nX, nY][reCuentaPasadas]['Id'] == GLO.GLBLnoData:
@@ -4419,7 +4443,7 @@ class LasData(object):
                 or self.celdasConPocosPuntosTotales > 0
                 or self.nCeldasConMasDeLowLimPuntos > 0
                 or self.nCeldasConMasDeHigLimPuntos > 0
-                or self.nCeldasConMasDeMaxLimPuntos > 0
+                # or self.nCeldasConMasDeMaxLimPuntos > 0
                 or self.nCeldasConMasDeMidLimPuntos > 0
                 or self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda > 0
                 or self.nCeldasConDemasiadosPuntosTlrPas > 0
@@ -4434,6 +4458,10 @@ class LasData(object):
                 clidaux.printMsg('\t\t-> Hay %5i celdas con menos de %i puntos totales (GLBLminimoDePuntosTotales)' % (self.celdasConPocosPuntosTotales, GLO.GLBLminimoDePuntosTotales))
             else:
                 clidaux.printMsg('\t\t-> No hay celdas con menos de %i puntos totales (GLO.GLBLminimoDePuntosTotales)' % (GLO.GLBLminimoDePuntosTotales))
+            if self.nCeldasConMasDeMidLimPuntos > 0:
+                clidaux.printMsg('\t\t-> Hay %5i celdas con mas de %i puntos totales (GLBLnMaxPtosCeldaTlrPas)' % (self.nCeldasConMasDeMidLimPuntos, GLO.GLBLnMaxPtosCeldaTlrPas))
+            else:
+                clidaux.printMsg('\t\t-> No hay celdas con mas de %i puntos totales (GLBLnMaxPtosCeldaTlrPas)' % (GLO.GLBLnMaxPtosCeldaTlrPas))
             if self.nCeldasConMasDeLowLimPuntos > 0:
                 clidaux.printMsg('\t\t-> Hay %5i celdas con mas de %i puntos totales (LCL_lowLimit)' % (self.nCeldasConMasDeLowLimPuntos, LCL_lowLimit))
             else:
@@ -4442,16 +4470,30 @@ class LasData(object):
                 clidaux.printMsg('\t\t-> Hay %5i celdas con mas de %i puntos totales (LCL_higLimit)' % (self.nCeldasConMasDeHigLimPuntos, LCL_higLimit))
             else:
                 clidaux.printMsg('\t\t-> No hay celdas con mas de %i puntos totales (LCL_higLimit)' % (LCL_higLimit))
-            if self.nCeldasConMasDeMidLimPuntos > 0:
-                clidaux.printMsg('\t\t-> Hay %5i celdas con mas de %i puntos totales (GLBLnMaxPtosCeldaTlrPas)' % (self.nCeldasConMasDeMidLimPuntos, GLO.GLBLnMaxPtosCeldaTlrPas))
-            else:
-                clidaux.printMsg('\t\t-> No hay celdas con mas de %i puntos totales (GLBLnMaxPtosCeldaTlrPas)' % (GLO.GLBLnMaxPtosCeldaTlrPas))
-            if self.nCeldasConMasDeMaxLimPuntos > 0:
+
+            if self.nCeldasConDemasiadosPuntosTlrTlp > 0:
                 clidaux.printMsg(
-                    '\t\tHay %5i celdas con mas de %i puntos totales (GLBLnMaxPtosCeldaArrayPredimensionadaTodos)' % (self.nCeldasConMasDeMaxLimPuntos, GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos)
+                    '\t\tHay %5i celdas con mas de los %i puntos que se leen como max en cada celda (todas las pasadas)'
+                    % (self.nCeldasConDemasiadosPuntosTlrTlp, GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo)
+                )
+                # clidaux.printMsg(
+                #     '\t\t\t %i puntos descartados por exceder el maximo de puntos por celda'
+                #     % self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
+                # )
+            else:
+                clidaux.printMsg('\t\t-> No hay celdas con mas de los %i puntos que se leen como max en cada celda (todas las pasadas) (GLBLnMaxPtosCeldaTlrTlpPrevioExtremo)' % (GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo))
+
+            if self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda > 0:
+                clidaux.printMsg(
+                    '\t\tHay %5i celdas con mas de los %i puntos que se guardan en el array (en cada celda; todas las pasadas)'
+                    % (self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
+                )
+                clidaux.printMsg(
+                    '\t\t\t-> %i puntos descartados por exceder el maximo de puntos que se guardan por celda'
+                    % self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos
                 )
             else:
-                clidaux.printMsg('\t\t-> No hay celdas con mas de %i puntos totales (GLBLnMaxPtosCeldaArrayPredimensionadaTodos)' % (GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos))
+                clidaux.printMsg('\t\t-> No hay celdas con mas de los %i puntos que se guardan en el array (en cada celda; todas las pasadas) (LCLnMaxPtosCeldaArrayPredimensionadaTodos)' % (self.LCLnMaxPtosCeldaArrayPredimensionadaTodos))
 
             if self.nCeldasConDemasiadosPuntosTlrPas > 0:
                 clidaux.printMsg(
@@ -4464,28 +4506,6 @@ class LasData(object):
                 )
             else:
                 clidaux.printMsg('\t\t-> No hay celdas con mas de %i puntos en alguna pasada (GLBLnMaxPtosCeldaTlrPas)' % (GLO.GLBLnMaxPtosCeldaTlrPas))
-            if self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda > 0:
-                clidaux.printMsg(
-                    '\t\tHay %5i celdas con mas de los %i puntos que se guardan en el array (en cada celda; todas las pasadas)'
-                    % (self.nCeldasConMasPuntosDeLosAdmitidosEnLaCelda, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
-                )
-                clidaux.printMsg(
-                    '\t\t\t-> %i puntos descartados por exceder el maximo de puntos que se guardan por celda'
-                    % self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos
-                )
-            else:
-                clidaux.printMsg('\t\t-> No hay celdas con mas de los %i puntos que se guardan en el array (en cada celda; todas las pasadas) (LCLnMaxPtosCeldaArrayPredimensionadaTodos)' % (self.LCLnMaxPtosCeldaArrayPredimensionadaTodos))
-            if self.nCeldasConDemasiadosPuntosTlrTlp > 0:
-                clidaux.printMsg(
-                    '\t\tHay %5i celdas con mas de los %i puntos que se leen como max en cada celda (todas las pasadas)'
-                    % (self.nCeldasConDemasiadosPuntosTlrTlp, GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo)
-                )
-                # clidaux.printMsg(
-                #     '\t\t\t %i puntos descartados por exceder el maximo de puntos por celda'
-                #     % self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
-                # )
-            else:
-                clidaux.printMsg('\t\t-> No hay celdas con mas de los %i puntos que se leen como max en cada celda (todas las pasadas) (GLBLnMaxPtosCeldaTlrTlpPrevioExtremo)' % (GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo))
 
             clidaux.printMsg(
                 '\tcliddata->Numero de puntos contabilizados en la celda de mas puntos: %i puntos (por encima de %i no se contabilizan). Solo se guardan %i puntos por celda.'
@@ -5153,10 +5173,10 @@ class LasData(object):
 
                 if self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrPas:
                     self.nCeldasConDemasiadosPuntosTlrPas += 1
-                    if self.nCeldasConDemasiadosPuntosTlrPas < 50:
+                    if self.nCeldasConDemasiadosPuntosTlrPas < 10:
                         print(
                             'cliddata->', nX, nY,
-                            'Por que hay mas de %i puntos en una celda?' % GLO.GLBLnMaxPtosCeldaTlrPas,
+                            'Hay mas de %i puntos en una celda en la pasada seleccionada' % GLO.GLBLnMaxPtosCeldaTlrPas,
                             '-> self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]', self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY],
                         )
                         print(
@@ -5166,7 +5186,7 @@ class LasData(object):
                                self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY],
                                GLO.GLBLnMaxPtosCeldaTlrPas)
                         )
-                    elif self.nCeldasConDemasiadosPuntosTlrPas == 50:
+                    elif self.nCeldasConDemasiadosPuntosTlrPas == 10:
                         print(
                             'cliddata-> Revisar la seleccion de la pasada-> aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY]',
                             self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY],

@@ -1214,7 +1214,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 LCL_rutaAscRaizBase = str(pathlib.Path.home())
             if not os.path.isdir(LCL_rutaAscRaizBase):
                 myLog.error(f'\nclidtwins-> ATENCION: ruta {LCL_rutaAscRaizBase} no disponible, se interrumpe la ejecucion.')
-                myLog.error(f'{TB}-> Esta ruta se especifica en el fichero de configuracion.')
+                myLog.error(f'{TB}-> Esta ruta se especifica en el fichero de configuracion ({GLO.configFileNameCfg}).')
                 myLog.error(f'{TB}-> En esta ruta estan los ficheros con las capas vectoriales y raster requeridas para el procesado.')
                 sys.exit(0)
         else:

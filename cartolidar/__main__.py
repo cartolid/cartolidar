@@ -137,7 +137,7 @@ def mensajeError(program_name):
         descError = exc_obj.strerror
     except:
         descError = exc_obj
-    sys.stderr.write('')
+    sys.stderr.write('\n')
     sys.stderr.write(f'Ops! Ha surgido un error inesperado.\n')
     sys.stderr.write(f'Si quieres contribuir a depurar este programa envía el\n')
     sys.stderr.write(f'texto que aparece a continacion a: cartolidar@gmail.com\n')
@@ -213,6 +213,11 @@ def leerArgumentosEnLineaDeComandos(
             fromfile_prefix_chars='@',
             )
         # Opciones:
+        parser.add_argument('-H',
+                            dest='toolHelp',
+                            type=str,
+                            help='Nombre de la herramienta para la que se quiere obtener ayuda (qlidtwins, clidmerge, etc.). Default: %(default)s',
+                            default = 'None',)
         parser.add_argument('-v', '--verbose',
                             dest='verbose',
                             action='count', # Cuenta el numero de veces que aparece la v (-v, -vv, -vvv, etc.)
@@ -230,11 +235,6 @@ def leerArgumentosEnLineaDeComandos(
                             # help=f'{opcionesPrincipales[0]}; \n{opcionesPrincipales[1]}; \n{opcionesPrincipales[2]}. Default: %(default)s',
                             help=f'{optionsHelp}. Default: %(default)s',
                             default = '0',)
-        parser.add_argument('-H',
-                            dest='toolHelp',
-                            type=str,
-                            help='Nombre de la herramienta para la que se quiere obtener ayuda (qlidtwins, clidmerge, etc.). Default: %(default)s',
-                            default = 'None',)
 
         # args = parser.parse_args()
         # Se ignoran argumentos desconocidos sin problemas porque no los hay posicionales
@@ -275,9 +275,9 @@ if __name__ == '__main__':
         opcionesPrincipales=opcionesPrincipales,
         )
     if args is None:
-        myLog.error('\ncartolidar-> ATENCION: error en los argumentos en linea de comandos')
-        # myLog.error('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error')
-        sys.stderr.write('')
+        sys.stderr.write('\ncartolidar-> ATENCION: error en los argumentos en linea de comandos\n')
+        # sys.stderr.write('\t-> La funcion leerArgumentosEnLineaDeComandos<> ha dado error\n')
+        sys.stderr.write('\n')
         sys.stderr.write(f'For help use:\n')
         sys.stderr.write(f'\tpython -m cartolidar -h\n')
         sys.exit(0)
@@ -302,15 +302,15 @@ if __name__ == '__main__':
             from cartolidar import qlidmerge
             sys.exit(0)
         else:
-            myLog.error(f'Revisar los argumentos. El argumento -H debe ir con nombre del modulo sobre el que se pide ayuda.')
-            myLog.error(f'\t-> sys.argv: {sys.argv}')
+            sys.stderr.write(f'Revisar los argumentos. El argumento -H debe ir con nombre del modulo sobre el que se pide ayuda.\n')
+            sys.stderr.write(f'\t-> sys.argv: {sys.argv}\n')
             sys.exit(0)
 
 
 
     opcionPorDefecto = 1
     if args.menuOption <= 0:
-        print('\ncartolidar-> Menu de herramientas de cartolidar')
+        sys.stdout.write('\ncartolidar-> Menu de herramientas de cartolidar\n')
         for opcionPrincipal in opcionesPrincipales[1:]:
             print(f'\t{opcionPrincipal}.')
         selec = input(f'Elije opcion ({opcionPorDefecto}): ')
@@ -320,19 +320,19 @@ if __name__ == '__main__':
             try:
                 nOpcionElegida = int(selec)
             except:
-                myLog.info('')
-                myLog.error(f'ATENCION: Opcion elegida no disponible: <{selec}>')
+                sys.stdout.write('\n')
+                sys.stderr.write(f'ATENCION: Opcion elegida no disponible: <{selec}>\n')
                 sys.exit(0)
-        myLog.info('')
-        myLog.info(f'Se ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}')
+        sys.stdout.write('\n')
+        sys.stdout.write(f'Se ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}\n')
     elif args.menuOption < len(opcionesPrincipales):
-        myLog.info('')
-        myLog.info(f'Opcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}')
+        sys.stdout.write('\n')
+        sys.stdout.write(f'Opcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}\n')
         nOpcionElegida = args.menuOption
     else:
-        myLog.error('')
-        myLog.error(f'ATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}')
-        myLog.error('Fin de cartolidar\n')
+        sys.stderr.write('\n')
+        sys.stderr.write(f'ATENCION: Opcion elegida en linea de comandos no disponible:\n\t{args.menuOption}\n')
+        sys.stderr.write('Fin de cartolidar\n')
         sys.exit(0)
 
     if nOpcionElegida == 1:
@@ -342,8 +342,9 @@ if __name__ == '__main__':
     elif nOpcionElegida == 2:
         myLog.debug('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
         myLog.warning('\nAVISO: herramienta pendiente de incluir en cartolidar.')
+        sys.stdout.write('ATENCION: opcion no disponible (por el momento).\n')
         # from cartolidar import qlidmerge
-    myLog.info('\nFin de cartolidar\n')
+    sys.stdout.write('\nFin de cartolidar\n')
 
 #TODO: Completar cuando haya incluido mas herramientas en cartolidar
 

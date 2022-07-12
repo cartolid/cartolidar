@@ -186,7 +186,7 @@ def obtenerExtensionDeCapaVectorial(
         )
     if not usarVectorFileParaDelimitarZona:
         myLog.error(f'\nclidtwinx-> ATENCION: no esta disponible el fichero: {patronVectrNameConPath}')
-        myLog.error(f'{TB}-> Este fichero se especifica en el fichero de configuracion.')
+        myLog.error(f'{TB}-> Este fichero se especifica en el fichero de configuracion ({GLO.configFileNameCfg}).')
         myLog.error(f'{TB}-> Es necesaro porque contiene los poligonos de referencia para buscar otros similares.')
         return None
     if not gdalOk:
