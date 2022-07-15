@@ -26,7 +26,8 @@ import subprocess
 # import argparse
 # from configparser import RawConfigParser
 import logging
-# import importlib
+import importlib
+import importlib.util
 import struct
 import shutil
 import gc
@@ -61,17 +62,6 @@ if not gdalOk:
         gdalOk = False
         print('clidaux-> Error importando gdal.')
         # sys.exit(0)
-
-# if not gdalOk:
-#     try:
-#         from osgeo import gdal
-#         import ogr
-#         gdalOk = True
-#     except:
-#         gdalOk = False
-#         print('clidaux-> Error importando gdal from osgeo')
-#         print('clidaux-> No se ha podido cargar gdal directamente, se intente de la carpeta osgeo')
-
 
 # ==============================================================================
 if __name__ == '__main__':
@@ -152,10 +142,6 @@ MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
 MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
 MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
-if 'cartolidar' in MAIN_RAIZ_DIR:
-    MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
-else:
-    MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
 # Directorio desde el que se lanza la app (estos dos coinciden):
 MAIN_BASE_DIR = os.path.abspath('.')
 MAIN_THIS_DIR = os.getcwd()
@@ -418,25 +404,34 @@ if CONFIGverbose:
     # https://stackoverflow.com/questions/61234609/how-to-import-python-package-from-another-directory
     # https://realpython.com/python-import/
     # https://blog.ionelmc.ro/2014/05/25/python-packaging/
-    sys.path.insert(0, os.path.join(MAIN_PROJ_DIR, 'cartolidar/clidax'))
-try:
+    # sys.path.insert(0, os.path.join(MAIN_PROJ_DIR, 'cartolidar/clidax'))
+
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     if CONFIGverbose:
         sys.stdout.write('\nclidaux-> Importando clidconfig desde cartolidar.clidax\n')
     from cartolidar.clidax import clidconfig
     if CONFIGverbose:
-        sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (1)')
-except:
+        sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (0)')
+else:
     try:
         if CONFIGverbose:
-            sys.stdout.write(f'\nclidaux-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
-        from clidax import clidconfig
+            sys.stdout.write('\nclidaux-> Importando clidconfig desde cartolidar.clidax\n')
+        from cartolidar.clidax import clidconfig
         if CONFIGverbose:
-            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado del clidax local (2)')
+            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (1)')
     except:
-        # Alternativa para cuando el modulo inicial es este u otro modulo de este package:
-        import clidconfig
-        if CONFIGverbose:
-            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado directamente (modulo inicial en el mismo package que clidconfig) (3)')
+        try:
+            if CONFIGverbose:
+                sys.stdout.write(f'\nclidaux-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
+            from clidax import clidconfig
+            if CONFIGverbose:
+                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado del clidax local (2)')
+        except:
+            # Alternativa para cuando el modulo inicial es este u otro modulo de este package:
+            import clidconfig
+            if CONFIGverbose:
+                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado directamente (modulo inicial en el mismo package que clidconfig) (3)')
 
 # ==============================================================================
 MAINusuario = infoUsuario(False)
@@ -455,16 +450,24 @@ nuevosParametroConfiguracion['MAIN_HOME_DIR'] = [MAIN_HOME_DIR, 'GrupoDirsFiles'
 nuevosParametroConfiguracion['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'GrupoDirsFiles', '', 'str']
 nuevosParametroConfiguracion['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'GrupoDirsFiles', '', 'str']
 nuevosParametroConfiguracion['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'GrupoDirsFiles', '', 'str']
-nuevosParametroConfiguracion['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'GrupoDirsFiles', '', 'str']
+# nuevosParametroConfiguracion['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'GrupoDirsFiles', '', 'str']
 nuevosParametroConfiguracion['MAIN_BASE_DIR'] = [MAIN_BASE_DIR, 'GrupoDirsFiles', '', 'str']
 nuevosParametroConfiguracion['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'GrupoDirsFiles', '', 'str']
 # ==============================================================================
 
 # ==============================================================================
-print(f'\nclidaux-> Se cargan las variables globales.')
-print(f'{TB}-> __name__:        {__name__}')
-print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
-print(f'{TB}-> Ruta de trabajo: {os.getcwd()}')
+print(f'\n{"":_^80}')
+print(f'\nclidaux-> Al importar clidaux se asignan las variables globales con directorios MAIN_...')
+print(f'{TB}como propiedades de GLO y se guardan en el fichero de configuracion cfg.')
+print(f'{TB}-> Este modulo (__name__):  {__name__}')
+print(f'{TB}-> Ha sido importado desde: {callingModulePrevio}')
+print(f'{TB}-> Modulo inicial:          {callingModuleInicial}')
+print(f'{TB}-> MAIN_PROJ_DIR:          {MAIN_PROJ_DIR}')
+print(f'{TB}-> MAIN_RAIZ_DIR:          {MAIN_RAIZ_DIR}')
+print(f'{TB}-> MAIN_BASE_DIR:          {MAIN_BASE_DIR}')
+print(f'{TB}-> MAIN_THIS_DIR:          {MAIN_THIS_DIR}')
+print(f'{TB}-> MAIN_HOME_DIR:          {MAIN_HOME_DIR}')
+# print(f'{TB}-> Ruta de trabajo:         {os.getcwd()}')
 # ==============================================================================
 if CONFIGverbose:
     print(f'\nclidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (con o sin nuevosParametroConfiguracion) para leer los parametros de configuracion del fichero cfg')
@@ -477,6 +480,10 @@ GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
 if CONFIGverbose:
     print(f'clidaux-> B Cargando parametros de configuracion GLOBALconfigDict en GLO')
 GLO = clidconfig.VariablesGlobales(GLOBALconfigDict)
+print(f'{TB}-> configFileNameCfg:      {GLO.configFileNameCfg}')
+print(f'{"":=^80}')
+
+# ==============================================================================
 if CONFIGverbose:
     print(f'clidaux-> C ok. GLO.GLBLverbose: {GLO.GLBLverbose}; CONFIGverbose: {CONFIGverbose}; __verbose__: {__verbose__}')
     print(f'clidaux-> C ok. GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
@@ -862,11 +869,14 @@ def buscarDirectorioDeTrabajo():
 
 
 # ==============================================================================o
+# Version original de esta funcion, si se modifica, copiarla en clidhead.py
 def buscarDirectorioDataExt():
-    dataExtPath = os.path.abspath(GLO.MAINrutaDataExt)
     dataFiles = []
-    if os.path.isdir(dataExtPath):
-        for (_, _, filenames) in os.walk(dataExtPath):
+    dataExtPathFound = False
+    dataExtPath = os.path.abspath(os.path.join(MAIN_FILE_DIR, GLO.MAINrutaDataExt))
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
             break
         dataFiles = [
             filename for filename in filenames
@@ -881,14 +891,85 @@ def buscarDirectorioDataExt():
             return dataExtPath
         else:
             print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
-            directorioDeTrabajo = buscarDirectorioDeTrabajo()
-            print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
-            return directorioDeTrabajo
     else:
-        print(f'clidaux-> La ruta {dataExtPath} no es valida.')
-        directorioDeTrabajo = buscarDirectorioDeTrabajo()
-        print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
-        return directorioDeTrabajo
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares:')
+        print(f'{TB}-> La ruta {dataExtPath} no existe.')
+
+    dataExtPath = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', GLO.MAINrutaDataExt))
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    print(f'{TB}-> Se prueba un nivel de directorios superior: {dataExtPath}')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
+            break
+        dataFiles = [
+            filename for filename in filenames
+            if filename[-4:].lower() == '.txt'
+            or filename[-4:].lower() == '.cfg'
+            or filename[-4:].lower() == '.csv'
+            or filename[-4:].lower() == '.xls'
+            or filename[-5:].lower() == '.xlsx'
+            or filename[-5:].lower() == '.xlsm'
+        ]
+        if dataFiles:
+            return dataExtPath
+        else:
+            print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+    else:
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares: la ruta {dataExtPath} no existe.')
+
+    dataExtPath = os.path.abspath(GLO.MAINrutaDataExt)
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    print(f'{TB}-> Se prueba una ruta equivalente en el directorio de trabajo: {dataExtPath}')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
+            break
+        dataFiles = [
+            filename for filename in filenames
+            if filename[-4:].lower() == '.txt'
+            or filename[-4:].lower() == '.cfg'
+            or filename[-4:].lower() == '.csv'
+            or filename[-4:].lower() == '.xls'
+            or filename[-5:].lower() == '.xlsx'
+            or filename[-5:].lower() == '.xlsm'
+        ]
+        if dataFiles:
+            return dataExtPath
+        else:
+            print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+    else:
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares: la ruta {dataExtPath} tampoco existe.')
+
+    dataExtPath = buscarDirectorioDeTrabajo()
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {dataExtPath}')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
+            break
+        dataFiles = [
+            filename for filename in filenames
+            if filename[-4:].lower() == '.txt'
+            or filename[-4:].lower() == '.cfg'
+            or filename[-4:].lower() == '.csv'
+            or filename[-4:].lower() == '.xls'
+            or filename[-5:].lower() == '.xlsx'
+            or filename[-5:].lower() == '.xlsm'
+        ]
+        if dataFiles:
+            return dataExtPath
+        else:
+            print(f'clidaux-> No se ha encontrado la ruta de los ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+            print(f'{TB}-> Cambiar el parametro MAINrutaDataExt en el fichero de configuracion:')
+            print(f'{TB}-> Indicar ruta relativa o absoluta a los ficheros cfg, txt, csv, xls*. Por ejemplo: D:/data/ext')
+            dataExtPath = None
+            sys.exit(1)
+    else:
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares: la ruta {dataExtPath} tampoco existe.')
+        print(f'{TB}-> Cambiar el parametro MAINrutaDataExt en el fichero de configuracion:')
+        print(f'{TB}-> Indicar ruta relativa o absoluta a los ficheros cfg, txt, csv, xls*. Por ejemplo: D:/data/ext')
+        dataExtPath = None
+        sys.exit(1)
+
+    return dataExtPath
 
 
 # ==============================================================================o
@@ -1536,7 +1617,7 @@ def creaRutaDeFichero(rutaFichero):
 
 def creaDirectorios(GLOBAL_rutaResultados, listaSubdirectorios=[]):
     if not os.path.exists(GLOBAL_rutaResultados):
-        print('No existe el directorio %s -> Se crea automaticamente...' % (GLOBAL_rutaResultados))
+        print('No existe el directorio %s -->> Se crea automaticamente...' % (GLOBAL_rutaResultados))
     listaDirectorios = [
         GLOBAL_rutaResultados,
         GLOBAL_rutaResultados + 'Ajustes/',
@@ -2211,8 +2292,6 @@ def completarVariablesGlobales(
     MAINusuario = infoUsuario(False)
     # ==========================================================================
 
-
-
     # global GLO
     # En esta funcion se establecen algunas variables globales (si es necesario modificarlas):
     #    MAINrutaCarto      -> Se adapta para que cuelgue de MAINmiRutaRaiz o se adapta segun MAINprocedimiento
@@ -2238,39 +2317,41 @@ def completarVariablesGlobales(
     GLO.MAINmiRutaProyecto = MAIN_PROJ_DIR
     # ==========================================================================
 
-
     # ==========================================================================
     # =========================== MAINrutaLaz ==================================
     # ==========================================================================
     # Sitio por defecto para MAINrutaLaz
     # No se recorren subcarpetas de MAINrutaLaz salvo que lo establezca el MAINprocedimiento
+    print(f'clidaux-> rutaLazCompleta: {rutaLazCompleta}')
+    print(f'clidaux-> 0 GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
     if rutaLazCompleta != '':
         # Solo cuando se inicia con clidflow
-        GLO.MAINrutaLaz = rutaLazCompleta
+        GLO.MAINrutaLaz = os.path.abspath(rutaLazCompleta)
+        print(f'clidaux-> 1 GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
     else:
-        if GLO.MAINrutaLaz is None or GLO.MAINrutaLaz == 'None' or GLO.MAINrutaLaz == '':
-            GLO.MAINrutaLaz = os.path.join(
-                GLO.MAINmiRutaRais,
-                'laz'
-            )
-            # print('clidaux-> 1 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
-        else:
-            # print('clidaux-> 2a GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+        if (not GLO.MAINrutaLaz is None
+            and GLO.MAINrutaLaz != 'None'
+            and  GLO.MAINrutaLaz != ''
+        ):
             if ':' in GLO.MAINrutaLaz:
-                GLO.MAINrutaLaz = GLO.MAINrutaLaz
+                # GLO.MAINrutaLaz = GLO.MAINrutaLaz
+                pass
             else:
-                GLO.MAINrutaLaz = os.path.abspath(
-                    os.path.join(
-                        GLO.MAINmiRutaRais,
-                        GLO.MAINrutaLaz
-                    )
-                )
-            # print('clidaux-> 2b GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
-            # if MAIN_ENTORNO == 'calendula':
-            #     print(
-            #         '\t-> Como MAIN_ENTORNO == calendula -> Mas adelante se cambia a',
-            #         os.path.join(GLO.MAINmiRutaRais, lazDirCalendula)
-            #     )
+                if MAIN_ENTORNO == 'calendula':
+                    GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, GLO.MAINrutaLaz)
+                elif 'MAINrutaRaiz' in dir(GLO):
+                    GLO.MAINrutaLaz = os.path.join(GLO.MAINrutaRaiz, GLO.MAINrutaLaz)
+                else:
+                    GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, GLO.MAINrutaLaz)
+            print(f'clidaux-> 2a GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
+        else:
+            if MAIN_ENTORNO == 'calendula':
+                GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, 'laz')
+            elif 'MAINrutaRaiz' in dir(GLO):
+                GLO.MAINrutaLaz = os.path.join(GLO.MAINrutaRaiz, 'laz')
+            else:
+                GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, 'laz')
+            print(f'clidaux-> 2b GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
 
     # ==========================================================================
     GLO.MAINrutaLaz, listaDirsLaz, listaSubDirsLaz = casosEspecialesParaMAINrutaLaz(
@@ -2282,62 +2363,96 @@ def completarVariablesGlobales(
     # print('clidaux-> 4 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
 
     # ==========================================================================
-    # ========================== MAINrutaCarto ================================
+    # ========================== MAINrutaCarto =================================
     # ==========================================================================
-    if GLO.MAINrutaCarto is None or GLO.MAINrutaCarto == 'None' or GLO.MAINrutaCarto == '':
-        MAINrutaCarto1 = os.path.join(
-            GLO.MAINmiRutaRaiz,
-            'data/carto/'
+    if (
+        not GLO.MAINrutaCarto is None
+        and GLO.MAINrutaCarto != 'None'
+        and GLO.MAINrutaCarto != ''
+    ):
+        GLO.MAINrutaCarto = os.path.abspath(GLO.MAINrutaCarto)
+    else:
+        GLO.MAINrutaCarto = asignarMAINrutaCarto(
+            GLO.MAINmiRutaRais,
         )
-        if not os.path.isdir(MAINrutaCarto1):
-            MAINrutaCarto2 = os.path.abspath(
-                os.path.join(
-                    GLO.MAINmiRutaRaiz,
-                    '../data/carto/'
-                )
-            )
-            if not os.path.isdir(MAINrutaCarto2):
-                myLog.warning(f'{"":+^80}')
-                myLog.warning(f'clidaux-> ATENCION: No se ha localizado el directorio data/carto con informacion cartografica de apoyo.')
-                myLog.warning(f'{TB}Directorios buscados:')
-                myLog.warning(f'{TB}{TV}{MAINrutaCarto1}')
-                myLog.warning(f'{TB}{TV}{MAINrutaCarto2}')
-                myLog.warning(f'{"":+^80}')
-            else:
-                GLO.MAINrutaCarto = MAINrutaCarto2
-        else:
-            GLO.MAINrutaCarto = MAINrutaCarto1
-
-            
     # ==========================================================================
 
     # ==========================================================================
     # ========================== MAINrutaOutput ================================
     # ==========================================================================
-    if GLO.MAINrutaOutput is None or GLO.MAINrutaOutput == 'None' or GLO.MAINrutaOutput == '':
-        GLO.MAINrutaOutput = os.path.abspath(os.path.join(
+    if (
+        not GLO.MAINrutaOutput is None
+        and GLO.MAINrutaOutput != 'None'
+        and GLO.MAINrutaOutput != ''
+    ):
+        GLO.MAINrutaOutput = os.path.abspath(GLO.MAINrutaOutput)
+    else:
+        GLO.MAINrutaOutput = asignarMAINrutaOutput(
+            GLO.MAINprocedimiento,
+            GLO.MAINrutaOutput,
             GLO.MAINmiRutaRais,
-            'cartolidout'
-        ))
-
-    # ==========================================================================
-    GLO.MAINrutaOutput = casosEspecialesParaMAINrutaOutput(
-        GLO.MAINprocedimiento,
-        GLO.MAINrutaOutput,
-        GLO.MAINmiRutaRais,
-        LCLobjetivoSiReglado,
-        LCLcuadrante,
-    )
+            LCLobjetivoSiReglado,
+            LCLcuadrante,
+        )
     # ==========================================================================
 
     # ==========================================================================
-    if not os.path.exists(GLO.MAINrutaOutput):
-        print(f'No existe el directorio {GLO.MAINrutaOutput} -> Se crea automaticamente')
+    if GLO.MAINrutaOutput is None:
+        print(f'clidaux-> ATENCION: no se ha asignado correctamente MAINrutaOutput: {GLO.MAINrutaOutput}')
+        print(f'{TB}-> Revisar codigo')
+        sys.exit(0)
+    elif not os.path.exists(GLO.MAINrutaOutput):
+        print(f'clidaux-> No existe el directorio {GLO.MAINrutaOutput} -> Se crea automaticamente')
         try:
             os.makedirs(GLO.MAINrutaOutput)
         except:
-            print(f'No se ha podido crear el directorio {GLO.MAINrutaOutput}. Revisar MAINprocedimiento')
+            print(f'{TB}-> No se ha podido crear el directorio {GLO.MAINrutaOutput}. Revisar MAINprocedimiento')
             sys.exit(0)
+    # ==========================================================================
+
+    # ==========================================================================
+    if (
+        GLO.GLBLcrearTilesTargetDeCartoRefSoloSiHaySingUseSuficientes
+        or GLO.GLBLcrearTilesTargetMiniSubCelSoloSiHayNoSueloSuficientes
+    ):
+        subDirTrain = 'trainSel'
+    else:
+        subDirTrain = 'trainAll'
+    # ==========================================================================
+    if MAIN_ENTORNO == 'calendula':
+        # MAIN_MDLS_DIR = '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/data'
+        GLO.MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
+        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+    elif MAIN_ENTORNO == 'colab':
+        GLO.MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
+        GLO.GLBL_TRAIN_DIR = os.path.join(MAIN_RAIZ_DIR, 'data/datasets/cartolid/trainImg')
+    elif 'MAINrutaRaiz' in dir(GLO):
+        GLO.MAIN_MDLS_DIR = os.path.abspath(os.path.join(
+            GLO.MAINrutaRaiz,
+            'data'
+        ))
+        GLO.GLBL_TRAIN_DIR = os.path.abspath(os.path.join(
+            GLO.MAINrutaRaiz,
+            'data/datasets/cartolid/trainImg'
+        ))
+    else:
+        if 'cartolidar' in MAIN_RAIZ_DIR:
+            GLO.MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
+        else:
+            GLO.MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
+        if MAIN_PC == 'JCyL':
+            # Imagenes de entrenamiento en disco externo
+            # GLO.GLBL_TRAIN_DIR = 'D:/trainImg'
+            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'cartolidout/train')
+            # GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+            # Imagenes de entrenamiento en disco duro
+            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/datasets/cartolid/trainImg')
+            # GLO.GLBL_TRAIN_DIR = 'C:/_ws/cartolidout/train'
+            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+        else:
+            # En casa
+            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/trainImg')
+            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
     # ==========================================================================
 
 
@@ -2383,35 +2498,6 @@ def completarVariablesGlobales(
     )
     # ==========================================================================
     creaRutaDeFichero(GLO.GLBLficheroDeControlGral)
-    # ==========================================================================
-
-    # ==========================================================================
-    if (
-        GLO.GLBLcrearTilesTargetDeCartoRefSoloSiHaySingUseSuficientes
-        or GLO.GLBLcrearTilesTargetMiniSubCelSoloSiHayNoSueloSuficientes
-    ):
-        subDirTrain = 'trainSel'
-    else:
-        subDirTrain = 'trainAll'
-    # ==========================================================================
-    if MAIN_ENTORNO == 'calendula':
-        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-    elif MAIN_ENTORNO == 'colab':
-        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAIN_RAIZ_DIR, 'data/datasets/cartolid/trainImg')
-    else:
-        if MAIN_PC == 'JCyL':
-            # Imagenes de entrenamiento en disco externo
-            GLO.GLBL_TRAIN_DIR = 'D:/trainImg'
-            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'cartolidout/train')
-            # GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-            # Imagenes de entrenamiento en disco duro
-            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/datasets/cartolid/trainImg')
-            # GLO.GLBL_TRAIN_DIR = 'C:/_ws/cartolidout/train'
-            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-        else:
-            # En casa
-            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/trainImg')
-            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
     # ==========================================================================
 
     # ==========================================================================
@@ -2749,7 +2835,6 @@ def completarVariablesGlobales(
     paramConfigAdicionalesGLBL['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'str', '', 'GrupoDirsFiles', MAIN_FILE_DIR]
     paramConfigAdicionalesGLBL['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
     paramConfigAdicionalesGLBL['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
-    paramConfigAdicionalesGLBL['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_MDLS_DIR]
     paramConfigAdicionalesGLBL['MAIN_BASE_DIR'] = [MAIN_BASE_DIR, 'str', '', 'GrupoDirsFiles', MAIN_BASE_DIR]
     paramConfigAdicionalesGLBL['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_THIS_DIR]
     paramConfigAdicionalesGLBL['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
@@ -2765,6 +2850,9 @@ def completarVariablesGlobales(
     #     ]
     paramConfigAdicionalesGLBL['MAINrutaOutput'] = [GLO.MAINrutaOutput, 'str', '', 'GrupoDirsFiles']
     paramConfigAdicionalesGLBL['MAINrutaCarto'] = [GLO.MAINrutaCarto, 'str', '', 'GrupoDirsFiles']
+
+    paramConfigAdicionalesGLBL['MAIN_MDLS_DIR'] = [GLO.MAIN_MDLS_DIR, 'str', '', 'GrupoDirsFiles', GLO.MAIN_MDLS_DIR]
+    paramConfigAdicionalesGLBL['GLBL_TRAIN_DIR'] = [GLO.GLBL_TRAIN_DIR, 'str', '', 'GrupoDirsFiles', GLO.GLBL_TRAIN_DIR]
 
     paramConfigAdicionalesGLBL['GLBLficheroDeControlGral'] = [GLO.GLBLficheroDeControlGral, 'str', '', 'GrupoDirsFiles']
     paramConfigAdicionalesGLBL['GLBL_TRAIN_DIR'] = [GLO.GLBL_TRAIN_DIR, 'str', '', 'GrupoDirsFiles']
@@ -2900,6 +2988,8 @@ def casosEspecialesParaMAINrutaLaz(
                         listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
                     else:
                         listaSubDirsLaz = ['RGBI_laz_cartolid_20220316']
+                elif LCLcuadrante[:2].upper() == 'NE':
+                        listaSubDirsLaz = ['', '000_laz']
                 elif LCLcuadrante[:2].upper() == 'NW':
                     if 'SELECT' in LCLprocedimiento:
                         primeraVersionDeLasFiles = False
@@ -2970,7 +3060,6 @@ def casosEspecialesParaMAINrutaLaz(
         or LCLprocedimiento.startswith('LAS_INFO')
     ):
         # Se usan los valores establecidos por defecto
-        print('clidaux-> ATENCION: ESTO ES PROVISIONAL:')
         if (LCLcuadrante)[:2].upper() == 'CE':
             listaDirsLaz = ['lasfile-ce']
         elif (LCLcuadrante)[:2].upper() == 'NE':
@@ -2986,6 +3075,7 @@ def casosEspecialesParaMAINrutaLaz(
         else:
             listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
         listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
+        print('clidaux-> ESTO ES PROVISIONAL:')
         print('clidaux-> listaDirsLaz:    {}'.format(listaDirsLaz))
         print('clidaux-> listaSubDirsLaz: {}'.format(listaSubDirsLaz))
     elif LCLprocedimiento == 'PRECONFIGURADO_SINRUTA':
@@ -3256,7 +3346,54 @@ def casosEspecialesParaMAINrutaLaz(
 
 
 # ==============================================================================
-def casosEspecialesParaMAINrutaOutput(
+def asignarMAINrutaCarto(
+        LCLmiRutaRais
+    ):
+    if MAIN_ENTORNO == 'calendula':
+        MAINrutaRaizCarto =  LCLmiRutaRais
+    elif 'MAINrutaRaiz' in dir(GLO):
+        MAINrutaRaizCarto =  GLO.MAINrutaRaiz
+    else:
+        if 'cartolidar' in MAIN_RAIZ_DIR:
+            MAINrutaRaizCarto = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '..'))
+        else:
+            MAINrutaRaizCarto = os.path.abspath(MAIN_RAIZ_DIR)
+    print(f'clidaux-> MAINrutaRaizCarto: {MAINrutaRaizCarto}')
+    print(f'{TB}-> GLO.MAINrutaRaiz: {GLO.MAINrutaRaiz}')
+
+    # Primera opcion:
+    MAINrutaCarto1 = os.path.abspath(
+        os.path.join(
+            MAINrutaRaizCarto,
+            'data/carto/'
+        )
+    )
+    if os.path.isdir(MAINrutaCarto1):
+        LCLrutaCarto = MAINrutaCarto1
+    else:
+        # Segunda opcion:
+        MAINrutaCarto2 = os.path.abspath(
+            os.path.join(
+                MAINrutaRaizCarto,
+                '../data/carto/'
+            )
+        )
+        if os.path.isdir(MAINrutaCarto2):
+            LCLrutaCarto = MAINrutaCarto2
+        else:
+            myLog.warning(f'{"":+^80}')
+            myLog.warning(f'clidaux-> ATENCION: No se ha localizado el directorio data/carto con informacion cartografica de apoyo.')
+            myLog.warning(f'{TB}Directorios buscados:')
+            myLog.warning(f'{TB}{TV}{MAINrutaCarto1}')
+            myLog.warning(f'{TB}{TV}{MAINrutaCarto2}')
+            myLog.warning(f'{"":+^80}')
+            LCLrutaCarto = ''
+
+    return LCLrutaCarto
+
+
+# ==============================================================================
+def asignarMAINrutaOutput(
         LCLprocedimiento,
         LCLrutaOutput,
         LCLmiRutaRais,
@@ -3264,6 +3401,26 @@ def casosEspecialesParaMAINrutaOutput(
         LCLcuadrante,
     ):
 
+    if MAIN_ENTORNO == 'calendula':
+        MAINrutaRaizOutput =  LCLmiRutaRais
+    elif 'MAINrutaRaiz' in dir(GLO):
+        MAINrutaRaizOutput =  GLO.MAINrutaRaiz
+    else:
+        if 'cartolidar' in MAIN_RAIZ_DIR:
+            MAINrutaRaizOutput = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '..'))
+        else:
+            MAINrutaRaizOutput = os.path.abspath(MAIN_RAIZ_DIR)
+
+    print(f'clidaux-> MAINrutaRaizOutput: {MAINrutaRaizOutput}')
+    # ==========================================================================
+    # Ruta por defecto
+    GLO.MAINrutaOutput = os.path.abspath(os.path.join(
+        MAINrutaRaizOutput,
+        'cartolidout'
+    ))
+    print(f'clidaux-> MAINrutaOutput por defecto: {GLO.MAINrutaOutput}')
+    # ==========================================================================
+    # Casos especiales
     if (
         LCLobjetivoSiReglado == 'GENERAL'
         or LCLobjetivoSiReglado == 'CREAR_TILES_TRAIN'
@@ -3275,7 +3432,7 @@ def casosEspecialesParaMAINrutaOutput(
     ):
         if LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH':
             LCLrutaOutput = os.path.abspath(os.path.join(
-                LCLmiRutaRais,
+                MAINrutaRaizOutput,
                 # '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
@@ -3285,7 +3442,7 @@ def casosEspecialesParaMAINrutaOutput(
             ))
         elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_COLOREAR_RGBI':
             LCLrutaOutput = os.path.abspath(os.path.join(
-                LCLmiRutaRais,
+                MAINrutaRaizOutput,
                 # '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
@@ -3295,7 +3452,7 @@ def casosEspecialesParaMAINrutaOutput(
             ))
         elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI':
             LCLrutaOutput = os.path.abspath(os.path.join(
-                LCLmiRutaRais,
+                MAINrutaRaizOutput,
                 # '..',
                 'cartolidout_{}_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
@@ -3308,7 +3465,7 @@ def casosEspecialesParaMAINrutaOutput(
             print(f'clidaux-> 6 Asignando LCLrutaOutput: {LCLrutaOutput}')
         elif not LCLcuadrante is None:
             LCLrutaOutput = os.path.abspath(os.path.join(
-                LCLmiRutaRais,
+                MAINrutaRaizOutput,
                 # '..',
                 'cartolidout_{}_{}'.format(
                     (LCLcuadrante)[:2].upper(),
@@ -3318,7 +3475,7 @@ def casosEspecialesParaMAINrutaOutput(
             print(f'clidaux-> 7 Asignando LCLrutaOutput: {LCLrutaOutput}')
         elif LCLobjetivoSiReglado == 'GENERAL':
             LCLrutaOutput = os.path.abspath(os.path.join(
-                LCLmiRutaRais,
+                MAINrutaRaizOutput,
                 # '..',
                 'cartolidout'
             ))
@@ -3335,7 +3492,7 @@ def casosEspecialesParaMAINrutaOutput(
         or LCLrutaOutput == ''
     ):
         LCLrutaOutput = os.path.abspath(os.path.join(
-            LCLmiRutaRais,
+            MAINrutaRaizOutput,
             # '..',
             'cartolidout_{}'.format(
                 (LCLcuadrante)[:2].upper()

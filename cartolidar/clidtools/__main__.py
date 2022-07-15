@@ -5,6 +5,9 @@ Created on 9 may 2022
 '''
 # Se ejecuta cuando se llama al paquete en linea de comandos con \>python -m clidtools
 
+import importlib
+import importlib.util
+
 if __name__ == '__main__':
     print('clidtools-> Menu de herramientas de cartolidar')
     print('\t1. clidtwins')
@@ -17,7 +20,14 @@ if __name__ == '__main__':
     if nOpcionElegida == 1:
         print('\nSe ha elegido ejecutar clidtwuins de forma interactiva')
         # import clidtwins
-        from clidtools.clidtwins import DasoLidarSource
+        spec = importlib.util.find_spec('cartolidar')
+        if not spec is None:
+            from cartolidar.clidtools.clidtwins import DasoLidarSource
+        else:
+            try:
+                from cartolidar.clidtools.clidtwins import DasoLidarSource
+            except:
+                from clidtools.clidtwins import DasoLidarSource
         # print('Metodos de DasoLidarSource: {}'.format(dir(DasoLidarSource)))
     elif nOpcionElegida == 1:
         print('\nOpcion clidmerge no disponible por el momento.')

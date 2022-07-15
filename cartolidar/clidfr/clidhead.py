@@ -31,7 +31,8 @@ import inspect
 # import argparse
 from configparser import RawConfigParser
 import logging
-# import importlib
+import importlib
+import importlib.util
 import struct
 # import shutil
 # import gc
@@ -328,7 +329,7 @@ if CONFIGverbose:
     print(f'\nclidhead-> AVISO: CONFIGverbose True; __verbose__: {__verbose__}')
 # ==============================================================================
 if CONFIGverbose:
-    print(f'\nclidaux-> Cargando clidhead...')
+    print(f'\nclidhead-> Cargando clidhead...')
     print(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
     print(f'{TB}-> Revisando la pila de llamadas...')
 callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
@@ -373,7 +374,8 @@ if callingModuleInicial == 'clidtools' or callingModuleInicial == 'clidclas':
     MAIN_controlFileLas = None
     MAIN_controlFileGral = None
 else:
-    if os.getcwd().endswith('cartolidar\cartolidar') or os.getcwd().endswith('cartolidar/cartolidar'):
+    spec = importlib.util.find_spec('cartolidar')
+    if not spec is None:
         if CONFIGverbose:
             sys.stdout.write('\nclidhead-> Importando clidconfig desde cartolidar.clidax\n')
         from cartolidar.clidax import clidconfig
@@ -478,11 +480,15 @@ def buscarDirectorioDeTrabajo():
 
 # Funcion copiada de clidaux.py, pera no tener que importar ese modulo
 # ==============================================================================o
+# ==============================================================================o
+# Version original de esta funcion, si se modifica, copiarla en clidhead.py
 def buscarDirectorioDataExt():
-    dataExtPath = os.path.abspath(GLO.MAINrutaDataExt)
     dataFiles = []
-    if os.path.isdir(dataExtPath):
-        for (_, _, filenames) in os.walk(dataExtPath):
+    dataExtPathFound = False
+    dataExtPath = os.path.abspath(os.path.join(MAIN_FILE_DIR, GLO.MAINrutaDataExt))
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
             break
         dataFiles = [
             filename for filename in filenames
@@ -496,15 +502,86 @@ def buscarDirectorioDataExt():
         if dataFiles:
             return dataExtPath
         else:
-            print(f'clidhead-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
-            directorioDeTrabajo = buscarDirectorioDeTrabajo()
-            print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
-            return directorioDeTrabajo
+            print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
     else:
-        print(f'clidhead-> La ruta {dataExtPath} no es valida.')
-        directorioDeTrabajo = buscarDirectorioDeTrabajo()
-        print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {directorioDeTrabajo}')
-        return directorioDeTrabajo
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares:')
+        print(f'{TB}-> La ruta {dataExtPath} no existe.')
+
+    dataExtPath = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..', GLO.MAINrutaDataExt))
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    print(f'{TB}-> Se prueba un nivel de directorios superior: {dataExtPath}')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
+            break
+        dataFiles = [
+            filename for filename in filenames
+            if filename[-4:].lower() == '.txt'
+            or filename[-4:].lower() == '.cfg'
+            or filename[-4:].lower() == '.csv'
+            or filename[-4:].lower() == '.xls'
+            or filename[-5:].lower() == '.xlsx'
+            or filename[-5:].lower() == '.xlsm'
+        ]
+        if dataFiles:
+            return dataExtPath
+        else:
+            print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+    else:
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares: la ruta {dataExtPath} no existe.')
+
+    dataExtPath = os.path.abspath(GLO.MAINrutaDataExt)
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    print(f'{TB}-> Se prueba una ruta equivalente en el directorio de trabajo: {dataExtPath}')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
+            break
+        dataFiles = [
+            filename for filename in filenames
+            if filename[-4:].lower() == '.txt'
+            or filename[-4:].lower() == '.cfg'
+            or filename[-4:].lower() == '.csv'
+            or filename[-4:].lower() == '.xls'
+            or filename[-5:].lower() == '.xlsx'
+            or filename[-5:].lower() == '.xlsm'
+        ]
+        if dataFiles:
+            return dataExtPath
+        else:
+            print(f'clidaux-> No hay ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+    else:
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares: la ruta {dataExtPath} tampoco existe.')
+
+    dataExtPath = buscarDirectorioDeTrabajo()
+    dataExtIoPath = os.path.join(dataExtPath, 'io')
+    print(f'{TB}-> Se buscan los ficheros de configuracion y auxiliares en el directorio de trabajo: {dataExtPath}')
+    if os.path.isdir(dataExtIoPath):
+        for (_, _, filenames) in os.walk(dataExtIoPath):
+            break
+        dataFiles = [
+            filename for filename in filenames
+            if filename[-4:].lower() == '.txt'
+            or filename[-4:].lower() == '.cfg'
+            or filename[-4:].lower() == '.csv'
+            or filename[-4:].lower() == '.xls'
+            or filename[-5:].lower() == '.xlsx'
+            or filename[-5:].lower() == '.xlsm'
+        ]
+        if dataFiles:
+            return dataExtPath
+        else:
+            print(f'clidaux-> No se ha encontrado la ruta de los ficheros de configuracion ni auxiliares (cfg, txt, csv, xls*) en {dataExtPath}')
+            print(f'{TB}-> Cambiar el parametro MAINrutaDataExt en el fichero de configuracion:')
+            print(f'{TB}-> Indicar ruta relativa o absoluta a los ficheros cfg, txt, csv, xls*. Por ejemplo: D:/data/ext')
+            dataExtPath = None
+            sys.exit(1)
+    else:
+        print(f'clidaux-> Buscando ruta con ficheros de configuracion y auxiliares: la ruta {dataExtPath} tampoco existe.')
+        print(f'{TB}-> Cambiar el parametro MAINrutaDataExt en el fichero de configuracion:')
+        print(f'{TB}-> Indicar ruta relativa o absoluta a los ficheros cfg, txt, csv, xls*. Por ejemplo: D:/data/ext')
+        dataExtPath = None
+        sys.exit(1)
+
+    return dataExtPath
 
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -2558,12 +2635,16 @@ class LasHeadClass(object):
 #         else:
 #             LCLnMaxPtosCeldaArrayPredimensionadaTodos = GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos
 
-        try:
+        spec = importlib.util.find_spec('cartolidar')
+        if not spec is None:
             from cartolidar.clidfr import cliddata
-        except:
-            sys.stderr.write(f'clidhead-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-            sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....')
-            from clidfr import cliddata
+        else:
+            try:
+                from cartolidar.clidfr import cliddata
+            except:
+                sys.stderr.write(f'clidhead-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+                sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....')
+                from clidfr import cliddata
         myLasData = cliddata.LasData(self)
         myLasData.nPtosAleer = self.numptrecords
         myLasData.sampleLas = 1
@@ -2898,9 +2979,9 @@ def lasHeadProperties():
     directorioDeTrabajo = buscarDirectorioDataExt()
     configFileName = os.path.join(directorioDeTrabajo, 'io/lasHeadFields.cfg')
     if not os.path.exists(configFileName):
-        print('clidhead-> ATENCION: Falta', configFileName, 'Corregir')
-        print('clidhead-> No se escriben los Variable Length Records')
-        print('clidhead-> no encontrado', configFileName)
+        print(f'\nclidhead-> ATENCION: no se encuentra el fichero {configFileName}')
+        print(f'{TB}-> No se escriben los Variable Length Records')
+        print(f'{TB}-> Revisar codigo o disponibilidad de este fichero; se interrumpe la ejecucion de cartolidar.')
         sys.exit(0)
     config = RawConfigParser()
     config.optionxform = str  # Avoid change to lowercase

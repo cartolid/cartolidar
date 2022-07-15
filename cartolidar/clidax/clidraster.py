@@ -24,6 +24,8 @@ import random
 import logging
 # import pathlib
 # import struct
+import importlib
+import importlib.util
 
 import numpy as np
 # import scipy
@@ -66,17 +68,22 @@ ogr.RegisterAll()
 gdal.UseExceptions()
 
 # Recuperar la captura de errores de importacion en la version beta
-try:
-# if True:
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidcarto
-    # Se importan los parametros de configuracion por defecto por si
-    # se carga esta clase sin aportar algun parametro de configuracion
-except:
-    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-    sys.stderr.write('\t-> Se importa clidcarto desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
-    from clidax import clidconfig
-    from clidax import clidcarto
+else:
+    # if True:
+    try:
+        from cartolidar.clidax import clidconfig
+        from cartolidar.clidax import clidcarto
+        # Se importan los parametros de configuracion por defecto por si
+        # se carga esta clase sin aportar algun parametro de configuracion
+    except:
+        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write('\t-> Se importa clidcarto desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        from clidax import clidconfig
+        from clidax import clidcarto
 
 # ==============================================================================
 # Verbose provisional para la version alpha

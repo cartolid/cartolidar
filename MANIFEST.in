@@ -68,16 +68,22 @@ exclude cartolidar/clidfr/clidndat.py
 
 global-exclude tests/pruebas*.*
 
-include data/*.*
-global-exclude  data/asc/*.*
-global-exclude  data/ext/*.*
-global-exclude  data/log/*.*
-global-exclude  data/mfe/*.*
-global-exclude  data/other/*.*
-include data/ref/*.*
+include cartolidar/data/*.*
+global-exclude  cartolidar/data/asc/*.*
+global-exclude  cartolidar/data/log/*.*
+global-exclude  cartolidar/data/mfe/*.*
+global-exclude  cartolidar/data/other/*.*
+include cartolidar/data/ref/*.*
+include cartolidar/data/ext/*.*
+include cartolidar/data/ext/cfg/*.*
+include cartolidar/data/extinfoVuelos/*.*
+include cartolidar/data/ext/io/*.*
 
-global-exclude data/asc/PuenteDuero/dasoLayers
+global-exclude cartolidar/data/asc/PuenteDuero/*.*
+global-exclude cartolidar/data/asc/PuenteDuero/dasoLayers*
+global-exclude cartolidar/data/asc/Riaza/*.*
 global-exclude dasoLayers/*.*
+
 global-exclude cartolidar/__pycache__/*.*
 global-exclude *.pyc
 global-exclude *.back

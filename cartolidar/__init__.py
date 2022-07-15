@@ -17,14 +17,23 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 # -*- coding: cp1252 -*-
 # Ver https://docs.python.org/3/reference/lexical_analysis.html#encoding-declarations
 
-import os
-import sys
+'''
+Inhabilito esto porque para ejecutar clidbase necesito cargar
+la configuracion de clidbase.xlsx antes de importar modulos.
+Sin embargo, al importar clidtwcfg se desencadena una secuencia de imports
+de modulos que acaba en clidraster y clidcarto que no debe iniciarse hasta
+que la configuracion esta perfilada y guardad en el fichero .cfg
+clidtools (__init__.py) -> clidtwcfg + clidtwins + clidtwinx -> clidraster -> clidcarto
+'''
 
-from cartolidar.clidtools.clidtwcfg import GLO
-__version__ = GLO.__version__
-__date__ = GLO.__date__
-__updated__ = GLO.__updated__
-__all__ = [
-    'qlidtwins',
-    'clidtools.clidtwins'
-    ]
+# import os
+# import sys
+#
+# from cartolidar.clidtools.clidtwcfg import GLO
+# __version__ = GLO.__version__
+# __date__ = GLO.__date__
+# __updated__ = GLO.__updated__
+# __all__ = [
+#     'qlidtwins',
+#     'clidtools.clidtwins'
+#     ]

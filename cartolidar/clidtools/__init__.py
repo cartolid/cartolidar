@@ -19,16 +19,23 @@ import os
 import sys
 import re
 import logging
+import importlib
+import importlib.util
 
-# Recuperar la captura de errores de importacion en la version beta
-try:
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
     from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
     from cartolidar.clidtools.clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
-except:
-    from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
-    from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
-    from .clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
+else:
+    try:
+        from cartolidar.clidtools.clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
+        from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
+        from cartolidar.clidtools.clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
+    except:
+        from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
+        from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
+        from .clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
 
 # from . import clidtwins # Inlcuye DasoLidarSource, mostrarListaDrivers, etc.
 # from . import clidtwcfg # Incluye GLO, que es una variable publica del modulo clidtwcfg

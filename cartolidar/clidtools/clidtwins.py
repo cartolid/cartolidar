@@ -22,6 +22,8 @@ import unicodedata
 import warnings
 import pathlib
 import logging
+import importlib
+import importlib.util
 from operator import itemgetter, attrgetter
 from configparser import RawConfigParser
 # import random
@@ -101,24 +103,31 @@ except:
 # numbaOk = False
 
 
-# Recuperar la captura de errores de importacion en la version beta
-try:
-# if True:
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     # from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools import clidtwinx
     from cartolidar.clidtools import clidtwinp
     from cartolidar.clidtools import clidtwinb
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidraster
-except:
-    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
-    from clidtools.clidtwcfg import GLO
-    from clidtools import clidtwinx
-    from clidtools import clidtwinp
-    from clidtools import clidtwinb
-    from clidax import clidconfig
-    from clidax import clidraster
+else:
+    try:
+        # from cartolidar.clidtools.clidtwcfg import GLO
+        from cartolidar.clidtools import clidtwinx
+        from cartolidar.clidtools import clidtwinp
+        from cartolidar.clidtools import clidtwinb
+        from cartolidar.clidax import clidconfig
+        from cartolidar.clidax import clidraster
+    except:
+        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        from clidtools.clidtwcfg import GLO
+        from clidtools import clidtwinx
+        from clidtools import clidtwinp
+        from clidtools import clidtwinb
+        from clidax import clidconfig
+        from clidax import clidraster
 
 
 # Alternativa, si necesitara algun otro ingreciente de clidtwcfg:

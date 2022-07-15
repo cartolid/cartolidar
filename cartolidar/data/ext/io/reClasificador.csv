@@ -1,0 +1,16 @@
+OLD;NEW;EXPLICACION
+10;2;
+11;2;
+22;6;
+23;1;
+24;1;
+25;1;
+27;1;
+28;1;
+31;6;
+102;1;Clasificada suelo pero cotaSobreMdb   >= 1 m
+109;1;Clasificada agua pero cotaSobreMdb    >= 1 m
+110;1;Clasificada FFCC pero cotaSobreMdb    >= 1 m
+111;1;Clasificada road pero cotaSobreMdb    >= 1 m
+106;1;Clasificada edificio pero cotaSobreMdb < 1 m
+117;1;Clasificada puente pero cotaSobreMdb   < 1 m

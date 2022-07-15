@@ -66,16 +66,16 @@ cartolidar/clidfr/clidndat.py
 tests/pruebas.py
 
 # Ficheros auxiliares que no incluyo en el repositorio
-# data/*.*
-data/asc/*.*
-data/ext/*.*
-data/ext/cfg/*.*
-data/ext/invoVuelos/*.*
-data/ext/io/*.*
-data/log/*.*
-data/mfe/*.*
-data/other/*.*
-# data/ref/*.*
+# cartolidar/data/*.*
+cartolidar/data/asc/*.*
+# cartolidar/data/ext/*.*
+# cartolidar/data/ext/cfg/*.*
+# cartolidar/data/ext/invoVuelos/*.*
+# cartolidar/data/ext/io/*.*
+cartolidar/data/log/*.*
+# cartolidar/data/mfe/*.*
+cartolidar/data/other/*.*
+# cartolidar/data/ref/*.*
 
 pruebas*.py
 Ayuda.txt
@@ -102,7 +102,7 @@ qlidtwins.args
 # Creados por notepad++
 *.bak
 # data
-data/asc/PueteDuero/dasolayers*/*.*
+cartolidar/data/asc/PueteDuero/dasolayers*/*.*
 dasolayers*/*.*
 cartolidar.egg-info/
 cartolidar.egg-info/*.*

@@ -16,6 +16,8 @@ import inspect
 # import logging
 # import random
 # import struct
+import importlib
+import importlib.util
 
 import numpy as np
 # import scipy
@@ -169,17 +171,19 @@ if CONFIGverbose:
 
 # ==============================================================================
 # Recuperar la captura de errores de importacion en la version beta
-try:
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     from cartolidar.clidax import clidconfig
-except:
-    sys.stderr.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-    sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidcarto del directorio local {os.getcwd()}/....\n')
-
-    if __verbose__ > 2:
-        sys.stderr.write(f'clidcarto-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools\n')
-        sys.stderr.write('\tNo hay vesion de cartolidar instalada en site-packages.\n')
-    from clidax import clidconfig
-
+else:
+    try:
+        from cartolidar.clidax import clidconfig
+    except:
+        sys.stderr.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidcarto del directorio local {os.getcwd()}/....\n')
+        if __verbose__ > 2:
+            sys.stderr.write(f'clidcarto-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools\n')
+            sys.stderr.write('\tNo hay vesion de cartolidar instalada en site-packages.\n')
+        from clidax import clidconfig
 
 # if (
 #     callingModuleInicial != 'runpy'
@@ -270,6 +274,8 @@ if not 'GLBLrasterPixelSize' in dir(GLO):
 if mostrarCallingModuleInicial:
     print(f'clidcarto-> callingModuleInicial: {callingModuleInicial}')
 # ==============================================================================
+
+# ==============================================================================
 myModule = __name__.split('.')[-1]
 myUser = clidconfig.infoUsuario()
 # ==============================================================================
@@ -314,6 +320,12 @@ if False:
         myLog.error('Atencion: el driver {} NO esta disponible.'.format(inputVectorDriverName))
         sys.exit(0)
     quit()
+
+
+
+print(f'clidcarto-> PROVISIONAL: chequeo rutas (a):')
+print(f'{TB}->> GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
+print(f'{TB}->> GLO.GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
 
 
 # ==============================================================================
@@ -1459,6 +1471,11 @@ class CartoRefVector(object):
             return
 
         if GLO.GLBLformatoTilesPng:
+            print(f'clidcarto-> PROVISIONAL: chequeo rutas (b):')
+            print(f'{TB}-> GLO.MAINrutaOutput:     {GLO.MAINrutaOutput}')
+            print(f'{TB}-> GLO.GLBL_TRAIN_DIR:     {GLO.GLBL_TRAIN_DIR}')
+            print(f'{TB}-> tilesTargetPathTroncal: {self.tilesTargetPathTroncal}')
+            print(f'{TB}-> callingModuleInicial:   {callingModuleInicial}')
             self.trainPathPng = os.path.join(
                 GLO.MAINrutaOutput,
                 GLO.GLBL_TRAIN_DIR,

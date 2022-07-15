@@ -15,8 +15,17 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 import traceback
 # import logging
+import importlib
+import importlib.util
 
-from cartolidar.clidax import clidconfig
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
+    from cartolidar.clidax import clidconfig
+else:
+    try:
+        from cartolidar.clidax import clidconfig
+    except:
+        from clidax import clidconfig
 
 # ==============================================================================
 # Actualizar version en clidtwcfg.py

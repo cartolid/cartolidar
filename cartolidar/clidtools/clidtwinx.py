@@ -22,6 +22,8 @@ import unicodedata
 import warnings
 import pathlib
 import logging
+import importlib
+import importlib.util
 from operator import itemgetter, attrgetter
 from configparser import RawConfigParser
 # import random
@@ -63,18 +65,22 @@ if not gdalOk:
 # ==============================================================================
 
 
-# Recuperar la captura de errores de importacion en la version beta
-try:
-# if True:
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidraster
     from cartolidar.clidtools.clidtwcfg import GLO
-except:
-    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
-    from clidax import clidconfig
-    from clidax import clidraster
-    from clidtools.clidtwcfg import GLO
+else:
+    try:
+        from cartolidar.clidax import clidconfig
+        from cartolidar.clidax import clidraster
+        from cartolidar.clidtools.clidtwcfg import GLO
+    except:
+        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        from clidax import clidconfig
+        from clidax import clidraster
+        from clidtools.clidtwcfg import GLO
 
 # Alternativa, si necesitara algun otro ingreciente de clidtwcfg:
 # from cartolidar.clidtools import clidtwcfg as CNFG

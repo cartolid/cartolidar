@@ -24,6 +24,8 @@ import sys
 import pathlib
 import traceback
 import logging
+import importlib
+import importlib.util
 from configparser import RawConfigParser
 import unicodedata
 try:
@@ -34,14 +36,16 @@ except:
 
 import numpy as np
 
-# Recuperar la captura de errores de importacion en la version beta
-try:
-# if True:
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     from cartolidar.clidax import clidconfig
-except:
-    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
-    from clidax import clidconfig
+else:
+    try:
+        from cartolidar.clidax import clidconfig
+    except:
+        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        from clidax import clidconfig
 
 
 # ==============================================================================
@@ -842,7 +846,7 @@ def checkGLO(GLO):
 
 # ==============================================================================
 def readGLO():
-    configFileNameCfg = clidconfig.getConfigFileName(MAIN_idProceso, LOCL_verbose=__verbose__)
+    configFileNameCfg = clidconfig.getConfigFileNameCfg(MAIN_idProceso, LOCL_verbose=__verbose__)
     configDictPorDefecto = leerConfigDictPorDefecto()
     # Se guardan los parametros de configuracion en un diccionario:
     GRAL_configDict = leerConfig(configDictPorDefecto, configFileNameCfg, LOCL_verbose=__verbose__)

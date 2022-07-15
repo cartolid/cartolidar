@@ -7,6 +7,7 @@
 import os
 import sys
 import re
+import codecs
 
 import setuptools
 # from setuptools import find_packages
@@ -45,7 +46,27 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 print('rutaTrabajo:', rutaTrabajo)
 print('HERE:       ', HERE)
 
-with open(os.path.join(HERE, 'README.md')) as fid:
+utf8Ok = True
+try:
+    f = codecs.open('README.md', encoding='utf-8', errors='strict')
+    for line in f:
+        pass
+except UnicodeDecodeError:
+    utf8Ok = False
+ansiOk = True
+try:
+    f = codecs.open('README.md', encoding='windows-1250', errors='strict')
+    for line in f:
+        pass
+except UnicodeDecodeError:
+    ansiOk = False
+
+if utf8Ok:
+    myCode = 'utf-8'
+else:
+    myCode = 'windows-1250'
+
+with open(os.path.join(HERE, 'README.md'), encoding=myCode) as fid:
     README = fid.read()
 
 INSTALL_REQUIRES = [
@@ -67,19 +88,25 @@ INSTALL_REQUIRES = [
 	# 'openpyxl >= 3.0.5',
 ]
 
-datapath1 = os.path.abspath('data')
-datapath2 = os.path.abspath('data/asc')
-datapath3 = os.path.abspath('data/mfe')
+datapath1 = os.path.abspath('cartolidar/data')
+datapath2 = os.path.abspath('cartolidar/data/asc')
+datapath3 = os.path.abspath('cartolidar/data/ext')
+datapath4 = os.path.abspath('cartolidar/data/ext/io')
+datapath5 = os.path.abspath('cartolidar/data/mfe')
+datapath6 = os.path.abspath('cartolidar/data/ref')
 # print('Elementos en {}:\n\t{}'.format(HERE, os.listdir(HERE)))
 # print('Elementos en {}:\n\t{}'.format(os.path.join(HERE, 'cartolidar'), os.listdir(os.path.join(HERE, 'cartolidar'))))
 # print('Elementos en {}:\n\t{}'.format(os.path.abspath('cartolidar'), os.listdir('cartolidar')))
-# print('NO se buscan los data_files en:', os.path.join(HERE, 'data'))
+# print('NO se buscan los data_files en:', os.path.join(HERE, 'cartolidar/data'))
 print('\nSI se buscan los data_files en: {}:\n\t {}'.format(datapath1, os.listdir(datapath1)))
 print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath2, os.listdir(datapath2)))
 print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath3, os.listdir(datapath3)))
+print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath4, os.listdir(datapath4)))
+print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath5, os.listdir(datapath5)))
+print('SI se buscan los data_files en: {}:\n\t {}'.format(datapath6, os.listdir(datapath6)))
 
 # No creo directorio data dentro de la ruta del proyecto:
-# datapath2 = os.path.join('cartolidar', 'data')
+# datapath2 = os.path.join('cartolidar', 'cartolidar/data')
 # try:
     # print('Data_files en {}: {}'.format(os.path.abspath('cartolidar/data'), os.listdir('cartolidar/data'))
 # except OSError as my_error:
@@ -120,6 +147,36 @@ for item in os.listdir(datapath3):
             data_files.append(os.path.join(datapath3, item))
             # print('\t->', os.path.join(datapath3, item))
 print('data_files3:', data_files)
+for item in os.listdir(datapath4):
+    # print('item4:', os.path.abspath(os.path.join(datapath4, item)), os.path.isdir(os.path.join(datapath4, item)))
+    if not item.startswith('__'):
+        if os.path.isdir(os.path.join(datapath4, item)):
+            data_files.append(os.path.join(datapath4, item, '*.*'))
+            # print('\t->', os.path.join(datapath4, item, '*.*'))
+        elif item.endswith('.zip'):
+            data_files.append(os.path.join(datapath4, item))
+            # print('\t->', os.path.join(datapath4, item))
+print('data_files4:', data_files)
+for item in os.listdir(datapath5):
+    # print('item5:', os.path.abspath(os.path.join(datapath5, item)), os.path.isdir(os.path.join(datapath5, item)))
+    if not item.startswith('__'):
+        if os.path.isdir(os.path.join(datapath5, item)):
+            data_files.append(os.path.join(datapath5, item, '*.*'))
+            # print('\t->', os.path.join(datapath5, item, '*.*'))
+        elif item.endswith('.zip'):
+            data_files.append(os.path.join(datapath5, item))
+            # print('\t->', os.path.join(datapath5, item))
+print('data_files5:', data_files)
+for item in os.listdir(datapath6):
+    # print('item6:', os.path.abspath(os.path.join(datapath6, item)), os.path.isdir(os.path.join(datapath6, item)))
+    if not item.startswith('__'):
+        if os.path.isdir(os.path.join(datapath6, item)):
+            data_files.append(os.path.join(datapath6, item, '*.*'))
+            # print('\t->', os.path.join(datapath6, item, '*.*'))
+        elif item.endswith('.zip'):
+            data_files.append(os.path.join(datapath6, item))
+            # print('\t->', os.path.join(datapath6, item))
+print('data_files6:', data_files)
 
 # data_files.append('tests/data/*')
 

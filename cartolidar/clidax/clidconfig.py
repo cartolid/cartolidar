@@ -115,10 +115,6 @@ MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
 MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
 MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
-if 'cartolidar' in MAIN_RAIZ_DIR:
-    MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
-else:
-    MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
 # Directorio desde el que se lanza la app (estos dos coinciden):
 # MAIN_BASE_DIR = os.path.abspath('.')
 MAIN_BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
@@ -418,11 +414,12 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
             controlConfigFile = open(mainLogFile, mode='r+')
             controlConfigFile.close()
     except:
+        callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
         print(f'\n{"":_^80}')
         print(f'clidconfig-> AVISO:')
-        print(f'\tNo se puede guardar el fichero log:  {mainLogFile}')
-        print(f'\tEs posible que no tenga permisos de escritura en: {myLogPath}')
-        print(f'\tO que exista el fichero {mainLogFile} y este bloqueado.')
+        print(f'{TB}-> No se puede guardar el fichero log:  {mainLogFile}')
+        print(f'{TB}-> Es posible que no tenga permisos de escritura en: {myLogPath}')
+        print(f'{TB}-> O que exista el fichero {mainLogFile} y este bloqueado.')
         rutaAlternativa = True
         try:
             MAIN_HOME_DIR = str(pathlib.Path.home())
@@ -437,16 +434,21 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
             else:
                 controlConfigFile = open(mainLogFile, mode='r+')
                 controlConfigFile.close()
-            print(f'\tOk log file: {mainLogFile}')
-            print(f'\tOk log file: {thisLogFile}')
+            print(f'\tOk log file1: {mainLogFile}')
+            print(f'\tOk log file2: {thisLogFile}')
+            myLogPath = MAIN_LOG_DIR
         except:
             print(f'\tTampoco se puede escribir en la ruta {MAIN_LOG_DIR}')
             MAIN_HOME_DIR = str(pathlib.Path.home())
             mainLogFile = os.path.join(MAIN_HOME_DIR, f'clidbase.log')
             thisLogFile = os.path.join(MAIN_HOME_DIR, f'{myModule}.log')
-            print(f'\tOk log file: {mainLogFile}')
-            print(f'\tOk log file: {thisLogFile}')
+            print(f'\tSe opta por log file1: {mainLogFile}')
+            print(f'\tlog file2: {thisLogFile}')
+            myLogPath = MAIN_HOME_DIR
+        print(f'{TB}-> callingModulePrevio: {callingModulePrevio}')
         print(f'{"":=^80}')
+
+    # return (myLogPath, mainLogFile, thisLogFile)
 
 
     # ==============================================================================
@@ -710,20 +712,18 @@ def mostrarVariablesGlobales(momento='inicial'):
 #    GL.controlFileLas
 #    GL.controlFileGlobal
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-def initConfigDicts(idProceso=MAIN_idProceso):
+def initConfigDicts(idProceso=MAIN_idProceso, LOCL_verbose=0):
     global GLOBALconfigDict
 
-
+    # ==========================================================================
     # Lectura del config (cfg) generado en un carga anterior de clidconfig o en una ejecucion anterior
-    # print('idProceso:', type(idProceso), idProceso)
-    # print('sys.argv:', sys.argv)
-    configFileNameCfg = getConfigFileName(idProceso, LOCL_verbose=2)
+    configFileNameCfg = getConfigFileNameCfg(idProceso, LOCL_verbose=LOCL_verbose)
 
     if CONFIGverbose:
-        print(f'{TB}clidconfig-> Verifico si hay un cfg con idProceso={idProceso}')
-        print(f'{TB}generado en un carga anterior de clidconfig o en una ejecucion anterior:')
+        print('clidconfig-> Ejecutando initConfigDicts<> para leer el fichero de configuracion cfg')
+        print(f'{TB}-> Verifico si hay un cfg con idProceso={idProceso} generado')
+        print(f'{TB}-> en un carga anterior de clidconfig o en una ejecucion anterior:')
         print(f'{TB}{TV}{configFileNameCfg}')
-
 
     if os.path.exists(configFileNameCfg):
         if CONFIGverbose:
@@ -732,8 +732,7 @@ def initConfigDicts(idProceso=MAIN_idProceso):
         config.optionxform = str  # Avoid change to lowercase
         numObjetivosExtraMax = 0
         LOCALconfigDict = {}
-        if True:
-        # try:
+        try:
             config.read(configFileNameCfg)
             for grupoParametroConfiguracion in config.sections():
                 for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
@@ -784,67 +783,70 @@ def initConfigDicts(idProceso=MAIN_idProceso):
     
             configLeidoDelCfgOk = True
             GLOBALconfigDict = LOCALconfigDict
-        # except:
-        #     configLeidoDelCfgOk = False
+        except:
+            configLeidoDelCfgOk = False
     else:
         configLeidoDelCfgOk = False
 
     if configLeidoDelCfgOk:
         return GLOBALconfigDict
+    # ==========================================================================
 
-    # Los valores del xml, si existe, son preferentes:
-    #    Lo busca en el directorio actual y su directorio padre
-    moduloInicialPy = os.path.basename(sys.argv[0])
-    #print('clidconfig-> Modulo de inicio:', moduloInicialPy)
-    # directorioActual = quitarContrabarrasAgregarBarraFinal(os.getcwd())
+    # ==========================================================================
+    # Si no hay cfg generado en un carga anterior de clidconfig o en una ejecucion anterior
+    # se busca el fichero de configuracion original (xlsx).
+    (
+        filenameXlsCfg1Clidbase,
+        filenameXlsCwdClidbase,
+        filenameXlsCwdModulo,
+        filenameXlsCfg2Clidbase,
+        filenameXlsProjClidbase,
+    ) = getConfigFileNameXls(configFileNameCfg, LOCL_verbose=LOCL_verbose)
+
     directorioActual = (os.getcwd()).replace(os.sep, '/')
-
-    #directorioActual2 = os.path.dirname(sys.argv[0])
-    #print('clidconfig-> Ruta de trabajo: ', directorioActual, '=', directorioActual2) # C:/_ws/cartolid/ C:\_ws\cartolid
-    moduloInicialXLS = moduloInicialPy.replace('.py', '.xlsx')
-    # Si hay un fichero de configuracion xls en ese directorio (nombre del modulo o nombre general cartolid), lo uso como primera opcion
-    filenameXLSlocalModulo = os.path.join(directorioActual, moduloInicialXLS)
-    filenameXLSprojectCartolid = os.path.join(MAIN_PROJ_DIR, 'clidbase.xlsx')
-    filenameXLSlocalCartolid = os.path.join(directorioActual, 'clidbase.xlsx')
-
-    if CONFIGverbose:
-        print(f'{TB}clidconfig-> Fichero cfg no disponible, se leen los parametros del xls: {moduloInicialXLS}')
-
+    directorioProyecto = os.path.dirname(sys.argv[0])
+    moduloInicialXls = (os.path.basename(sys.argv[0])).replace('.py', '.xlsx')
 
     if CONFIGverbose:
         print('clidconfig-> Ejecutando initConfigDicts<> para leer el fichero de configuracion xlsx')
+        print(f'{TB}-> Fichero cfg no disponible, se leen los parametros del xls:')
+        print(f'{TB}{TV}-> {filenameXlsCfg1Clidbase}')
         print(f'{TB}-> Aqui leo las columnas correspondientes a todos los objetivoEjecucion.')
         print(f'{TB}-> Mas adelante, segun el valor de MAINobjetivoEjecucion usare uno u otro valor.')
 
     usarXLS = True
-    if os.path.exists(filenameXLSlocalModulo):
-        if CONFIGverbose:
-            if (directorioActual.replace('/','')).endswith('cartolidar') and moduloInicialXLS == 'clidbase.xlsx':
-                print('clidconfig-> Se usa un fichero de configuracion general: {}'.format(filenameXLSlocalModulo))
-            else:
+    if os.path.exists(filenameXlsCfg1Clidbase):
+        if (directorioActual.replace('/','')).endswith('cartolidar') and moduloInicialXls == 'clidbase.xlsx':
+            filenameXLS = filenameXlsCfg1Clidbase
+            if CONFIGverbose:
+                print('clidconfig-> Se usa un fichero de configuracion principal: {}'.format(filenameXlsCfg1Clidbase))
+        else:
+            filenameXLS = filenameXlsCwdModulo
+            if CONFIGverbose:
                 print(
                     'clidconfig-> Se usa un fichero de configuracion especifico de modulo ({}) o directorio ({}):'.format(
-                        moduloInicialXLS,
+                        moduloInicialXls,
                         directorioActual,
                     )
                 )
-                print(f'{TB}-> {filenameXLSlocalModulo}')
-        filenameXLS = filenameXLSlocalModulo
-    elif os.path.exists(filenameXLSprojectCartolid):
+                print(f'{TB}-> {filenameXlsCwdModulo}')
+    elif os.path.exists(filenameXlsCwdClidbase):
+        if (directorioActual.replace('/','')).endswith('cartolidar'):
+            filenameXLS = filenameXlsCwdClidbase
+            if CONFIGverbose:
+                print(f'clidconfig-> Se usa un fichero de configuracion principal del directorio desde el que se lanza la aplicacion: {filenameXlsCwdClidbase}')
+        else:
+            filenameXLS = filenameXlsCwdModulo
+            if CONFIGverbose:
+                print(f'clidconfig-> Se usa un fichero de configuracion para el modulo inicial en el directorio desde el que lanza la aplicacion: ({directorioActual})')
+    elif os.path.exists(filenameXlsCfg2Clidbase):
+        filenameXLS = filenameXlsCfg2Clidbase
         if CONFIGverbose:
-            if (directorioActual.replace('/','')).endswith('cartolidar'):
-                print(f'clidconfig-> Se usa un fichero de configuracion general: {filenameXLSprojectCartolid}')
-            else:
-                print(f'clidconfig-> Se usa un fichero de configuracion especifico de directorio ({directorioActual})')
-        filenameXLS = filenameXLSprojectCartolid
-
-    elif os.path.exists(filenameXLSlocalCartolid):
+            print(f'clidconfig-> Se usa un fichero de configuracion general ubicado en el directorio elegido finalmente para el cfg: {filenameXlsCfg2Clidbase}')
+    elif os.path.exists(filenameXlsProjClidbase):
+        filenameXLS = filenameXlsProjClidbase
         if CONFIGverbose:
-            if (directorioActual.replace('/','')).endswith('cartolidar'):
-                print(f'clidconfig-> Se usa un fichero de configuracion general: {filenameXLSlocalCartolid}')
-            else:
-                print(f'clidconfig-> Se usa un fichero de configuracion especifico de directorio ({directorioActual})')
-        filenameXLS = filenameXLSlocalCartolid
+            print(f'clidconfig-> Se usa un fichero de configuracion general ubicado en el directorio de la aplicacion cartolidar: {filenameXlsProjClidbase}')
     else:
         if 'cartolidar' in directorioActual:
             # Por si ejecuto directamente un modulo que no esta en cartolid/ 
@@ -862,10 +864,11 @@ def initConfigDicts(idProceso=MAIN_idProceso):
             print(f'{TB}-> Fichero de configuracion: {filenameXLS}')
         else:
             print(f'clidconfig-> ATENCION no se ha encontrando un fichero de configuracion. Se han intentado (por este orden):')
-            print(f'{TB}-> {filenameXLSlocalModulo}')
-            print(f'{TB}-> {filenameXLSlocalCartolid}')
-            print(f'{TB}-> {filenameXLSprojectCartolid}')
-            print(f'{TB}-> {filenameXLSotroDirCartolid}')
+            print(f'{TB}-> {filenameXlsCfg1Clidbase}')
+            print(f'{TB}-> {filenameXlsCwdClidbase}')
+            print(f'{TB}-> {filenameXlsCwdModulo}')
+            print(f'{TB}-> {filenameXlsCfg2Clidbase}')
+            print(f'{TB}-> {filenameXlsProjClidbase}')
             sys.exit(0)
     # https://openpyxl.readthedocs.io/en/stable/
     # https://realpython.com/openpyxl-excel-spreadsheets-python/
@@ -883,7 +886,7 @@ def initConfigDicts(idProceso=MAIN_idProceso):
             usarXLS = False
 
     if not usarXLS:
-        print(f'clidconfig-> Instalar openpyxl para que clidbase pueda leer: {moduloInicialXLS}')
+        print(f'clidconfig-> Instalar openpyxl para que clidbase pueda leer: {moduloInicialXls}')
         sys.exit(0)
 
     try:
@@ -1197,7 +1200,7 @@ class VariablesGlobales(object):
         else:
             self.MAINobjetivoEjecucion = self.ARGSobjetivoEjecucion
             if LCLverbose:
-                print('clidconfig-> *MAINobjetivoEjecucion en linea de comandos: {}'.format(self.MAINobjetivoEjecucion))
+                print(f'\nclidconfig-> *MAINobjetivoEjecucion en linea de comandos: {self.ARGSobjetivoEjecucion}')
 
         # Casos espaciales (objetivos de ejecucion no reglados):
         if self.MAINobjetivoEjecucion == 'CREAR_PUNTOS_TRAIN_ROQUEDOS':
@@ -1291,21 +1294,24 @@ class VariablesGlobales(object):
             if callingModulePrevio == 'clidbase':
                 print(f'clidconfig-> ATENCION: ESTO ES PROVISIONAL Y SOLO ACTUA CUANDO SE USAN ARGUMEnTOS EN LINEA DE COMANDOS (sys.argv[])-> CALENDULA')
                 print(f'{TB}-> Es para permitir la coexistencia de dos ejecuciones con un mismo clidbase.xls (en calendula):')
-                print(f'{TB}{TV}-> Ejecucion completa de cuadrante SE/CE y Se/Ce-> AUTOMATICO_EN_CALENDULA_SCRATCH')
-                print(f'{TB}{TV}-> Ejecucion de chequeo de cuadrante se/ce y sE/cE-> AUTOMATICO_EN_CALENDULA_SELECT')
+                print(f'{TB}{TV}-> Ejecucion completa de cuadrante SE/CE/NE y Se/Ce/Ne-> AUTOMATICO_EN_CALENDULA_SCRATCH')
+                print(f'{TB}{TV}-> Ejecucion de chequeo de cuadrante se/ce/ne y sE/cE/nE-> AUTOMATICO_EN_CALENDULA_SELECT')
                 print(f'{TB}-> ARGScodCuadrante en linea de comandos?: {ARGScodCuadrante}')
                 print(f'{TB}-> self.MAINprocedimiento antes del retoque: {self.MAINprocedimiento}')
                 print(f'{TB}-> Esto no tiene efecto para la ejecucion destinada a generar puntos de entrenamiento (normalmente con Se/Ce -antes SE/CE- y AUTOMATICO_EN_CALENDULA_SELECT).')
             # print('clidconfig->> self.MAINprocedimiento:', type(self.MAINprocedimiento), self.MAINprocedimiento)
             if self.MAINprocedimiento.startswith('AUTOMATICO_EN_CALENDULA'):
-                if ARGScodCuadrante == 'SE' or ARGScodCuadrante == 'CE':
+                if ARGScodCuadrante == 'SE' or ARGScodCuadrante == 'CE' or ARGScodCuadrante == 'NE':
                     # Desde 10/2021 esto no conlleva seleccionar lasFiles, sino normalmente procesar todos los lasFiles (no solo _SELECT)
                     self.MAINprocedimiento = 'AUTOMATICO_EN_CALENDULA_SCRATCH'
                     self.configVarsDict['MAINprocedimiento'] = ['AUTOMATICO_EN_CALENDULA_SCRATCH', 'GrupoMAIN', '', 'str', 'AUTOMATICO_EN_CALENDULA_SCRATCH']
-                elif ARGScodCuadrante == 'Se' or ARGScodCuadrante == 'Ce':
+                elif ARGScodCuadrante == 'Se' or ARGScodCuadrante == 'Ce' or ARGScodCuadrante == 'Ne':
                     self.MAINprocedimiento = 'AUTOMATICO_EN_CALENDULA_SELECT'
                     self.configVarsDict['MAINprocedimiento'] = ['AUTOMATICO_EN_CALENDULA_SELECT', 'GrupoMAIN', '', 'str', 'AUTOMATICO_EN_CALENDULA_SELECT']
-                elif ARGScodCuadrante == 'se' or ARGScodCuadrante == 'ce' or ARGScodCuadrante == 'sE' or ARGScodCuadrante == 'cE':
+                elif (
+                    ARGScodCuadrante == 'se' or ARGScodCuadrante == 'ce' or ARGScodCuadrante == 'ne'
+                    or ARGScodCuadrante == 'sE' or ARGScodCuadrante == 'cE' or ARGScodCuadrante == 'nE'
+                ):
                     self.MAINprocedimiento = 'AUTOMATICO_EN_CALENDULA_SELECT'
                     self.configVarsDict['MAINprocedimiento'] = ['AUTOMATICO_EN_CALENDULA_SELECT', 'GrupoMAIN', '', 'str', 'AUTOMATICO_EN_CALENDULA_SELECT']
                 else:
@@ -1415,7 +1421,8 @@ class VariablesGlobales(object):
     def revisarCompletarVariablesGLBLdelConfigVarsDict(self):
         # Se recalculan a la vista del entorno de trabajo
         if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
-            print(f'{TB}clidconfig-> Chequeando la configuracion...')
+            print(f'\n{"":_^80}')
+            print(f'clidconfig-> Chequeando la configuracion...')
 
         # Si mi objetivo es CREAR_LAZ y mi modelo no usa las hiperformas, me ahorro ese paso.
         # Para saber si el modelo usa las hioerformas, me baso en:
@@ -1429,11 +1436,12 @@ class VariablesGlobales(object):
             ):
                 posicionNumInputVars = (self.configVarsDict['GLBLnombreFicheroConModeloParaInferencia'][0]).index('_i')
                 # Asumo un maximo de 999 variables input
-                if LCLverbose:
-                    print('clidconfig-> GLBLnombreFicheroConModeloParaInferencia: {}'.format(self.configVarsDict['GLBLnombreFicheroConModeloParaInferencia'][0]))
                 nInputVars = int((self.configVarsDict['GLBLnombreFicheroConModeloParaInferencia'][0])[posicionNumInputVars + 2 : posicionNumInputVars + 5])
                 if LCLverbose:
-                    print('clidconfig-> nInputVars: {}'.format(nInputVars))
+                    print(f'clidconfig-> Si mi objetivo es CREAR_LAZ y mi modelo no usa las hiperformas, me ahorro ese paso.')
+                    print(f'{TB}-> Saco el numero de inputs del nombre del modelo:')
+                    print(f'{TB}{TV}-> GLBLnombreFicheroConModeloParaInferencia: {self.configVarsDict["GLBLnombreFicheroConModeloParaInferencia"][0]}')
+                    print(f'{TB}{TV}-> nInputVars: {nInputVars}')
             else:
                 nInputVars = 0
             if (
@@ -1442,8 +1450,11 @@ class VariablesGlobales(object):
             ):
                 self.configVarsDict['GLBLcalcularHiperFormas'][0] = False
                 if LCLverbose:
-                    print(f'\nclidconfig-> AVISO: como mi objetivo es CREAR_LAZ y mi modelo no usa las hiperformas')
-                    print(f'{TB}Cambio GLBLcalcularHiperFormas a False')
+                    print(f'{TB}-> AVISO: como mi objetivo es CREAR_LAZ y mi modelo no usa las hiperformas')
+                    print(f'{TB}{TV}Cambio GLBLcalcularHiperFormas a False')
+            else:
+                if LCLverbose:
+                    print(f'{TB}-> No necesito cambiar GLBLcalcularHiperFormas a False')
 
         if (
             GLO.GLBLpredecirClasificaMiniSubCelConvolucional
@@ -1586,11 +1597,9 @@ class VariablesGlobales(object):
             and self.configVarsDict['GLBLmostrarAvisos'][0]
         ):
             if LCLverbose:
-                print(
-                    '\nclidconfig-> AVISO: si GLBLcrearTilesTargetDeCartoRefSingUse u otros TargetDeCartoRef,',
-                    '\n  es recomendable GLBLformatoTilesAscRasterRef para visualizar en Qgis los tiles que se generan.',
-                    '\n  Se puede cambiar en el fichero de configuracion.'
-                )
+                print(f'\nclidconfig-> AVISO: si GLBLcrearTilesTargetDeCartoRefSingUse u otros TargetDeCartoRef,')
+                print(f'{TB}-> es recomendable GLBLformatoTilesAscRasterRef para visualizar en Qgis los tiles que se generan.')
+                print(f'{TB}-> Se puede cambiar en el fichero de configuracion.')
 
         if (
             self.configVarsDict['GLBLeliminarTilesTrasProcesado'][0]
@@ -1650,8 +1659,8 @@ class VariablesGlobales(object):
             self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] = int(self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] / 2)
         if self.configVarsDict['GLBLminDePtosParaAjustarPlanoBasalCielo'][0] < 3 or self.configVarsDict['GLBLminDePtosParaAjustarPlanoMajor'][0] < 3:
             if LCLverbose:
-                print(f'{TW}clidconfig-> Corregir GLBLminDePtosParaAjustarPlanoBasalCielo o GLBLminDePtosParaAjustarPlanoMajor')
-                print(f'{TW}clidconfig-> El numero minimo de puntos para ajustar debe ser mayor de 3')
+                print(f'clidconfig-> Corregir GLBLminDePtosParaAjustarPlanoBasalCielo o GLBLminDePtosParaAjustarPlanoMajor')
+                print(f'clidconfig-> El numero minimo de puntos para ajustar debe ser mayor de 3')
             return False
 
         if (
@@ -1660,7 +1669,7 @@ class VariablesGlobales(object):
             and not self.configVarsDict['GLBLalmacenarPuntosComoByteString'][0]
         ):
             if LCLverbose:
-                print(f'{TW}clidconfig-> Si se usa numba y no se usa Dtype, solo se puede guardar con GLBLalmacenarPuntosComoByteString = True -> Se cambia a True')
+                print(f'clidconfig-> Si se usa numba y no se usa Dtype, solo se puede guardar con GLBLalmacenarPuntosComoByteString = True -> Se cambia a True')
             try:
                 selec = input('\tclidconfig-> Confirmar el cambio de GLBLalmacenarPuntosComoByteString a True (S/n)')
                 self.configVarsDict['GLBLalmacenarPuntosComoByteString'][0] = False if selec.upper() == 'N' else True
@@ -1678,7 +1687,7 @@ class VariablesGlobales(object):
         if self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] > 0 and not self.configVarsDict['GLBLselecPasadasConClasificacion'][0]:
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
                 if LCLverbose:
-                    print(f'{TW}clidconfig-> -> la pasada elegida debe tener puntos suelo -> se cambia la opcion GLBLselecPasadasConClasificacion a True')
+                    print(f'clidconfig-> -> la pasada elegida debe tener puntos suelo -> se cambia la opcion GLBLselecPasadasConClasificacion a True')
             try:
                 selec = input('\tclidconfig-> Confirmar el cambio de GLBLselecPasadasConClasificacion a True (S/n)')
                 self.configVarsDict['GLBLselecPasadasConClasificacion'][0] = False if selec.upper() == 'N' else True
@@ -1697,7 +1706,7 @@ class VariablesGlobales(object):
         if self.configVarsDict['GLBLusarNumba'][0] and (self.configVarsDict['GLBLusarSklearn'][0] or self.configVarsDict['GLBLusarStatsmodels'][0]):
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
                 if LCLverbose:
-                    print(f'{TW}clidconfig-> Cuando se usa Numba los ajustes se hacen con algebra matricial y no con SkLearn o Statsmodels.')
+                    print(f'clidconfig-> Cuando se usa Numba los ajustes se hacen con algebra matricial y no con SkLearn o Statsmodels.')
             try:
                 selec = input('\tclidconfig-> Confirmar el cambio de GLBLusarSklearn y GLBLusarStatsmodels a False (S/n)')
                 rpta = True if selec.upper() == 'N' else False
@@ -1708,7 +1717,7 @@ class VariablesGlobales(object):
                 self.configVarsDict['GLBLusarStatsmodels'][0] = False
             if rpta == False:
                 if LCLverbose:
-                    print(f'{TW}clidconfig-> GLBLusarSklearn o GLBLusarStatsmodels = True -> Opcion no permitida con GLBLusarNumba True')
+                    print(f'clidconfig-> GLBLusarSklearn o GLBLusarStatsmodels = True -> Opcion no permitida con GLBLusarNumba True')
                 return False
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
                 if LCLverbose:
@@ -1716,26 +1725,42 @@ class VariablesGlobales(object):
                     print('GLBLusarStatsmodels:', self.configVarsDict['GLBLusarStatsmodels'][0])
 
 
-        if self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0]:
-            print(f'{TW}clidconfig-> GLBLguardarPuntosSueloEnArrayPredimensionada = True-> Guardar los puntos duplicados')
-            print('\t(pasada seleccionada por angulo y pasada seleccionada por tener puntos suelo) consume extra de RAM')
-            try:
-                # selec = input('\tclidconfig-> Confirmas que quieres usar ese array (S/n)')
-                print(f'{TW}clidconfig-> Confirmas que quieres usar ese array (S/n)')
-                selec = 'S'
+        if (
+            self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0]
+            or self.configVarsDict['GLBLguardarPuntosSueloAlFinalDelArrayPralAll'][0]
+        ):
+            if self.configVarsDict['GLBLcalcularMds'][0]:
+                if (
+                    self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0]
+                    and self.configVarsDict['GLBLguardarPuntosSueloAlFinalDelArrayPralAll'][0]
+                ):
+                    print(f'clidconfig-> AVISO:')
+                    print(f'{TB}-> GLBLguardarPuntosSueloEnArrayPredimensionada = True')
+                    print(f'{TB}-> GLBLguardarPuntosSueloAlFinalDelArrayPralAll = True')
+                    print(f'{TB}-> Esto guarda los puntos duplicados y consume extra de RAM')
+                    print(f'{TB}-> Se desactiva la opcion GLBLguardarPuntosSueloAlFinalDelArrayPralAll')
+                    selec = 'N'
+                    self.configVarsDict['GLBLguardarPuntosSueloAlFinalDelArrayPralAll'][0] = False if selec.upper() == 'N' else True
+            else:
+                print(f'clidconfig-> AVISO:')
+                print(f'{TB}-> GLBLguardarPuntosSueloEnArrayPredimensionada = {self.configVarsDict["GLBLguardarPuntosSueloEnArrayPredimensionada"][0]}')
+                print(f'{TB}-> GLBLguardarPuntosSueloAlFinalDelArrayPralAll = {self.configVarsDict["GLBLguardarPuntosSueloAlFinalDelArrayPralAll"][0]}')
+                print(f'{TB}-> GLBLcalcularMds = False')
+                print(f'{TB}-> Esto guarda los puntos suelo pero no se usan para Mds con lo que consume RAM innecesariamente.')
+                print(f'{TB}-> Se desactivan las opciones GLBLguardarPuntosSueloEnArrayPredimensionada y GLBLguardarPuntosSueloAlFinalDelArrayPralAll.')
+                selec = 'N'
                 self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0] = False if selec.upper() == 'N' else True
-            except:
-                self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0] = True
+                self.configVarsDict['GLBLguardarPuntosSueloAlFinalDelArrayPralAll'][0] = False if selec.upper() == 'N' else True
             if self.configVarsDict['GLBLverbose'][0]:
-                print('GLBLguardarPuntosSueloEnArrayPredimensionada:', self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0])
+                print(f'{TB}-> GLBLguardarPuntosSueloEnArrayPredimensionada: {self.configVarsDict["GLBLguardarPuntosSueloEnArrayPredimensionada"][0]}')
+                print(f'{TB}-> GLBLguardarPuntosSueloAlFinalDelArrayPralAll: {self.configVarsDict["GLBLguardarPuntosSueloAlFinalDelArrayPralAll"][0]}')
         else:
-            if (
-                self.configVarsDict['GLBLcalcularMds'][0]
-                and not self.configVarsDict['GLBLguardarPuntosSueloAlFinalDelArrayPralAll'][0]
-            ):
+            if self.configVarsDict['GLBLcalcularMds'][0]:
                 try:
-                    print(f'{TB}{TV}Se quiere calcular el plano suelo; pero eso requiere ')
-                    print(f'{TB}{TV}almacenar puntos suelo en array predimensionada. Se activa esa opcion')
+                    print(f'clidconfig-> AVISO:')
+                    print(f'{TB}-> Se quiere calcular el plano suelo; pero eso requiere ')
+                    print(f'{TB}{TV}almacenar puntos suelo en array predimensionada.')
+                    print(f'{TB}{TV}-> Se activa esa opcion.')
                     selec = 'S'
                     # selec = input(f'{TB}{TV}almacenar puntos suelo en array predimensionada. Activar esa opcion? (S/n)')
                     confirmar = False if selec.upper() == 'N' else True
@@ -1743,11 +1768,11 @@ class VariablesGlobales(object):
                     confirmar = True
                 if confirmar:
                     self.configVarsDict['GLBLguardarPuntosSueloEnArrayPredimensionada'][0] = True
-                    print(f'{TB}{TV}Se usa el array self_aCeldasListaDePtosSuePral. ')
-                    print(f'{TB}{TV}Si se quiere GLBLguardarPuntosSueloAlFinalDelArrayPralAll, cambiar clidbase.xlsx')
+                    print(f'{TB}-> Se usa el array self_aCeldasListaDePtosSuePral. ')
+                    print(f'{TB}-> Si se quiere GLBLguardarPuntosSueloAlFinalDelArrayPralAll, cambiar clidbase.xlsx')
                 else:
                     self.configVarsDict['GLBLcalcularMds'][0] = False
-                    print('\tNo se calcula en plano suelo')
+                    print(f'{TB}-> No se calcula en plano suelo.')
 
         # Atencion: para calcular el punto suelo fuerzo que se use GLBLguardarPuntosSueloEnArrayPredimensionada
         # por lo que lo siguiente ya no tiene vigencia porque
@@ -1760,18 +1785,18 @@ class VariablesGlobales(object):
             and self.configVarsDict['GLBLminimoDePuntosSueloParaElegirPasada'][0] == 0
         ):
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
-                print(f'{TW}clidconfig-> -> Se ajusta plano a los puntos suelo pero:')
-                print(f'{TB}{TV}No se guardan en array los puntos de la pasada con puntos suelo porque')
-                print(f'{TB}{TV}ocupa demasiada memoria, por lo que se usan siempre los puntos de la pasada Psel.')
-                print(f'{TB}{TV}La pasada Psel se selecciona por angulo de incidencia sin requerir que tenga puntos clasificados suelo')
-                print(f'{TB}{TV}GLBLcalcularMds = True pero GLBLguardarPuntosSueloEnArrayPredimensionada = False ')
-                print(f'{TB}{TV}y GLBLselecPasadasConClasificacion = False y GLBLminimoDePuntosSueloParaElegirPasada = 0')
+                print(f'clidconfig-> -> Se ajusta plano a los puntos suelo pero:')
+                print(f'{TB}No se guardan en array los puntos de la pasada con puntos suelo porque')
+                print(f'{TB}ocupa demasiada memoria, por lo que se usan siempre los puntos de la pasada Psel.')
+                print(f'{TB}La pasada Psel se selecciona por angulo de incidencia sin requerir que tenga puntos clasificados suelo')
+                print(f'{TB}GLBLcalcularMds = True pero GLBLguardarPuntosSueloEnArrayPredimensionada = False ')
+                print(f'{TB}y GLBLselecPasadasConClasificacion = False y GLBLminimoDePuntosSueloParaElegirPasada = 0')
             try:
-                print(f'{TB}{TV}Confirmar que se quiere calcular el plano suelo usando la pasada seleccionada')
+                print(f'{TB}Confirmar que se quiere calcular el plano suelo usando la pasada seleccionada')
                 selec = input('solo por angulo y que, por lo tanto, puede no tener puntos suelo (S/n)')
                 # if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
                 #     print(
-                #         f'{TB}{TV}Confirmar que se quiere calcular el plano suelo usando la pasada seleccionada solo por angulo y que, por lo tanto, puede no tener puntos suelo (S/n)'
+                #         f'{TB}Confirmar que se quiere calcular el plano suelo usando la pasada seleccionada solo por angulo y que, por lo tanto, puede no tener puntos suelo (S/n)'
                 #     )
                 #     selec = 'S'
                 confirmar = False if selec.upper() == 'N' else True
@@ -1818,23 +1843,23 @@ class VariablesGlobales(object):
                 )
             if self.configVarsDict['GLBLselecPasadaConMasPuntosSuelo'][0]:
                 if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
-                    print(f'{TW}clidconfig-> Se selecciona la misma pasada para puntos suelo y para puntos basales')
+                    print(f'clidconfig-> Se selecciona la misma pasada para puntos suelo y para puntos basales')
             elif self.configVarsDict['GLBLselecPasadasConClasificacion'][0]:
                 if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
-                    print(f'{TW}clidconfig-> Si solo hay una pasada con puntos clasificados, se selecciona la misma pasada para puntos suelo y para puntos basales')
+                    print(f'clidconfig-> Si solo hay una pasada con puntos clasificados, se selecciona la misma pasada para puntos suelo y para puntos basales')
                     print(
-                        f'{TW}clidconfig-> Si hay varias, en las celdas con mas de una pasada, la pasada seleccionada (para puntos basales) puede ser distinta de la seleccionada para puntos suelo:'
+                        f'clidconfig-> Si hay varias, en las celdas con mas de una pasada, la pasada seleccionada (para puntos basales) puede ser distinta de la seleccionada para puntos suelo:'
                     )
-                    print(f'{TW}clidconfig->     Para puntos suelo: la que teniendo puntos clasificados tenga mas puntos suelo')
-                    print(f'{TW}clidconfig->     Para puntos basales: la que teniendo puntos clasificados tenga menor angulo medio')
+                    print(f'clidconfig->     Para puntos suelo: la que teniendo puntos clasificados tenga mas puntos suelo')
+                    print(f'clidconfig->     Para puntos basales: la que teniendo puntos clasificados tenga menor angulo medio')
             else:
                 if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
                     print(
-                        f'{TW}clidconfig-> En las celdas con mas de una pasada, la pasada seleccionada para puntos basales puede ser distinta de la seleccionada para puntos suelo'
+                        f'clidconfig-> En las celdas con mas de una pasada, la pasada seleccionada para puntos basales puede ser distinta de la seleccionada para puntos suelo'
                     )
-                    print(f'{TW}clidconfig->     Para puntos suelo: la que tenga mas puntos suelo')
-                    print(f'{TW}clidconfig->     Para puntos basales: la que tenga menor angulo medio')
-                    print(f'{TW}clidconfig-> AVISO: se trabaja solo con celdas seleccionadas para puntos basales: algunas pueden no tener puntos suelo')
+                    print(f'clidconfig->     Para puntos suelo: la que tenga mas puntos suelo')
+                    print(f'clidconfig->     Para puntos basales: la que tenga menor angulo medio')
+                    print(f'clidconfig-> AVISO: se trabaja solo con celdas seleccionadas para puntos basales: algunas pueden no tener puntos suelo')
 
         if self.configVarsDict['GLBLgrabarPropiedadTime'][0] and self.configVarsDict['GLBLalmacenarPuntosComoCompactNpDtype'][0]:
             if self.configVarsDict['GLBLmostrarAvisos'][0]:
@@ -1856,6 +1881,9 @@ class VariablesGlobales(object):
             # Esto siguiente no hace falta porque mas adelante reviso el numero medio de puntos por celda y amplio GLBLnMaxPtosCeldaArrayPredimensionadaTodos si es necesario
             # if self.configVarsDict['GLBLnMaxPtosCeldaArrayPredimensionadaTodos'][0] < 20 * (self.configVarsDict['GLBLmetrosCelda'][0] ** 2):
             #    self.configVarsDict['GLBLnMaxPtosCeldaArrayPredimensionadaTodos'][0] = 20 * (self.configVarsDict['GLBLmetrosCelda'][0] ** 2)
+
+        if self.configVarsDict['GLBLverbose'][0] and LCLverbose:
+            print(f'{"":=^80}')
 
         # Esto no deberia ser necesario porque solo trabajo con self.configVarsDict[] o con GLO.paramConfig.
         global GLOBALconfigDict
@@ -2135,17 +2163,19 @@ def normalize(c):
 
 
 # ==============================================================================
-def getConfigFileName(idProceso, LOCL_verbose=0):
-    rutaAlternativa = False
-    # MAIN_BASE_DIR = os.path.abspath('.')
-    MAIN_BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
-    if not 'site-packages' in MAIN_BASE_DIR:
-        MAIN_CFG_DIR = MAIN_BASE_DIR
+def get_MAIN_CFG_DIR():
+    # Orden de preferencia para el fichero de configuracion:
+    #  1-> El del directorio actual (desde el que se lanza la aplicacion) si no incluye site-packages
+    #  2-> El del modulo inicial si no incluye site-packages
+    #  3-> El del modulo actual si no incluye site-packages
+    #  4-> El user/documents
+    MAIN_THIS_DIR = os.getcwd()
+    if not 'site-packages' in MAIN_THIS_DIR:
+        MAIN_CFG_DIR = MAIN_THIS_DIR
     else:
-        rutaAlternativa = True
-        MAIN_THIS_DIR = os.getcwd()
-        if not 'site-packages' in MAIN_THIS_DIR:
-            MAIN_CFG_DIR = MAIN_THIS_DIR
+        MAIN_BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+        if not 'site-packages' in MAIN_BASE_DIR:
+            MAIN_CFG_DIR = MAIN_BASE_DIR
         else:
             try:
                 MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -2158,21 +2188,25 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
             else:
                 MAIN_HOME_DIR = str(pathlib.Path.home())
                 MAIN_CFG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
+    return MAIN_CFG_DIR
 
+
+# ==============================================================================
+def getConfigFileName():
     if len(sys.argv) == 0:
         print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
         sys.exit(0)
     elif (sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]):
         # print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
         # print('\t  python -m cartolidar')
-        configFileNameSinPath = 'clidbase.cfg'
+        configFileNameSinExt = 'clidbase{:006}'.format(int(idProceso))
     elif sys.argv[0].endswith('qlidtwins.py'):
         # print('\nqlidtwins.py se ha lanzado desde linea de comandos:')
         # print('\t  python qlidtwins.py')
-        configFileNameSinPath = 'qlidtwins.cfg'
+        configFileNameSinExt = 'qlidtwins'
     elif sys.argv[0] == '':
         # print('\nqlidtwins se esta importando desde el interprete interactivo:')
-        configFileNameSinPath = 'clidbase.cfg'
+        configFileNameSinExt = 'clidbase{:006}'.format(int(idProceso))
     else:
         # print(f'\nqlidtwins.py se esta importando desde el modulo: {sys.argv[0]}')
         if idProceso:
@@ -2182,11 +2216,11 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
                 print('sys.argv[0]: <{}>'.format(sys.argv[0]))
             try:
                 if sys.argv[0].endswith('.py'):
-                    configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '{:006}.cfg'.format(int(idProceso)))
+                    configFileNameSinExt = os.path.basename(sys.argv[0]).replace('.py', '{:006}'.format(int(idProceso)))
                 elif sys.argv[0].endswith('pytest'):
-                    configFileNameSinPath = 'cfgForTest.cfg'
+                    configFileNameSinExt = 'cfgForTest'
                 else:
-                    configFileNameSinPath = 'unknownLaunch.cfg'
+                    configFileNameSinExt = 'unknownLaunch'
             except:
                 print('\nclidconfig-> Revisar asignacion de idProceso (b):')
                 print('idProceso:   <{}> type: {}'.format(idProceso, type(idProceso)))
@@ -2194,13 +2228,26 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
                 sys.exit(0)
         else:
             if sys.argv[0].endswith('.py'):
-                configFileNameSinPath = os.path.basename(sys.argv[0]).replace('.py', '.cfg')
+                configFileNameSinExt = os.path.basename(sys.argv[0]).replace('.py', '')
             elif sys.argv[0].endswith('pytest'):
-                configFileNameSinPath = 'cfgForTest.cfg'
+                configFileNameSinExt = 'cfgForTest'
             else:
-                configFileNameSinPath = 'unknownLaunch.cfg'
+                configFileNameSinExt = 'unknownLaunch'
 
+    return configFileNameSinExt
+
+
+# ==============================================================================
+def getConfigFileNameCfg(idProceso, LOCL_verbose=0):
+    rutaAlternativa = False
+    MAIN_CFG_DIR = get_MAIN_CFG_DIR()
+    configFileNameSinExt = getConfigFileName()
+    configFileNameSinPath = f'{configFileNameSinExt}.cfg'
+    
     configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
+    if LOCL_verbose:
+        print(f'\n{"":_^80}')
+        print(f'clidconfig-> Fichero de configuracion cfg: {configFileNameCfg}')
 
     try:
         if not os.path.exists(configFileNameCfg):
@@ -2210,17 +2257,24 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
         else:
             controlConfigFile = open(configFileNameCfg, mode='r+')
             controlConfigFile.close()
+        print(f'clidconfig-> Ok cfg file: {configFileNameCfg}')
+        if os.path.exists(configFileNameCfg):
+            print(f'{TB}-> Este fichero de configuracion ya existe previamente (se usan sus parametros en lugar de los del xls).')
+        print(f'{"":=^80}')
     except:
-        print(f'\n{"":_^80}')
-        print(f'clidconfig-> AVISO:')
-        print(f'\tNo se puede guardar el fichero de configuracion:  {configFileNameCfg}')
-        print(f'\tEs posible que no tenga permisos de escritura en: {MAIN_CFG_DIR}')
-        print(f'\tO que exista el fichero {configFileNameCfg} y este bloqueado.')
+        if LOCL_verbose:
+            # print(f'\n{"":_^80}')
+            print(f'clidconfig-> AVISO:')
+            print(f'{TB}-> No se puede guardar el fichero de configuracion:  {configFileNameCfg}')
+            print(f'{TB}-> Es posible que no tenga permisos de escritura en: {MAIN_CFG_DIR}')
+            print(f'{TB}-> O que exista el fichero {configFileNameCfg} y este bloqueado.')
+            print(f'{TB}-> callingModulePrevio: {callingModulePrevio}')
         rutaAlternativa = True
         try:
             MAIN_HOME_DIR = str(pathlib.Path.home())
             MAIN_CFG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
-            print(f'\tSe intenta la ruta alternativa: {MAIN_CFG_DIR}')
+            if LOCL_verbose:
+                print(f'{TB}Se intenta la ruta alternativa: {MAIN_CFG_DIR}')
             configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
             if not os.path.exists(configFileNameCfg):
                 controlConfigFile = open(configFileNameCfg, mode='w')
@@ -2229,23 +2283,69 @@ def getConfigFileName(idProceso, LOCL_verbose=0):
             else:
                 controlConfigFile = open(configFileNameCfg, mode='r+')
                 controlConfigFile.close()
-            print(f'\tOk log file: {configFileNameCfg}')
+            if LOCL_verbose:
+                print(f'{TB}Ok log file: {configFileNameCfg}')
         except:
-            print(f'\tTampoco se puede escribir en la ruta {MAIN_CFG_DIR}')
+            if LOCL_verbose:
+                print(f'{TB}Tampoco se puede escribir en la ruta {MAIN_CFG_DIR}')
             MAIN_HOME_DIR = str(pathlib.Path.home())
             configFileNameCfg = os.path.join(MAIN_HOME_DIR, os.path.basename(sys.argv[0]).replace('.py', '.cfg'))
-            print(f'\tOk log file: {configFileNameCfg}')
-        print(f'{"":=^80}')
-
-    if rutaAlternativa and False:
-        print(f'{TB}{TV}Nueva ruta para fichero de configuracion: {configFileNameCfg}.')
-        if os.path.exists(configFileNameCfg):
-            print(f'\t-> Este fichero de configuracion ya existe previamente.')
+            if LOCL_verbose:
+                print(f'clidconfig-> Ok cfg file: {configFileNameCfg}')
+        if LOCL_verbose:
+            if os.path.exists(configFileNameCfg):
+                print(f'{TB}-> Este fichero de configuracion ya existe previamente (se usan sus parametros en lugar de los del xls).')
+            print(f'{"":=^80}')
 
     return configFileNameCfg
 
 
-# ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+# ==============================================================================
+def getConfigFileNameXls(configFileNameCfg, LOCL_verbose=0):
+    MAIN_XLS_DIR = get_MAIN_CFG_DIR()
+    directorioActual = (os.getcwd()).replace(os.sep, '/')
+    directorioProyecto = os.path.dirname(sys.argv[0])
+    directorioCfg = os.path.dirname(configFileNameCfg)
+    configFileNameSinPath = 'clidbase.xlsx'
+    moduloInicialXls = (os.path.basename(sys.argv[0])).replace('.py', '.xlsx')
+
+    # Opcion 1: fichero de configuracion con el nombre clidbase.xls
+    #           en el directorio inicialmente propuesto para el cfg:
+    #           1-> El del directorio actual (desde el que se lanza la aplicacion) si no incluye site-packages
+    #           2-> El del modulo inicial si no incluye site-packages
+    #           3-> El del modulo actual si no incluye site-packages
+    #           4-> El user/documents
+    filenameXlsCfg1Clidbase = os.path.join(MAIN_XLS_DIR, configFileNameSinPath)
+    # No verifico si hay derechos de escritura en este directorio (cosa que si hago para cfg)
+
+    # Opcion 2: fichero de configuracion con el nombre clidbase.xls
+    #           en el directorio actual (desde el que se lanza la aplicacion)
+    #           Puede coincidir con el anterior si no incluye site-packages
+    filenameXlsCwdClidbase = os.path.join(directorioActual, configFileNameSinPath)
+
+    # Opcion 3: fichero de configuracion con el nombre del modulo que se lanza inicialmente (__init__.py, __main__.py, clidbase.py, etc.)
+    #           en el directorio actual (desde el que se lanza la aplicacion)
+    #           Puede coincidir con los anteriores si el modulo inicial es clidbase.py
+    filenameXlsCwdModulo = os.path.join(directorioActual, moduloInicialXls)
+
+    # Opcion 4: fichero de configuracion con el nombre clidbase.xls
+    #           en el directorio finalmente propuesto para el cfg:
+    filenameXlsCfg2Clidbase = os.path.join(directorioCfg, configFileNameSinPath)
+
+    # Opcion 5: fichero de configuracion instalado junto al modulo que lanza la aplicacion (clidbase.py)
+    filenameXlsProjClidbase = os.path.abspath(os.path.join(directorioProyecto, configFileNameSinPath))
+
+
+    return (
+        filenameXlsCfg1Clidbase,
+        filenameXlsCwdClidbase,
+        filenameXlsCwdModulo,
+        filenameXlsCfg2Clidbase,
+        filenameXlsProjClidbase,
+    )
+
+
+# ==============================================================================
 def guardarVariablesGlobales(
         LOCALconfigDict,
         idProceso=MAIN_idProceso,
@@ -2258,7 +2358,7 @@ def guardarVariablesGlobales(
     # else:
     #     time.sleep(5)
 
-    configFileNameCfg = getConfigFileName(idProceso)
+    configFileNameCfg = getConfigFileNameCfg(idProceso, LOCL_verbose=0)
     if os.path.exists(configFileNameCfg):
         try:
             os.remove(configFileNameCfg)
@@ -2267,9 +2367,10 @@ def guardarVariablesGlobales(
             time.sleep(5)
 
     if CONFIGverbose or LCLverbose:
-        print(f'\tclidconfig-> Guardo los paramConfig en fichero cfg (inicial) con guardarVariablesGlobales:')
+        print(f'\n{"":_^80}')
+        print(f'clidconfig-> Guardo los paramConfig en fichero cfg (inicial) con guardarVariablesGlobales:')
         print(f'{TB}{configFileNameCfg}')
-        print(f'\tclidconfig-> Reviso la pila de llamadas por si llamara a esta funcion de nuevo')
+        print(f'{TB}-> Reviso la pila de llamadas por si llamara a esta funcion de nuevo')
         _, _ = showCallingModules(inspect_stack=inspect_stack, verbose=CONFIGverbose)
 
     config = RawConfigParser()
@@ -2347,11 +2448,12 @@ def guardarVariablesGlobales(
         with open(configFileNameCfg, mode='w+') as configfile:
             config.write(configfile)
     except:
-        print('\nclidconfig-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion:', configFileNameCfg)
-        print('\tEjemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
+        print(f'\nclidconfig-> ATENCION, revisar caracteres no admitidos en el fichero de configuracion: {configFileNameCfg}')
+        print(f'{TB}Ejemplos: vocales acentuadas, ennes, cedillas, flecha dchea (->), etc.')
 
     if CONFIGverbose or LCLverbose:
-        print(f'\tclidconfig-> Ok creado fichero: {configFileNameCfg}')
+        print(f'{TB}-> Ok creado fichero: {configFileNameCfg}')
+        print(f'{"":=^80}')
 
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -2364,21 +2466,21 @@ def leerCambiarVariablesGlobales(
     # Lectura del config (cfg) generado especificamente para esta ejecucion.
     # print('idProceso:', type(idProceso), idProceso)
     # print('sys.argv:', sys.argv)
-    configFileNameCfg = getConfigFileName(idProceso, LOCL_verbose=2)
+    configFileNameCfg = getConfigFileNameCfg(idProceso, LOCL_verbose=0)
 
     if CONFIGverbose or verbose:
-        print(f'{TW}clidconfig-> Leo los paramConfig del cfg (lo actualizo si tengo nuevosParametroConfiguracion) con leerCambiarVariablesGlobales<>')
-        print(f'{TW}clidconfig-> Reviso la pila de llamadas para ver desde que modulo estoy cargando los paramConfig del cfg')
+        print(f'clidconfig-> Leo los paramConfig del cfg (lo actualizo si tengo nuevosParametroConfiguracion) con leerCambiarVariablesGlobales<>')
+        print(f'{TB}-> Reviso la pila de llamadas para ver desde que modulo estoy cargando los paramConfig del cfg')
         _, _ = showCallingModules(inspect_stack=inspect_stack, verbose=CONFIGverbose)
 
     config = RawConfigParser()
     config.optionxform = str  # Avoid change to lowercase
 
     if not os.path.exists(configFileNameCfg):
-        print('\nclidconfig-> Fichero de configuracion no encontrado:', configFileNameCfg)
-        print('\t-> Revisar la linea ~2523 de clidconfig.py, para que se cree el .cfg si callingModuleInicial == "clidbase" or ...')
+        print(f'\nclidconfig-> ATENCION: fichero de configuracion no encontrado: {configFileNameCfg}')
+        print(f'{TB}-> Revisar la linea ~2523 de clidconfig.py, para que se cree el .cfg si callingModuleInicial == "clidbase" or ...')
         callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=True)
-        print('\t-> callingModulePrevio:', callingModulePrevio, 'callingModuleInicial:', callingModuleInicial)
+        print(f'{TB}-> callingModulePrevio: {callingModulePrevio} callingModuleInicial: {callingModuleInicial}')
         sys.exit(0)
         # return False
 
@@ -2390,7 +2492,7 @@ def leerCambiarVariablesGlobales(
     if True:
         config.read(configFileNameCfg)
         if CONFIGverbose or verbose:
-            print('clidconfig-> Configuracion ({}):'.format(configFileNameCfg))
+            print(f'clidconfig-> Paramtros del GrupoMAIN del fichero de configuracion ({configFileNameCfg}):')
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
@@ -2430,7 +2532,7 @@ def leerCambiarVariablesGlobales(
                     LOCALconfigDict[nombreParametroDeConfiguracion].extend(valObjetivosExtra)
 
                 if (CONFIGverbose or verbose) and grupoParametroConfiguracion == 'GrupoMAIN':
-                    print(f'{TB}{TV}clidconfig-> >>>5 numObjetivosExtra: {numObjetivosExtra}, Max: {numObjetivosExtraMax}, >>> {nombreParametroDeConfiguracion}, {LOCALconfigDict[nombreParametroDeConfiguracion]}')
+                    print(f'{TB}-> >>>5 numObjetivosExtra: {numObjetivosExtra}, Max: {numObjetivosExtraMax}, >>> {nombreParametroDeConfiguracion}, {LOCALconfigDict[nombreParametroDeConfiguracion]}')
 
         LOCALconfigDict['configFileNameCfg'] = [
             configFileNameCfg,
@@ -2439,7 +2541,7 @@ def leerCambiarVariablesGlobales(
             'str',
         ]
         if CONFIGverbose or verbose:
-            print(f'\tclidconfig-> Parametros leidos ok del fichero cfg: {LOCALconfigDict["configFileNameCfg"]}')
+            print(f'clidconfig-> Parametros leidos ok del fichero cfg: {LOCALconfigDict["configFileNameCfg"][0]}')
 
         # configLeidoDelCfgOk = True
     # except Exception as excpt:
@@ -2479,7 +2581,7 @@ def leerCambiarVariablesGlobales(
     #         descError = exc_obj.strerror
     #     except:
     #         descError = exc_obj
-    #     sys.stderr.write(f'\nContribuya a este programa remitiendo este error al desarrollador (cartolidar@gmail.com):\n')
+    #     sys.stderr.write(f'\nPuede contribuir a este programa remitiendo este error a cartolidar@gmail.com:\n')
     #     sys.stderr.write(f'{TB}Error en     {fileNameError}\n')
     #     sys.stderr.write(f'{TB}Funcion:     {funcError}\n')
     #     sys.stderr.write(f'{TB}Linea:       {lineError}\n')
@@ -2493,7 +2595,7 @@ def leerCambiarVariablesGlobales(
 
 
     if CONFIGverbose or verbose:
-        print(f'{TW}clidconfig-> >>>6 nuevosParametroConfiguracion: {nuevosParametroConfiguracion}')
+        print(f'clidconfig-> >>>6 nuevosParametroConfiguracion: {nuevosParametroConfiguracion}')
     # Estos parametros llegan como dict de listas de valores (no como listas de textos, que es lo que ocurre con la listaParametroConfiguracion leida del cfg)        
     if nuevosParametroConfiguracion != {}:
         for nombreParametroDeConfiguracion in nuevosParametroConfiguracion.keys():
@@ -2564,12 +2666,12 @@ def leerCambiarVariablesGlobales(
 
             if verbose:
                 # print(f'{TB}Nuevo Valor de: {nombreParametroDeConfiguracion} -> {listaConcatenada}')
-                print(f'{TB}Nuevo Valor ok: {nombreParametroDeConfiguracion} -> {config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion).split("|+|")}')
+                print(f'{TB}-> Nuevo Valor ok: {nombreParametroDeConfiguracion} -> {config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion).split("|+|")}')
 
             if (CONFIGverbose or verbose) and grupoParametroConfiguracion == 'GrupoMAIN':
                 # print(f'{TB}{TV}clidconfig-> >>>6 {configFileNameCfg}, {nombreParametroDeConfiguracion}, {listaNuevosParametroConfiguracion}')
                 print(
-                    '\tclidconfig-> >>>6 Nuevo parametro del grupo',
+                    f'{TB}-> >>>6 Nuevo parametro del grupo',
                     grupoParametroConfiguracion,
                     '->',
                     nombreParametroDeConfiguracion,
@@ -2582,7 +2684,7 @@ def leerCambiarVariablesGlobales(
                 )
 
         if CONFIGverbose or verbose:
-            print(f'{TW}clidconfig-> Guardando los nuevos parametros en: {configFileNameCfg}')
+            print(f'clidconfig-> Guardando los nuevos parametros en: {configFileNameCfg}')
 
         os.remove(configFileNameCfg)
         with open(configFileNameCfg, mode='w+') as configfile:
@@ -2592,7 +2694,7 @@ def leerCambiarVariablesGlobales(
             if os.path.exists(configFileNameCfg):
                 print(f'{TB}-> Ok fichero cfg actualizado con los nuevos parametros.')
             else:
-                print(f'{TB}-> Aviso: error al crear {configFileNameCfg} con los nuevos parametros.')
+                print(f'{TB}-> AVISO: error al crear {configFileNameCfg} con los nuevos parametros.')
 
     return LOCALconfigDict
 
@@ -3221,11 +3323,17 @@ if (
     if CONFIGverbose:
         print('''
 clidconfig-> Secuencia de carga de variables de configuracion:
-             1. Se busca y lee el fichero xml con initConfigDicts<>
-                Esta funcion devuelve la variable GLOBALconfigDict (globales de clidconfig)
-                Ademas hace una copia del xlsx que dejo solo como testimonial (no la uso)
-                AVISO: aqui se eligen las columnas a usar para las configuraciones extra
-                  Por el momento solo la columna I, con valor CREA_TILES (eso queda guardado en GLOBALconfigDict)
+             1. Se lanza initConfigDicts<> para:
+                 a. Buscar y, si existe, leer el fichero cfg
+                    -> Si hay fichero cfg de anteriores ejecucuiones
+                       Se leen los parametros del cfg y se guardan en GLOBALconfigDict
+                    -> Si no hay fichero cfg se pasa a la opcion b
+                       (se tira del fichero xlsx de configuracion).
+                 b. Buscar y leer el fichero xlsx
+                    Esta funcion devuelve la variable GLOBALconfigDict (globales de clidconfig)
+                    Ademas hace una copia del xlsx que dejo solo como testimonio (no la uso)
+                    AVISO: aqui se eligen las columnas a usar para las configuraciones extra
+                      Por el momento solo la columna I, con valor CREA_TILES (eso queda guardado en GLOBALconfigDict)
              2. Creo el fichero de configuracion cfg correspondiente con guardarVariablesGlobales<> a partir de GLOBALconfigDict.
                 De esta forma esta disponible para todos los modulos 
                   Lo puedo actualizar si hace falta y esta disponible para todos,
@@ -3237,7 +3345,7 @@ clidconfig-> Secuencia de carga de variables de configuracion:
     # Leo los parametros de configuracion de clidbase.xml y los cargo en diccionarios
     if CONFIGverbose:
         print('clidconfig-> Para leer el fichero de configuracion xlsx lanzo initConfigDicts<> (se hace copia con idProceso: {})'.format(idProceso))
-    GLOBALconfigDict = initConfigDicts(idProceso)
+    GLOBALconfigDict = initConfigDicts(idProceso, LOCL_verbose=__verbose__)
     if CONFIGverbose:
         print(f'clidconfig-> Resultado de lanzar initConfigDicts<> GLOBALconfigDict["GLBLverbose"]: {len(GLOBALconfigDict["GLBLverbose"])}, {GLOBALconfigDict["GLBLverbose"]}')
 
@@ -3253,7 +3361,9 @@ clidconfig-> Secuencia de carga de variables de configuracion:
         print(f'clidconfig-> Voy a crear el objeto GLO (objeto global de clidconfig de la clase VariablesGlobales<>)')
         print(f'\t-> al que puedo acceder desde el resto de los modulos importando este modulo')
 
+    # ==========================================================================
     GLO = VariablesGlobales(GLOBALconfigDict)
+    # ==========================================================================
 
     if CONFIGverbose:
         print(f'clidconfig-> #4a GLO.GLBLverbose:                   {GLO.GLBLverbose}')

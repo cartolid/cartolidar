@@ -22,7 +22,8 @@ import inspect
 # import argparse
 # from configparser import RawConfigParser
 # import logging
-# import importlib
+import importlib
+import importlib.util
 # import struct
 # import shutil
 # import gc
@@ -30,25 +31,36 @@ import inspect
 # Paquetes de terceros
 import numpy as np
 
-try:
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
     from cartolidar.clidax import clidaux
     # from cartolidar.clidax.clidconfig import GLO
     from cartolidar.clidax import clidconfig
     from cartolidar.clidfr import clidhead
     from cartolidar.clidnb import clidnaux
-except:
-    sys.stderr.write(f'cliddata-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-    sys.stderr.write('\t-> Se importan paquetes de cartolidar desde cliddata del directorio local {os.getcwd()}/....')
-    from clidax import clidaux
-    # from clidax.clidconfig import GLO
-    from clidax import clidconfig
-    from clidfr import clidhead
-    from clidnb import clidnaux
-
-try:
-    from cartolidar.clidnb import clidnv0
-except:
-    print('cliddata-> No se importan clidnv0 por no estar disponible todavia')
+    try:
+        from cartolidar.clidnb import clidnv0
+    except:
+        print('cliddata-> No se importan clidnv0 por no estar disponible todavia')
+else:
+    try:
+        from cartolidar.clidax import clidaux
+        # from cartolidar.clidax.clidconfig import GLO
+        from cartolidar.clidax import clidconfig
+        from cartolidar.clidfr import clidhead
+        from cartolidar.clidnb import clidnaux
+    except:
+        sys.stderr.write(f'cliddata-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+        sys.stderr.write('\t-> Se importan paquetes de cartolidar desde cliddata del directorio local {os.getcwd()}/....')
+        from clidax import clidaux
+        # from clidax.clidconfig import GLO
+        from clidax import clidconfig
+        from clidfr import clidhead
+        from clidnb import clidnaux
+    try:
+        from cartolidar.clidnb import clidnv0
+    except:
+        print('cliddata-> No se importan clidnv0 por no estar disponible todavia')
 
 # ==============================================================================
 # ========================== Variables globales ================================
