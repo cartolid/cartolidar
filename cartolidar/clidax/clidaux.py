@@ -136,12 +136,12 @@ TRNSdescomprimirConlas2las = False
 # Directorio que depende del entorno:
 MAIN_HOME_DIR = str(pathlib.Path.home())
 # DIrectorios de la aplicacion:
-MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))  # En calendula /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/cartolidar/cartolidar/clidax
 # Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
 # MAIN_PROJ_DIR = MAIN_FILE_DIR
 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
-MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))  # En calendula: /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/cartolidar/
+MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))  # En calendula: /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/
 # Directorio desde el que se lanza la app (estos dos coinciden):
 MAIN_BASE_DIR = os.path.abspath('.')
 MAIN_THIS_DIR = os.getcwd()
@@ -152,15 +152,11 @@ MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
 if MAIN_FILE_DIR[:12] == '/LUSTRE/HOME':
     MAIN_ENTORNO = 'calendula'
     MAIN_PC = 'calendula'
-    MAIN_RAIS_DIR = MAIN_RAIZ_DIR
 elif MAIN_FILE_DIR[:8] == '/content':
     MAIN_ENTORNO = 'colab'
     MAIN_PC = 'colab'
-    MAIN_RAIS_DIR = MAIN_RAIZ_DIR
 else:
     MAIN_ENTORNO = 'windows'
-    # MAIN_RAIS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '..'))
-    MAIN_RAIS_DIR = MAIN_RAIZ_DIR
     try:
         if MAIN_DRIVE[0] == 'D':
             MAIN_PC = 'Casa'
@@ -441,7 +437,6 @@ nuevosParametroConfiguracion['MAIN_copyright'] = [__copyright__, 'str', '', 'Gru
 nuevosParametroConfiguracion['MAIN_version'] = [__version__, 'str', '', 'GrupoMAIN', __version__]
 nuevosParametroConfiguracion['MAINusuario'] = [MAINusuario, 'GrupoMAIN', '', 'str']
 nuevosParametroConfiguracion['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'GrupoMAIN', '', 'str']
-nuevosParametroConfiguracion['MAINmiRutaRaiz'] = [MAIN_RAIZ_DIR, 'GrupoMAIN', '', 'str']
 nuevosParametroConfiguracion['MAIN_idProceso'] = [MAIN_idProceso, 'GrupoMAIN', '', 'str']
 nuevosParametroConfiguracion['MAIN_ENTORNO'] = [MAIN_ENTORNO, 'GrupoMAIN', '', 'str']
 nuevosParametroConfiguracion['MAIN_PC'] = [MAIN_PC, 'GrupoMAIN', '', 'str']
@@ -451,13 +446,14 @@ nuevosParametroConfiguracion['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'GrupoDirsFiles'
 nuevosParametroConfiguracion['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'GrupoDirsFiles', '', 'str']
 nuevosParametroConfiguracion['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'GrupoDirsFiles', '', 'str']
 # nuevosParametroConfiguracion['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'GrupoDirsFiles', '', 'str']
+nuevosParametroConfiguracion['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'GrupoDirsFiles', '', 'str']
 nuevosParametroConfiguracion['MAIN_BASE_DIR'] = [MAIN_BASE_DIR, 'GrupoDirsFiles', '', 'str']
 nuevosParametroConfiguracion['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'GrupoDirsFiles', '', 'str']
 # ==============================================================================
 
 # ==============================================================================
 print(f'\n{"":_^80}')
-print(f'\nclidaux-> Al importar clidaux se asignan las variables globales con directorios MAIN_...')
+print(f'clidaux-> Al importar clidaux se asignan las variables globales con directorios MAIN_...')
 print(f'{TB}como propiedades de GLO y se guardan en el fichero de configuracion cfg.')
 print(f'{TB}-> Este modulo (__name__):  {__name__}')
 print(f'{TB}-> Ha sido importado desde: {callingModulePrevio}')
@@ -468,12 +464,13 @@ print(f'{TB}-> MAIN_BASE_DIR:          {MAIN_BASE_DIR}')
 print(f'{TB}-> MAIN_THIS_DIR:          {MAIN_THIS_DIR}')
 print(f'{TB}-> MAIN_HOME_DIR:          {MAIN_HOME_DIR}')
 # print(f'{TB}-> Ruta de trabajo:         {os.getcwd()}')
+print(f'{"":=^80}')
 # ==============================================================================
 if CONFIGverbose:
     print(f'\nclidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (con o sin nuevosParametroConfiguracion) para leer los parametros de configuracion del fichero cfg')
 GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
     nuevosParametroConfiguracion,
-    idProceso=MAIN_idProceso,
+    LCL_idProceso=MAIN_idProceso,
     inspect_stack=inspect.stack(),
     verbose=CONFIGverbose,
 )
@@ -2294,9 +2291,9 @@ def completarVariablesGlobales(
 
     # global GLO
     # En esta funcion se establecen algunas variables globales (si es necesario modificarlas):
-    #    MAINrutaCarto      -> Se adapta para que cuelgue de MAINmiRutaRaiz o se adapta segun MAINprocedimiento
-    #    MAINrutaOutput     -> Se vincula a MAINmiRutaRaiz (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento
-    #    MAINrutaLaz        -> Se vincula a MAINmiRutaRaiz (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento 
+    #    MAINrutaCarto      -> Se adapta para que cuelgue de MAIN_RAIZ_DIR o se adapta segun MAINprocedimiento
+    #    MAINrutaOutput     -> Se vincula a MAIN_RAIZ_DIR (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento
+    #    MAINrutaLaz        -> Se vincula a MAIN_RAIZ_DIR (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento 
     #    MAINprocedimiento  -> Se retoca si el procedimiento menciona calendula pero lo ejecuto en Windows
     #    GLBLshapeNumPoints, GLBLtipoLectura, GLBLshapeFilter, GLBLprocesarComprimidosLaz, etc.
     # Y se devuelven variables (sin utilidad para determinados procedimiento)
@@ -2308,12 +2305,27 @@ def completarVariablesGlobales(
     # print(f'{"":_^80}')
 
     # ==========================================================================
-    GLO.MAINmiRutaRaiz = MAIN_RAIZ_DIR
+    # Ruta raiz del proyecto:    MAIN_RAIZ_DIR
+    #  En windows:
+    #    Si cartolid NO esta instalado -> D:/_clid (depende de donde este clidbase.py)
+    #    Si cartolid SI esta instalado -> C:\conda\py37\envs\clid\lib (depende de donde este site-packages)
+    #  En calendula:
+    #    /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1
+    GLO.MAIN_RAIZ_DIR = MAIN_RAIZ_DIR
+    # Ruta raiz para resultados: MAIN_RAIS_DIR
+    #    -> Esta variable solo se usa desde clidaux.py, para
+    #  En windows: normalmente sera D:/_clid (o lo que diga clidbase.xlsx)
+    #    Tiro de GLO.MAINrutaRaiz (de clidbase.xlsx), que lo he creado para 
+    #    cuando se ejecuta el cartolidar de site-packages, ya que no
+    #    quiero que los log, cfg, y resultados vayan a site-packages  
+    #  En calendula:
+    #    /scratch/jcyl_spi_1/jcyl_spi_1_1
     if MAIN_ENTORNO == 'calendula':
-        GLO.MAINmiRutaRais = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
+        GLO.MAIN_RAIS_DIR = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
+    elif 'MAINrutaRaiz' in dir(GLO):
+        GLO.MAIN_RAIS_DIR = GLO.MAINrutaRaiz
     else:
-        GLO.MAINmiRutaRais = MAIN_RAIS_DIR
-        # GLO.MAINmiRutaRais = GLO.MAINmiRutaRaiz
+        GLO.MAIN_RAIS_DIR = MAIN_RAIZ_DIR
     GLO.MAINmiRutaProyecto = MAIN_PROJ_DIR
     # ==========================================================================
 
@@ -2322,12 +2334,16 @@ def completarVariablesGlobales(
     # ==========================================================================
     # Sitio por defecto para MAINrutaLaz
     # No se recorren subcarpetas de MAINrutaLaz salvo que lo establezca el MAINprocedimiento
-    print(f'clidaux-> rutaLazCompleta: {rutaLazCompleta}')
-    print(f'clidaux-> 0 GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
+    if __verbose__:
+        print(f'\n{"":_^80}')
+        print(f'clidaux-> Identificando la ruta de los ficheros laz con completarVariablesGlobales<>')
+        print(f'{TB}-> Valor de inicial de rutaLazCompleta: <{rutaLazCompleta}>')
+        print(f'{TB}-> Valor de inicial de GLO.MAINrutaLaz: <{GLO.MAINrutaLaz}>')
     if rutaLazCompleta != '':
         # Solo cuando se inicia con clidflow
         GLO.MAINrutaLaz = os.path.abspath(rutaLazCompleta)
-        print(f'clidaux-> 1 GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
+        if __verbose__:
+            print(f'{TB}Se adopta el valor de rutaLazCompleta: {GLO.MAINrutaLaz}')
     else:
         if (not GLO.MAINrutaLaz is None
             and GLO.MAINrutaLaz != 'None'
@@ -2338,29 +2354,38 @@ def completarVariablesGlobales(
                 pass
             else:
                 if MAIN_ENTORNO == 'calendula':
-                    GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, GLO.MAINrutaLaz)
+                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, GLO.MAINrutaLaz)
                 elif 'MAINrutaRaiz' in dir(GLO):
                     GLO.MAINrutaLaz = os.path.join(GLO.MAINrutaRaiz, GLO.MAINrutaLaz)
                 else:
-                    GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, GLO.MAINrutaLaz)
-            print(f'clidaux-> 2a GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
+                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIZ_DIR, GLO.MAINrutaLaz)
+            if __verbose__:
+                print(f'{TB}Se integra rutaRaiz y GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
         else:
             if MAIN_ENTORNO == 'calendula':
-                GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, 'laz')
+                GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, 'laz')
             elif 'MAINrutaRaiz' in dir(GLO):
                 GLO.MAINrutaLaz = os.path.join(GLO.MAINrutaRaiz, 'laz')
             else:
-                GLO.MAINrutaLaz = os.path.join(GLO.MAINmiRutaRais, 'laz')
-            print(f'clidaux-> 2b GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
+                GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIZ_DIR, 'laz')
+            if __verbose__:
+                print(f'{TB}Valor por defecto basado en rutaRaiz: {GLO.MAINrutaLaz}')
 
+    if __verbose__:
+        print(f'{"":=^80}')
     # ==========================================================================
+    if __verbose__:
+        print(f'\n{"":_^80}')
+        print(f'clidaux-> Se lanza casosEspecialesParaMAINrutaLaz<>')
     GLO.MAINrutaLaz, listaDirsLaz, listaSubDirsLaz = casosEspecialesParaMAINrutaLaz(
         GLO.MAINprocedimiento,
         GLO.MAINrutaLaz,
         LCLcuadrante
     )
+    if __verbose__:
+        print('clidaux-> GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
+        print(f'{"":=^80}')
     # ==========================================================================
-    # print('clidaux-> 4 GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
 
     # ==========================================================================
     # ========================== MAINrutaCarto =================================
@@ -2373,7 +2398,7 @@ def completarVariablesGlobales(
         GLO.MAINrutaCarto = os.path.abspath(GLO.MAINrutaCarto)
     else:
         GLO.MAINrutaCarto = asignarMAINrutaCarto(
-            GLO.MAINmiRutaRais,
+            GLO.MAIN_RAIS_DIR,
         )
     # ==========================================================================
 
@@ -2390,7 +2415,7 @@ def completarVariablesGlobales(
         GLO.MAINrutaOutput = asignarMAINrutaOutput(
             GLO.MAINprocedimiento,
             GLO.MAINrutaOutput,
-            GLO.MAINmiRutaRais,
+            GLO.MAIN_RAIS_DIR,
             LCLobjetivoSiReglado,
             LCLcuadrante,
         )
@@ -2431,10 +2456,11 @@ def completarVariablesGlobales(
             GLO.MAINrutaRaiz,
             'data'
         ))
-        GLO.GLBL_TRAIN_DIR = os.path.abspath(os.path.join(
-            GLO.MAINrutaRaiz,
-            'data/datasets/cartolid/trainImg'
-        ))
+        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
+        # GLO.GLBL_TRAIN_DIR = os.path.abspath(os.path.join(
+        #     GLO.MAINrutaRaiz,
+        #     'data/datasets/cartolid/trainImg'
+        # ))
     else:
         if 'cartolidar' in MAIN_RAIZ_DIR:
             GLO.MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
@@ -2468,18 +2494,21 @@ def completarVariablesGlobales(
     MOSTRAR_CONFIGURACION = __verbose__ >= 1
     if MOSTRAR_CONFIGURACION:
         print(f'{"":_^80}')
-        print(f'{" Configuracion final ":_^80}')
+        print(f'{" clidaux-> Configuracion final ":_^80}')
         print(f'{"":_^80}')
         print(f'{TB}{"MAINobjetivoEjecucion":.<21}: {GLO.MAINobjetivoEjecucion}')
         print(f'{TB}{"MAINobjetivoSiReglado":.<21}: {LCLobjetivoSiReglado}')
         print(f'{TB}{"MAINprocedimiento":.<21}: {GLO.MAINprocedimiento}')
-        print(f'{TB}{"MAINmiRutaRaiz":.<21}: {GLO.MAINmiRutaRaiz}')
-        print(f'{TB}{"MAINmiRutaRais":.<21}: {GLO.MAINmiRutaRais}')
+        print(f'{TB}{"MAINrutaRaiz":.<21}: {GLO.MAINrutaRaiz}')
         print(f'{TB}{"MAINmiRutaProyecto":.<21}: {GLO.MAINmiRutaProyecto}')
         print(f'{TB}{"MAINrutaCarto":.<21}: {GLO.MAINrutaCarto}')
         print(f'{TB}{"MAINrutaLaz":.<21}: {GLO.MAINrutaLaz}')
         print(f'{TB}{"MAINrutaOutput":.<21}: {GLO.MAINrutaOutput}')
         print(f'{TB}{"MAINcuadrante":.<21}: {GLO.MAINcuadrante}')
+        print(f'{TB}{"MAIN_RAIZ_DIR":.<21}: {GLO.MAIN_RAIZ_DIR}')
+        print(f'{TB}{"MAIN_RAIS_DIR":.<21}: {GLO.MAIN_RAIS_DIR}')
+        print(f'{TB}{"MAIN_MDLS_DIR":.<21}: {GLO.MAIN_MDLS_DIR}')
+        print(f'{TB}{"GLBL_TRAIN_DIR":.<21}: {GLO.GLBL_TRAIN_DIR}')
         print(f'{"":=^80}')
     # ==========================================================================
 
@@ -2837,10 +2866,10 @@ def completarVariablesGlobales(
     paramConfigAdicionalesGLBL['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
     paramConfigAdicionalesGLBL['MAIN_BASE_DIR'] = [MAIN_BASE_DIR, 'str', '', 'GrupoDirsFiles', MAIN_BASE_DIR]
     paramConfigAdicionalesGLBL['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_THIS_DIR]
-    paramConfigAdicionalesGLBL['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
-    paramConfigAdicionalesGLBL['MAINmiRutaRaiz'] = [GLO.MAINmiRutaRaiz, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
-    paramConfigAdicionalesGLBL['MAINmiRutaRais'] = [GLO.MAINmiRutaRais, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
+    paramConfigAdicionalesGLBL['MAIN_RAIZ_DIR'] = [GLO.MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
+    paramConfigAdicionalesGLBL['MAIN_RAIS_DIR'] = [GLO.MAIN_RAIS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
 
+    paramConfigAdicionalesGLBL['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
     paramConfigAdicionalesGLBL['MAINrutaLaz'] = [GLO.MAINrutaLaz, 'str', '', 'GrupoDirsFiles']
     # paramConfigAdicionalesGLBL['MAINrutaLazFinal'] = [
     #     GLO.MAINrutaLaz,
@@ -2905,7 +2934,7 @@ def completarVariablesGlobales(
 
     _ = clidconfig.leerCambiarVariablesGlobales(
         nuevosParametroConfiguracion=paramConfigAdicionalesGLBL,
-        idProceso=MAIN_idProceso,
+        LCL_idProceso=MAIN_idProceso,
         inspect_stack=inspect.stack(),
         verbose=False
     )
@@ -2936,7 +2965,7 @@ def casosEspecialesParaMAINrutaLaz(
         # Solo los laz se ubican en scratch, el resto en home
         # GLO.MAINrutaCarto = '/scratch/jcyl_spi_1/jcyl_spi_1_1/data/carto'
         # GLO.MAINrutaCarto = '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/data/carto'
-        # MAINmiRutaRaiz = '/scratch/jcyl_spi_1/jcyl_spi_1_1/'
+        # MAIN_RAIZ_DIR = '/scratch/jcyl_spi_1/jcyl_spi_1_1/'
 
         # Se recorren estos subdirectorios de laz:
         listaDirsLaz = ['']
@@ -3050,7 +3079,6 @@ def casosEspecialesParaMAINrutaLaz(
                 listaSubDirsLaz[nSubDir] = subDirLaz + '_H29'
 
     elif LCLprocedimiento.startswith('LAS_INFO_ASK_LASDIR'):
-        # LCLrutaLaz = preguntarRutaLaz(os.path.join(GLO.MAINmiRutaRaiz, 'laz2/'))
         LCLrutaLaz = preguntarRutaLaz(GLO.MAINrutaLaz)
     elif LCLprocedimiento == 'LAS_INFO_BASE_LASDIR':
         LCLrutaLaz = GLO.MAINrutaLaz
@@ -3075,9 +3103,13 @@ def casosEspecialesParaMAINrutaLaz(
         else:
             listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
         listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-        print('clidaux-> ESTO ES PROVISIONAL:')
-        print('clidaux-> listaDirsLaz:    {}'.format(listaDirsLaz))
-        print('clidaux-> listaSubDirsLaz: {}'.format(listaSubDirsLaz))
+        print(f'\n{"":_^80}')
+        print(f'clidaux-> ATENCION: ASIGNACION PROVISIONAL DE listaDirsLaz Y listaSubDirsLaz EN FUNCION DE LCLcuadrante:')
+        print(f'{TB}cuando el procedimiento es AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA, AUTOMATICO_EN_CALENDULA o LAS_INFO')
+        print(f'{TB}Lista de directorios y subdirectorios de {GLO.MAINrutaLaz} que se exploran:')
+        print(f'{TB}-> listaDirsLaz:    {listaDirsLaz}')
+        print(f'{TB}-> listaSubDirsLaz: {listaSubDirsLaz}')
+        print(f'{"":=^80}')
     elif LCLprocedimiento == 'PRECONFIGURADO_SINRUTA':
         bloqueElegido = 0
         if not LCLrutaLaz:
@@ -3516,7 +3548,7 @@ def asignarMAINrutaOutput(
         miCuadrante = LCLprocedimiento[21:23]
         miMarco = LCLprocedimiento[-8:]
         if LCLrutaOutput == '':
-            LCLrutaOutput = os.path.join(GLO.MAINmiRutaRaiz, 'cartolidout_%s_%s' % (miCuadrante, miMarco))
+            LCLrutaOutput = os.path.join(GLO.MAIN_RAIZ_DIR, 'cartolidout_%s_%s' % (miCuadrante, miMarco))
         else:
             # LCLrutaOutput = quitarContrabarrasAgregarBarraFinal(LCLrutaOutput)
             LCLrutaOutput = (LCLrutaOutput).replace(os.sep, '/')
@@ -3526,16 +3558,16 @@ def asignarMAINrutaOutput(
         print(f'\n{"":_^80}')
         print('Escribir ruta en la que se guardan los resultados:')
         print('Se interpreta como ruta completa si empieza por "/" o por letra de unidad ("C:", "D:", etc.).')
-        print('y como subdirectorio de "%s" en el resto de los casos' % GLO.MAINmiRutaRaiz)
+        print('y como subdirectorio de "%s" en el resto de los casos' % GLO.MAIN_RAIZ_DIR)
         selec = input('Introduce un valor (pulsa [enter] para valor por defecto: %s): ' %
-                      os.path.join(GLO.MAINmiRutaRaiz, miCarpetaResultadosInicial))
+                      os.path.join(GLO.MAIN_RAIZ_DIR, miCarpetaResultadosInicial))
         if selec[1:2] == ':' or selec[:1] == '/':
             # Es una ruta completa en vez de un subdirectorio
             LCLrutaOutput = selec
         elif selec != '':
-            LCLrutaOutput = os.path.join(GLO.MAINmiRutaRaiz, selec)
+            LCLrutaOutput = os.path.join(GLO.MAIN_RAIZ_DIR, selec)
         else:
-            LCLrutaOutput = os.path.join(GLO.MAINmiRutaRaiz, miCarpetaResultadosInicial)
+            LCLrutaOutput = os.path.join(GLO.MAIN_RAIZ_DIR, miCarpetaResultadosInicial)
         print('{:^80}'.format(''))
 
     return LCLrutaOutput

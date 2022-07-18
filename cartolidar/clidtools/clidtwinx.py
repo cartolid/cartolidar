@@ -160,16 +160,52 @@ def guardarArrayEnBandaDataset(
 
 
 # ==============================================================================
+def getParametroConPath(
+        valorParametro=None,
+        dataBasePath=os.getcwd(),
+        nombreParametro='',
+        valorPorDefecto='',
+        ):
+
+    if valorParametro is None:
+        valorParametro = valorPorDefecto
+
+    if valorParametro == '':
+        if os.path.isdir(os.path.abspath(valorParametro)):
+            parametroConAbsPath = os.path.abspath(valorParametro)
+        else:
+            print(f'clidtwinx-> Se requiere el argumento {nombreParametro}')
+            sys.exit(0)
+    else:
+        if ':' in valorParametro or valorParametro.startswith('/'):
+            # El valorParametro es una ruta absoluta
+            parametroConAbsPath = valorParametro
+        elif dataBasePath is None:
+            parametroConAbsPath = os.path.abspath(valorParametro)
+        else:
+            # El valorParametro es una ruta relativa.
+            # Supongo que:
+            #   O bien cartolidar se ejecuta con -m o esa ruta esta referida al directorio de trabajo.
+            #   O bien se ejecuta directamente qlidtiwns y el directorio de trabajo es el que contiene a ese modulo.
+            if '__main__.py' in sys.argv[0]:
+                parametroConAbsPath = os.path.abspath(os.path.join(dataBasePath, 'cartolidar', valorParametro))
+            # elif 'qlidtwins.py' in sys.argv[0]:
+            else:
+                parametroConAbsPath = os.path.abspath(os.path.join(dataBasePath, valorParametro))
+    return parametroConAbsPath
+
+
+# ==============================================================================
 def verificarExistencia(
         LOCLvectorFileName,
         LOCLrutaAscBase=None,
     ):
-    if ':/' in LOCLvectorFileName or ':\\' in LOCLvectorFileName:
-        patronVectrNameConPath = LOCLvectorFileName
-    elif LOCLrutaAscBase is None:
-        patronVectrNameConPath = os.path.abspath(LOCLvectorFileName)
-    else:
-        patronVectrNameConPath = os.path.join(LOCLrutaAscBase, LOCLvectorFileName)
+    patronVectrNameConPath = getParametroConPath(
+        LOCLvectorFileName,
+        dataBasePath=LOCLrutaAscBase,
+        nombreParametro='vectorFileName',
+        )
+
     try:
         if os.path.exists(patronVectrNameConPath):
             return (True, patronVectrNameConPath)
@@ -190,6 +226,8 @@ def obtenerExtensionDeCapaVectorial(
         LOCLvectorFileName,
         LOCLrutaAscBase=LOCLrutaAscBase,
         )
+    print(f'clidtwinx-> patronVectrNameConPath (b): {patronVectrNameConPath}')
+
     if not usarVectorFileParaDelimitarZona:
         myLog.error(f'\nclidtwinx-> ATENCION: no esta disponible el fichero: {patronVectrNameConPath}')
         myLog.error(f'{TB}-> Este fichero se especifica en el fichero de configuracion ({GLO.configFileNameCfg}).')
@@ -416,10 +454,12 @@ def recortarRasterTiffPatronDasoLidar(
         self_LOCLverbose=False,
     ):
     # ==========================================================================
-    if ':/' in self_LOCLpatronVectrName or ':\\' in self_LOCLpatronVectrName:
-        patronVectrNameConPath = self_LOCLpatronVectrName
-    else:
-        patronVectrNameConPath = os.path.join(self_LOCLrutaAscRaizBase, self_LOCLpatronVectrName)
+    patronVectrNameConPath = getParametroConPath(
+        self_LOCLpatronVectrName,
+        dataBasePath=self_LOCLrutaAscRaizBase,
+        nombreParametro='patronVectrName',
+        )
+    print(f'clidtwinx-> patronVectrNameConPath (a): {patronVectrNameConPath}')
     # ==========================================================================
     envolventeShape = obtenerExtensionDeCapaVectorial(
         self_LOCLrutaAscRaizBase,

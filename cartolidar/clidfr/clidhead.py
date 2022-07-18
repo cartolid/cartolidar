@@ -400,7 +400,7 @@ else:
                     sys.stdout.write(f'\nclidhead-> Ok clidconfig importado del clidax local (2)')
             from clidnb import clidnaux
     configVarsDict = clidconfig.leerCambiarVariablesGlobales(
-        idProceso=MAIN_idProceso
+        LCL_idProceso=MAIN_idProceso
     )
     GLO = clidconfig.VariablesGlobales(configVarsDict)
     MAIN_controlFileLas = clidconfig.controlFileLas
@@ -1375,7 +1375,7 @@ class LasHeadClass(object):
 
         # Basic checking of las file, nCeldas and coordinates from fileName:
         if self.verbose or __verbose__:
-            printMsg(f'\nclidhead-> Coordenadas del lasfile segun cabecera antes de checkLasfile:')
+            printMsg(f'clidhead-> Coordenadas del lasfile segun cabecera antes de checkLasfile:')
             printMsg(f'{TB}-> myLasHead.xmin: {self.xmin}')
             printMsg(f'{TB}-> myLasHead.ymin: {self.ymin}')
             printMsg(f'{TB}-> myLasHead.xmax: {self.xmax}')

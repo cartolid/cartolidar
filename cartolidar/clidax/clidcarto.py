@@ -242,7 +242,7 @@ if (
     GLO.GLBLrasterPixelSize = 10
 else:
     configVarsDict = clidconfig.leerCambiarVariablesGlobales(
-        idProceso=MAIN_idProceso
+        LCL_idProceso=MAIN_idProceso
     )
     GLO = clidconfig.VariablesGlobales(configVarsDict)
 GLO.MAIN_idProceso = MAIN_idProceso
@@ -273,6 +273,14 @@ if not 'GLBLrasterPixelSize' in dir(GLO):
     GLO.GLBLrasterPixelSize = 10
 if mostrarCallingModuleInicial:
     print(f'clidcarto-> callingModuleInicial: {callingModuleInicial}')
+
+if 'MAINrutaOutput' in dir(GLO):
+    print(f'clidcarto-> MAINrutaOutput: {GLO.MAINrutaOutput}')
+if 'GLBL_TRAIN_DIR' in dir(GLO):
+    print(f'clidcarto-> GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
+if 'MAIN_MDLS_DIR' in dir(GLO):
+    print(f'clidcarto-> MAIN_MDLS_DIR:  {GLO.MAIN_MDLS_DIR}')
+# D:\_clid\data\datasets\cartolid\trainImg
 # ==============================================================================
 
 # ==============================================================================
@@ -323,9 +331,12 @@ if False:
 
 
 
-print(f'clidcarto-> PROVISIONAL: chequeo rutas (a):')
-print(f'{TB}->> GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
-print(f'{TB}->> GLO.GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
+if 'MAINrutaOutput' in dir(GLO) or 'GLBL_TRAIN_DIR' in dir(GLO):
+    print(f'clidcarto-> PROVISIONAL: chequeo rutas (a):')
+if 'MAINrutaOutput' in dir(GLO):
+    print(f'{TB}->> GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
+if 'GLBL_TRAIN_DIR' in dir(GLO):
+    print(f'{TB}->> GLO.GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
 
 
 # ==============================================================================
@@ -4742,50 +4753,37 @@ def crearTilesInputTarget(
     margenYsobresalientePixelsCdB = int(math.ceil(margenYsobresalienteMetros / GLO.GLBLmetrosCeldilla))
 
     if GLO.GLBLverbose or __verbose__:
-        print('\tclidcarto-> Se van a crear %i x %i tiles' % (numTilesRows, numTilesCols))
-        print(
-            '\t\tnSubCeldasRasterRefY: {}; nSubCeldasRasterRefX: {}'.format(
-                nSubCeldasRasterRefY, nSubCeldasRasterRefX
-            )
+        print(f'clidcarto-> Se van a crear {numTilesRows} x {numTilesCols} tiles')
+        print(f'{TB}nSubCeldasRasterRefY: {nSubCeldasRasterRefY}; nSubCeldasRasterRefX: {nSubCeldasRasterRefX}')
+        print(f'{TB}GLO.GLBLtileSizeMetros: {GLO.GLBLtileSizeMetros} '
+              f'GLO.GLBLtileSemiSolapeMetros: {GLO.GLBLtileSemiSolapeMetros} '
+              f'GLBNtileSemiSolapePixelsSubCelda: {GLBNtileSemiSolapePixelsSubCelda} '
         )
-        print('\t\tGLO.GLBLtileSizeMetros:', GLO.GLBLtileSizeMetros,
-              'GLO.GLBLtileSemiSolapeMetros:', GLO.GLBLtileSemiSolapeMetros,
-              'GLBNtileSemiSolapePixelsSubCelda:', GLBNtileSemiSolapePixelsSubCelda
-        )
-        print('\t\tGLBNtileKernelPixelsSubCelda:', GLBNtileKernelPixelsSubCelda,
-              'GLBNtileKernelMetros:', GLBNtileKernelMetros,
+        print(f'{TB}GLBNtileKernelPixelsSubCelda: {GLBNtileKernelPixelsSubCelda} '
+              f'GLBNtileKernelMetros: {GLBNtileKernelMetros} '
           )
               
-        print('\t\tGLBNtileSizeEnPixelsSubCelda 2m', GLBNtileSizeEnPixelsSubCelda,
-              'GLBNtileSizeEnPixelsCeldilla 1m', GLBNtileSizeEnPixelsCeldilla
+        print(f'{TB}GLBNtileSizeEnPixelsSubCelda 2m {GLBNtileSizeEnPixelsSubCelda} '
+              f'GLBNtileSizeEnPixelsCeldilla 1m {GLBNtileSizeEnPixelsCeldilla} '
         )
         print(
-            '\t\tmargenXsobresalienteMetros', margenXsobresalienteMetros, '=', margenXsobresalienteMetros, 'm;',
-            'margenYsobresalienteMetros', margenYsobresalienteMetros, '=', margenYsobresalienteMetros, 'm;',
+            f'{TB}margenXsobresalienteMetros {margenXsobresalienteMetros} = {margenXsobresalienteMetros} m; '
+            f'margenYsobresalienteMetros {margenYsobresalienteMetros} = {margenYsobresalienteMetros} m; '
         )
 
     if margenXsobresalienteMetros < 0 or margenYsobresalienteMetros < 0:
-        print(
-            '\nclidcarto-> ATENCION: reducir GLBLtileSemiSolapeMetros ({:0.1f} m) para que los tiles cubran todo el bloque'.format(
-                GLO.GLBLtileSemiSolapeMetros
-            )
-        )
+        print(f'\nclidcarto-> ATENCION: reducir GLBLtileSemiSolapeMetros ({GLO.GLBLtileSemiSolapeMetros:0.1f} m) para que los tiles cubran todo el bloque')
         # sys.exit(0)
     elif GLO.GLBLtileSemiSolapeMetros % GLO.GLBLmetrosSubCelda != 0:
         print(
-            '\nclidcarto-> ATENCION: cambiar GLBLtileSemiSolapeMetros ({:0.1f} m) para que el semi-solape sea un numero entero de subCeldas (subcelda: {} m)'.format(
-                GLO.GLBLtileSemiSolapeMetros,
-                GLO.GLBLmetrosSubCelda,
-            )
+            f'\nclidcarto-> ATENCION: cambiar GLBLtileSemiSolapeMetros ({GLO.GLBLtileSemiSolapeMetros:0.1f} m) '
+            f'{TB}para que el semi-solape sea un numero entero de subCeldas (subcelda: {GLO.GLBLmetrosSubCelda} m) '
         )
         # sys.exit(0)
     elif margenXsobresalienteMetros % GLO.GLBLmetrosSubCelda != 0 or margenYsobresalienteMetros  % GLO.GLBLmetrosSubCelda != 0:
         print(
-            '\nclidcarto-> ATENCION: cambiar GLBLtileSemiSolapeMetros ({:0.1f} m) para que el margen exterior sea un numero entero de subCeldas (subcelda: {} m)'.format(
-                GLO.GLBLtileSemiSolapeMetros,
-                GLO.GLBLmetrosSubCelda,
-
-            )
+            f'\nclidcarto-> ATENCION: cambiar GLBLtileSemiSolapeMetros ({GLO.GLBLtileSemiSolapeMetros:0.1f} m) '
+            f'{TB}para que el margen exterior sea un numero entero de subCeldas (subcelda: {GLO.GLBLmetrosSubCelda} m) '
         )
         # sys.exit(0)
     # ==========================================================================
@@ -4839,7 +4837,7 @@ def crearTilesInputTarget(
         tilesEncontrados = True
         # Verifico si existen los 6 Png xq voy a generar los 6 (el modelo entrenado que uso para prediccion no tiene nada que ver con la generacion de tiles)
         SELEC_IMG = '012345'
-        print('clidcarto-> Verificando si ya existen los tiles SELEC_IMG:', SELEC_IMG, 'GLO.GLBLformatoTilesAscInput:', GLO.GLBLformatoTilesAscInput)
+        print(f'clidcarto-> Verificando si ya existen los tiles SELEC_IMG: {SELEC_IMG} GLO.GLBLformatoTilesAscInput: {GLO.GLBLformatoTilesAscInput}')
         for nRow in range(numTilesRows):
             for nCol in range(numTilesCols):
                 pngFileNameTargetOriClass = os.path.join(trainPathPngTargetOriClass, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
@@ -4857,6 +4855,11 @@ def crearTilesInputTarget(
                 pngFileNameInt1m = os.path.join(trainPathPngInt1m, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
                 pngFileNameRiC1m = os.path.join(trainPathPngRiC1m, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
 
+                if nRow == 0 and nCol == 0:
+                    print(f'clidcarto-> ruta tiles: {os.path.join(GLO.MAINrutaOutput, train_dir)}')
+                    print(f'clidcarto-> pngFileName1: {pngFileName1}, {os.path.exists(pngFileName1)}')
+                    print(f'clidcarto-> pngFileName2: {pngFileName2}, {os.path.exists(pngFileName2)}')
+                    print(('0' in SELEC_IMG))
                 if (
                     (not os.path.exists(pngFileName1) and '0' in SELEC_IMG)
                     or (not os.path.exists(pngFileName2) and '1' in SELEC_IMG)

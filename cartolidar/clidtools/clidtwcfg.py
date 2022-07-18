@@ -501,7 +501,7 @@ def leerConfigDictPorDefecto():
         # 'GLBLrutaAscRaizBasePorDefecto': ['K:/calendula/NW',
         # 'GLBLrutaAscRaizBasePorDefecto': ['O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre',
         # 'GLBLrutaAscRaizBasePorDefecto': ['',
-        'GLBLrutaAscRaizBasePorDefecto': [f'../data/asc/{localData}',
+        'GLBLrutaAscRaizBasePorDefecto': [f'data/asc/{localData}',
                                           'dasoLidar', 'str',
                                           'Ruta de los ASC para el dasolidar cluster en JCyL'],
     
@@ -509,7 +509,7 @@ def leerConfigDictPorDefecto():
         # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/perimetrosDeReferencia.gpkg',
         # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg',
         # 'GLBLpatronVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza1.shp',
-        'GLBLpatronVectrNamePorDefecto': [f'../data/ref/cartoLidar{localData}.gpkg',
+        'GLBLpatronVectrNamePorDefecto': [f'data/ref/clid_{localData}.gpkg',
                                           'dasoLidar', 'str',
                                           'Nombre del dataset (shp o gpkg) de referencia (patron) para caracterizacion dasoLidar'],
     
@@ -517,7 +517,7 @@ def leerConfigDictPorDefecto():
         # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/testeo_roble.shp',
         # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Le_roble/vector/recintos_roble.gpkg',
         # 'GLBLtesteoVectrNamePorDefecto': [r'O:/Sigmena/usuarios/COMUNES/Bengoa/Lidar/cartoLidar/Sg_PinoSilvestre/poligonos Riaza2.shp',
-        'GLBLtesteoVectrNamePorDefecto': [f'../data/ref/cartoLidar{localData}.gpkg',
+        'GLBLtesteoVectrNamePorDefecto': [f'data/ref/clid_{localData}.gpkg',
                                           'dasoLidar', 'str',
                                           'Nombre del dataset (shp o gpkg) cuya semejanza con el de entrada se chequea con dasoLidar.'],
 
@@ -542,7 +542,7 @@ def leerConfigDictPorDefecto():
                                           'Numero de anillos de pixeles que tiene el cluster, ademas del central'],
     
         # 'GLBLrutaCompletaMFEPorDefecto': [r'O:/Sigmena/Carto/VEGETACI/MFE/MFE50/MFE50AD/40_MFE50AD_etrs89.shp',
-        'GLBLrutaCompletaMFEPorDefecto': [f'../data/mfe/{localData}/MFE_{localData}.shp',
+        'GLBLrutaCompletaMFEPorDefecto': [f'data/mfe/{localData}/MFE_{localData}.shp',
                                           'dasoLidar', 'str',
                                           'Nombre (con ruta y extension) del fichero con la capa MFE'],
 

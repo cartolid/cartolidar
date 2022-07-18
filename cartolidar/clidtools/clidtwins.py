@@ -396,22 +396,29 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             LCL_rutaAscRaizBase=LCL_rutaAscRaizBase,
         )
 
-        if LCL_patronVectrName is None:
-            self.LOCLpatronVectrName = os.path.abspath(GLO.GLBLpatronVectrNamePorDefecto)
-        else:
-            self.LOCLpatronVectrName = os.path.abspath(LCL_patronVectrName)
+        self.LOCLpatronVectrName = clidtwinx.getParametroConPath(
+            valorParametro=LCL_patronVectrName,
+            dataBasePath=os.getcwd(),
+            nombreParametro='patronVectrName',
+            valorPorDefecto=GLO.GLBLpatronVectrNamePorDefecto,
+            )
         if LCL_patronLayerName is None:
             self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
         else:
             self.LOCLpatronLayerName = LCL_patronLayerName
-        if LCL_testeoVectrName is None:
-            self.LOCLtesteoVectrName = os.path.abspath(GLO.GLBLtesteoVectrNamePorDefecto)
-        else:
-            self.LOCLtesteoVectrName = os.path.abspath(LCL_testeoVectrName)
+        print(f'clidtwins-> self.LOCLpatronVectrName (1): {self.LOCLpatronVectrName}')
+
+        self.LOCLtesteoVectrName = clidtwinx.getParametroConPath(
+            valorParametro=LCL_testeoVectrName,
+            dataBasePath=os.getcwd(),
+            nombreParametro='testeoVectrName',
+            valorPorDefecto=GLO.GLBLtesteoVectrNamePorDefecto,
+            )
         if LCL_testeoLayerName is None:
             self.LOCLtesteoLayerName = GLO.GLBLtesteoLayerNamePorDefecto
         else:
             self.LOCLtesteoLayerName = LCL_testeoLayerName
+        print(f'clidtwins-> self.LOCLtesteoVectrName (1): {self.LOCLtesteoVectrName}')
 
         myLog.info('\n{:_^80}'.format(''))
         if self.GLBLmarcoPatronTest:

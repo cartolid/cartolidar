@@ -39,6 +39,7 @@ if not spec is None:
     from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools.clidtwins import DasoLidarSource
     from cartolidar.clidtools.clidtwinx import comprobarTipoMasaDeCapaVectorial
+    from cartolidar.clidtools.clidtwinx import getParametroConPath
 else:
     try:
         from cartolidar.clidax import clidconfig
@@ -46,6 +47,7 @@ else:
         from cartolidar.clidtools.clidtwcfg import GLO
         from cartolidar.clidtools.clidtwins import DasoLidarSource
         from cartolidar.clidtools.clidtwinx import comprobarTipoMasaDeCapaVectorial
+        from cartolidar.clidtools.clidtwinx import getParametroConPath
     except ModuleNotFoundError:
         sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
         sys.stderr.write('\t-> Se importan paquetes de cartolidar desde qlidtwins del directorio local {os.getcwd()}/clidtools.\n')
@@ -54,6 +56,7 @@ else:
         from clidtools.clidtwcfg import GLO
         from clidtools.clidtwins import DasoLidarSource
         from clidtools.clidtwinx import comprobarTipoMasaDeCapaVectorial
+        from clidtools.clidtwinx import getParametroConPath
     except ModuleNotFoundError:
         sys.stderr.write(f'\nATENCION: qlidtwins.py requiere los paquetes de cartolidar clidtools y clidax.\n')
         sys.stderr.write(f'          Para lanzar el modulo qlidtwins.py desde linea de comandos ejecutar:\n')
@@ -897,19 +900,28 @@ def creaConfigDict(
     o, en su defecto, los valores por defecto del fichero de configuracion
     o, en su defecto, los valores por defecto del modulo clidtwcfg.py
     """
-
     cfgDict = {}
     # Parametros de configuracion principales
     cfgDict['mainAction'] = args.mainAction
-    if args.rutaAscRaizBase == '':
-        cfgDict['rutaAscRaizBase'] = os.path.dirname(os.path.abspath(__file__))
-    else:
-        cfgDict['rutaAscRaizBase'] = os.path.abspath(args.rutaAscRaizBase)
 
-    cfgDict['rutaCompletaMFE'] = os.path.abspath(args.rutaCompletaMFE)
+    cfgDict['rutaAscRaizBase'] = getParametroConPath(
+        args.rutaAscRaizBase,
+        dataBasePath=os.getcwd(),
+        nombreParametro='rutaAscRaizBase',
+        )
+
+    cfgDict['rutaCompletaMFE'] = getParametroConPath(
+        args.rutaCompletaMFE,
+        dataBasePath=os.getcwd(),
+        nombreParametro='rutaCompletaMFE',
+        )
     cfgDict['cartoMFEcampoSp'] = args.cartoMFEcampoSp
 
-    cfgDict['patronVectrName'] = os.path.abspath(args.patronVectrName)
+    cfgDict['patronVectrName'] = getParametroConPath(
+        args.patronVectrName,
+        dataBasePath=os.getcwd(),
+        nombreParametro='patronVectrName',
+        )
     if args.patronLayerName == 'None':
         cfgDict['patronLayerName'] = None
     else:
@@ -919,12 +931,41 @@ def creaConfigDict(
     else:
         cfgDict['patronFieldName'] = args.patronFieldName
 
-    cfgDict['testeoVectrName'] = os.path.abspath(args.testeoVectrName)
+    if args.testeoVectrName == '':
+        print('qlidtwins-> Se requiere el argumento testeoVectrName')
+        sys.exit(0)
+    else:
+        if ':' in args.testeoVectrName or args.testeoVectrName.startswith('/'):
+            # El parametro testeoVectrName es una ruta absoluta
+            cfgDict['testeoVectrName'] = args.testeoVectrName
+        else:
+            # El parametro testeoVectrName es una ruta relativa.
+            # Supongo que:
+            #   O bien cartolidar se ejecuta con -m o esa ruta esta referida al directorio de trabajo.
+            #   O bien se ejecuta directamente qlidtiwns y el directorio de trabajo es el que contiene a ese modulo.
+            if '__main__.py' in sys.argv[0]:
+                cfgDict['testeoVectrName'] = os.path.abspath(os.path.join(os.getcwd(), 'cartolidar', args.testeoVectrName))
+            # elif 'qlidtwins.py' in sys.argv[0]:
+            else:
+                cfgDict['testeoVectrName'] = os.path.abspath(os.path.join(os.getcwd(), args.testeoVectrName))
     if args.testeoLayerName == 'None':
         cfgDict['testeoLayerName'] = None
     else:
         cfgDict['testeoLayerName'] = args.testeoLayerName
 
+
+    print('qlidtwins->->->-> sys.argv[0]:', sys.argv[0], '__main__.py' in sys.argv[0])
+    print('qlidtwins->->->-> os.getcwd():', os.getcwd())
+    print('qlidtwins->->->-> args.rutaAscRaizBase:', args.rutaAscRaizBase)
+    print('                                       ', cfgDict['rutaAscRaizBase'])
+    print('qlidtwins->->->-> args.rutaCompletaMFE:', args.rutaCompletaMFE)
+    print('                                       ', cfgDict['rutaCompletaMFE'])
+    print('qlidtwins->->->-> args.patronVectrName:', args.patronVectrName)
+    print('                                       ', cfgDict['patronVectrName'])
+    print('qlidtwins->->->-> args.testeoVectrName:', args.testeoVectrName)
+    print('                                       ', cfgDict['testeoVectrName'])
+
+#ñññ
 
     if __verbose__ == 3:
         myLog.debug(f'qlidtwins-> args.listTxtDasoVars ({type(args.listTxtDasoVars)}) -> {args.listTxtDasoVars}')
