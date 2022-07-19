@@ -219,7 +219,7 @@ optional main arguments:
                         esta ejecutando (se asigna automaticamente; no usar
                         este argumento)
 
-See optional extra arguments with -f flag or in [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/).
+See optional extra arguments with -h -e flags or in [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/).
 </pre>
 
 
@@ -267,13 +267,14 @@ The project includes several raster files from Valladolid (data/asc/PuenteDuero/
 
 ### Reference area
 
-The reference area is a vector file (name with path) with one or several polygons. Formats shp or gpkg.
+The reference area is a vector file (name with path) with one or several polygons (shp or gpkg).
 
 Path: absolute path or relative path refered to working dir (e.g. the one from where the tools is called). 
 
 Indicate this information with -p, -l and -c flags (-l only for gpkg; not for shp)
 
-The project includes a vector layer from Valladolid (data/ref/clid_PuenteDuero.gpkg) that can be used as example of use.
+The cartolidar project includes a vector layer from Valladolid (data/ref/clid_PuenteDuero.gpkg) that can be used as example of use.
+
 
 ### Aditional inputs
 
@@ -286,7 +287,10 @@ It's also advisable to include a layer with forest type codes (forest-type = com
 
 Outputs
 ----
-...
+Ouput files are placed in a subdirectory of the raster input files directory.
+
+Default name of this subdir is dasoLayers (can be changed with -S flag).
+
 
 
 ### Use example with python code
