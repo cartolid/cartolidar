@@ -58,18 +58,24 @@ if not gdalOk:
         sys.exit(0)
 # ==============================================================================
 
+spec = importlib.util.find_spec('cartolidar')
+if not spec is None:
+    from cartolidar.clidtools.clidtwcfg import GLO
+else:
+    try:
+        from cartolidar.clidtools.clidtwcfg import GLO
+    except:
+        if '-vv' in sys.argv or '--verbose' in sys.argv:
+            sys.stderr.write(f'clidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+            sys.stderr.write(f'\t-> Se importa clidtwcfg.GLO desde clidtwins del directorio local {os.getcwd()}/clidtools.\n')
+        from clidtools.clidtwcfg import GLO
+
 '''
 configuracion original que da error:
 llvmlite==0.33.0+1.g022ab0f
 numba==0.50.1
 numpy==1.21.6
 '''
-try:
-    from cartolidar.clidtools.clidtwcfg import GLO
-except:
-    sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-    sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.')
-    from clidtools.clidtwcfg import GLO
 try:
     # GLO.GLBLcompilaConNumbaPorDefecto = False
     if GLO.GLBLcompilaConNumbaPorDefecto:
@@ -99,11 +105,8 @@ try:
 except:
     numbaOk = False
     print('clidtwins-> numba error')
-
 # numbaOk = False
 
-
-spec = importlib.util.find_spec('cartolidar')
 if not spec is None:
     # from cartolidar.clidtools.clidtwcfg import GLO
     from cartolidar.clidtools import clidtwinx
@@ -112,6 +115,7 @@ if not spec is None:
     from cartolidar.clidax import clidconfig
     from cartolidar.clidax import clidraster
 else:
+    # print('clidtwins+++++> importando modulos sin instalar desde clidtwins')
     try:
         # from cartolidar.clidtools.clidtwcfg import GLO
         from cartolidar.clidtools import clidtwinx
@@ -120,8 +124,7 @@ else:
         from cartolidar.clidax import clidconfig
         from cartolidar.clidax import clidraster
     except:
-        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        # Ya se informa antes de que cartolidar no esta instalado en site-packages
         from clidtools.clidtwcfg import GLO
         from clidtools import clidtwinx
         from clidtools import clidtwinp
@@ -406,7 +409,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             self.LOCLpatronLayerName = GLO.GLBLpatronLayerNamePorDefecto
         else:
             self.LOCLpatronLayerName = LCL_patronLayerName
-        print(f'clidtwins-> self.LOCLpatronVectrName (1): {self.LOCLpatronVectrName}')
+        # print(f'clidtwins-> self.LOCLpatronVectrName (1): {self.LOCLpatronVectrName}')
 
         self.LOCLtesteoVectrName = clidtwinx.getParametroConPath(
             valorParametro=LCL_testeoVectrName,
@@ -418,7 +421,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             self.LOCLtesteoLayerName = GLO.GLBLtesteoLayerNamePorDefecto
         else:
             self.LOCLtesteoLayerName = LCL_testeoLayerName
-        print(f'clidtwins-> self.LOCLtesteoVectrName (1): {self.LOCLtesteoVectrName}')
+        # print(f'clidtwins-> self.LOCLtesteoVectrName (1): {self.LOCLtesteoVectrName}')
 
         myLog.info('\n{:_^80}'.format(''))
         if self.GLBLmarcoPatronTest:
@@ -443,7 +446,8 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 self.LOCLrutaAscRaizBase,
                 self.LOCLpatronVectrName,
                 LOCLlayerName=self.LOCLpatronLayerName,
-                LOCLverbose=self.LOCLverbose,
+                # LOCLverbose=self.LOCLverbose,
+                LOCLverbose=3,
             )
             if not envolventePatron is None:
                 if self.LOCLmarcoCoordMiniX != 0:
@@ -451,6 +455,8 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                         self.LOCLmarcoCoordMiniX,
                         envolventePatron[0]
                     )
+                else:
+                    self.LOCLmarcoCoordMiniX = envolventePatron[0]
                 if self.LOCLmarcoCoordMaxiX != 0:
                     self.LOCLmarcoCoordMaxiX = max(
                         self.LOCLmarcoCoordMaxiX,
@@ -461,6 +467,8 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                         self.LOCLmarcoCoordMiniY,
                         envolventePatron[2]
                     )
+                else:
+                    self.LOCLmarcoCoordMiniY = envolventePatron[2]
                 if self.LOCLmarcoCoordMaxiY != 0:
                     self.LOCLmarcoCoordMaxiY = max(
                         self.LOCLmarcoCoordMaxiY,
@@ -475,7 +483,8 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 self.LOCLrutaAscRaizBase,
                 self.LOCLtesteoVectrName,
                 LOCLlayerName=self.LOCLtesteoLayerName,
-                LOCLverbose=self.LOCLverbose,
+                # LOCLverbose=self.LOCLverbose,
+                LOCLverbose=3,
             )
             if not envolventeTesteo is None:
                 self.LOCLmarcoCoordMiniX = min(
@@ -501,14 +510,14 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             else:
                 myLog.info('clidtwins-> Se adopta la envolvente de los shapes de referencia (patron) y chequeo (testeo):')
             myLog.info(
-                '{}-> X: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
+                '{}-> X: {:10.2f} - {:10.2f} -> Rango: {:4.0f} m'.format(
                     TB,
                     self.LOCLmarcoCoordMiniX, self.LOCLmarcoCoordMaxiX,
                     self.LOCLmarcoCoordMaxiX - self.LOCLmarcoCoordMiniX
                 )
             )
             myLog.info(
-                '{}-> Y: {:10.2f} {:10.2f} -> {:4.0f} m'.format(
+                '{}-> Y: {:10.2f} - {:10.2f} -> Rango: {:4.0f} m'.format(
                     TB,
                     self.LOCLmarcoCoordMiniY, self.LOCLmarcoCoordMaxiY,
                     self.LOCLmarcoCoordMaxiY - self.LOCLmarcoCoordMiniY
@@ -600,14 +609,16 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
         myLog.info(f'{TB}-> Directorio raiz para los ficheros dasolidar (asc):')
         myLog.info('{}{}{}'.format(TB, TV, self.LOCLrutaAscRaizBase))
         # myLog.info(f'{TB}-> Identificador de este lote de ficheros -> IdDir: {}'.format(self.idInputDir))
-        if self.LOCLnivelSubdirExpl:
-            myLog.info(f'{TB}-> Se van a explorar subdirectorios hasta nivel: {self.LOCLnivelSubdirExpl}')
-        else:
-            myLog.info(f'{TB}-> Se van a explorar subdirectorios hasta el ultimo nivel')
+        if __verbose__:
+            if self.LOCLnivelSubdirExpl:
+                myLog.info(f'{TB}-> Se van a explorar subdirectorios hasta nivel: {self.LOCLnivelSubdirExpl}')
+            else:
+                myLog.info(f'{TB}-> Se van a explorar subdirectorios hasta el ultimo nivel')
         listaDirsExcluidos = [self.LOCLoutputSubdirNew]
-        myLog.info(f'{TB}-> Directorios excluidos:')
-        for dirExcluido in listaDirsExcluidos:
-            myLog.info(f'{TB}{TV}{os.path.join(self.LOCLrutaAscRaizBase, dirExcluido)}')
+        if __verbose__:
+            myLog.info(f'{TB}-> Directorios excluidos:')
+            for dirExcluido in listaDirsExcluidos:
+                myLog.info(f'{TB}{TV}{os.path.join(self.LOCLrutaAscRaizBase, dirExcluido)}')
         myLog.info('{:=^80}'.format(''))
 
         myLog.info('\n{:_^80}'.format(''))
@@ -751,27 +762,29 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                         myLog.debug(f'{TB}{TV}dirpathOk:         {dirpathOk}')
                         myLog.debug(f'{TB}{TV}numFiles:          {len(filenames)}')
                     if self.marcoCoordDisponible and TRNS_buscarBloquesSoloDentroDelMarcoUTM:
-                        myLog.info(
-                            '{}{}{}No se ha localizado ningun fichero en {}/{} con el patron: <{}> que solape con el marco de coordenadas X: {} {} Y: {} {}'.format(
-                                TB, TV, TV,
-                                self.LOCLrutaAscRaizBase,
-                                subDirExplorado,
-                                miTipoDeFicheroDasoLayer,
-                                self.LOCLmarcoCoordMiniX,
-                                self.LOCLmarcoCoordMaxiX,
-                                self.LOCLmarcoCoordMiniY,
-                                self.LOCLmarcoCoordMaxiY,
+                        if LCL_verbose:
+                            myLog.info(
+                                '{}{}{}No se ha localizado ningun fichero en {}/{} con el patron: <{}> que solape con el marco de coordenadas X: {} {} Y: {} {}'.format(
+                                    TB, TV, TV,
+                                    self.LOCLrutaAscRaizBase,
+                                    subDirExplorado,
+                                    miTipoDeFicheroDasoLayer,
+                                    self.LOCLmarcoCoordMiniX,
+                                    self.LOCLmarcoCoordMaxiX,
+                                    self.LOCLmarcoCoordMiniY,
+                                    self.LOCLmarcoCoordMaxiY,
+                                )
                             )
-                        )
                     else:
-                        myLog.info(
-                            '{}No se ha localizado ningun fichero en {}/{} con el patron: <{}>'.format(
-                                TB,
-                                self.LOCLrutaAscRaizBase,
-                                subDirExplorado,
-                                miTipoDeFicheroDasoLayer,
+                        if LCL_verbose:
+                            myLog.info(
+                                '{}No se ha localizado ningun fichero en {}/{} con el patron: <{}>'.format(
+                                    TB,
+                                    self.LOCLrutaAscRaizBase,
+                                    subDirExplorado,
+                                    miTipoDeFicheroDasoLayer,
+                                )
                             )
-                        )
                 #===================================================================
 
             # Las listas infilesX pueden diferir de un tipo de fichero a otro
@@ -1112,8 +1125,13 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 else:
                     self.LOCLlistaDasoVarsPonderado.append(10)
 
-        # myLog.debug('--------------------------->self.LOCLlistLstDasoVars {self.LOCLlistLstDasoVars}')
-        if (
+        if len(self.LOCLlistLstDasoVars) < 2:
+            myLog.warning(f'\nclidtwinx-> AVISO: posible error en los argumentos en linea de comandos.')
+            myLog.warning(f'{TB}self.LOCLlistLstDasoVars: {self.LOCLlistLstDasoVars}')
+            sys.exit(0)
+
+
+        if len(self.LOCLlistLstDasoVars) < 2 or (
             not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('MFE')
             and not (self.LOCLlistLstDasoVars[-2][0]).upper().startswith('LAND')
         ):
@@ -1209,13 +1227,14 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                     + ' peso: {}'.format(pesoPonderado)
                 )
 
-        myLog.info(f'{TB}-> Para cada variable DasoLidar se indica:')
-        myLog.info(f'{TB}{TV}-> CodigoFichero             -> para buscar ficheros con ese codigo')
-        myLog.info(f'{TB}{TV}-> (NickName)                -> sin uso interno, unicamente para identificacion rapida')
-        myLog.info(f'{TB}{TV}-> Rango y numero de clases  -> para crear histograma') 
-        myLog.info(f'{TB}{TV}-> Movilidad inter-clases    -> para buscar zonas similares')
-        myLog.info(f'{TB}{TV}-> Peso relativo             -> para ponderar al comparar con el patron')
-        myLog.info('{:=^80}'.format(''))
+        if self.LOCLverbose:
+            myLog.info(f'{TB}-> Para cada variable DasoLidar se indica:')
+            myLog.info(f'{TB}{TV}-> CodigoFichero             -> para buscar ficheros con ese codigo')
+            myLog.info(f'{TB}{TV}-> (NickName)                -> sin uso interno, unicamente para identificacion rapida')
+            myLog.info(f'{TB}{TV}-> Rango y numero de clases  -> para crear histograma') 
+            myLog.info(f'{TB}{TV}-> Movilidad inter-clases    -> para buscar zonas similares')
+            myLog.info(f'{TB}{TV}-> Peso relativo             -> para ponderar al comparar con el patron')
+            myLog.info('{:=^80}'.format(''))
 
     # ==========================================================================
     def verificarRutaAscRaiz(
@@ -1242,13 +1261,15 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 return
             myLog.debug('\n{:_^80}'.format(''))
             myLog.warning(f'clidtwins-> AVISO: no se ha indicado ruta para los ficheros asc con las variables dasoLidar de entrada.')
-            myLog.warning(f'{TB}Ruta: {LCL_rutaAscRaizBase}')
+            if self.LOCLverbose:
+                myLog.warning(f'{TB}Ruta: {LCL_rutaAscRaizBase}')
             if os.path.isdir(os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)):
                 if os.path.exists(GLO.configFileNameCfg):
                     myLog.warning(f'{TB}-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
                 else:
                     myLog.warning(f'{TB}-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
                 LCL_rutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
+                myLog.warning(f'{TB}-> LCL_rutaAscRaizBase: {LCL_rutaAscRaizBase}')
             else:
                 # Directorio que depende del entorno:
                 MAIN_HOME_DIR = str(pathlib.Path.home())
@@ -1758,8 +1779,9 @@ and two more layers for forest type (land cover) and stand type.
         mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self.LOCLoutPathNameRuta, self.LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
         outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global', 'Testeo')
         myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Recortando raster: {mergedUniCellAllDasoVarsFileNameConPath}')
-        myLog.info(f'{TB}con perimetro de testeo: {testeoVectrNameConPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Recortando raster: {mergedUniCellAllDasoVarsFileNameConPath}')
+            myLog.info(f'{TB}con perimetro de testeo: {testeoVectrNameConPath}')
         rasterDataset = gdal.Open(mergedUniCellAllDasoVarsFileNameConPath, gdalconst.GA_ReadOnly)
 
         # outputBand1 = rasterDataset.GetRasterBand(1)
@@ -1806,7 +1828,8 @@ and two more layers for forest type (land cover) and stand type.
 
         nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskTesteo == 0)
         listaCeldasConDasoVarsTesteo = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=self.outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
-        myLog.info(f'{TB}-> Numero de celdas Testeo con dasoVars ok: {nCeldasConDasoVarsOk}')
+        myLog.info(f'clidtwins-> Comparativa patron-testeo para Tipo de Masa (del patron) TM_{self.LOCLtipoDeMasaSelec}:')
+        myLog.info(f'{TB}-> Numero de celdas Testeo con dasoVars disponibles: {nCeldasConDasoVarsOk}')
 
         # Las self.nInputVars primeras bandas corresponden a las variables utilizadas (self_LOCLlistaDasoVarsFileTypes)
         # La penultima corresponde al tipo de bosque o cobertura MFE
@@ -1970,7 +1993,7 @@ and two more layers for forest type (land cover) and stand type.
                 claveMax = f'{str(nInputVar)}_{self.LOCLlistLstDasoVars[nInputVar][1]}_max'
                 # self.dictHistProb01[claveRef] = histProb01Testeo
 
-
+#ñññ
 
                 if self.calcularRangoVariables:
                     print('\n{:_^80}'.format(''))
@@ -2019,7 +2042,7 @@ and two more layers for forest type (land cover) and stand type.
 
         # myLog.debug('clidtwins-> Matriz de distancias:')
         # myLog.debug(self.matrizDeDistanciasPatronTesteo[:5,:5])
-        myLog.info(f'clidtwins-> Resumen del match: (TM: {self.LOCLtipoDeMasaSelec})')
+        myLog.info(f'clidtwins-> Resumen del match:')
         myLog.info(f'{TB}-> tipoBosqueOk:                  {self.tipoBosqueOk}')
         myLog.info(f'{TB}-> nVariablesNoOk:                {self.nVariablesNoOk}')
         myLog.info(f'{TB}-> matrizDeDistancias.shape:      {self.matrizDeDistanciasPatronTesteo.shape}') 
@@ -2116,9 +2139,9 @@ and two more layers for forest type (land cover) and stand type.
             self.outputClusterDistScipyM1FileNameSinPath,
             self.outputClusterDistScipyM2FileNameSinPath,
             self.outputClusterDistScipyM3FileNameSinPath,
-            ) = getFileNamesDistScipy(self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+            ) = self.getFileNamesDistScipy(idTipoDeMasaSelec)  # , self.idInputDir, self.driverExtension)
 
-        myLog.info('\n{:_^80}'.format(''))
+        myLog.info('{:_^80}'.format(''))
         myLog.info('clidtwins-> Ficheros que se generan:')
         myLog.info(f'{TB}-> Fichero multibanda* con las variables dasoLidar clusterizadas (radio de {self.LOCLradioClusterPix} pixeles):')
         myLog.info(f'{TB}{TV}{self.outputClusterAllDasoVarsFileNameSinPath}')
@@ -2213,7 +2236,8 @@ and two more layers for forest type (land cover) and stand type.
         # 0. MonoLayer con presencia de tipo de masa similar al de referencia (patron)
         # ======================================================================
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer tipoBosque {self.outputClusterTipoBoscProFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el layer tipoBosque {self.outputClusterTipoBoscProFileNameSinPath}')
         outputDatasetTipoBosc, outputBandaTipoBosc = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
             self.outputClusterTipoBoscProFileNameSinPath,
@@ -2238,7 +2262,8 @@ and two more layers for forest type (land cover) and stand type.
         # 1. MonoLayer con presencia de tipo de masa similar al de referencia (patron)
         # ======================================================================
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa {self.outputClusterTipoMasaParFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa {self.outputClusterTipoMasaParFileNameSinPath}')
         outputDatasetTipoMasa, outputBandaTipoMasa = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
             self.outputClusterTipoMasaParFileNameSinPath,
@@ -2263,7 +2288,8 @@ and two more layers for forest type (land cover) and stand type.
         # 2. Bilayer con DistanciaEu y MFE
         # ======================================================================
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer distanciaEu {self.outputClusterDistanciaEuFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el layer distanciaEu {self.outputClusterDistanciaEuFileNameSinPath}')
         outputDatasetDistanciaEuclideaMedia, outputBandaDistanciaEuclideaMedia = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
             self.outputClusterDistanciaEuFileNameSinPath,
@@ -2289,7 +2315,8 @@ and two more layers for forest type (land cover) and stand type.
         # 2a. Bilayer con razon de DistanciaEu patron-testeo a patron-patron y MFE
         # ======================================================================
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer distanciaEu razon {self.outputClusterDistEuRazonFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el layer distanciaEu razon {self.outputClusterDistEuRazonFileNameSinPath}')
         outputDatasetDistanciaEuclideaRazon, outputBandaDistanciaEuclideaRazon = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
             self.outputClusterDistEuRazonFileNameSinPath,
@@ -2315,7 +2342,8 @@ and two more layers for forest type (land cover) and stand type.
         # 3. Bilayer con factorProxi y MFE
         # ======================================================================
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer factorProxi {self.outputClusterFactorProxiFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el layer factorProxi {self.outputClusterFactorProxiFileNameSinPath}')
         outputDatasetPorcentajeDeProximidad, outputBandaPorcentajeDeProximidad = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
             self.outputClusterFactorProxiFileNameSinPath,
@@ -2342,7 +2370,8 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         # Creacion del raster, con las variables y tipo de bosque clusterizados
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el multiLayer clusterAllDasoVars {self.outputClusterAllDasoVarsFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el multiLayer clusterAllDasoVars {self.outputClusterAllDasoVarsFileNameSinPath}')
         outputDatasetClusterDasoVarMultiple, outputBandaClusterDasoVarBanda1 = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
             self.outputClusterAllDasoVarsFileNameSinPath,
@@ -2363,7 +2392,8 @@ and two more layers for forest type (land cover) and stand type.
             generarMetaPixeles=True,
         )
 
-        myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod1 {self.outputClusterDistScipyM1FileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod1 {self.outputClusterDistScipyM1FileNameSinPath}')
         outputDatasetClusterDistanciaScipyMethod1, outputBandaDistanciaScipyMethod1Var0 = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
             self.outputClusterDistScipyM1FileNameSinPath,
@@ -2388,7 +2418,8 @@ and two more layers for forest type (land cover) and stand type.
             outputBandaDistanciaScipyMethod1[nInputVar] = outputDatasetClusterDistanciaScipyMethod1.GetRasterBand(nInputVar + 1)
 
         if nScipyMethods >= 2:
-            myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod2 {self.outputClusterDistScipyM2FileNameSinPath}')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod2 {self.outputClusterDistScipyM2FileNameSinPath}')
             outputDatasetClusterDistanciaScipyMethod2, outputBandaDistanciaScipyMethod2Var0 = clidraster.CrearOutputRaster(
                 self.LOCLoutPathNameRuta,
                 self.outputClusterDistScipyM2FileNameSinPath,
@@ -2413,7 +2444,8 @@ and two more layers for forest type (land cover) and stand type.
                 outputBandaDistanciaScipyMethod2[nInputVar] = outputDatasetClusterDistanciaScipyMethod2.GetRasterBand(nInputVar + 1)
 
         if nScipyMethods >= 3:
-            myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod3 {self.outputClusterDistScipyM3FileNameSinPath}')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Creando fichero para el Layer con nVars+1 bandas clusterDistanScipyMethod3 {self.outputClusterDistScipyM3FileNameSinPath}')
             outputDatasetClusterDistanciaScipyMethod3, outputBandaDistanciaScipyMethod3Var0 = clidraster.CrearOutputRaster(
                 self.LOCLoutPathNameRuta,
                 self.outputClusterDistScipyM3FileNameSinPath,
@@ -2586,11 +2618,12 @@ and two more layers for forest type (land cover) and stand type.
         # ======================================================================
         timeInicio = time.asctime(time.localtime(time.time()))
         contadorAvisosCluster = 0
-        myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Recorriendo raster multibanda (nBandas: {self.nBandasRasterOutput}; ladoCluster: {ladoCluster})')
-        myLog.info(f'{TB}para calcular clusterVars, tipoDeMasa, tipoDeBosque y dos parametros de proximidad.')
-        myLog.info(f'{TB}{timeInicio}')
-        print('numbaOk:', numbaOk)
+        if self.LOCLverbose:
+            myLog.info('\n{:_^80}'.format(''))
+            myLog.info(f'clidtwins-> Recorriendo raster multibanda (nBandas: {self.nBandasRasterOutput}; ladoCluster: {ladoCluster})')
+            myLog.info(f'{TB}para calcular clusterVars, tipoDeMasa, tipoDeBosque y dos parametros de proximidad.')
+            myLog.info(f'{TB}{timeInicio}')
+            myLog.debug(f'numbaOk: {numbaOk}')
 
         tiempo0 = time.time()
 
@@ -2642,7 +2675,7 @@ and two more layers for forest type (land cover) and stand type.
                 self.listaCeldasConDasoVarsOkPatron,
                 self.GLBLumbralMatriDist,
                 nScipyMethods,
-                self.LOCLverbose,
+                self_LOCLverbose=self.LOCLverbose,
             )
             if not recorrerRasterOk:
                 sys.exit(0)
@@ -2813,9 +2846,10 @@ and two more layers for forest type (land cover) and stand type.
                 outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec],
                 outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec],
                 outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec],
-            ) = getFileNamesDistScipy(self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+            ) = self.getFileNamesDistScipy(idTipoDeMasaSelec)  # , self.idInputDir, self.driverExtension)
 
-            myLog.info(f'clidtwins-> Abriendo raster con factor de proximidad al tipo de bosque de referencia (0-10): {outputClusterTipoBoscProFileNameSinPath[LCL_tipoDeMasaSelec]}')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Abriendo raster con factor de proximidad al tipo de bosque de referencia (0-10): {outputClusterTipoBoscProFileNameSinPath[LCL_tipoDeMasaSelec]}')
             outputClusterTipoBoscProFileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterTipoBoscProFileNameSinPath[LCL_tipoDeMasaSelec])
             if os.path.exists(outputClusterTipoBoscProFileNameConPath):
                 try:
@@ -2830,9 +2864,11 @@ and two more layers for forest type (land cover) and stand type.
                     myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
                     # sys.exit(0)
             else:
-                myLog.warning(f'{TB}-> No se encuentra el raster con el tipo de bosque - TM{LCL_tipoDeMasaSelec}: {outputClusterTipoBoscProFileNameConPath}')
+                myLog.warning(f'clidtwins-> Aviso: no se encuentra el raster con el tipo de bosque:')
+                myLog.warning(f'{TB}-> TM{LCL_tipoDeMasaSelec}: {outputClusterTipoBoscProFileNameConPath}')
 
-            myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M1: {outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec]}')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M1: {outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec]}')
             outputClusterDistScipyM1FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM1FileNameSinPath[LCL_tipoDeMasaSelec])
             if os.path.exists(outputClusterDistScipyM1FileNameConPath):
                 try:
@@ -2847,10 +2883,11 @@ and two more layers for forest type (land cover) and stand type.
                     myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
                     # sys.exit(0)
             else:
-                myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M1 - TM{LCL_tipoDeMasaSelec}')
+                myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M1 - TM{LCL_tipoDeMasaSelec}')
 
             if len(SCIPY_METHODS) >= 2:
-                myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M2: {outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec]}')
+                if self.LOCLverbose:
+                    myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M2: {outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec]}')
                 outputClusterDistScipyM2FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM2FileNameSinPath[LCL_tipoDeMasaSelec])
                 if os.path.exists(outputClusterDistScipyM2FileNameConPath):
                     try:
@@ -2865,10 +2902,11 @@ and two more layers for forest type (land cover) and stand type.
                         myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
                         # sys.exit(0)
                 else:
-                    myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M2 - TM{LCL_tipoDeMasaSelec}')
+                    myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M2 - TM{LCL_tipoDeMasaSelec}')
 
             if len(SCIPY_METHODS) >= 3:
-                myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M3: {outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec]}')
+                if self.LOCLverbose:
+                    myLog.info(f'clidtwins-> Abriendo raster con distancias scipy method M3: {outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec]}')
                 outputClusterDistScipyM3FileNameConPath = os.path.join(self.LOCLoutPathNameRuta, outputClusterDistScipyM3FileNameSinPath[LCL_tipoDeMasaSelec])
                 if os.path.exists(outputClusterDistScipyM3FileNameConPath):
                     try:
@@ -2883,7 +2921,7 @@ and two more layers for forest type (land cover) and stand type.
                         myLog.error(f'{TB}-> Revisar si esta corrupto o esta bloqueado.')
                         # sys.exit(0)
                 else:
-                    myLog.warning(f'{TB}-> No se encuentra el raster con las distancias scipy method M3 - TM{LCL_tipoDeMasaSelec}')
+                    myLog.warning(f'clidtwins-> No se encuentra el raster con las distancias scipy method M3 - TM{LCL_tipoDeMasaSelec}')
 
             if disponibleClusterTipoBoscPro and LCL_tipoDeMasaSelec in arrayClusterTipoBoscPro.keys():
                 nDistRows, nDistCols = arrayClusterTipoBoscPro[LCL_tipoDeMasaSelec].shape
@@ -2956,7 +2994,7 @@ and two more layers for forest type (land cover) and stand type.
             elif disponibleClusterDistScipyM3 and LCL_tipoDeMasaSelec in arrayClusterDistScipyM3.keys():
                 nDistRows, nDistCols = arrayClusterDistScipyM3[LCL_tipoDeMasaSelec].shape
             else:
-                myLog.error(f'clidtwins-> ATENCION: no hay rasters disponibles con distancias scipy para el TM{LCL_tipoDeMasaSelec}')
+                myLog.error(f'clidtwins-> Aviso: no hay rasters disponibles con distancias scipy para el TM{LCL_tipoDeMasaSelec}')
                 continue
 
         # myLog.info(f'clidtwins-> Dimensiones de los raster origen y destino compatibles '
@@ -2969,7 +3007,8 @@ and two more layers for forest type (land cover) and stand type.
         # Se genera un raster con el Tipo de Masa de minima distancia en cada pixel, para cada metodo Scipy
         self.outputTiposDeMasaDistanciaMinimaTipoBoscAnyFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasaDistMinimaTipoBosqueCualquiera', self.idInputDir, self.driverExtension)
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima sin comparar tipo de bosque {self.outputTiposDeMasaDistanciaMinimaTipoBoscAnyFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima sin comparar tipo de bosque {self.outputTiposDeMasaDistanciaMinimaTipoBoscAnyFileNameSinPath}')
         nScipyMethods = len(SCIPY_METHODS)
         datasetTipoMasaScipyTipoBoscAny, bandaTipoMasaScipyTipoBoscAnyM1 = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
@@ -2999,7 +3038,8 @@ and two more layers for forest type (land cover) and stand type.
         # que tenga especie compatible con patron en cada pixel, para cada metodo Scipy
         self.outputTiposDeMasaDistanciaMinimaTipoBoscProFileNameSinPath = '{}_{}.{}'.format('clusterTiposDeMasaDistMinimaTipoBosqueCompatible', self.idInputDir, self.driverExtension)
         # myLog.info('\n{:_^80}'.format(''))
-        myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima con tipo de bosque compatible {self.outputTiposDeMasaDistanciaMinimaTipoBoscProFileNameSinPath}')
+        if self.LOCLverbose:
+            myLog.info(f'clidtwins-> Creando fichero para el layer tipoMasa con distancia scipy minima con tipo de bosque compatible {self.outputTiposDeMasaDistanciaMinimaTipoBoscProFileNameSinPath}')
         nScipyMethods = len(SCIPY_METHODS)
         datasetTipoMasaScipyTipoBoscPro, bandaTipoMasaScipyTipoBoscProM1 = clidraster.CrearOutputRaster(
             self.LOCLoutPathNameRuta,
@@ -3026,7 +3066,8 @@ and two more layers for forest type (land cover) and stand type.
             bandaTipoMasaScipyTipoBoscProM3 = datasetTipoMasaScipyTipoBoscPro.GetRasterBand(3)
 
         if disponibleClusterDistScipyM1:
-            myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M1')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M1')
             arrayTipoMasaScipyTipoBoscAnyM1 = bandaTipoMasaScipyTipoBoscAnyM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             arrayTipoMasaScipyTipoBoscProM1 = bandaTipoMasaScipyTipoBoscProM1.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
@@ -3065,7 +3106,8 @@ and two more layers for forest type (land cover) and stand type.
                                 arrayTipoMasaScipyTipoBoscProM1[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM2:
-            myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M2')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M2')
             arrayTipoMasaScipyTipoBoscAnyM2 = bandaTipoMasaScipyTipoBoscAnyM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             arrayTipoMasaScipyTipoBoscProM2 = bandaTipoMasaScipyTipoBoscProM2.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
@@ -3104,7 +3146,8 @@ and two more layers for forest type (land cover) and stand type.
                                 arrayTipoMasaScipyTipoBoscProM2[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM3:
-            myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M3')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Calculando para cada pixel ({nDistRows} x {nDistCols}) el tipoMasa con distancia minima scipy M3')
             arrayTipoMasaScipyTipoBoscAnyM3 = bandaTipoMasaScipyTipoBoscAnyM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             arrayTipoMasaScipyTipoBoscProM3 = bandaTipoMasaScipyTipoBoscProM3.ReadAsArray().astype(self.outputNpDatatypeTipoMasa)
             for nDistRow in range(nDistRows):
@@ -3143,7 +3186,8 @@ and two more layers for forest type (land cover) and stand type.
                                 arrayTipoMasaScipyTipoBoscProM3[nDistRow, nDistCol] = LCL_tipoDeMasaSelec
 
         if disponibleClusterDistScipyM1:
-            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M1')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M1')
             bandaTipoMasaScipyTipoBoscAnyM1 = clidtwinx.guardarArrayEnBandaDataset(
                 arrayTipoMasaScipyTipoBoscAnyM1, bandaTipoMasaScipyTipoBoscAnyM1
             )
@@ -3152,50 +3196,53 @@ and two more layers for forest type (land cover) and stand type.
             )
 
         if disponibleClusterDistScipyM2:
-            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
             bandaTipoMasaScipyTipoBoscAnyM2 = clidtwinx.guardarArrayEnBandaDataset(
                 arrayTipoMasaScipyTipoBoscAnyM2, bandaTipoMasaScipyTipoBoscAnyM2
             )
-            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M2')
             bandaTipoMasaScipyTipoBoscProM2 = clidtwinx.guardarArrayEnBandaDataset(
                 arrayTipoMasaScipyTipoBoscProM2, bandaTipoMasaScipyTipoBoscProM2
             )
         if disponibleClusterDistScipyM3:
-            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M3')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M3')
             bandaTipoMasaScipyTipoBoscAnyM3 = clidtwinx.guardarArrayEnBandaDataset(
                 arrayTipoMasaScipyTipoBoscAnyM3, bandaTipoMasaScipyTipoBoscAnyM3
             )
-            myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M3')
+            if self.LOCLverbose:
+                myLog.info(f'clidtwins-> Guardando tipoMasa con distancia minima scipy M3')
             bandaTipoMasaScipyTipoBoscProM3 = clidtwinx.guardarArrayEnBandaDataset(
                 arrayTipoMasaScipyTipoBoscProM3, bandaTipoMasaScipyTipoBoscProM3
             )
 
 
-def getFileNamesDistScipy(idInputDir, idTipoDeMasaSelec, driverExtension):
-    outputClusterAllDasoVarsFileNameSinPath = '{}_{}{}.{}'.format('clusterAllDasoVars', idInputDir, idTipoDeMasaSelec, driverExtension)
-    outputClusterTipoMasaParFileNameSinPath = '{}_{}{}.{}'.format('clusterTipoMasaPar', idInputDir, idTipoDeMasaSelec, driverExtension)
-    outputClusterDistanciaEuFileNameSinPath = '{}_{}{}.{}'.format('clusterDistanciaEu', idInputDir, idTipoDeMasaSelec, driverExtension)
-    outputClusterDistEuRazonFileNameSinPath = '{}_{}{}.{}'.format('clusterDistEuRazon', idInputDir, idTipoDeMasaSelec, driverExtension)
-    outputClusterFactorProxiFileNameSinPath = '{}_{}{}.{}'.format('clusterFactorProxi', idInputDir, idTipoDeMasaSelec, driverExtension)
-
-    outputClusterTipoBoscProFileNameSinPath = '{}_{}{}.{}'.format('clusterTipoBoscPro', idInputDir, idTipoDeMasaSelec, driverExtension)
-    outputClusterDistScipyM1FileNameSinPath = '{}_{}{}.{}'.format('clusterDistScipyM1', idInputDir, idTipoDeMasaSelec, driverExtension)
-    outputClusterDistScipyM2FileNameSinPath = '{}_{}{}.{}'.format('clusterDistScipyM2', idInputDir, idTipoDeMasaSelec, driverExtension)
-    outputClusterDistScipyM3FileNameSinPath = '{}_{}{}.{}'.format('clusterDistScipyM3', idInputDir, idTipoDeMasaSelec, driverExtension)
-    return(
-        outputClusterAllDasoVarsFileNameSinPath,
-        outputClusterTipoMasaParFileNameSinPath,
-        outputClusterDistanciaEuFileNameSinPath,
-        outputClusterDistEuRazonFileNameSinPath,
-        outputClusterFactorProxiFileNameSinPath,
-
-        outputClusterTipoBoscProFileNameSinPath,
-        outputClusterDistScipyM1FileNameSinPath,
-        outputClusterDistScipyM2FileNameSinPath,
-        outputClusterDistScipyM3FileNameSinPath,
-    )
+    def getFileNamesDistScipy(self, idTipoDeMasaSelec):  #, idInputDir, , driverExtension):
+        outputClusterAllDasoVarsFileNameSinPath = '{}_{}{}.{}'.format('clusterAllDasoVars', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        outputClusterTipoMasaParFileNameSinPath = '{}_{}{}.{}'.format('clusterTipoMasaPar', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        outputClusterDistanciaEuFileNameSinPath = '{}_{}{}.{}'.format('clusterDistanciaEu', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        outputClusterDistEuRazonFileNameSinPath = '{}_{}{}.{}'.format('clusterDistEuRazon', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        outputClusterFactorProxiFileNameSinPath = '{}_{}{}.{}'.format('clusterFactorProxi', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+    
+        outputClusterTipoBoscProFileNameSinPath = '{}_{}{}.{}'.format('clusterTipoBoscPro', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        outputClusterDistScipyM1FileNameSinPath = '{}_{}{}.{}'.format('clusterDistScipyM1', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        outputClusterDistScipyM2FileNameSinPath = '{}_{}{}.{}'.format('clusterDistScipyM2', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        outputClusterDistScipyM3FileNameSinPath = '{}_{}{}.{}'.format('clusterDistScipyM3', self.idInputDir, idTipoDeMasaSelec, self.driverExtension)
+        return(
+            outputClusterAllDasoVarsFileNameSinPath,
+            outputClusterTipoMasaParFileNameSinPath,
+            outputClusterDistanciaEuFileNameSinPath,
+            outputClusterDistEuRazonFileNameSinPath,
+            outputClusterFactorProxiFileNameSinPath,
+    
+            outputClusterTipoBoscProFileNameSinPath,
+            outputClusterDistScipyM1FileNameSinPath,
+            outputClusterDistScipyM2FileNameSinPath,
+            outputClusterDistScipyM3FileNameSinPath,
+        )
 
 # ==============================================================================
 if __name__ == '__main__':
     pass
-

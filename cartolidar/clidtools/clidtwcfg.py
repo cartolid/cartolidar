@@ -43,8 +43,9 @@ else:
     try:
         from cartolidar.clidax import clidconfig
     except:
-        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        if '-vv' in sys.argv or '--verbose' in sys.argv:
+            sys.stderr.write(f'clidtwincfg-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+            sys.stderr.write(f'\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
         from clidax import clidconfig
 
 
@@ -137,7 +138,7 @@ elif type(ARGS_idProceso) == str:
         print(f'sys.argv: {sys.argv}')
 else:
     MAIN_idProceso = 0
-    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
+    print(f'clidtwcfg-> ATENCION: revisar codigo de idProceso.')
     print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
     print(f'sys.argv: {sys.argv}')
 # ==============================================================================
@@ -187,11 +188,13 @@ def mensajeError(program_name):
 
 # ==============================================================================
 def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=False, LOCL_verboseAll=False):
-    myLog.info('\n{:_^80}'.format(''))
-    myLog.info('clidtwcfg-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
+    if LOCL_verbose:
+        myLog.info('\n{:_^80}'.format(''))
+        myLog.info('clidtwcfg-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
     # ==========================================================================
     if not os.path.exists(LOCL_configFileNameCfg):
-        myLog.info('\t-> Fichero no disponible; se crea con valores por defecto.')
+        if LOCL_verbose:
+            myLog.info('\t-> Fichero no disponible; se crea con valores por defecto.')
         # En ausencia de fichero de configuracion, uso valores por defecto y los guardo en un nuevo fichero cfg
         config = RawConfigParser()
         config.optionxform = str  # Avoid change to lowercase
@@ -362,7 +365,8 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
                     tipoParametroConfiguracion,
                     descripcionParametroConfiguracion,
                 ]
-                myLog.info('\t-> AVISO: el parametro <{}> no esta en el fichero de configuacion; se adopta valor por defecto: <{}>'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion))
+                if LOCL_verbose:
+                    myLog.info('\t-> AVISO: el parametro <{}> no esta en el fichero de configuacion; se adopta valor por defecto: <{}>'.format(nombreParametroDeConfiguracion, valorParametroConfiguracion))
 
         # config_ok = True
     except Exception as excpt:
@@ -374,7 +378,8 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
         sys.exit(0)
     # myLog.debug('\t\tclidtwcfg-> LOCL_configDict:', LOCL_configDict)
 
-    myLog.info('{:=^80}'.format(''))
+    if LOCL_verbose:
+        myLog.info('{:=^80}'.format(''))
 
     return LOCL_configDict
 
@@ -850,6 +855,9 @@ def readGLO():
     configDictPorDefecto = leerConfigDictPorDefecto()
     # Se guardan los parametros de configuracion en un diccionario:
     GRAL_configDict = leerConfig(configDictPorDefecto, configFileNameCfg, LOCL_verbose=__verbose__)
+    # print('clidtwicfg-> configFileNameCfg:', configFileNameCfg)
+    # print('clidtwicfg-> configDictPorDefecto:', configDictPorDefecto['GLBLpatronVectrNamePorDefecto'])
+    # print('clidtwicfg-> configDictPorDefecto:', GRAL_configDict['GLBLpatronVectrNamePorDefecto'])
     # Se crea un objeto de la clase VariablesGlobales para almacenar los
     # parametros de configuracion guardados en GRAL_configDict como atributos
     GLO = clidconfig.VariablesGlobales(GRAL_configDict)

@@ -277,13 +277,16 @@ def iniciaConsLog(myModule='clidconfig', myVerbose=False, myQuiet=False):
     if myVerbose == 3:
         logLevel = logging.DEBUG  # 10
     elif myVerbose == 2:
-        logLevel = logging.INFO  # 20
+        logLevel = logging.DEBUG  # 10
     elif myVerbose == 1:
-        logLevel = logging.WARNING  # 30
-    elif not __quiet__:
-        logLevel = logging.ERROR
-    else:
-        logLevel = logging.CRITICAL
+        logLevel = logging.INFO  # 20
+    elif myVerbose == 0:
+        if myQuiet:
+            # logLevel = logging.CRITICAL
+            logLevel = logging.ERROR  # 40
+        else:
+            # logLevel = logging.WARNING  # 30
+            logLevel = logging.INFO  # 20
     # ==============================================================================
     # class ContextFilter(logging.Filter):
     #     """
@@ -369,24 +372,30 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
     if myVerboseFile == 3:
         logLevelFile = logging.DEBUG
     elif myVerboseFile == 2:
-        logLevelFile = logging.INFO
+        logLevelFile = logging.DEBUG
     elif myVerboseFile == 1:
-        logLevelFile = logging.WARNING
-    elif not myQuiet:
-        logLevelFile = logging.ERROR
-    else:
-        logLevelFile = logging.CRITICAL
+        logLevelFile = logging.INFO
+    elif myVerboseFile == 0:
+        if myQuiet:
+            # logLevelFile = logging.CRITICAL
+            logLevelFile = logging.ERROR
+        else:
+            # logLevelFile = logging.WARNING
+            logLevelFile = logging.INFO
 
-    if myVerboseCons == 3:
-        logLevelCons = logging.DEBUG
-    elif myVerboseCons == 2:
-        logLevelCons = logging.INFO
-    elif myVerboseCons == 1:
-        logLevelCons = logging.WARNING
-    elif not myQuiet:
-        logLevelCons = logging.ERROR
-    else:
-        logLevelCons = logging.CRITICAL
+    if myVerbose == 3:
+        logLevelCons = logging.DEBUG  # 10
+    elif myVerbose == 2:
+        logLevelCons = logging.DEBUG  # 10
+    elif myVerbose == 1:
+        logLevelCons = logging.INFO  # 20
+    elif myVerbose == 0:
+        if myQuiet:
+            # logLevelCons = logging.CRITICAL
+            logLevelCons = logging.ERROR  # 40
+        else:
+            # logLevelCons = logging.WARNING  # 30
+            logLevelCons = logging.INFO  # 20
 
     if myPath == '':
         myLogPath = myPath
@@ -523,11 +532,11 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
         # logging.getLogger().addHandler(consLog)
         myLog.addHandler(consLog)
     # ==============================================================================
-    # myLog.debug('qlidtwins-> debug')
-    # myLog.info('qlidtwins-> info')
-    # myLog.warning('qlidtwins-> warning')
-    # myLog.error('qlidtwins-> error')
-    # myLog.critical('qlidtwins-> critical')
+    # myLog.debug('clidconfig-> debug')
+    # myLog.info('clidconfig-> info')
+    # myLog.warning('clidconfig-> warning')
+    # myLog.error('clidconfig-> error')
+    # myLog.critical('clidconfig-> critical')
     # ==============================================================================
 
     return myLog
@@ -2225,7 +2234,7 @@ def get_MAIN_CFG_DIR():
 # ==============================================================================
 def getConfigFileName():
     if len(sys.argv) == 0:
-        print(f'\nqlidtwins-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
+        print(f'\nclidconfig-> Revisar esta forma de ejecucion. sys.argv: <{sys.argv}>')
         sys.exit(0)
     elif (sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]):
         # print('\nqlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:')
@@ -2289,9 +2298,8 @@ def getConfigFileNameCfg(idProceso, LOCL_verbose=0):
             controlConfigFile = open(configFileNameCfg, mode='r+')
             controlConfigFile.close()
         if LOCL_verbose:
-            print(f'clidconfig-> Ok cfg file (a): {configFileNameCfg}')
             if os.path.exists(configFileNameCfg):
-                print(f'{TB}-> Este fichero de configuracion ya existe previamente (se usan sus parametros en lugar de los del xls).')
+                print(f'{TB}-> Este fichero de configuracion ya existe previamente (se usan sus parametros).')
             print(f'{"":=^80}')
     except:
         if LOCL_verbose:

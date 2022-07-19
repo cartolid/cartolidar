@@ -25,6 +25,8 @@ else:
     try:
         from cartolidar.clidax import clidconfig
     except:
+        sys.stderr.write(f'cartolidar__main__-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write(f'\t-> Se importa clidconfig desde __main__.py del directorio local {os.getcwd()}/clidax.\n')
         from clidax import clidconfig
 
 # ==============================================================================

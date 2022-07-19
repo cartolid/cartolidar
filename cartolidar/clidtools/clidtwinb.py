@@ -69,8 +69,9 @@ else:
         from cartolidar.clidax import clidraster
         from cartolidar.clidtools.clidtwcfg import GLO
     except:
-        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        if '-vv' in sys.argv or '--verbose' in sys.argv:
+            sys.stderr.write(f'clidtwinb-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+            sys.stderr.write(f'\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
         from clidax import clidconfig
         from clidax import clidraster
         from clidtools.clidtwcfg import GLO
@@ -206,7 +207,7 @@ def recorrerGeneraRasterClusterNb(
         self_listaCeldasConDasoVarsOkPatron,
         self_GLBLumbralMatriDist,
         nScipyMethods,
-        self_LOCLverbose,
+        self_LOCLverbose=False,
     ):
     for nRowRaster in range(arrayBandaTipoMasa.shape[0]):
         if self_LOCLverbose:
@@ -262,7 +263,7 @@ def recorrerGeneraRasterClusterNb(
                 self_outputNpDatatypeAll,  # self_outputNpDatatypeAll=
                 mostrarPixelClusterMatch,  # mostrarPixelClusterMatch=
                 contadorAvisosCluster,  # contadorAvisosCluster=
-                self_LOCLverbose,  # self_LOCLverbose=
+                self_LOCLverbose=self_LOCLverbose,
                 # localClusterArrayMultiBandaDasoVars,
                 # localSubClusterArrayMultiBandaDasoVars,
                 # arrayBandaXMaskCluster,
@@ -682,7 +683,7 @@ def rellenarLocalClusterNb(
         self_outputNpDatatypeAll,
         mostrarPixelClusterMatch,
         contadorAvisosCluster,
-        self_LOCLverbose,
+        self_LOCLverbose=False,
         # localClusterArrayMultiBandaDasoVars,
         # localSubClusterArrayMultiBandaDasoVars,
         # arrayBandaXMaskCluster,
@@ -823,17 +824,18 @@ def rellenarLocalClusterNb(
                     if localClusterArrayMultiBandaDasoVars[nBanda-1, nRowNb, nColNb] == self_noDataDasoVarAll:
                         arrayBandaXMaskCluster[nRowNb, nColNb] = 1
         if (arrayBandaXMaskCluster == 1).all():
-            if contadorAvisosCluster == 0:
-                # myLog.debug('')
-                print('')
-            if contadorAvisosCluster < 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
-                print('clidtwinb-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
-            elif contadorAvisosCluster == 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster.')
-                # myLog.debug(f'{TB}{TV}-> No se muestran mas.')
-                print('clidtwinb-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster.')
-                print('         -> No se muestran mas.')
+            if self_LOCLverbose:
+                if contadorAvisosCluster == 0:
+                    # myLog.debug('')
+                    print('')
+                if contadorAvisosCluster < 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                    print('clidtwinb-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
+                elif contadorAvisosCluster == 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster.')
+                    # myLog.debug(f'{TB}{TV}-> No se muestran mas.')
+                    print('clidtwinb-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster.')
+                    print('         -> No se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
@@ -848,15 +850,16 @@ def rellenarLocalClusterNb(
             )
             # continue
         elif (arrayBandaXMaskCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
-            if contadorAvisosCluster == 0:
-                # myLog.debug('')
-                print('')
-            if contadorAvisosCluster < 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
-                print('clidtwinb-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskCluster != 1).sum())
-            elif contadorAvisosCluster == 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
-                print('clidtwinb-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            if self_LOCLverbose:
+                if contadorAvisosCluster == 0:
+                    # myLog.debug('')
+                    print('')
+                if contadorAvisosCluster < 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (cluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskCluster != 1).sum()}')
+                    print('clidtwinb-> AVISO (cluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskCluster != 1).sum())
+                elif contadorAvisosCluster == 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                    print('clidtwinb-> AVISO (cluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
 
             localClusterOk = False
@@ -972,15 +975,16 @@ def rellenarLocalClusterNb(
         localClusterArrayMultiBandaDasoVars.fill(nb.float32(self_noDataDasoVarAll))
 
         if (arrayBandaXMaskSubCluster == 1).all():
-            if contadorAvisosCluster == 0:
-                # myLog.debug('')
-                print('')
-            if contadorAvisosCluster < 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
-                print('clidtwinb-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
-            elif contadorAvisosCluster == 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
-                print('clidtwinb-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            if self_LOCLverbose:
+                if contadorAvisosCluster == 0:
+                    # myLog.debug('')
+                    print('')
+                if contadorAvisosCluster < 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda sin valores disponibles para generar cluster')
+                    print('clidtwinb-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda sin valores disponibles para generar cluster')
+                elif contadorAvisosCluster == 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                    print('clidtwinb-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
             return (
@@ -995,15 +999,16 @@ def rellenarLocalClusterNb(
             )
             # continue
         elif (arrayBandaXMaskSubCluster != 1).sum() < MINIMO_PIXELS_POR_CLUSTER:
-            if contadorAvisosCluster == 0:
-                # myLog.debug('')
-                print('')
-            if contadorAvisosCluster < 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
-                print('clidtwinb-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskSubCluster != 1).sum())
-            elif contadorAvisosCluster == 10:
-                # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
-                print('clidtwinb-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+            if self_LOCLverbose:
+                if contadorAvisosCluster == 0:
+                    # myLog.debug('')
+                    print('')
+                if contadorAvisosCluster < 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): {nRowRaster} {nColRaster} -> celda con pocos valores disponibles para generar cluster: {(arrayBandaXMaskSubCluster != 1).sum()}')
+                    print('clidtwinb-> AVISO (subcluster):', nRowRaster, nColRaster ,'-> celda con pocos valores disponibles para generar cluster:', (arrayBandaXMaskSubCluster != 1).sum())
+                elif contadorAvisosCluster == 10:
+                    # myLog.debug(f'{TB}{TV}-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
+                    print('clidtwinb-> AVISO (subcluster): hay mas celdas sin valores disponibles o con pocos valores para generar cluster; no se muestran mas.')
             contadorAvisosCluster += 1
             localClusterOk = False
             return (

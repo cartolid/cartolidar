@@ -69,8 +69,9 @@ else:
         from cartolidar.clidax import clidraster
         from cartolidar.clidtools.clidtwcfg import GLO
     except:
-        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        if '-vv' in sys.argv or '--verbose' in sys.argv:
+            sys.stderr.write(f'clidtwinp-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+            sys.stderr.write(f'\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
         from clidax import clidconfig
         from clidax import clidraster
         from clidtools.clidtwcfg import GLO

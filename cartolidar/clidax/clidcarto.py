@@ -178,11 +178,9 @@ else:
     try:
         from cartolidar.clidax import clidconfig
     except:
-        sys.stderr.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-        sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidcarto del directorio local {os.getcwd()}/....\n')
-        if __verbose__ > 2:
-            sys.stderr.write(f'clidcarto-> Se importan clidconfig desde clidcarto del directorio local {os.getcwd()}/clidtools\n')
-            sys.stderr.write('\tNo hay vesion de cartolidar instalada en site-packages.\n')
+        if '-vv' in sys.argv or '--verbose' in sys.argv:
+            sys.stderr.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+            sys.stderr.write(f'\t-> Se importa clidconfig desde clidcarto del directorio local {os.getcwd()}/....\n')
         from clidax import clidconfig
 
 # if (
@@ -980,8 +978,8 @@ class CartoRefVector(object):
             self.usarVectorRef = 0
             return False
 
-        print(f'clidcarto-> print GLO.GLBLverbose: {GLO.GLBLverbose}')
-        myLog.info(f'clidcarto-> info  GLO.GLBLverbose: {GLO.GLBLverbose}')
+        # print(f'clidcarto-> print GLO.GLBLverbose: {GLO.GLBLverbose}')
+        # myLog.info(f'clidcarto-> info  GLO.GLBLverbose: {GLO.GLBLverbose}')
         if GLO.GLBLverbose or __verbose__:
             tiempo0 = time.time()
             myLog.info(f'{TW}clidcarto-> Preparando nuevo raster...')
@@ -1083,8 +1081,8 @@ class CartoRefVector(object):
             outputRasterRecBandLandCover.SetNoDataValue(self.noDataVectorRef)
             outputRasterRecBandLandCover.FlushCache()
 
-            if GLO.GLBLverbose or __verbose__:
-                myLog.warning(f'{TW}clidcarto-> Rasterizing...')
+            if GLO.GLBLverbose or __verbose__ >= 2:
+                myLog.info(f'{TW}clidcarto-> Rasterizing...')
             # Si creo un raster de 3 bandas, uso esto:
             # err = gdal.RasterizeLayer(targetRasterDataset, (3, 2, 1), self.inputVectorRefLayerRec,
             #                          burn_values=(0, 0, 0),
@@ -1142,8 +1140,8 @@ class CartoRefVector(object):
             myLog.warning(f'{TW}{TB}-> self.vectorRefMinY: {self.vectorRefMinY} self.yminBloqueH30: {self.yminBloqueH30}')
             myLog.warning(f'{TW}{TB}-> self.vectorRefMaxY: {self.vectorRefMaxY} self.ymaxBloqueH30: {self.ymaxBloqueH30}')
 
-        if GLO.GLBLverbose or __verbose__:
-            myLog.warning(f'{TW}clidcarto-> vectorRasterizadoCongruenteLidar: {self.vectorRasterizadoCongruenteLidar}')
+        if GLO.GLBLverbose or __verbose__ >= 2:
+            myLog.info(f'{TW}clidcarto-> vectorRasterizadoCongruenteLidar: {self.vectorRasterizadoCongruenteLidar}')
 
         self.miRasterRefMinXY = np.array([self.vectorRefMinX, self.vectorRefMinY], dtype=np.float32)
         self.miRasterRefOrigen = np.array([self.vectorRefOrigenX, self.vectorRefOrigenY], dtype=np.float32)

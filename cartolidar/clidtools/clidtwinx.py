@@ -76,8 +76,9 @@ else:
         from cartolidar.clidax import clidraster
         from cartolidar.clidtools.clidtwcfg import GLO
     except:
-        sys.stderr.write(f'qlidtwins-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-        sys.stderr.write('\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
+        if '-vv' in sys.argv or '--verbose' in sys.argv:
+            sys.stderr.write(f'clidtwinx-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+            sys.stderr.write(f'\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
         from clidax import clidconfig
         from clidax import clidraster
         from clidtools.clidtwcfg import GLO
@@ -192,6 +193,11 @@ def getParametroConPath(
             # elif 'qlidtwins.py' in sys.argv[0]:
             else:
                 parametroConAbsPath = os.path.abspath(os.path.join(dataBasePath, valorParametro))
+            # print(f'\nChequeo de asignacion de rutasAbsolutas:')
+            # print(f'{TB}-> os.getcwd():         {os.getcwd()}')
+            # print(f'{TB}-> dataBasePath:        {dataBasePath}')
+            # print(f'{TB}-> valorParametro:      {valorParametro}')
+            # print(f'{TB}-> parametroConAbsPath: {parametroConAbsPath}')
     return parametroConAbsPath
 
 
@@ -226,7 +232,7 @@ def obtenerExtensionDeCapaVectorial(
         LOCLvectorFileName,
         LOCLrutaAscBase=LOCLrutaAscBase,
         )
-    print(f'clidtwinx-> patronVectrNameConPath (b): {patronVectrNameConPath}')
+    # print(f'clidtwinx-> patronVectrNameConPath (b): {patronVectrNameConPath}')
 
     if not usarVectorFileParaDelimitarZona:
         myLog.error(f'\nclidtwinx-> ATENCION: no esta disponible el fichero: {patronVectrNameConPath}')
@@ -237,8 +243,9 @@ def obtenerExtensionDeCapaVectorial(
         myLog.error('\nclidtwinx-> ATENCION: Gdal no disponible; no se puede leer %s' % (patronVectrNameConPath))
         sys.exit(0)
 
-    myLog.info(f'clidtwinx-> Obteniendo extension de la capa vectorial:')
-    myLog.info(f'{TB}-> File {patronVectrNameConPath}')
+    if LOCLverbose:
+        myLog.info(f'clidtwinx-> Obteniendo extension de la capa vectorial:')
+        myLog.info(f'{TB}-> File {patronVectrNameConPath}')
     if (LOCLvectorFileName.lower()).endswith('.shp'):
         LOCLPatronVectorDriverName = 'ESRI Shapefile'
     elif (LOCLvectorFileName.lower()).endswith('.gpkg'):
@@ -271,7 +278,8 @@ def obtenerExtensionDeCapaVectorial(
             # Ver tb: https://gdal.org/tutorials/vector_api_tut.html
             # Para editar los registros de forma r�pida usar StartTransaction:
             #  https://gis.stackexchange.com/questions/277587/why-editing-a-geopackage-table-with-ogr-is-very-slow
-            myLog.info(f'{TB}{TV}-> Layer: {LOCLlayerName}')
+            if LOCLverbose:
+                myLog.info(f'{TB}{TV}-> Layer: {LOCLlayerName}')
             patronVectorRefLayer = patronVectorRefDataSource.GetLayer(LOCLlayerName)
     except:
         myLog.error('\nclidtwinx-> ATENCION: el fichero {} no tiene al layer {} (o da error al intentar leerlo).'.format(patronVectrNameConPath, LOCLlayerName))
@@ -290,12 +298,13 @@ def obtenerExtensionDeCapaVectorial(
     ) = patronVectorRefLayer.GetExtent()
 
     myLog.debug(f'{TB}-> Layer leido ok: {LOCLlayerName}')
-    myLog.info(f'{TB}{TV}-> Numero de poligonos: {patronVectorRefFeatureCount}')
-    myLog.debug(f'{TB}{TV}-> Extension del layer:')
-    myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorXmin:10.2f}')
-    myLog.debug(f'{TB}{TV}{TV}-> patronVectorXmax: {patronVectorXmax:10.2f}')
-    myLog.debug(f'{TB}{TV}{TV}-> patronVectorYmin: {patronVectorYmin:10.2f}')
-    myLog.debug(f'{TB}{TV}{TV}-> patronVectorYmax: {patronVectorYmax:10.2f}')
+    if LOCLverbose:
+        myLog.info(f'{TB}{TV}-> Numero de poligonos: {patronVectorRefFeatureCount}')
+        myLog.info(f'{TB}{TV}-> Extension del layer:')
+        myLog.info(f'{TB}{TV}{TV}-> patronVectorXmin: {patronVectorXmin:10.2f}')
+        myLog.info(f'{TB}{TV}{TV}-> patronVectorXmax: {patronVectorXmax:10.2f}')
+        myLog.info(f'{TB}{TV}{TV}-> patronVectorYmin: {patronVectorYmin:10.2f}')
+        myLog.info(f'{TB}{TV}{TV}-> patronVectorYmax: {patronVectorYmax:10.2f}')
 
     # Cierro la capa
     patronVectorRefDataSource = None
@@ -327,8 +336,9 @@ def comprobarTipoMasaDeCapaVectorial(
     if not gdalOk:
         myLog.error('\nclidtwinx-> ATENCION: Gdal no disponible; no se puede leer %s' % (patronVectrNameConPath))
         sys.exit(0)
-    myLog.info(f'clidtwinx-> Verificando poligono(s) con tipoDeMasa )patron) seleccionado:')
-    myLog.info(f'{TB}-> File {patronVectrNameConPath}')
+    if __verbose__:
+        myLog.info(f'clidtwinx-> Verificando poligono(s) con tipoDeMasa (patron) seleccionado:')
+        myLog.info(f'{TB}-> File {patronVectrNameConPath}')
 
     if (LOCLvectorFileName.lower()).endswith('.shp'):
         LOCLPatronVectorDriverName = 'ESRI Shapefile'
@@ -362,7 +372,8 @@ def comprobarTipoMasaDeCapaVectorial(
             # Ver tb: https://gdal.org/tutorials/vector_api_tut.html
             # Para editar los registros de forma r�pida usar StartTransaction:
             #  https://gis.stackexchange.com/questions/277587/why-editing-a-geopackage-table-with-ogr-is-very-slow
-            myLog.info(f'{TB}{TV}-> Layer: {LOCLlayerName}')
+            if __verbose__:
+                myLog.info(f'{TB}{TV}-> Layer: {LOCLlayerName}')
             patronVectorRefLayer = patronVectorRefDataSource.GetLayer(LOCLlayerName)
     except:
         myLog.error(
@@ -384,7 +395,8 @@ def comprobarTipoMasaDeCapaVectorial(
         sys.exit(0)
     # patronVectorRefFeatureCount = patronVectorRefLayer.GetFeatureCount()
 
-    myLog.info(f'{TB}{TV}-> Campo tipoDeMasa: {LOCLpatronFieldName}')
+    if __verbose__:
+        myLog.info(f'{TB}{TV}-> Campo tipoDeMasa: {LOCLpatronFieldName}')
     featureDefnAll = patronVectorRefLayer.GetLayerDefn()
     listaCampos = []
     for nCampo in range(featureDefnAll.GetFieldCount()):
@@ -459,7 +471,7 @@ def recortarRasterTiffPatronDasoLidar(
         dataBasePath=self_LOCLrutaAscRaizBase,
         nombreParametro='patronVectrName',
         )
-    print(f'clidtwinx-> patronVectrNameConPath (a): {patronVectrNameConPath}')
+    # print(f'clidtwinx-> patronVectrNameConPath (a): {patronVectrNameConPath}')
     # ==========================================================================
     envolventeShape = obtenerExtensionDeCapaVectorial(
         self_LOCLrutaAscRaizBase,
@@ -538,8 +550,9 @@ def recortarRasterTiffPatronDasoLidar(
     # ==========================================================================
     mergedUniCellAllDasoVarsFileNameConPath = os.path.join(self_LOCLoutPathNameRuta, self_LOCLoutFileNameWExt_mergedUniCellAllDasoVars)
     outputRasterNameClip = mergedUniCellAllDasoVarsFileNameConPath.replace('Global', f'Patron_TM{self_LOCLtipoDeMasaSelec}')
-    # myLog.info('\n{:_^80}'.format(''))
-    myLog.info(f'clidtwinx-> Abriendo raster creado mergedUniCellAllDasoVars:\n{TB}{mergedUniCellAllDasoVarsFileNameConPath}')
+    if __verbose__:
+        # myLog.info('\n{:_^80}'.format(''))
+        myLog.info(f'clidtwinx-> Abriendo raster creado mergedUniCellAllDasoVars:\n{TB}{mergedUniCellAllDasoVarsFileNameConPath}')
     rasterDatasetAll = gdal.Open(mergedUniCellAllDasoVarsFileNameConPath, gdalconst.GA_ReadOnly)
     # myLog.debug('--->>> rasterDatasetAll (1): {rasterDatasetAll}')
     #===========================================================================
@@ -552,8 +565,9 @@ def recortarRasterTiffPatronDasoLidar(
 
     # outputBand1 = rasterDatasetAll.GetRasterBand(1)
     # arrayBanda1 = outputBand1.ReadAsArray().astype(outputNpDatatypeAll)
-    myLog.info(f'clidtwinx-> Recortando el raster con poligono de referencia (patron):\n'
-          f'{TB}{patronVectrNameConPath}')
+    if __verbose__:
+        myLog.info(f'clidtwinx-> Recortando el raster con poligono de referencia (patron):\n'
+              f'{TB}{patronVectrNameConPath}')
     # Ver:
     #  https://gdal.org/python/
     #  https://gdal.org/python/osgeo.gdal-module.html
@@ -592,7 +606,8 @@ def recortarRasterTiffPatronDasoLidar(
     # se ponen a 1 las celdas con ALGUN valor noData y, despues de recorrer 
     # todas las bandas, se cuenta el numero de celdas igual a cero.
     # Con eso, se crea un array que va a contener la lista de celdas con valor ok
-    myLog.info(f'clidtwinx-> Leyendo raster recortado para crear mascara de noData: {outputRasterNameClip}')
+    if __verbose__:
+        myLog.info(f'clidtwinx-> Leyendo raster recortado para crear mascara de noData: {outputRasterNameClip}')
     # rasterDatasetClip = gdal.Open(outputRasterNameClip, gdalconst.GA_ReadOnly)
     nBandasRasterOutput = rasterDatasetClip.RasterCount
     outputBand1Clip = rasterDatasetClip.GetRasterBand(1)
@@ -609,7 +624,8 @@ def recortarRasterTiffPatronDasoLidar(
 
     nCeldasConDasoVarsOk = np.count_nonzero(arrayBandaXMaskClip == 0)
     listaCeldasConDasoVarsOkPatron = np.zeros(nCeldasConDasoVarsOk * nBandasRasterOutput, dtype=outputNpDatatypeAll).reshape(nCeldasConDasoVarsOk, nBandasRasterOutput)
-    myLog.info(f'{TB}Numero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk} (valor != noDataDasoVarAll: {noDataDasoVarAll})')
+    if __verbose__:
+        myLog.info(f'{TB}Numero de celdas patron con dasoVars ok: {nCeldasConDasoVarsOk} (valor != noDataDasoVarAll: {noDataDasoVarAll})')
     if nCeldasConDasoVarsOk == 0:
         myLog.warning('')
         myLog.warning(f'clidtwinx-> ATENCION: no hay info de DLVs para la(s) zona(s) de referencia (patron): faltan ficheros asc para esa zona')
@@ -671,7 +687,8 @@ def recortarRasterTiffPatronDasoLidar(
             myNBins[nBanda] = self_LOCLlistLstDasoVars[nInputVar][4]
             # factorMovilidad[nBanda] = 0.25
 
-    myLog.info(f'clidtwinx-> Analizando bandas del raster recortado:')
+    if __verbose__:
+        myLog.info(f'clidtwinx-> Analizando bandas del raster recortado:')
 
     for nBanda in range(1, nBandasRasterOutput + 1):
         # Si para esa variable estan todos los bloques:
@@ -777,7 +794,8 @@ def recortarRasterTiffPatronDasoLidar(
             pctjTipoDeMasaPatronMasFrecuente1 = int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente1], 0))
             pctjTipoDeMasaPatronMasFrecuente2 = int(round(100 * histProb01PatronBandaX[codeTipoDeMasaPatronMasFrecuente2], 0))
 
-            myLog.info(f'{TB}-> Tipos de masa mas frecuentes (patron):   1-> {codeTipoDeMasaPatronMasFrecuente1} ({pctjTipoDeMasaPatronMasFrecuente1} %); 2-> {codeTipoDeMasaPatronMasFrecuente2} ({pctjTipoDeMasaPatronMasFrecuente2} %)')
+            if __verbose__:
+                myLog.info(f'{TB}-> Tipos de masa mas frecuentes (patron):   1-> {codeTipoDeMasaPatronMasFrecuente1} ({pctjTipoDeMasaPatronMasFrecuente1} %); 2-> {codeTipoDeMasaPatronMasFrecuente2} ({pctjTipoDeMasaPatronMasFrecuente2} %)')
             myLog.debug(f'{TB}-> Numero pixeles de cada tipo de masa (patron) ({(histNumberPatron[0]).sum()}):')
             for numTipoMasa in range(len(histNumberPatron[0])):
                 if histNumberPatron[0][numTipoMasa] != 0:
@@ -817,7 +835,8 @@ def recortarRasterTiffPatronDasoLidar(
             pctjTipoBosquePatronMasFrecuente1 = int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente1], 0))
             pctjTipoBosquePatronMasFrecuente2 = int(round(100 * histProb01PatronBandaX[codeTipoBosquePatronMasFrecuente2], 0))
 
-            myLog.info(f'{TB}-> Tipos de bosque mas frecuentes (patron): 1-> {codeTipoBosquePatronMasFrecuente1} ({pctjTipoBosquePatronMasFrecuente1} %); 2-> {codeTipoBosquePatronMasFrecuente2} ({pctjTipoBosquePatronMasFrecuente2} %)')
+            if __verbose__:
+                myLog.info(f'{TB}-> Tipos de bosque mas frecuentes (patron): 1-> {codeTipoBosquePatronMasFrecuente1} ({pctjTipoBosquePatronMasFrecuente1} %); 2-> {codeTipoBosquePatronMasFrecuente2} ({pctjTipoBosquePatronMasFrecuente2} %)')
             myLog.debug(f'{TB}-> Numero pixeles de cada tipo de bosque (patron) ({(histNumberPatron[0]).sum()}):')
             for numTipoBosque in range(len(histNumberPatron[0])):
                 if histNumberPatron[0][numTipoBosque] != 0:
@@ -858,7 +877,8 @@ def recortarRasterTiffPatronDasoLidar(
                 ultimoNoZero = np.max(np.nonzero(LOCLdictHistProb01[claveRef])[0])
             except:
                 ultimoNoZero = 0
-            myLog.info(f'{TB}-> Banda {nBanda} -> Creando rangos admisibles para: {claveRef}')
+            if __verbose__:
+                myLog.info(f'{TB}-> Banda {nBanda} -> Creando rangos admisibles para: {claveRef}')
             myLog.debug(f'{TB}{TV}Valores de referencia (patron):')
             myLog.debug(f'{TB}{TV}-> LOCLdictHistProb01[{claveRef}]: {LOCLdictHistProb01[claveRef][:ultimoNoZero + 2]}')
             # myLog.debug('LOCLdictHistProb01[claveMin]: {LOCLdictHistProb01[claveMin]}')
@@ -1240,11 +1260,13 @@ def mostrarListaDrivers():
 
 # ==============================================================================
 def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=False):
-    myLog.info('\n{:_^80}'.format(''))
-    myLog.info('clidtwinx-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
+    if LOCL_verbose:
+        myLog.info('\n{:_^80}'.format(''))
+        myLog.info('clidtwinx-> Fichero de configuracion:  {}'.format(LOCL_configFileNameCfg))
     # ==========================================================================
     if not os.path.exists(LOCL_configFileNameCfg):
-        myLog.info(f'{TB}  clidtwinx-> Fichero no encontrado: se crea con valores por defecto')
+        if LOCL_verbose:
+            myLog.info(f'{TB}  clidtwinx-> Fichero no encontrado: se crea con valores por defecto')
         # En ausencia de fichero de configuracion, uso valores por defecto y los guardo en un nuevo fichero cfg
         config = RawConfigParser()
         config.optionxform = str  # Avoid change to lowercase
@@ -1316,7 +1338,8 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
     try:
         LOCL_configDict = {}
         config.read(LOCL_configFileNameCfg)
-        myLog.info(f'{TB}-> clidtwinx-> Parametros de configuracion (guardados en {LOCL_configFileNameCfg}):')
+        if LOCL_verbose:
+            myLog.info(f'{TB}-> clidtwinx-> Parametros de configuracion (guardados en {LOCL_configFileNameCfg}):')
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
@@ -1393,7 +1416,8 @@ def leerConfig(LOCL_configDictPorDefecto, LOCL_configFileNameCfg, LOCL_verbose=F
         sys.exit(0)
     # myLog.debug(f'{TB}{TV}clidtwinx-> LOCL_configDict: {LOCL_configDict}')
 
-    myLog.info('{:=^80}'.format(''))
+    if LOCL_verbose:
+        myLog.info('{:=^80}'.format(''))
     return LOCL_configDict
     # ==========================================================================
 

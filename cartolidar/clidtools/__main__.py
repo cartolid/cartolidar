@@ -5,6 +5,7 @@ Created on 9 may 2022
 '''
 # Se ejecuta cuando se llama al paquete en linea de comandos con \>python -m clidtools
 
+import os
 import importlib
 import importlib.util
 
@@ -27,6 +28,9 @@ if __name__ == '__main__':
             try:
                 from cartolidar.clidtools.clidtwins import DasoLidarSource
             except:
+                if '-v' in sys.argv or '--verbose' in sys.argv:
+                    print(f'clidttools__main__-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+                    print(f'\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
                 from clidtools.clidtwins import DasoLidarSource
         # print('Metodos de DasoLidarSource: {}'.format(dir(DasoLidarSource)))
     elif nOpcionElegida == 1:

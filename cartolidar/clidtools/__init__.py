@@ -15,6 +15,8 @@ DLVs (Daso Lidar Vars): vars that characterize forest or land cover structure.
 @deffield    updated: 2022-06-01
 '''
 
+# Anulo todo el contenido del __init__.py
+'''
 import os
 import sys
 import re
@@ -33,9 +35,14 @@ else:
         from cartolidar.clidtools.clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
         from cartolidar.clidtools.clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
     except:
+        sys.stderr.write(f'clidtools__init__-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write(f'\t-> Se importa clidconfig desde clidtwcfg del directorio local {os.getcwd()}/clidtools.\n')
         from .clidtwcfg import GLO # GLO es una variable publica del modulo clidtwcfg
+        print('clidtools-----> ok GLO')
         from .clidtwins import DasoLidarSource # DasoLidarSource es la clase principal del modulo clidtwins
+        print('clidtools-----> ok DasoLidarSource')
         from .clidtwinx import mostrarListaDrivers # mostrarListaDrivers es una funcion del modulo clidtwinx
+        print('clidtools-----> ok mostrarListaDrivers')
 
 # from . import clidtwins # Inlcuye DasoLidarSource, mostrarListaDrivers, etc.
 # from . import clidtwcfg # Incluye GLO, que es una variable publica del modulo clidtwcfg
@@ -106,11 +113,11 @@ else:
 #     'clidtwcfg',
 # ]
 # Variables, clases y funciones que se importan con: from clidtwins import *
-__all__ = [
-    'GLO',
-    'DasoLidarSource',
-    'mostrarListaDrivers'
-]
+# __all__ = [
+#     'GLO',
+#     'DasoLidarSource',
+#     'mostrarListaDrivers'
+# ]
 # No se importa nada con: from qlidtwins import *
 __all__ = []
 # ==============================================================================
@@ -165,3 +172,4 @@ myLog.debug(f'{TB}-> __name__:     <{__name__}>')
 myLog.debug(f'{TB}-> sys.argv:     <{sys.argv}>')
 myLog.debug('{:=^80}'.format(''))
 # ==============================================================================
+'''

@@ -98,30 +98,41 @@ Numba requirement (0.53.0) is optional but advisable for speeding up some tasks.
 
 
 Use
----
+----
 
 ### Command line (cmd or bash)
-a) Run cartolidar package:
+a) Run cartolidar package and select a tool from the main menu (or with the -o flag):
 ```
-python -m cartolidar [options]
+python -m {path-to-cartolidar/}cartolidar [options]
 ```
 It starts the main menu with the avaliable tools (or executes the selected option if -o flag is used).
 
-Before runing the tool it's necesary to prepare the required inputs for the selected tool.
+b) Run directly a tool, without displaying the main menu:
+```
+python {path-to-cartolidar/clidtools/}qlidtwins.py [options]
+```
 
-See required inputs below.
+This alpha version includes only qlidtwins tools.
 
-This alpha version includes only qlidtwins tools, wich make use of clidtwins package.
+Before runing a tool it's necesary to prepare the required inputs for that tool.
 
->Se inicia el menu principal con las herramientas disponibles en cartolidar (o ejecuta una herramienta específica si se indica con la opción -o).
+See required inputs and examples below.
+
+
+>Hay dos opciones para ejecutar una herramienta de clidtools en linea de comandos:
+>
+>a) Lanzar el paquete cartolidar para mostrar el menu principal y seleccionar una herramienta (o indicar la herramienta con la opción -o).
+>
+>b) Lanzar directamente la herramienta.
+>
+>Inicialmente solo está disponible la herramienta qlidtwins.
 >
 >Antes de ejecutar una herramienta se deben de preparar los inputs que requiere esa herramienta.
 >
->Ver mas abajo info sobre los inputs que require cada herramienta (normalmente capas vectoriales o raster).
->
->Inicialmente solo está disponible la herramienta qlidtwins (esta herramienta es un ejemplo de uso del módulo clidtwins).
+>Ver mas abajo info sobre los inputs que require cada herramienta (normalmente capas vectoriales o raster) y algunos ejemplos.
 
-[options] 
+
+[options] for cartolidar package
 <pre>
 cartolidar general options:
         -h, --help     show this help message and exit
@@ -142,32 +153,79 @@ cartolidar general options:
 </pre>
 
 
-b) It is also possible to run a tool without displaying the main menu (if the module is accesible). E.g.:
-```
-python qlidtwins.py [options]
-```
-or
-```
-python {path-to-cartolidar}/qlidtwins.py [options]
-```
-example:
-```
-python D:\cartolidar\cartolidar/qlidwins.py [options]
-```
-A module is accesible if is called from its folder, is called with path_to_module or its folder is in the PATH environmental variable.
+[options] for qlidtwins.py module
+<pre>
+usage: qlidtwins.py [-h] [-V] [-v] [-q] [-e] [-a MAINACTION]
+                    [-i RUTAASCRAIZBASE] [-m RUTACOMPLETAMFE]
+                    [-f CARTOMFECAMPOSP] [-p PATRONVECTRNAME]
+                    [-l PATRONLAYERNAME] [-c PATRONFIELDNAME]
+                    [-t TESTEOVECTRNAME] [-y TESTEOLAYERNAME]
+                    [--idProceso IDPROCESO]
+                    [listTxtDasoVars [listTxtDasoVars ...]]
 
+positional arguments:
+  listTxtDasoVars       Lista de variables dasoLidar: Secuencia de cadenas de
+                        texto (uno por variable), del tipo: "texto1",
+                        "texto2", etc. de forma que: Opcion a: cada texto es
+                        un identificador de DLV. Ejemplo: alt95 fcc05 fcc03
+                        (no llevan comas ni comillas) Opcion b: cada texto es
+                        una secuencia de cinco elementos separados por comas
+                        del tipo: "FileTypeId, NickName, RangoLinf, RangoLsup,
+                        NumClases, Movilidad(0-100), Ponderacion(0-10)"
+                        Ejemplo: ["alt95,hDom,0,36,18,40,10",
+                        "fcc05,FCC,0,100,5,30,8"] [default:
+                        ['alt95,Alt95,0,36,18,40,10',
+                        'fcc3m,Fcc3m,0,100,5,25,8',
+                        'cob050_200cm,CobMt,0,100,5,35,5',
+                        'MFE25,MFE25,0,255,255,0,0',
+                        'TMasa,TMasa,0,255,255,0,0']]
 
-Use -h to show help for a cartolidar tool. Example for qlidtwins (qlidtwins.py has to be accesible):
-```
-python qlidtwins.py -h
-```
+optional main arguments:
+  -h, --help            show this help message and exit
+  -V, --version         show program's version number and exit
+  -v, --verbose         set verbosity level [default: 2]
+  -q, --quiet           Activates quiet mode (mude, not output). Default: 0
+  -e, --extraArguments  Activates extra arguments in command line. Default:
+                        False
+  -a MAINACTION         Accion a ejecutar: 1. Verificar analogia con un
+                        determinado patron dasoLidar; 2. Generar raster con
+                        presencia de un determinado patron dasoLidar. Default:
+                        1
+  -i RUTAASCRAIZBASE    Ruta (path) en la que estan los ficheros de entrada
+                        con las variables dasolidar. Default:
+                        data/asc/PuenteDuero
+  -p PATRONVECTRNAME    Nombre del poligono de referencia (patron) para
+                        caracterizacion dasoLidar. Default:
+                        data/ref/clid_PuenteDuero.gpkg
+  -l PATRONLAYERNAME    Nombre del layer del gpkg (en su caso) de referencia
+                        (patron) para caracterizacion dasoLidar. Default:
+                        vectorPatron
+  -c PATRONFIELDNAME    Nombre del campo de la capa de referencia (patron) con
+                        el tipo de masa para caracterizacion dasoLidar.
+                        Default: TM
+  -t TESTEOVECTRNAME    Nombre del poligono de contraste (testeo) para
+                        verificar su analogia con el patron dasoLidar.
+                        Default: data/ref/clid_PuenteDuero.gpkg
+  -y TESTEOLAYERNAME    Nombre del layer del gpkg (en su caso) de contraste
+                        (testeo) para verificar su analogia con el patron
+                        dasoLidar. Default: vectorTesteo
+  -m RUTACOMPLETAMFE    Nombre (con ruta y extension) del fichero con la capa
+                        MFE. Default: data/mfe/PuenteDuero/MFE_PuenteDuero.shp
+  -f CARTOMFECAMPOSP    Nombre del campo con el codigo numerico de la especie
+                        principal o tipo de bosque en la capa MFE. Default:
+                        SP1
+  --idProceso IDPROCESO
+                        Numero aleatorio para identificar el proceso que se
+                        esta ejecutando (se asigna automaticamente; no usar
+                        este argumento)
 
-A module is accesible if is called from its folder, is called with path_to_module or its folder is in the PATH environmental variable.
+See optional extra arguments with -f flag or in [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/).
+</pre>
 
 
 ### Python code
 You can import packages, modules, classes of functions from a script.py or
-within the python interactive interpreter. Examples:
+within the python interactive interpreter:
 ```
 import cartolidar
 from cartolidar import clidtools
@@ -181,24 +239,43 @@ from cartolidar import qlidtwins
 In this case, there are no options: it runs with qlidtwins.cfg configuration (if exists) or default configuration.
 
 
-Required inputs
+Required inputs for qlidtwins or clidtwins
 ----
+
 See [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/) for details.
 
-This tool requires raster files with dasoLidarVariables that are used to look for areas similar to a reference one.
+### Raster input files
 
-clidtwins reads raster files ("asc" format) each with a dasoLidar variable (DLV): one file <=> one DLV.
+This tool requires raster files ("asc" format) with dasoLidarVariables that are used to look for areas similar to a reference one.
 
-> Those files have to be named as: XXX_YYYY_\*IdFileType\*.asc where:
+These files have to be placed in the path indicated with -i flag.
+
+Each raster file has a dasoLidar variable (DLV): one file <=> one DLV.
+
+> The raster files have to be named as: XXX_YYYY_\*IdFileType\*.asc where:
 > - XXX, YYYY are UTM coordinates (miles) that identifies the location (the block).
 >   - XXX, YYYY are usually the upper-left corner of a 2x2 km square area
-> - \*IdFileType\* is any text that includes a file-type (DVL) identifier (like alt95, fcc05, etc.).
+> - \*IdFileType\* is any text that includes a DVL identifier (like alt95, fcc05, etc.).
 > 
 > Example: 318_4738_alt95.asc and 320_4738_alt95.asc are two files with alt95 variable (blocks: 318_4738 and 320_4738).
 > 
-> If we want to process two blocks (318_4738 and 320_4738) with two DLVs (e.g. alt95 and fcc05), we need these files:
-> 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
+> If we want to process two blocks (318_4738 and 320_4738) with two DLVs (e.g. alt95 and fcc05),
+> we need these files: 318_4738_alt95.asc, 318_4738_fcc05.asc, 320_4738_alt95.asc, 320_4738_fcc05.asc
 
+The project includes several raster files from Valladolid (data/asc/PuenteDuero/348_4600_2017_alt95.asc, etc.) that can be used as example of use.
+
+
+### Reference area
+
+The reference area is a vector file (name with path) with one or several polygons. Formats shp or gpkg.
+
+Path: absolute path or relative path refered to working dir (e.g. the one from where the tools is called). 
+
+Indicate this information with -p, -l and -c flags (-l only for gpkg; not for shp)
+
+The project includes a vector layer from Valladolid (data/ref/clid_PuenteDuero.gpkg) that can be used as example of use.
+
+### Aditional inputs
 
 It's also advisable to include a layer with forest type codes (forest-type = combination of forest species).
 
@@ -207,8 +284,12 @@ It's also advisable to include a layer with forest type codes (forest-type = com
 > - Spanish Forest Map (MFE) is usefull for this function. Requires a numeric field wuth forest-type codes.
 
 
+Outputs
+----
+...
 
-Use example with python code
+
+### Use example with python code
 ----
 Procedure:
 
