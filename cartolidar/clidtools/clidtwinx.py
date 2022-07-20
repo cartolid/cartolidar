@@ -169,35 +169,60 @@ def getParametroConPath(
         ):
 
     if valorParametro is None:
-        valorParametro = valorPorDefecto
+        myLog.warning('\n{:_^80}'.format(''))
+        if nombreParametro == 'rutaAscRaizBase':
+            myLog.warning(f'clidtwinx-> AVISO: no se ha indicado en linea de comandos ruta para los ficheros asc con las variables dasoLidar de entrada.')
+        elif nombreParametro == 'patronVectrName':
+            myLog.warning(f'clidtwinx-> AVISO: no se ha indicado en linea de comandos fichero vectorial con area de referencia (patron).')
+        elif nombreParametro == 'testeoVectrName':
+            myLog.warning(f'clidtwinx-> AVISO: no se ha indicado en linea de comandos fichero vectorial con area de comparacion (testeo).')
 
-    if valorParametro == '':
-        if os.path.isdir(os.path.abspath(valorParametro)):
-            parametroConAbsPath = os.path.abspath(valorParametro)
+        if valorPorDefecto is None:
+            valorParametroOk = ''
         else:
-            print(f'clidtwinx-> Se requiere el argumento {nombreParametro}')
-            sys.exit(0)
-    else:
-        if ':' in valorParametro or valorParametro.startswith('/'):
-            # El valorParametro es una ruta absoluta
-            parametroConAbsPath = valorParametro
-        elif dataBasePath is None:
-            parametroConAbsPath = os.path.abspath(valorParametro)
-        else:
-            # El valorParametro es una ruta relativa.
-            # Supongo que:
-            #   O bien cartolidar se ejecuta con -m o esa ruta esta referida al directorio de trabajo.
-            #   O bien se ejecuta directamente qlidtiwns y el directorio de trabajo es el que contiene a ese modulo.
-            if '__main__.py' in sys.argv[0]:
-                parametroConAbsPath = os.path.abspath(os.path.join(dataBasePath, 'cartolidar', valorParametro))
-            # elif 'qlidtwins.py' in sys.argv[0]:
+            valorParametroOk = valorPorDefecto
+            if os.path.exists(GLO.configFileNameCfg):
+                myLog.warning(f'{TB}-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
             else:
-                parametroConAbsPath = os.path.abspath(os.path.join(dataBasePath, valorParametro))
-            # print(f'\nChequeo de asignacion de rutasAbsolutas:')
-            # print(f'{TB}-> os.getcwd():         {os.getcwd()}')
-            # print(f'{TB}-> dataBasePath:        {dataBasePath}')
-            # print(f'{TB}-> valorParametro:      {valorParametro}')
-            # print(f'{TB}-> parametroConAbsPath: {parametroConAbsPath}')
+                myLog.warning(f'{TB}-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
+            if valorParametroOk == '':
+                myLog.warning(f'{TB}-> {nombreParametro:<22}: ""')
+            else:
+                myLog.warning(f'{TB}-> {nombreParametro:<22}: {valorParametroOk}')
+    else:
+        valorParametroOk = valorParametro
+
+    if ':' in valorParametroOk or valorParametroOk.startswith('/'):
+        # El valorParametroOk es una ruta absoluta
+        parametroConAbsPath = valorParametroOk
+    elif dataBasePath is None:
+        parametroConAbsPath = os.path.abspath(valorParametroOk)
+    else:
+        # El valorParametroOk es una ruta relativa.
+        # Supongo que:
+        #   O bien cartolidar se ejecuta con -m o esa ruta esta referida al directorio de trabajo.
+        #   O bien se ejecuta directamente qlidtiwns y el directorio de trabajo es el que contiene a ese modulo.
+        if '__main__.py' in sys.argv[0]:
+            parametroConAbsPath = os.path.abspath(os.path.join(dataBasePath, 'cartolidar', valorParametroOk))
+        # elif 'qlidtwins.py' in sys.argv[0]:
+        else:
+            parametroConAbsPath = os.path.abspath(os.path.join(dataBasePath, valorParametroOk))
+        # print(f'\nChequeo de asignacion de rutasAbsolutas:')
+        # print(f'{TB}-> os.getcwd():         {os.getcwd()}')
+        # print(f'{TB}-> dataBasePath:        {dataBasePath}')
+        # print(f'{TB}-> valorParametro:      {valorParametroOk}')
+        # print(f'{TB}-> parametroConAbsPath: {parametroConAbsPath}')
+
+    if not os.path.exists(parametroConAbsPath):
+        if valorParametroOk == '':
+            print(f'\nclidtwinx-> ATENCION: Se requiere el argumento {nombreParametro}')
+        else:
+            print(f'\nclidtwinx-> ATENCION: No se encuentra el {nombreParametro}: {parametroConAbsPath}')
+        sys.exit(0)
+
+    if valorParametro is None:
+        myLog.warning(f'{TB}-> {nombreParametro+"ConPath":<22}: {parametroConAbsPath}')
+        myLog.warning('{:=^80}'.format(''))
     return parametroConAbsPath
 
 

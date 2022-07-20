@@ -275,7 +275,9 @@ myModule = os.path.basename(sys.argv[0]).split('.')[0]
 myUser = clidconfig.infoUsuario()
 # sys.stdout.write(f'\nqlidtwins-> usuario: {myUser}\n')
 if sys.argv[0].endswith('__main__.py') and 'cartolidar' in sys.argv[0]:
-    myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+    # print('qlidtwins-> logFile ya iniciado, se inicia logCons')
+    # myLog = clidconfig.iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
+    myLog = clidconfig.iniciaConsLog(myModule='qlidtwins', myVerbose=__verbose__)
 else:
     myLog = clidconfig.creaLog(consLogYaCreado=False, myModule=myModule, myPath='../data/log', myVerbose=__verbose__, myVerboseFile=__verbose__)
 # ==============================================================================
@@ -283,7 +285,7 @@ else:
 # print(f'{TB}-> myLog.name: {myLog.name}')
 # print(f'{TB}-> myLog.level: {myLog.level}')
 # print(f'{TB}-> myLog.handlers: {myLog.handlers}')
-myLog.debug('{:_^80}'.format(''))
+myLog.debug('\n{:_^80}'.format(''))
 myLog.debug('qlidtwins-> Debug & alpha version info:')
 myLog.debug(f'{TB}-> __verbose__:  <{__verbose__}>')
 myLog.debug(f'{TB}-> __package__ : <{__package__ }>')
@@ -539,6 +541,12 @@ def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
                             type=int,
                             help='Accion a ejecutar: \n1. Verificar analogia con un determinado patron dasoLidar; \n2. Generar raster con presencia de un determinado patron dasoLidar. Default: %(default)s',
                             default = GLO.GLBLaccionPrincipalPorDefecto,)
+        parser.add_argument('-I',  '--menuInteractivo',
+                            dest='menuInteractivo',
+                            action="store_true",
+                            # type=int,
+                            help='La aplicacion pregunta en tiempo de ejecucion para elegir o confirmar opciones. Default: %(default)s',
+                            default = GLO.GLBLmenuInteractivoPorDefecto,)
 
         parser.add_argument('-i',  # '--inputpath',
                             dest='rutaAscRaizBase',
@@ -577,13 +585,6 @@ def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
 
         # ======================================================================
         if TRNS_LEER_EXTRA_ARGS:
-            parser.add_argument('-0',  # '--menuInteractivo',
-                                dest='menuInteractivo',
-                                action="store_true",
-                                # type=int,
-                                help='La aplicacion pregunta en tiempo de ejecucion para elegir o confirmar opciones. Default: %(default)s',
-                                default = GLO.GLBLmenuInteractivoPorDefecto,)
-
             parser.add_argument('-1',  # '--marcoCoordMiniX',
                                 dest='marcoCoordMiniX',
                                 type=float,
@@ -678,7 +679,7 @@ def leerArgumentosEnLineaDeComandos(argv: list = None) -> argparse.Namespace:
                                 type=int,
                                 help='Umbral de distancia por debajo del cual se considera que una celda es parecida a otra enla matriz de distancias entre dasoVars. Default: %(default)s',
                                 default = GLO.GLBLumbralMatriDistPorDefecto,)
-            parser.add_argument('-I',  # '--distMaxScipyAdm',
+            parser.add_argument('-Y',  # '--distMaxScipyAdm',
                                 dest='distMaxScipyAdm',
                                 type=int,
                                 help='Umbral de distancia Scipy (entre histogramas) por encima del cual se descarta que una celda sea parecida a la patron aunque sea la de distancia minima. Default: %(default)s',
@@ -1265,6 +1266,12 @@ def clidtwinsUseCase(
         LCL_marcoCoordMaxiX=cfgDict['marcoCoordMaxiX'],
         LCL_marcoCoordMiniY=cfgDict['marcoCoordMiniY'],
         LCL_marcoCoordMaxiY=cfgDict['marcoCoordMaxiY'],
+        LCL_marcoPatronTest=cfgDict['marcoPatronTest'],
+        LCL_rutaAscRaizBase=cfgDict['rutaAscRaizBase'],
+        LCL_patronVectrName=cfgDict['patronVectrName'],
+        LCL_patronLayerName=cfgDict['patronLayerName'],
+        LCL_testeoVectrName=cfgDict['testeoVectrName'],
+        LCL_testeoLayerName=cfgDict['testeoLayerName'],
     )
     # Resultados a testear:
     # -> Que el objeto myDasolidar tiene la propiedad GLBLmarcoPatronTest
@@ -1361,7 +1368,7 @@ def clidtwinsUseCase(
         accionPorDefecto = 1
         print('\ncartolidar-> Menu de herramientas de cartolidar')
         for opcionPrincipal in accionesPrincipales[1:]:
-            print(f'\t{opcionPrincipal}.')
+            print(f'\t{opcionPrincipal}')
         selec = input(f'Elije opcion ({accionPorDefecto}): ')
         if selec == '':
             nAccionElegida = accionPorDefecto
@@ -1486,25 +1493,28 @@ def clidtwinsUseCase(
             #     myDasolidar.distanciaEuclideaRazon
             #     myDasolidar.pctjPorcentajeDeProximidad,
             #     myDasolidar.matrizDeDistancias,
-            myLog.info('\n{:_^80}'.format(''))
-            myLog.info('qlidtwins-> chequearCompatibilidadConTesteoVector')
-            myLog.info(f'{TB}-> tipoBosqueOk:   {myDasolidar.tipoBosqueOk}')
-            myLog.info(f'{TB}-> nVariablesNoOk: {myDasolidar.nVariablesNoOk}')
-            myLog.info(f'{TB}-> distanciaEuclideaMediaPatronTesteo: {myDasolidar.distanciaEuclideaMediaPatronTesteo:0.2f}')
-            myLog.info(f'{TB}-> distanciaEuclideaMediaPatronPatron: {myDasolidar.distanciaEuclideaMediaPatronPatron:0.2f}')
-            myLog.info(f'{TB}-> distanciaEuclideaRazon:             {myDasolidar.distanciaEuclideaRazon:0.2f}')
-            myLog.info(f'{TB}-> pctjPorcentajeDeProximidad:         {myDasolidar.pctjPorcentajeDeProximidad:0.2f}')
-            if __verbose__ > 1:
+            if False:
+                myLog.info('\n{:_^80}'.format(''))
+                myLog.info('qlidtwins-> chequearCompatibilidadConTesteoVector')
+                myLog.info(f'{TB}-> tipoBosqueOk:   {myDasolidar.tipoBosqueOk}')
+                myLog.info(f'{TB}-> nVariablesNoOk: {myDasolidar.nVariablesNoOk}')
+                myLog.info(f'{TB}-> distanciaEuclideaMediaPatronTesteo: {myDasolidar.distanciaEuclideaMediaPatronTesteo:0.1f}')
+                myLog.info(f'{TB}-> distanciaEuclideaMediaPatronPatron: {myDasolidar.distanciaEuclideaMediaPatronPatron:0.1f}')
+                myLog.info(f'{TB}-> distanciaEuclideaRazon:             {myDasolidar.distanciaEuclideaRazon:0.2f}')
+                myLog.info(f'{TB}-> pctjPorcentajeDeProximidad:         {myDasolidar.pctjPorcentajeDeProximidad:0.1f} %')
+                myLog.info(f'{"":=^80}')
+            if __verbose__ > 2:
+                myLog.info('\n{:_^80}'.format(''))
                 myLog.info(f'{TB}-> matrizDeDistanciasPatronTesteo: {myDasolidar.matrizDeDistanciasPatronTesteo}')
                 myLog.info(f'{TB}-> matrizDeDistanciasPatronPatron: {myDasolidar.matrizDeDistanciasPatronPatron}')
-            myLog.info(f'{"":=^80}')
+                myLog.info(f'{"":=^80}')
             resultadosFileTxtControl.write(f'{TV}-> tipoBosqueOk:   {myDasolidar.tipoBosqueOk}\n')
             resultadosFileTxtControl.write(f'{TV}-> nVariablesNoOk: {myDasolidar.nVariablesNoOk}\n')
             resultadosFileTxtControl.write(f'{TV}-> distanciaEuclideaMediaPatronTesteo: {myDasolidar.distanciaEuclideaMediaPatronTesteo:0.2f}\n')
             resultadosFileTxtControl.write(f'{TV}-> distanciaEuclideaMediaPatronPatron: {myDasolidar.distanciaEuclideaMediaPatronPatron:0.2f}\n')
             resultadosFileTxtControl.write(f'{TV}-> distanciaEuclideaRazon:             {myDasolidar.distanciaEuclideaRazon:0.2f}\n')
             resultadosFileTxtControl.write(f'{TV}-> pctjPorcentajeDeProximidad:         {myDasolidar.pctjPorcentajeDeProximidad:0.2f}\n')
-            if __verbose__ > 1:
+            if __verbose__ > 1 or True:
                 resultadosFileTxtControl.write(f'{TV}-> matrizDeDistanciasPatronTesteo: {myDasolidar.matrizDeDistanciasPatronTesteo}\n')
                 resultadosFileTxtControl.write(f'{TV}-> matrizDeDistanciasPatronPatron: {myDasolidar.matrizDeDistanciasPatronPatron}\n')
 
@@ -1571,7 +1581,7 @@ if (__name__ == '__main__' or 'qlidtwins' in __name__) and not TRNS_testTwins:
 
     tiempo0 = time.time()
     timeInicio = time.asctime(time.localtime(time.time()))
-    myLog.info(timeInicio)
+    myLog.info(f'\nqlidtwins-> {timeInicio}')
 
     tipoEjecucion = checkRun()
     testRun()

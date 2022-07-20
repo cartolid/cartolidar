@@ -239,6 +239,13 @@ def leerArgumentosEnLineaDeComandos(
                             action='version',
                             version=program_version_message,)
 
+        parser.add_argument('-I',  '--menuInteractivo',
+                            dest='menuInteractivo',
+                            action="store_true",
+                            # type=int,
+                            help='La aplicacion pregunta en tiempo de ejecucion para elegir o confirmar opciones. Default: %(default)s',
+                            default = 'None',)
+
         optionsHelp = ';\n'.join(opcionesPrincipales)
         parser.add_argument('-o',  # '--option',
                             dest='menuOption',
@@ -251,8 +258,15 @@ def leerArgumentosEnLineaDeComandos(
         # Se ignoran argumentos desconocidos sin problemas porque no los hay posicionales
         args, unknown = parser.parse_known_args()
         if not unknown is None and unknown != []:
-            myLog.warning('')
-            myLog.warning(f'cartolidar.__main__-> Argumentos ignorados: {unknown}')
+            argumentosDesconocidos = 0
+            for miArgumento in unknown:
+                if miArgumento == '--cargadoClidconfig':
+                    pass
+                elif miArgumento == '--idProceso':
+                    argumentosDesconocidos =- 1
+            if argumentosDesconocidos > 0 and __verbose__:
+                myLog.warning('')
+                myLog.warning(f'cartolidar.__main__-> Argumentos ignorados: {unknown}')
         return args, unknown
     except KeyboardInterrupt:
         program_name = 'cartolidar_main'
@@ -318,10 +332,9 @@ if __name__ == '__main__':
             sys.exit(0)
 
 
-
     opcionPorDefecto = 1
     if args.menuOption <= 0:
-        sys.stdout.write('\ncartolidar-> Menu de herramientas de cartolidar\n')
+        print('\ncartolidar-> Menu de herramientas de cartolidar')
         for opcionPrincipal in opcionesPrincipales[1:]:
             print(f'\t{opcionPrincipal}.')
         selec = input(f'Elije opcion ({opcionPorDefecto}): ')
@@ -331,14 +344,13 @@ if __name__ == '__main__':
             try:
                 nOpcionElegida = int(selec)
             except:
-                sys.stdout.write('\n')
+                sys.stderr.write('\n')
                 sys.stderr.write(f'ATENCION: Opcion elegida no disponible: <{selec}>\n')
                 sys.exit(0)
-        sys.stdout.write('\n')
-        sys.stdout.write(f'Se ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}\n')
+        myLog.info(f'\nSe ha elegido:\n\t{opcionesPrincipales[nOpcionElegida]}')
     elif args.menuOption < len(opcionesPrincipales):
-        sys.stdout.write('\n')
-        sys.stdout.write(f'Opcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}\n')
+        myLog.info('\n')
+        myLog.info(f'Opcion elegida en linea de comandos:\n\t{opcionesPrincipales[args.menuOption]}')
         nOpcionElegida = args.menuOption
     else:
         sys.stderr.write('\n')
@@ -352,10 +364,9 @@ if __name__ == '__main__':
         from cartolidar import qlidtwins
     elif nOpcionElegida == 2:
         myLog.debug('\ncartolidar.__main__-> Se ha elegido ejecutar qlidmerge.')
-        myLog.warning('\nAVISO: herramienta pendiente de incluir en cartolidar.')
-        sys.stdout.write('ATENCION: opcion no disponible (por el momento).\n')
+        myLog.info('ATENCION: opcion no disponible (por el momento).')
         # from cartolidar import qlidmerge
-    sys.stdout.write('\nFin de cartolidar\n')
+    myLog.info('\nFin de cartolidar')
 
 #TODO: Completar cuando haya incluido mas herramientas en cartolidar
 

@@ -24,11 +24,11 @@ Introduction
 CartoLidar is a collection of tools to process lidar files ("las" and "laz") and 
 generate useful information for forestry and natural environment management (dasoLidar variables, DLVs).
 
-This project is in alpha version and for now only includes the "clidtwins" tool.
+This project is in alpha version and, for now, only includes the "clidtwins" tool.
 
 "clidtwins" searchs for similar areas to a reference one in terms of dasoLidar variables (DLVs).
 
-This tool requires, as input, raster files with dasoLidar variables in asc format.
+This tool requires, as inputs, raster files with dasoLidar variables in asc format and a reference area (vector layer in shp or gpkg).
 
 DLV: Lidar variables that describe or characterize forest or land cover structure.
 
@@ -56,6 +56,8 @@ DLV: Lidar variables that describe or characterize forest or land cover structur
 > 
 > La herramienta clidtwins está destinada a buscar zonas similares a una(s) 
 > de referencia en términos de determinadas variables dasoLidar (DLVs).
+> Clidtwins requiere disponer de ráster(s) con variables dasoLidar (en formato asc)
+> y de una capa vectorial con la(s) zona(s) de referencia en formato shp o gpkg.
 
 
 \+ info: [Read the Docs - cartolidar](http://cartolidar-docs.readthedocs.io/en/latest/)
@@ -81,10 +83,17 @@ You can download the zip version, uncompress it somewhere, i.e.:
 C:\users\yourUser\Downloads\cartolidar-main\
 ```
 That folder contains a setup.py file (and the other components of the project)
-and you can install cartolidar from that directory for your python environment:
+and you can install it for your python environment or run that version from that directory:
+
+- Installation of downloaded files:
 ```
 cd C:\users\yourUser\Downloads\cartolidar-main\
 pip install .
+```
+- Runing downloaded version from github:
+```
+cd C:\users\yourUser\Downloads\cartolidar-main\
+python -m cartolidar [options]
 ```
 
 
@@ -141,6 +150,7 @@ cartolidar general options:
         -H toolHelp    show help for a cartolidar tool.
                        toolHelp: qlidtwins / clidmerge / etc.
                        By defaut, help is shown without extended args.
+        -I, --menuInteracivo  Runs in interactive mode.
         -e             Changes -H behaviour to extended arguments.
         -o menuOption  0. Show main menu; 1. qlidtwins: buscar o verificar
                        zonas analogas a una de referencia (con un determinado
@@ -187,6 +197,7 @@ optional main arguments:
   -q, --quiet           Activates quiet mode (mude, not output). Default: 0
   -e, --extraArguments  Activates extra arguments in command line. Default:
                         False
+  -I, --menuInteracivo  Runs in interactive mode.
   -a MAINACTION         Accion a ejecutar: 1. Verificar analogia con un
                         determinado patron dasoLidar; 2. Generar raster con
                         presencia de un determinado patron dasoLidar. Default:

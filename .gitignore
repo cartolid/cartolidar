@@ -11,6 +11,7 @@ cartolidar/clidflow.py
 cartolidar/clidbase.xls
 cartolidar/reClasificador.csv
 cartolidar/listaBloquesSelec.cfg
+cartolidar/*.cfg
 
 # include cartolidar/clidax/*.py
 # include cartolidar/clidax/__init__.py
@@ -22,13 +23,16 @@ cartolidar/clidax/clidcluster.py
 cartolidar/clidax/clidextras.py
 cartolidar/clidax/clidgis.py
 cartolidar/clidax/clidshow.py
+cartolidar/clidax/*.cfg
 
+cartolidar/clidio/__init__.py
 cartolidar/clidio/clidlat.py
 cartolidar/clidio/clidlax.py
 cartolidar/clidio/clidpoint.py
 cartolidar/clidio/clidshape.py
 cartolidar/clidio/classificationLookup.csv
 cartolidar/clidio/LandCover.csv
+cartolidar/clidio/*.cfg
 
 cartolidar/clidml/__init__.py
 cartolidar/clidml/clidclas.py
@@ -36,6 +40,7 @@ cartolidar/clidml/clidinferconvol.py
 cartolidar/clidml/clidmachine.py
 cartolidar/clidml/clidmanual.py
 cartolidar/clidml/clidtrain.py
+cartolidar/clidml/*.cfg
 
 cartolidar/clidnb/__init__.py
 cartolidar/clidnb/clidnaux.py
@@ -49,6 +54,7 @@ cartolidar/clidnb/clidnv3.py
 cartolidar/clidnb/clidnv4.py
 cartolidar/clidnb/clidnv5.py
 cartolidar/clidnb/clidnv6.py
+cartolidar/clidnb/*.cfg
 
 # include cartolidar/clidtools/__init__.py
 # include cartolidar/clidtools/__main__.py
@@ -58,10 +64,12 @@ cartolidar/clidnb/clidnv6.py
 # include cartolidar/clidtools/clidtwins.py
 # include cartolidar/clidtools/clidtwinx.py
 cartolidar/clidtools/clidmerge.py
+cartolidar/clidtools/*.cfg
 
 cartolidar/clidfr/__init__.py
 # include cartolidar/clidfr/clidhead.py
 cartolidar/clidfr/clidndat.py
+cartolidar/clidfr/*.cfg
 
 tests/pruebas.py
 
@@ -69,8 +77,8 @@ tests/pruebas.py
 # cartolidar/data/*.*
 cartolidar/data/asc/*.*
 # cartolidar/data/ext/*.*
-# cartolidar/data/ext/cfg/*.*
-# cartolidar/data/ext/invoVuelos/*.*
+cartolidar/data/ext/cfg/*.*
+cartolidar/data/ext/invoVuelos/*.*
 # cartolidar/data/ext/io/*.*
 cartolidar/data/log/*.*
 # cartolidar/data/mfe/*.*
@@ -96,7 +104,7 @@ qlidtwins.args
 *.xlsx
 *.xlsm
 # clidbase.cfg, clidtwins.cfg, etc.
-*.cfg
+# *.cfg
 # clidtwins.args, etc.
 *.args
 # Creados por notepad++

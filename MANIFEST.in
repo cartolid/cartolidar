@@ -11,7 +11,7 @@ exclude cartolidar/clidbase.xls
 exclude cartolidar/reClasificador.csv
 exclude cartolidar/listaBloquesSelec.cfg
 
-include cartolidar/clidax/*.py
+# include cartolidar/clidax/*.py
 include cartolidar/clidax/__init__.py
 include cartolidar/clidax/clidaux.py
 include cartolidar/clidax/clidcarto.py
@@ -22,7 +22,8 @@ exclude cartolidar/clidax/clidextras.py
 exclude cartolidar/clidax/clidgis.py
 exclude cartolidar/clidax/clidshow.py
 
-include cartolidar/clidio/*.py
+exclude cartolidar/clidio/*.py
+exclude cartolidar/clidio/__init__.py
 exclude cartolidar/clidio/clidlat.py
 exclude cartolidar/clidio/clidlax.py
 exclude cartolidar/clidio/clidpoint.py
@@ -30,6 +31,7 @@ exclude cartolidar/clidio/clidshape.py
 exclude cartolidar/clidio/classificationLookup.csv
 exclude cartolidar/clidio/LandCover.csv
 
+exclude cartolidar/clidml/*.py
 exclude cartolidar/clidml/__init__.py
 exclude cartolidar/clidml/clidclas.py
 exclude cartolidar/clidml/clidinferconvol.py
@@ -37,7 +39,7 @@ exclude cartolidar/clidml/clidmachine.py
 exclude cartolidar/clidml/clidmanual.py
 exclude cartolidar/clidml/clidtrain.py
 
-include cartolidar/clidnb/*.py
+# include cartolidar/clidnb/*.py
 exclude cartolidar/clidnb/__init__.py
 exclude cartolidar/clidnb/clidnaux.py
 exclude cartolidar/clidnb/clidnv0.py
@@ -51,7 +53,7 @@ exclude cartolidar/clidnb/clidnv4.py
 exclude cartolidar/clidnb/clidnv5.py
 exclude cartolidar/clidnb/clidnv6.py
 
-include cartolidar/clidtools/*.py
+# include cartolidar/clidtools/*.py
 include cartolidar/clidtools/__init__.py
 include cartolidar/clidtools/__main__.py
 include cartolidar/clidtools/clidtwcfg.py
@@ -61,14 +63,14 @@ include cartolidar/clidtools/clidtwins.py
 include cartolidar/clidtools/clidtwinx.py
 exclude cartolidar/clidtools/clidmerge.py
 
-include cartolidar/clidfr/*.py
+# include cartolidar/clidfr/*.py
 include cartolidar/clidfr/__init__.py
 include cartolidar/clidfr/clidhead.py
 exclude cartolidar/clidfr/clidndat.py
 
 global-exclude tests/pruebas*.*
 
-include cartolidar/data/*.*
+# include cartolidar/data/*.*
 global-exclude  cartolidar/data/asc/*.*
 global-exclude  cartolidar/data/log/*.*
 global-exclude  cartolidar/data/mfe/*.*
@@ -78,6 +80,15 @@ include cartolidar/data/ext/*.*
 include cartolidar/data/ext/cfg/*.*
 include cartolidar/data/extinfoVuelos/*.*
 include cartolidar/data/ext/io/*.*
+
+global-exclude *.cfg
+include cartolidar/data/ext/io/lasHeadFields.cfg
+include cartolidar/data/ext/io/lasHeadVlr.cfg
+include cartolidar/data/ext/io/lasPointFields.cfg
+include cartolidar/data/ext/io/listaBloquesSelec.cfg
+
+global-exclude cartolidar/data/ext/cfg/*.*
+global-exclude cartolidar/data/ext/invoVuelos/*.*
 
 global-exclude cartolidar/data/asc/PuenteDuero/*.*
 global-exclude cartolidar/data/asc/PuenteDuero/dasoLayers*
@@ -92,6 +103,5 @@ global-exclude *.log
 global-exclude *.xls
 global-exclude *.xlsx
 global-exclude *.xlsm
-global-exclude *.cfg
 global-exclude *.args
 global-exclude *.bat

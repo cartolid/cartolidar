@@ -1256,21 +1256,31 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
             LCL_rutaAscRaizBase = None
 
         if LCL_rutaAscRaizBase is None:
-            if hasattr(self, 'LOCLrutaAscRaizBase') and not self.LOCLrutaAscRaizBase is None:
-                # Ya hay un valor asignado a self.LOCLrutaAscRaizBase, probablemente en setRangeUTM<>
-                return
-            myLog.debug('\n{:_^80}'.format(''))
-            myLog.warning(f'clidtwins-> AVISO: no se ha indicado ruta para los ficheros asc con las variables dasoLidar de entrada.')
+            # if hasattr(self, 'LOCLrutaAscRaizBase') and not self.LOCLrutaAscRaizBase is None:
+            #     # Ya hay un valor asignado a self.LOCLrutaAscRaizBase, probablemente en setRangeUTM<>
+            #     return
+
+            # myLog.warning('\n{:_^80}'.format(''))
+            # myLog.warning(f'clidtwins-> AVISO: no se ha indicado ruta para los ficheros asc con las variables dasoLidar de entrada.')
+
+            LCL_rutaAscRaizBaseConPath = clidtwinx.getParametroConPath(
+                LCL_rutaAscRaizBase,
+                dataBasePath=os.getcwd(),
+                nombreParametro='rutaAscRaizBase',
+                valorPorDefecto=GLO.GLBLrutaAscRaizBasePorDefecto,
+                )
             if self.LOCLverbose:
-                myLog.warning(f'{TB}Ruta: {LCL_rutaAscRaizBase}')
-            if os.path.isdir(os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)):
-                if os.path.exists(GLO.configFileNameCfg):
-                    myLog.warning(f'{TB}-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
-                else:
-                    myLog.warning(f'{TB}-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
-                LCL_rutaAscRaizBase = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
-                myLog.warning(f'{TB}-> LCL_rutaAscRaizBase: {LCL_rutaAscRaizBase}')
-            else:
+                myLog.info(f'{TB}Ruta en fichero de configuracion: {LCL_rutaAscRaizBase}')
+                myLog.info(f'{TB}Ruta absoluta:                    {LCL_rutaAscRaizBaseConPath}')
+
+            # if os.path.isdir(LCL_rutaAscRaizBaseConPath):
+            #     # if os.path.exists(GLO.configFileNameCfg):
+            #     #     myLog.warning(f'{TB}-> Se adopta el valor del fichero de configuracion ({GLO.configFileNameCfg})')
+            #     # else:
+            #     #     myLog.warning(f'{TB}-> Se adopta el valor por defecto (incluida en clidtwins._config.py)')
+            #     # LCL_rutaAscRaizBaseConPath = os.path.abspath(GLO.GLBLrutaAscRaizBasePorDefecto)
+            #     myLog.warning(f'{TB}-> rutaAscRaizBaseConPath: {LCL_rutaAscRaizBaseConPath}')
+            if not os.path.isdir(LCL_rutaAscRaizBaseConPath):
                 # Directorio que depende del entorno:
                 MAIN_HOME_DIR = str(pathlib.Path.home())
                 listaRutasDisponibles = [MAIN_HOME_DIR]
@@ -1320,7 +1330,7 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                         LCL_rutaAscRaizBase = listaRutasDisponibles[1]
                     else:
                         LCL_rutaAscRaizBase = listaRutasDisponibles[0]
-            myLog.debug('{:=^80}'.format(''))
+            # myLog.warning('{:=^80}'.format(''))
         # ======================================================================
         self.LOCLrutaAscRaizBase = LCL_rutaAscRaizBase
         # ======================================================================
@@ -2045,15 +2055,19 @@ and two more layers for forest type (land cover) and stand type.
         myLog.info(f'clidtwins-> Resumen del match:')
         myLog.info(f'{TB}-> tipoBosqueOk:                  {self.tipoBosqueOk}')
         myLog.info(f'{TB}-> nVariablesNoOk:                {self.nVariablesNoOk}')
-        myLog.info(f'{TB}-> matrizDeDistancias.shape:      {self.matrizDeDistanciasPatronTesteo.shape}') 
-        myLog.info(f'{TB}-> Distancia media patron-testeo: {self.distanciaEuclideaMediaPatronTesteo}')
-        myLog.info(f'{TB}-> Distancia media patron-patron: {self.distanciaEuclideaMediaPatronPatron}')
+        if self.LOCLverbose:
+            myLog.info(f'{TB}-> matrizDeDistancias.shape:      {self.matrizDeDistanciasPatronTesteo.shape}') 
+        myLog.info(f'{TB}-> Distancia media patron-testeo: {self.distanciaEuclideaMediaPatronTesteo:0.1f}')
+        myLog.info(f'{TB}-> Distancia media patron-patron: {self.distanciaEuclideaMediaPatronPatron:0.1f}')
         if self.distanciaEuclideaMediaPatronPatron:
             self.distanciaEuclideaRazon = self.distanciaEuclideaMediaPatronTesteo / self.distanciaEuclideaMediaPatronPatron
-            myLog.info(f'{TB}-> Razon de distancias medias:    {self.distanciaEuclideaRazon}')
+            myLog.info(f'{TB}-> Razon de distancias medias:    {self.distanciaEuclideaRazon:0.2f}')
         else:
             self.distanciaEuclideaRazon = -1
-        myLog.info(f'{TB}-> Factor de proximidad:          {self.pctjPorcentajeDeProximidad}')
+        myLog.info(f'{TB}-> Factor de proximidad:          {self.pctjPorcentajeDeProximidad:0.0f} %')
+        myLog.info(f'{TB}   Porcentaje de pixeles similares al patron de referencia,')
+        myLog.info(f'{TB}   de acuerdo al umbralMatriDist indicado como argumento en')
+        myLog.info(f'{TB}   linea de comandos (-U) o en el fichero de configuracion cfg.')
         myLog.info('{:=^80}'.format(''))
 
         return True
