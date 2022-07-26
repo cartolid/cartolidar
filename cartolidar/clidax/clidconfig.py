@@ -17,7 +17,7 @@ import types # Ver https://docs.python.org/2/library/types.html
 # import csv
 import re
 import math
-# import random
+import random
 import platform
 import inspect
 # import traceback
@@ -56,8 +56,8 @@ else:
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
     ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
 else:
-    # ARGS_idProceso = str(random.randint(1, 999998))
-    ARGS_idProceso = '999999'
+    ARGS_idProceso = str(random.randint(1, 999998))
+    # ARGS_idProceso = '999999'
     sys.argv.append('--idProceso')
     sys.argv.append(ARGS_idProceso)
 # ==============================================================================
@@ -107,19 +107,20 @@ TW = ' ' * 2
 # ==============================================================================
 # ============================== Variables MAIN ================================
 # ==============================================================================
-# Directorio que depende del entorno:
-MAIN_HOME_DIR = str(pathlib.Path.home())
 # Directorios de la aplicacion:
-MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
-# MAIN_PROJ_DIR = MAIN_FILE_DIR
-# Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
+# Dir del modulo que se esta ejecutando (clidconfig.py):
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))  # En calendula /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/cartolidar/cartolidar/clidax
+# Dir de clidbase.py:
+MAIN_BASE_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))
+# Dir de setup.py:
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_BASE_DIR, '..')) # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
+# Dir en el que esta el proyecto (D:/_clid o /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1):
 MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
 # Directorio desde el que se lanza la app (estos dos coinciden):
-# MAIN_BASE_DIR = os.path.abspath('.')
-MAIN_BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
-MAIN_THIS_DIR = os.getcwd()
+MAIN_THIS_DIR = os.path.abspath('.')
+MAIN_WORK_DIR = os.getcwd()
+# Directorio que depende del entorno:
+MAIN_HOME_DIR = str(pathlib.Path.home())
 # ==============================================================================
 # Unidad de disco si MAIN_ENTORNO = 'windows'
 MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
@@ -313,7 +314,7 @@ def iniciaConsLog(myModule='clidconfig', myVerbose=False, myQuiet=False):
         # else:
         #     print(f'{myModule}-> Ya se ha creado el loggin de consola para todos los modulos en __main__.py')
         pass
-    consLog = logging.StreamHandler()
+    consLog = logging.StreamHandler(stream=sys.stdout)
     consLog.setFormatter(formatterCons)
     consLog.setLevel(logLevel)
     myLog.setLevel(logLevel)
@@ -355,6 +356,7 @@ if CONFIGverbose:
 
 # ==============================================================================
 if CONFIGverbose:
+    myLog.info(f'\n{" log - config ":_^80}')
     myLog.debug(f'\nclidconfig-> Cargando clidconfig...')
     myLog.debug(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
     myLog.debug(f'{TB}-> Revisando la pila de llamadas...')
@@ -362,6 +364,7 @@ callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=ins
 if CONFIGverbose:
     myLog.debug(f'{TB}{TV}-> callingModulePrevio:  {callingModulePrevio}')
     myLog.debug(f'{TB}{TV}-> callingModuleInicial: {callingModuleInicial}')
+    myLog.info(f'{"":=^80}')
 # ==============================================================================
 
 
@@ -372,23 +375,26 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
     if myVerboseFile == 3:
         logLevelFile = logging.DEBUG
     elif myVerboseFile == 2:
-        logLevelFile = logging.DEBUG
+        logLevelFile = logging.INFO  # 20
     elif myVerboseFile == 1:
-        logLevelFile = logging.INFO
+        logLevelFile = logging.INFO  # 20
     elif myVerboseFile == 0:
         if myQuiet:
             # logLevelFile = logging.CRITICAL
-            logLevelFile = logging.ERROR
+            # logLevelFile = logging.ERROR  # 40
+            logLevelFile = logging.WARNING  # 30
         else:
-            # logLevelFile = logging.WARNING
-            logLevelFile = logging.INFO
+            logLevelFile = logging.INFO  # 20
 
     if myVerbose == 3:
         logLevelCons = logging.DEBUG  # 10
     elif myVerbose == 2:
-        logLevelCons = logging.DEBUG  # 10
-    elif myVerbose == 1:
         logLevelCons = logging.INFO  # 20
+    elif myVerbose == 1:
+        if myQuiet:
+            logLevelCons = logging.WARNING  # 30
+        else:
+            logLevelCons = logging.INFO  # 20
     elif myVerbose == 0:
         if myQuiet:
             # logLevelCons = logging.CRITICAL
@@ -524,7 +530,7 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
     myLog.addHandler(fileLog)
     if not consLogYaCreado:
         # https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler
-        consLog = logging.StreamHandler()
+        consLog = logging.StreamHandler(stream=sys.stdout)
         # https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler.terminator
         # consLog.terminator = ''  # Sustituye al valor por defecto que es '\n'
         consLog.setFormatter(formatterCons)
@@ -718,22 +724,26 @@ def mostrarVariablesGlobales(momento='inicial'):
 #    GL.controlFileLas
 #    GL.controlFileGlobal
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-def initConfigDicts(idProceso=MAIN_idProceso, LOCL_verbose=0):
+def initConfigDicts(idProceso=MAIN_idProceso, LOCL_verbose=__verbose__):
     global GLOBALconfigDict
 
     # ==========================================================================
-    # Lectura del config (cfg) generado en un carga anterior de clidconfig o en una ejecucion anterior
+    # Opcion 1: lectura del config (cfg) generado 
+    # en un carga anterior de clidconfig o en una ejecucion anterior
     configFileNameCfg = getConfigFileNameCfg(idProceso, LOCL_verbose=LOCL_verbose)
 
     if CONFIGverbose:
-        print('clidconfig-> Ejecutando initConfigDicts<> para leer el fichero de configuracion cfg')
+        print(f'\n{"":_^80}')
+        print('clidconfig-> Ejecutando initConfigDicts<> para leer el fichero de configuracion cfg (si existe).')
         print(f'{TB}-> Verifico si hay un cfg con idProceso={idProceso} generado')
-        print(f'{TB}-> en un carga anterior de clidconfig o en una ejecucion anterior:')
+        print(f'{TB}   en una carga anterior de clidconfig o en una ejecucion anterior:')
         print(f'{TB}{TV}{configFileNameCfg}')
+        print(f'{TB}-> En caso negativo uso clidbase***.xlsx')
+        print(f'{"":=^80}')
 
     if os.path.exists(configFileNameCfg):
         if CONFIGverbose:
-            print(f'{TB}clidconfig-> Ok, se leen los parametros del cfg: {os.path.basename(configFileNameCfg)}')
+            print(f'{TB}clidconfig-> Se intenta leer los parametros del cfg: {os.path.basename(configFileNameCfg)}')
         config = RawConfigParser()
         config.optionxform = str  # Avoid change to lowercase
         numObjetivosExtraMax = 0
@@ -778,16 +788,39 @@ def initConfigDicts(idProceso=MAIN_idProceso, LOCL_verbose=0):
                                 valObjetivosExtra.append(valorConfig(listaParametroConfiguracion[0], tipoVariable=listaParametroConfiguracion[1]))
                         LOCALconfigDict[nombreParametroDeConfiguracion].extend(valObjetivosExtra)
     
+            # Lectura de cfg SI ok:
             LOCALconfigDict['configFileNameCfg'] = [
                 configFileNameCfg,
                 'GrupoMAIN',
-                'Nombre del fichero de configuracion (este fichero).',
+                'Nombre del fichero de configuracion de donde se lee la configuacion (este fichero).',
                 'str',
             ]
-            if CONFIGverbose:
-                print(f'\tclidconfig-> Parametros leidos ok del fichero cfg: {LOCALconfigDict["configFileNameCfg"]}')
-    
+            LOCALconfigDict['configFileNameCfg'].extend([configFileNameCfg] * numObjetivosExtra)
+            LOCALconfigDict['configLeidoDelCfgOk'] = [
+                True,
+                'GrupoMAIN',
+                'Los parametros de configuracion se leen del cfg en vez del xlsx.',
+                'str',
+            ]
+            LOCALconfigDict['configLeidoDelCfgOk'].extend([True] * numObjetivosExtra)
             configLeidoDelCfgOk = True
+
+            # Lectura de xlsx NO necesaria
+            LOCALconfigDict['configFileNameXls'] = [
+                '',
+                'GrupoMAIN',
+                'Nombre del fichero de configuracion xlsx de donde NO se ha leido la configuracion.',
+                'str',
+            ]
+            LOCALconfigDict['configFileNameXls'].extend([''] * numObjetivosExtra)
+            LOCALconfigDict['configLeidoDelXlsOk'] = [
+                False,
+                'GrupoMAIN',
+                'Indica si los parametros de configuracion se han leido del xlsx por no haber cfg disponible.',
+                'str',
+            ]
+            LOCALconfigDict['configLeidoDelXlsOk'].extend([False] * numObjetivosExtra)
+
             GLOBALconfigDict = LOCALconfigDict
         except:
             configLeidoDelCfgOk = False
@@ -795,12 +828,16 @@ def initConfigDicts(idProceso=MAIN_idProceso, LOCL_verbose=0):
         configLeidoDelCfgOk = False
 
     if configLeidoDelCfgOk:
+        if LOCL_verbose:
+            print(f'{TB}-> Parametros leidos ok del fichero cfg:')
+            print(f'{TB}-> {GLOBALconfigDict["configFileNameCfg"][0]}')
+            print(f'{"":=^80}')
         return GLOBALconfigDict
     # ==========================================================================
 
     # ==========================================================================
-    # Si no hay cfg generado en un carga anterior de clidconfig o en una ejecucion anterior
-    # se busca el fichero de configuracion original (xlsx).
+    # Opcion 2: si no hay cfg generado en un carga anterior de clidconfig
+    # o en una ejecucion anterior se busca el fichero de configuracion xlsx.
     (
         filenameXlsCfg1Clidbase,
         filenameXlsCwdClidbase,
@@ -1105,13 +1142,50 @@ def initConfigDicts(idProceso=MAIN_idProceso, LOCL_verbose=0):
         if CONFIGverbose and __verbose__ > 3 and not moduloPreviamenteCargado:
             print(f'{TB}{nombreParametroDeConfiguracion}-> {GLOBALconfigDict[nombreParametroDeConfiguracion]}')
 
+    numObjetivosExtra = max(len(GLOBALconfigDict['GLBLverbose']) - 3, 0)
+    # Lectura de cfg NO ok
+    GLOBALconfigDict['configFileNameCfg'] = [
+        configFileNameCfg,
+        'GrupoMAIN',
+        'Nombre del fichero de configuracion donde se guarda la configuracion temporal (se crea nuevo).',
+        'str',
+    ]
+    GLOBALconfigDict['configFileNameCfg'].extend([configFileNameCfg] * numObjetivosExtra)
+    GLOBALconfigDict['configLeidoDelCfgOk'] = [
+        False,
+        'GrupoMAIN',
+        'Los parametros de configuracion se leen del cfg en vez del xlsx.',
+        'str',
+    ]
+    GLOBALconfigDict['configLeidoDelCfgOk'].extend([False] * numObjetivosExtra)
+
+    # Lectura de xlsx SI ok
+    GLOBALconfigDict['configFileNameXls'] = [
+        filenameXLS,
+        'GrupoMAIN',
+        'Nombre del fichero de configuracion xlsx de donde se ha leido la configuracion.',
+        'str',
+    ]
+    GLOBALconfigDict['configFileNameXls'].extend([filenameXLS] * numObjetivosExtra)
+    GLOBALconfigDict['configLeidoDelXlsOk'] = [
+        True,
+        'GrupoMAIN',
+        'Indica si los parametros de configuracion se han leido del xlsx por no haber cfg disponible.',
+        'str',
+    ]
+    GLOBALconfigDict['configLeidoDelXlsOk'].extend([True] * numObjetivosExtra)
+
+    if LOCL_verbose:
+        print(f'{TB}Parametros leidos ok del fichero xlsx:')
+        print(f'{TB}-> {GLOBALconfigDict["configFileNameXls"][0]}')
+        print(f'{"":=^80}')
 
     return GLOBALconfigDict
 
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 class VariablesGlobales(object):
-    def __init__(self, LOCALconfigDict={}, LCLverbose=0):
+    def __init__(self, LOCALconfigDict={}, LCLverbose=__verbose__):
         """
         Clase cuyas propiedades son las variables de configuracion
         que utilizo en otros modulos como variables globales
@@ -1194,10 +1268,13 @@ class VariablesGlobales(object):
                 and not callingModuleInicial.startswith('test_')
             ):
                 if self.LCLverbose:
-                    print(f'clidconfig-> Uso cargaVariablesDelConfigVarsDict<> para poner los parametros leidos del cfg')
-                    print(f'{TB}como propiedades de esta clase (GLO va a ser un objeto de esta clase)')
-                    print(f'{TB}Uso el parametro MAINobjetivoEjecucion ({self.configVarsDict["MAINobjetivoEjecucion"][0]})')
-                    print(f'{TB}para decidir si uso el valor general o el especifico del objetivoEjecucion (tengo todos en el cfg).')
+                    print(f'\n{"":_^80}')
+                    print(f'clidconfig-> Uso cargaVariablesDelConfigVarsDict<> para asignar los parametros leidos del cfg')
+                    print(f'{TB}como propiedades del objeto GLO (que es una instancia de la clase VariablesGlobales).')
+                    print(f'{TB}El parametro MAINobjetivoEjecucion ({self.configVarsDict["MAINobjetivoEjecucion"][0]})')
+                    print(f'{TB}se usa para seleccionar el valor correspondiente a ese objetivoEjecucion')
+                    print(f'{TB}-> Al generar el fichero cfg incluyo todos los objetivos de ejecucion para poder seleccionarlo aqui.')
+                    print(f'{"":=^80}')
         else:
             self.configVarsDict['MAINobjetivoEjecucion'] = ['GENERAL', 'Main', 'str', 'Herencias de cartolidar']
         # ======================================================================
@@ -1212,14 +1289,16 @@ class VariablesGlobales(object):
             self.MAINobjetivoEjecucion = self.configVarsDict['MAINobjetivoEjecucion'][0]
             if self.LCLverbose:
                 print(f'\n{"":_^80}')
-                print(f'clidconfig-> Uso cargaVariablesDelConfigVarsDict<> para incorporar el parametro objetivoEjecucion como propiedad de GLO:')
-                print(f'{TB}clidconfig-> *MAINobjetivoEjecucion en fichero de configuracion (xlsx o cfg): {self.MAINobjetivoEjecucion}')
+                print(f'clidconfig-> Uso cargaVariablesDelConfigVarsDict<> para incorporar')
+                print(f'{TB}el parametro objetivoEjecucion como propiedad de GLO:')
+                print(f'{TB}-> *MAINobjetivoEjecucion en fichero de configuracion (xlsx o cfg): {self.MAINobjetivoEjecucion}')
         else:
             self.MAINobjetivoEjecucion = self.ARGSobjetivoEjecucion
             if self.LCLverbose:
                 print(f'\n{"":_^80}')
-                print(f'clidconfig-> Uso cargaVariablesDelConfigVarsDict<> para incorporar el argument -o (objetivoEjecucion) leido en linea de comandos:')
-                print(f'{TB}*ARGSobjetivoEjecucion en linea de comandos: {self.ARGSobjetivoEjecucion}')
+                print(f'clidconfig-> Uso cargaVariablesDelConfigVarsDict<> para incorporar el argument')
+                print(f'{TB}   -o (objetivoEjecucion) leido en linea de comandos:')
+                print(f'{TB}-> Valor del objetivoEjecucion: {self.ARGSobjetivoEjecucion}')
         # ======================================================================
 
         # ======================================================================
@@ -1302,7 +1381,7 @@ class VariablesGlobales(object):
                 setattr(self, nombreParametroDeConfiguracion, self.configVarsDict[nombreParametroDeConfiguracion][objetivoEjecucion])
             else:
                 if self.LCLverbose and nombreParametroDeConfiguracion != 'configFileNameCfg':
-                    print(f'{TB}-> El parametro {nombreParametroDeConfiguracion} no tiene valor especifico para el objetivo de ejecucion {objetivoEjecucion}')
+                    print(f'{TB}-> El parametro {nombreParametroDeConfiguracion} no tiene valor especifico para el objetivo de ejecucion {objetivoEjecucion} (>= {len(self.configVarsDict[nombreParametroDeConfiguracion])})')
                     print(f'{TB}-> Se adopta el valor correspondiente al objetivo general: {self.configVarsDict[nombreParametroDeConfiguracion][0]}') 
                 setattr(self, nombreParametroDeConfiguracion, self.configVarsDict[nombreParametroDeConfiguracion][0])
         if self.configVarsDict['GLBLmostrarVariablesDeConfiguracion'][0]:
@@ -1520,7 +1599,7 @@ class VariablesGlobales(object):
 
         if not self.configVarsDict['GLBLalmacenarPuntosComoNumpyDtype'][0]:
             print(
-                '\nclidconfig-> AVISO: he quitado la opcion de guardar como string.',
+                'clidconfig-> AVISO: he quitado la opcion de guardar como string.',
                 '\nSe cambia GLBLalmacenarPuntosComoNumpyDtype a True (GLBLalmacenarPuntosComoByteString = False).'
             )
             self.configVarsDict['GLBLalmacenarPuntosComoNumpyDtype'][0] = True
@@ -1529,7 +1608,7 @@ class VariablesGlobales(object):
 
         if self.configVarsDict['GLBLalmacenarPuntosComoCompactNpDtype'][0]:
             print(
-                '\nclidconfig-> AVISO: he quitado la opcion de guardar version mini string.',
+                'clidconfig-> AVISO: he quitado la opcion de guardar version mini string.',
                 '\nSe cambia GLBLalmacenarPuntosComoCompactNpDtype a False.'
             )
             self.configVarsDict['GLBLalmacenarPuntosComoCompactNpDtype'][0] = False
@@ -1544,7 +1623,7 @@ class VariablesGlobales(object):
         ):
             if self.LCLverbose:
                 print(
-                    '\nclidconfig-> AVISO: Si no se crean output files (asc), no tienen validez estos parametros:',
+                    'clidconfig-> AVISO: Si no se crean output files (asc), no tienen validez estos parametros:',
                     '\nGLBLcrearTilesPostVuelta2',
                     '\nGLBLguardarArraysVuelta2a9EnNpz',
                     '\nGLBLreDepurarMiniSubCelEnVueltaAjustesMdp'
@@ -1552,7 +1631,7 @@ class VariablesGlobales(object):
 
         if not self.configVarsDict['GLBLalmacenarPuntosComoNumpyDtype'][0]:
             if self.LCLverbose:
-                print('\nclidconfig-> AVISO: revisar si se quiere usar formato de punto de texto (en desuso)')
+                print('clidconfig-> AVISO: revisar si se quiere usar formato de punto de texto (en desuso)')
             if (
                 GLO.GLBLacumularPuntosEnNpzParaEntrenamientoFuturo
                 or GLO.GLBLentrenarNeuronalNetworkConTF
@@ -1569,7 +1648,7 @@ class VariablesGlobales(object):
                 ):
                     if self.LCLverbose:
                         print(
-                            '\nclidconfig-> AVISO: Se va a entrenar con puntos acumulativos con una sola clase seleccionada',
+                            'clidconfig-> AVISO: Se va a entrenar con puntos acumulativos con una sola clase seleccionada',
                             '\nLa clase seleccionada es {} (no interesa): Revisar GLBLentrenarBinarioCategoriaSeleccionada'.format(
                                 self.configVarsDict['GLBLentrenarBinarioCategoriaSeleccionada'][0]
                             )
@@ -1577,7 +1656,7 @@ class VariablesGlobales(object):
                 elif self.configVarsDict['GLBLentrenarBinarioCategoriaSeleccionada'][0] > 100:
                     if self.LCLverbose:
                         print(
-                            '\nclidconfig-> AVISO: No hay categorias de lasClass superiores a 100. GLBLentrenarBinarioCategoriaSeleccionada: {}'.format(
+                            'clidconfig-> AVISO: No hay categorias de lasClass superiores a 100. GLBLentrenarBinarioCategoriaSeleccionada: {}'.format(
                                 self.configVarsDict['GLBLentrenarBinarioCategoriaSeleccionada'][0]
                             )
                         )
@@ -1598,7 +1677,7 @@ class VariablesGlobales(object):
                 if self.configVarsDict['GLBLmostrarAvisos'][0]:
                     if self.LCLverbose:
                         print(
-                            '\nclidconfig-> AVISO: Se desactiva el calculo de hiperformas porque no se calculan el plano pleno ni basal ni suelo.',
+                            'clidconfig-> AVISO: Se desactiva el calculo de hiperformas porque no se calculan el plano pleno ni basal ni suelo.',
                             '\n  Revisar GLBLcalcularHiperFormas, GLBLcalcularMdp, GLBLcalcularMdfConMiniSubCelValidados***',
                             '\n  Revisar configuracion.'
                         )
@@ -1620,7 +1699,7 @@ class VariablesGlobales(object):
         if self.configVarsDict['GLBLsoloGuardarArraysNpzSinCrearOutputFiles'][0] and not self.configVarsDict['GLBLcrearTilesPostVuelta2'][0] and self.configVarsDict['GLBLmostrarAvisos'][0]:
             if self.LCLverbose:
                 print(
-                    '\nclidconfig-> AVISO: si GLBLsoloGuardarArraysNpzSinCrearOutputFiles,',
+                    'clidconfig-> AVISO: si GLBLsoloGuardarArraysNpzSinCrearOutputFiles,',
                     '\n  no tiene sentido que este activado GLBLcrearTilesPostVuelta2.',
                     '\n  Se puede cambiar en el fichero de configuracion.'
                 )
@@ -1637,7 +1716,7 @@ class VariablesGlobales(object):
             and self.configVarsDict['GLBLmostrarAvisos'][0]
         ):
             if self.LCLverbose:
-                print(f'\nclidconfig-> AVISO: si GLBLcrearTilesTargetDeCartoRefSingUse u otros TargetDeCartoRef,')
+                print(f'clidconfig-> AVISO: si GLBLcrearTilesTargetDeCartoRefSingUse u otros TargetDeCartoRef,')
                 print(f'{TB}-> es recomendable GLBLformatoTilesAscRasterRef para visualizar en Qgis los tiles que se generan.')
                 print(f'{TB}-> Se puede cambiar en el fichero de configuracion.')
 
@@ -2209,21 +2288,14 @@ def get_MAIN_CFG_DIR():
     #  2-> El del modulo inicial si no incluye site-packages
     #  3-> El del modulo actual si no incluye site-packages
     #  4-> El user/documents
-    MAIN_THIS_DIR = os.getcwd()
-    if not 'site-packages' in MAIN_THIS_DIR:
-        MAIN_CFG_DIR = MAIN_THIS_DIR
+    MAIN_WORK_DIR = os.getcwd()
+    if not 'site-packages' in MAIN_WORK_DIR:
+        MAIN_CFG_DIR = MAIN_WORK_DIR
     else:
-        MAIN_BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
         if not 'site-packages' in MAIN_BASE_DIR:
             MAIN_CFG_DIR = MAIN_BASE_DIR
         else:
-            try:
-                MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-                MAIN_FILE_DIR_ok = True
-            except:
-                MAIN_FILE_DIR = ''
-                MAIN_FILE_DIR_ok = False
-            if not 'site-packages' in MAIN_FILE_DIR and MAIN_FILE_DIR_ok:
+            if not 'site-packages' in MAIN_FILE_DIR:
                 MAIN_CFG_DIR = MAIN_FILE_DIR
             else:
                 MAIN_HOME_DIR = str(pathlib.Path.home())
@@ -2278,7 +2350,7 @@ def getConfigFileName():
 
 
 # ==============================================================================
-def getConfigFileNameCfg(idProceso, LOCL_verbose=0):
+def getConfigFileNameCfg(idProceso, LOCL_verbose=__verbose__):
     rutaAlternativa = False
     MAIN_CFG_DIR = get_MAIN_CFG_DIR()
     configFileNameSinExt = getConfigFileName()
@@ -2287,20 +2359,20 @@ def getConfigFileNameCfg(idProceso, LOCL_verbose=0):
     configFileNameCfg = os.path.join(MAIN_CFG_DIR, configFileNameSinPath)
     if LOCL_verbose:
         print(f'\n{"":_^80}')
-        print(f'clidconfig-> Fichero de configuracion cfg: {configFileNameCfg}')
+        print(f'clidconfig-> Buscando fichero de configuracion cfg: {configFileNameCfg}')
 
     try:
         if not os.path.exists(configFileNameCfg):
             controlConfigFile = open(configFileNameCfg, mode='w')
             controlConfigFile.close()
             os.remove(configFileNameCfg)
+            if LOCL_verbose:
+                print(f'{TB}-> No hay de configuracion de tipo cfg previamente creado-> se usa el xlsx.')
         else:
             controlConfigFile = open(configFileNameCfg, mode='r+')
             controlConfigFile.close()
-        if LOCL_verbose:
-            if os.path.exists(configFileNameCfg):
-                print(f'{TB}-> Este fichero de configuracion ya existe previamente (se usan sus parametros).')
-            print(f'{"":=^80}')
+            if LOCL_verbose:
+                print(f'{TB}-> Este fichero de configuracion ya existe previamente.')
     except:
         if LOCL_verbose:
             # print(f'\n{"":_^80}')
@@ -2334,8 +2406,7 @@ def getConfigFileNameCfg(idProceso, LOCL_verbose=0):
                 print(f'clidconfig-> Ok cfg file (b): {configFileNameCfg}')
         if LOCL_verbose:
             if os.path.exists(configFileNameCfg):
-                print(f'{TB}-> Este fichero de configuracion ya existe previamente (se usan sus parametros en lugar de los del xls).')
-            print(f'{"":=^80}')
+                print(f'{TB}-> Este fichero de configuracion ya existe previamente.')
 
     return configFileNameCfg
 
@@ -2502,7 +2573,7 @@ def leerCambiarVariablesGlobales(
         nuevosParametroConfiguracion={},
         LCL_idProceso=MAIN_idProceso,
         inspect_stack=inspect.stack(),
-        verbose=False
+        verbose=False,
     ):
     # Lectura del config (cfg) generado especificamente para esta ejecucion.
     # print('LCL_idProceso:', type(LCL_idProceso), LCL_idProceso)
@@ -2535,7 +2606,7 @@ def leerCambiarVariablesGlobales(
         config.read(configFileNameCfg)
         mostrarFrupoMAIN = False
         if mostrarFrupoMAIN:
-            print(f'clidconfig-> Paramtros del GrupoMAIN del fichero de configuracion ({configFileNameCfg}):')
+            print(f'clidconfig-> Parametros del GrupoMAIN del fichero de configuracion ({configFileNameCfg}):')
         for grupoParametroConfiguracion in config.sections():
             for nombreParametroDeConfiguracion in config.options(grupoParametroConfiguracion):
                 strParametroConfiguracion = config.get(grupoParametroConfiguracion, nombreParametroDeConfiguracion)
@@ -2584,9 +2655,8 @@ def leerCambiarVariablesGlobales(
             'str',
         ]
         if CONFIGverbose or verbose:
-            print(f'clidconfig-> Parametros leidos ok del fichero cfg: {LOCALconfigDict["configFileNameCfg"][0]}')
+            print(f'{TB}Parametros leidos ok del fichero cfg: {LOCALconfigDict["configFileNameCfg"][0]}')
 
-        # configLeidoDelCfgOk = True
     except Exception as excpt:
         program_name = 'clidconfig.py'
         print(f'\n{program_name}-> Error Exception en clidconfig-> {excpt}\n')
@@ -2632,8 +2702,6 @@ def leerCambiarVariablesGlobales(
         sys.stderr.write(f'{TB}Tipo:        {typeError}\n')
     
         sys.stderr.write(f'clidconfig-> Error al leer la configuracion del fichero: {configFileNameCfg}\n')
-        # configLeidoDelCfgOk = False
-    
         sys.exit(0)
 
 
@@ -3332,10 +3400,13 @@ def foo2():
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 if callingModulePrevio == 'clidbase' or callingModuleInicial == 'clidclas': # or callingModuleInicial == 'clidtry':
     LCLverbose = True
-    print(f'\nclidconfig-> Este modulo se importa desde todos los modulos,')
-    print(f'{TB}pero solo se muestra la carga en pantalla cuando:')
-    print(f'{TB}-> Se importa desde clidbase.')
-    print(f'{TB}-> El modulo lanzado inicialmente es clidclas.')
+    if __verbose__:
+        print(f'\n{"":_^80}')
+        print(f'clidconfig-> Este modulo se importa desde todos los modulos,')
+        print(f'{TB}pero solo se muestra la carga en pantalla cuando:')
+        print(f'{TB}-> Se importa desde clidbase.')
+        print(f'{TB}-> El modulo lanzado inicialmente es clidclas.')
+        print(f'{"":=^80}')
 else:
     LCLverbose = False
 
@@ -3388,7 +3459,9 @@ clidconfig-> Secuencia de carga de variables de configuracion:
     # Leo los parametros de configuracion de clidbase.xml y los cargo en diccionarios
     if CONFIGverbose:
         print('clidconfig-> Para leer el fichero de configuracion xlsx lanzo initConfigDicts<> (se hace copia con LCL_idProceso: {})'.format(LCL_idProceso))
+    # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
     GLOBALconfigDict = initConfigDicts(LCL_idProceso, LOCL_verbose=__verbose__)
+    # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if CONFIGverbose:
         print(f'clidconfig-> Resultado de lanzar initConfigDicts<> GLOBALconfigDict["GLBLverbose"]: {len(GLOBALconfigDict["GLBLverbose"])}, {GLOBALconfigDict["GLBLverbose"]}')
 

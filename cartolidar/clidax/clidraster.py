@@ -184,19 +184,19 @@ def crearRasterTiff(
             myLog.warning(f'\nclidraster-> AVISO: ruta {self_LOCLoutPathNameRuta} no disponible, se busca una alternativa.')
         self_LOCLoutPathNameRuta = None
     if self_LOCLoutPathNameRuta is None:
-        MAIN_THIS_DIR = os.getcwd()
-        if not 'site-packages' in MAIN_THIS_DIR:
-            self_LOCLrutaAscRaizBase = MAIN_THIS_DIR
+        MAIN_WORK_DIR = os.getcwd()
+        if not 'site-packages' in MAIN_WORK_DIR:
+            self_LOCLrutaAscRaizBase = MAIN_WORK_DIR
         else:
-            MAIN_BASE_DIR = os.path.abspath('.')
-            if not 'site-packages' in MAIN_BASE_DIR:
-                self_LOCLrutaAscRaizBase = MAIN_BASE_DIR
+            MAIN_THIS_DIR = os.path.abspath('.')
+            if not 'site-packages' in MAIN_THIS_DIR:
+                self_LOCLrutaAscRaizBase = MAIN_THIS_DIR
             else:
                 try:
                     MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
                 except:
                     MAIN_FILE_DIR = None
-                if not MAIN_FILE_DIR is None and not 'site-packages' in MAIN_BASE_DIR:
+                if not MAIN_FILE_DIR is None and not 'site-packages' in MAIN_THIS_DIR:
                     self_LOCLrutaAscRaizBase = MAIN_FILE_DIR
                 else:
                     import pathlib

@@ -14,7 +14,7 @@ import math
 import pathlib
 import inspect
 # import logging
-# import random
+import random
 # import struct
 import importlib
 import importlib.util
@@ -23,6 +23,7 @@ import numpy as np
 # import scipy
 # import scipy.misc
 import scipy.ndimage.interpolation
+import psutil
 from PIL import Image
 # from pandas.io import orc
 
@@ -91,8 +92,8 @@ TW = ' ' * 2
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
     ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
 else:
-    # ARGS_idProceso = str(random.randint(1, 999998))
-    ARGS_idProceso = '999999'
+    ARGS_idProceso = str(random.randint(1, 999998))
+    # ARGS_idProceso = '999999'
     sys.argv.append('--idProceso')
     sys.argv.append(ARGS_idProceso)
 # ==============================================================================
@@ -174,14 +175,17 @@ if CONFIGverbose:
 spec = importlib.util.find_spec('cartolidar')
 if not spec is None:
     from cartolidar.clidax import clidconfig
+    from cartolidar.clidax import clidaux
 else:
     try:
         from cartolidar.clidax import clidconfig
+        from cartolidar.clidax import clidaux
     except:
         if '-vv' in sys.argv or '--verbose' in sys.argv:
             sys.stderr.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
             sys.stderr.write(f'\t-> Se importa clidconfig desde clidcarto del directorio local {os.getcwd()}/....\n')
         from clidax import clidconfig
+        from clidax import clidaux
 
 # if (
 #     callingModuleInicial != 'runpy'
@@ -514,7 +518,16 @@ class CartoRefVector(object):
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def guardarArraysTrasVuelta01_cartoRefVector(self, npzFileNameArraysVuelta0a1_cartoRef):
-        myLog.info('\tclidcarto-> Guardando cartoRef {}. ->usarVectorRef: {}'.format(
+        # ==========================================================================
+        clidaux.printMsg(f'\n{"":_^80}')
+        proc = psutil.Process(os.getpid())
+        memoriaCartoA = proc.memory_info().rss / 1e6
+        clidaux.printMsg(f'clidcarto-> Memoria en CartoA: {memoriaCartoA:5.1f} [Mb]')
+        ramMemCartoA, _ = clidaux.memoriaRam('clidflow->CartoA')
+        clidaux.printMsg(f'{"":=^80}')
+        # ==========================================================================
+
+        myLog.info('clidcarto-> Guardando cartoRef {}. ->usarVectorRef: {}'.format(
             npzFileNameArraysVuelta0a1_cartoRef, self.usarVectorRef
             )
         )
@@ -544,6 +557,15 @@ class CartoRefVector(object):
             aCeldasVectorRecRasterizado = self.aCeldasVectorRecRasterizado,
             nPixelsPorCelda = self.nPixelsPorCelda,
         )
+        myLog.info(f'{TB}-> Grabacion Ok.')
+        # ==========================================================================
+        clidaux.printMsg(f'\n{"":_^80}')
+        proc = psutil.Process(os.getpid())
+        memoriaCartoA = proc.memory_info().rss / 1e6
+        clidaux.printMsg(f'clidcarto-> Memoria en CartoA_: {memoriaCartoA:5.1f} [Mb]')
+        ramMemCartoA, _ = clidaux.memoriaRam('clidflow->CartoA')
+        clidaux.printMsg(f'{"":=^80}')
+        # ==========================================================================
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -2106,22 +2128,25 @@ class CartoRefVector(object):
                     tileRecorte, GLBNtileSizeEnPixelsSubCelda / GLBNtileSizeEnPixelsRasterRx, order=ordenPolinomioInterpolacion, prefilter=True
                 )
 
-                if GLO.GLBLverbose or __verbose__:
-                    print(f'{TB}{TV}clidcarto-> tileRecorte.shape   {tileRecorte.shape} {mainUsoSingular.shape} {mainUsoSingular.shape}')
-                    print(f'{TB}{TV}clidcarto-> usoSingRecorteShape {usoSingRecorteShape} {tileRecorte[iniY:funY, iniX:funX].shape}')
+                if self.LCLverbose > 1:
+                    print(f'{TB}-> clidcarto-> tileRecorte.shape   {tileRecorte.shape} {mainUsoSingular.shape} {mainUsoSingular.shape}')
+                    print(f'{TB}-> clidcarto-> usoSingRecorteShape {usoSingRecorteShape} {tileRecorte[iniY:funY, iniX:funX].shape}')
 
-                if GLO.GLBLverbose or __verbose__:
-                    print('clidcarto-> revisando capa {}, nCol: {}, nRow: {}, tileRecorte: {}, tileRecorteZoom: {}'.format(
-                        self.nombreCapa, 
-                        nCol, nRow,
-                        tileRecorte.shape, tileRecorteZoom.shape))
-                    print('\t->> tiles ->',
-                          '2m-> Ini-Fin X->', iniX, finX, 'Ini-Fin Y->', iniY, finY,
-                          '1m->', nRow, nCol, '->', iniY1m, finY1m, iniX1m, finX1m)
-                    print('\t->> tiles ->2m-> recorte del raster-> recorteIni-Fin Y:', recorteIniY, recorteIniY + finY - iniY,
-                          'recorteIni-Fin X:', recorteIniX, recorteIniX + finX - iniX,
-                          '->1m recorte', recorteIniY1m, recorteIniY1m + finY1m - iniY1m,
-                          recorteIniX1m, recorteIniX1m + finX1m - iniX1m)
+                if self.LCLverbose > 1:
+                    print(f'{TB}{TV}-> revisando capa {self.nombreCapa}, nCol: {nCol}, nRow: {nRow}, '
+                          f'tileRecorte: {tileRecorte.shape}, tileRecorteZoom: {tileRecorteZoom.shape}')
+                    print(
+                        f'{TB}{TV}->> tiles -> '
+                        f'2m-> Ini-Fin X-> {iniX} {finX} Ini-Fin Y-> {iniY} {finY} '
+                        f'1m-> {nRow} {nCol} -> {iniY1m} {finY1m} {iniX1m} {finX1m}'
+                      )
+                    print(
+                        f'{TB}{TV}->> tiles -> 2m-> recorte del raster-> '
+                        f'recorteIni-Fin Y: {recorteIniY} {recorteIniY + finY - iniY} '
+                        f' recorteIni-Fin X: {recorteIniX} {recorteIniX + finX - iniX} '
+                        f' ->1m recorte {recorteIniY1m} {recorteIniY1m + finY1m - iniY1m} '
+                        f'{recorteIniX1m} {recorteIniX1m + finX1m - iniX1m}'
+                    )
 
                 # print(tileRecorte[10:13, 10:13])
                 # print(tileRecorteZoom[10:13, 10:13])

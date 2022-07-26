@@ -4172,31 +4172,31 @@ class LasData(object):
             'cliddata.mostrarResultadoVuelta0-> Vuelta0 finalizada: se han procesado %i puntos de un total de %i'
             % (contadorPral + 1, self.myLasHead.headDict['numptrecords'])
         )
-        clidaux.printMsg('cliddata-> Numero de puntos segun cabecera:                          %i puntos' % self.myLasHead.headDict['numptrecords'])
-        clidaux.printMsg('cliddata-> Numero de puntos pasados a la RAM:                        %i puntos' % self.numPuntosCargadosEnLaRAM)
-        clidaux.printMsg('cliddata-> Numero de puntos a leer:                                  %i puntos (nPtosAleer)' % (self.nPtosAleer))
-        clidaux.printMsg('cliddata-> Numero de puntos leidos segun contadorPral:               %i puntos' % (contadorPral + 1))
+        clidaux.printMsg('cliddata-> Numero de puntos segun cabecera:            %i puntos' % self.myLasHead.headDict['numptrecords'])
+        clidaux.printMsg('cliddata-> Numero de puntos pasados a la RAM:          %i puntos' % self.numPuntosCargadosEnLaRAM)
+        clidaux.printMsg('cliddata-> Numero de puntos a leer:                    %i puntos (nPtosAleer)' % (self.nPtosAleer))
+        clidaux.printMsg('cliddata-> Numero de puntos leidos segun contadorPral: %i puntos' % (contadorPral + 1))
         clidaux.printMsg('cliddata-> Filtro 1: las coordenadas del punto deben: (a) ser validas y (b) estar dentro del bloque con cierto margen de error')
         clidaux.printMsg('  Puntos descartados en clidnv0 antes de asignar celda (nX, nY) -Tarea asignarCelda-:')
 
         clidaux.printMsg(
-            '    Numero de puntos con coordenadas nulas:                 %i puntos (numPuntosDescartadosPorCoordenadasNulas)'
+            '    Numero de puntos con coordenadas nulas:            %i puntos (numPuntosDescartadosPorCoordenadasNulas)'
             % self.numPuntosDescartadosPorCoordenadasNulas
         )
         clidaux.printMsg(
-            '    Numero de puntos en pasadas transversales:              %i puntos (numPuntosDescartadosPorPasadaTransversal)'
+            '    Numero de puntos en pasadas transversales:         %i puntos (numPuntosDescartadosPorPasadaTransversal)'
             % self.numPuntosDescartadosPorPasadaTransversal
         )
         clidaux.printMsg(
-            '    Numero de puntos con coord erroneas (imposibles):       %i puntos (numPuntosDescartadosPorCoordenadasErroneas)'
+            '    Numero de puntos con coord erroneas (imposibles):  %i puntos (numPuntosDescartadosPorCoordenadasErroneas)'
             % self.numPuntosDescartadosPorCoordenadasErroneas
         )
         clidaux.printMsg(
-            '    Numero de puntos fuera de bloque (>%i metro(s)):         %i puntos (numPuntosDescartadosPorFueraDeBloque)'
+            '    Numero de puntos fuera de bloque (>%i metro(s)):   %i puntos (numPuntosDescartadosPorFueraDeBloque)'
             % (GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque, self.numPuntosDescartadosPorFueraDeBloque)
         )
         clidaux.printMsg(
-            '  Numero de puntos leidos validos DENTRO DEL BLOQUE:        %i puntos (numPuntosValidosDentroDelBloque)' % self.numPuntosValidosDentroDelBloque
+            '  Numero de puntos leidos validos DENTRO DEL BLOQUE:   %i puntos (numPuntosValidosDentroDelBloque)' % self.numPuntosValidosDentroDelBloque
         )
         clidaux.printMsg(
             '    numPuntosValidosDentroDelBloque (%i) = nPtosAleer (%i) [sampleLas=%i] - (numPuntosDescartadosPorPasadaTransversal (%i) + numPuntosDescartadosPorCoordenadasErroneas (%i) + numPuntosDescartadosPorFueraDeBloque (%i))'
@@ -4248,31 +4248,40 @@ class LasData(object):
             % (self.LCLnMaxPtosCeldaArrayPredimensionadaTodos, self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos)
         )
         clidaux.printMsg(
-            'cliddata-> Numero de puntos leidos VALIDOS CREIBLES ALMACENABLES:    %i puntos (numPuntosValidosTotalesUsables)'
-            % self.numPuntosValidosTotalesUsables
+            'cliddata-> Numero de puntos leidos VALIDOS CREIBLES ALMACENABLES: {self.numPuntosValidosTotalesUsables} puntos (numPuntosValidosTotalesUsables)'
         )
         sumaCeldasNumPuntosTlrTlcTlpOk = 0
         for nY in range(self.nCeldasY):
             for nX in range(self.nCeldasX):
                 sumaCeldasNumPuntosTlrTlcTlpOk += self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]
-        clidaux.printMsg('  Debe coincidir con                                      %i: sum(self.aCeldasNumPuntosTlrTlcTlpOk):' % sumaCeldasNumPuntosTlrTlcTlpOk)
         clidaux.printMsg(
-            '  Debe coincidir con                                      %i: self.nPtosAleer (/self.sampleLas) - (self.numPuntosDescartadosPorPasadaTransversal + self.numPuntosDescartadosPorCoordenadasErroneas + self.numPuntosDescartadosPorFueraDeBloque + self.numPuntosDescartadosPorOutlier + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos)'
-            # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
-            % (
-                int(self.nPtosAleer / self.sampleLas)
-                - (
-                    self.numPuntosDescartadosPorPasadaTransversal
-                    + self.numPuntosDescartadosPorCoordenadasNulas
-                    + self.numPuntosDescartadosPorCoordenadasErroneas
-                    + self.numPuntosDescartadosPorFueraDeBloque
-                    # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
-                    + self.numPuntosDescartadosPorOutlier
-                    + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes
-                    # + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos
-                )
+            f'{TB}-> Debe coincidir con                                  {sumaCeldasNumPuntosTlrTlcTlpOk} = sum(self.aCeldasNumPuntosTlrTlcTlpOk)'
+        )
+        sumaNeta = (
+            int(self.nPtosAleer / self.sampleLas)
+            - (
+                self.numPuntosDescartadosPorPasadaTransversal
+                + self.numPuntosDescartadosPorCoordenadasNulas
+                + self.numPuntosDescartadosPorCoordenadasErroneas
+                + self.numPuntosDescartadosPorFueraDeBloque
+                # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
+                + self.numPuntosDescartadosPorOutlier
+                + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes
+                # + self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos
+                # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
             )
         )
+
+        clidaux.printMsg(
+            f'{TB}-> Debe coincidir con                                   {sumaNeta}: '
+            'self.nPtosAleer (/self.sampleLas) '
+            '- (self.numPuntosDescartadosPorPasadaTransversal '
+            '+ self.numPuntosDescartadosPorCoordenadasErroneas '
+            '+ self.numPuntosDescartadosPorFueraDeBloque '
+            '+ self.numPuntosDescartadosPorOutlier '
+            '+ self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes '
+            '+ self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos)'
+            )
 
         self.numPuntosNoValidosNosuables = (
             self.numPuntosDescartadosPorCoordenadasNulas

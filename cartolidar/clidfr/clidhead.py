@@ -104,22 +104,20 @@ TW = ' ' * 2
 # ==============================================================================
 # ============================== Variables MAIN ================================
 # ==============================================================================
+# Directorios de la aplicacion:
+# Dir del modulo que se esta ejecutando (clidhead.py):
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))  # En calendula /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/cartolidar/cartolidar/clidax
+# Dir de clidbase.py:
+MAIN_BASE_DIR = os.path.join(MAIN_FILE_DIR, '..')
+# Dir de setup.py:
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_BASE_DIR, '..')) # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
+# Dir en el que esta el proyecto (D:/_clid o /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1):
+MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
+# Directorio desde el que se lanza la app (estos dos coinciden):
+MAIN_THIS_DIR = os.path.abspath('.')
+MAIN_WORK_DIR = os.getcwd()
 # Directorio que depende del entorno:
 MAIN_HOME_DIR = str(pathlib.Path.home())
-# Directorios de la aplicacion:
-MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Cuando estoy en un modulo principal (clidbase.py o clidflow.py):
-# MAIN_PROJ_DIR = MAIN_FILE_DIR
-# Cuando estoy en un modulo dentro de un paquete (subdirectorio):
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '../..'))
-MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
-if 'cartolidar' in MAIN_RAIZ_DIR:
-    MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
-else:
-    MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
-# Directorio desde el que se lanza la app (estos dos coinciden):
-MAIN_BASE_DIR = os.path.abspath('.')
-MAIN_THIS_DIR = os.getcwd()
 # ==============================================================================
 # Unidad de disco si MAIN_ENTORNO = 'windows'
 MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'

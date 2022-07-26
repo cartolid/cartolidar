@@ -1285,17 +1285,17 @@ that usually take the default values (from configuration file or clidtwcfg.py mo
                 MAIN_HOME_DIR = str(pathlib.Path.home())
                 listaRutasDisponibles = [MAIN_HOME_DIR]
                 # Directorio desde el que se lanza la app (estos dos coinciden):
-                MAIN_THIS_DIR = os.getcwd()
+                MAIN_WORK_DIR = os.getcwd()
+                if not 'site-packages' in MAIN_WORK_DIR and not MAIN_WORK_DIR in listaRutasDisponibles:
+                    listaRutasDisponibles.append(MAIN_WORK_DIR)
+                MAIN_THIS_DIR = os.path.abspath('.')
                 if not 'site-packages' in MAIN_THIS_DIR and not MAIN_THIS_DIR in listaRutasDisponibles:
                     listaRutasDisponibles.append(MAIN_THIS_DIR)
-                MAIN_BASE_DIR = os.path.abspath('.')
-                if not 'site-packages' in MAIN_BASE_DIR and not MAIN_BASE_DIR in listaRutasDisponibles:
-                    listaRutasDisponibles.append(MAIN_BASE_DIR)
                 # Directorios de la aplicacion:
                 try:
                     MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))
                 except:
-                    MAIN_FILE_DIR = MAIN_BASE_DIR
+                    MAIN_FILE_DIR = MAIN_THIS_DIR
                 if not 'site-packages' in MAIN_FILE_DIR and not MAIN_FILE_DIR in listaRutasDisponibles:
                     listaRutasDisponibles.append(MAIN_FILE_DIR)
                 # Cuando estoy en un modulo dentro de un paquete (subdirectorio):
