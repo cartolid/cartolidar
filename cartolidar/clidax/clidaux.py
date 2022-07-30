@@ -397,7 +397,7 @@ if CONFIGverbose:
 
 # ==============================================================================
 if CONFIGverbose:
-    sys.stdout.write(f'\nclidaux-> Importando clidconfig desde clidaux, a su vez importado desde {callingModulePrevio} (modulo inicial: {callingModuleInicial})')
+    sys.stdout.write(f'\nclidaux-> Importando clidconfig desde clidaux, a su vez importado desde {callingModulePrevio} (modulo inicial: {callingModuleInicial})\n')
 # if True:
     # https://stackoverflow.com/questions/61234609/how-to-import-python-package-from-another-directory
     # https://realpython.com/python-import/
@@ -410,26 +410,26 @@ if not spec is None:
         sys.stdout.write('\nclidaux-> Importando clidconfig desde cartolidar.clidax\n')
     from cartolidar.clidax import clidconfig
     if CONFIGverbose:
-        sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (0)')
+        sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (0)\n')
 else:
     try:
         if CONFIGverbose:
             sys.stdout.write('\nclidaux-> Importando clidconfig desde cartolidar.clidax\n')
         from cartolidar.clidax import clidconfig
         if CONFIGverbose:
-            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (1)')
+            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (1)\n')
     except:
         try:
             if CONFIGverbose:
                 sys.stdout.write(f'\nclidaux-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
             from clidax import clidconfig
             if CONFIGverbose:
-                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado del clidax local (2)')
+                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado del clidax local (2)\n')
         except:
-            # Alternativa para cuando el modulo inicial es este u otro modulo de este package:
+            sys.stdout.write(f'\nclidaux-> Alternativa para cuando el modulo inicial es este u otro modulo de este package:\n')
             import clidconfig
             if CONFIGverbose:
-                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado directamente (modulo inicial en el mismo package que clidconfig) (3)')
+                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado directamente (modulo inicial en el mismo package que clidconfig) (3)\n')
 
 # ==============================================================================
 MAINusuario = infoUsuario(False)
@@ -2418,18 +2418,23 @@ def completarVariablesGlobales(
             and GLO.MAINrutaLaz != 'None'
             and  GLO.MAINrutaLaz != ''
         ):
-            if ':' in GLO.MAINrutaLaz:
-                # GLO.MAINrutaLaz = GLO.MAINrutaLaz
-                pass
+            if MAIN_ENTORNO == 'calendula':
+                GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, GLO.MAINrutaLaz)
             else:
-                if MAIN_ENTORNO == 'calendula':
-                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, GLO.MAINrutaLaz)
+                if ':' in GLO.MAINrutaLaz:
+                    # GLO.MAINrutaLaz = 'E:/incendioZamora'
+                    # GLO.MAINrutaLaz = GLO.MAINrutaLaz
+                    pass
+                    if __verbose__:
+                        print(f'{TB}MAINrutaLaz-> Se usa directamente GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
                 elif 'MAINrutaRaiz' in dir(GLO):
                     GLO.MAINrutaLaz = os.path.join(GLO.MAINrutaRaiz, GLO.MAINrutaLaz)
+                    if __verbose__:
+                        print(f'{TB}MAINrutaLaz-> Se integra MAINrutaRaiz y GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
                 else:
                     GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIZ_DIR, GLO.MAINrutaLaz)
-            if __verbose__:
-                print(f'{TB}Se integra rutaRaiz y GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
+                    if __verbose__:
+                        print(f'{TB}MAINrutaLaz-> Se integra MAIN_RAIZ_DIR y GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
         else:
             if MAIN_ENTORNO == 'calendula':
                 GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, 'laz')
@@ -3072,6 +3077,7 @@ def casosEspecialesParaMAINrutaLaz(
         elif (LCLcuadrante)[:2].upper() == 'XX':
             listaDirsLaz = ['lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw']
             listaDirsLaz = ['lasfile-yy']
+            listaDirsLaz = ['lasfiles']
         else:
             listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
 
@@ -3151,7 +3157,7 @@ def casosEspecialesParaMAINrutaLaz(
                     listaSubDirsLaz = ['RGBI_laz_H29', 'RGBI_laz']
                     # listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
                 elif LCLcuadrante[:2].upper() == 'XX':
-                    listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
+                    listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI_H30']
                 else:
                     # listaSubDirsLaz = ['RGBI_laz']
                     listaSubDirsLaz = ['RGBI']
@@ -3548,9 +3554,10 @@ def asignarMAINrutaOutput(
         or LCLobjetivoSiReglado == 'CREAR_TILES_TRAIN'
         or LCLobjetivoSiReglado == 'PREPROCESADO_EN_CALENDULA'
         or LCLobjetivoSiReglado == 'CREAR_PUNTOS_TRAIN_ACUMULATIVO_NPZ'
+        or LCLobjetivoSiReglado == 'CREAR_PUNTOS_TRAIN_ROQUEDOS'
         or LCLobjetivoSiReglado == 'CREAR_LAZ'
-        or LCLobjetivoSiReglado == 'AUTOMATICO_EN_CALENDULA_SCRATCH_COLOREAR_RGBI'
-        or LCLobjetivoSiReglado == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI'
+        or LCLobjetivoSiReglado == 'EXTRA2'
+        or LCLobjetivoSiReglado == 'EXTRA3'
     ):
         if (
             LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH'
@@ -3567,6 +3574,7 @@ def asignarMAINrutaOutput(
         elif (
             LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SELECT'
             or LCLprocedimiento == 'AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA'
+            or LCLprocedimiento == 'AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA_SELECT'
         ):
             LCLrutaOutput = os.path.abspath(os.path.join(
                 MAINrutaRaizOutput,

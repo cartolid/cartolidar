@@ -50,8 +50,8 @@ else:
         from cartolidar.clidfr import clidhead
         from cartolidar.clidnb import clidnaux
     except:
-        sys.stderr.write(f'cliddata-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-        sys.stderr.write('\t-> Se importan paquetes de cartolidar desde cliddata del directorio local {os.getcwd()}/....')
+        sys.stderr.write(f'cliddata-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stderr.write('\t-> Se importan paquetes de cartolidar desde cliddata del directorio local {os.getcwd()}/....\n')
         from clidax import clidaux
         # from clidax.clidconfig import GLO
         from clidax import clidconfig
@@ -89,6 +89,20 @@ if (
     GLBNmuestreoAcumulativoOEntrenamientoOInferencia = True
 else:
     GLBNmuestreoAcumulativoOEntrenamientoOInferencia = False
+
+if GLO.GLBLgrabarPercentilAdicional4:
+    TRNSnumMaxPercentiles = 5
+elif GLO.GLBLgrabarPercentilAdicional3:
+    TRNSnumMaxPercentiles = 4
+elif GLO.GLBLgrabarPercentilAdicional2:
+    TRNSnumMaxPercentiles = 5
+elif GLO.GLBLgrabarPercentilAdicional1:
+    TRNSnumMaxPercentiles = 2
+elif GLO.GLBLgrabarPercentilAdicional0:
+    TRNSnumMaxPercentiles = 1
+else:
+    TRNSnumMaxPercentiles = 0
+
 
 class LasData(object):
     """
@@ -912,30 +926,78 @@ class LasData(object):
             if GLO.GLBLcalcularMds:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMds'])  # aCeldasAlt95SobreMds
                 listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMds/'])
-                if GLO.GLBLgrabarPercentilAdicional:
-                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional)])  # aCeldasAltXxSobreMds
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional)])
+                if GLO.GLBLgrabarPercentilAdicional0:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMds
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                if GLO.GLBLgrabarPercentilAdicional1:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMds
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                if GLO.GLBLgrabarPercentilAdicional2:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMds
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                if GLO.GLBLgrabarPercentilAdicional3:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMds
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                if GLO.GLBLgrabarPercentilAdicional4:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMds
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional4)])
             if GLO.GLBLcalcularMdb:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMdb'])  # aCeldasAlt95SobreMdb
                 listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMdb/'])
-                if GLO.GLBLgrabarPercentilAdicional:
-                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional).format(GLO.GLBLgrabarPercentilAdicional)])  # aCeldasAltXxSobreMdb
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional)])
+                if GLO.GLBLgrabarPercentilAdicional0:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMdb
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                if GLO.GLBLgrabarPercentilAdicional1:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMdb
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                if GLO.GLBLgrabarPercentilAdicional2:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMdb
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                if GLO.GLBLgrabarPercentilAdicional3:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMdb
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                if GLO.GLBLgrabarPercentilAdicional4:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMdb
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional4)])
             if GLO.GLBLcalcularMdp:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMdf'])  # aCeldasAlt95SobreMdf
                 listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMdf/'])
-                if GLO.GLBLgrabarPercentilAdicional:
-                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional)])  # aCeldasAltXxSobreMdf
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional)])
+                if GLO.GLBLgrabarPercentilAdicional0:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMdf
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                if GLO.GLBLgrabarPercentilAdicional1:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMdf
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                if GLO.GLBLgrabarPercentilAdicional2:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMdf
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                if GLO.GLBLgrabarPercentilAdicional3:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMdf
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                if GLO.GLBLgrabarPercentilAdicional4:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMdf
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional4)])
                 if  GLO.GLBLgrabarPercentilesSubCeldas:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['SubCeldasAlt95SobreMdf'])  # aSubCeldasAlt95SobreMdf
                     listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell_split02mCell/Alt95SobreMdf/'])
             if GLO.GLBLcalcularMdk2mConPuntosClasificados:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMdk'])  # aCeldasAlt95SobreMdk
                 listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMdk/'])
-                if GLO.GLBLgrabarPercentilAdicional:
-                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional)])  # aCeldasAltXxSobreMdk
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional)])
+                if GLO.GLBLgrabarPercentilAdicional0:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMdk
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                if GLO.GLBLgrabarPercentilAdicional1:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMdk
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                if GLO.GLBLgrabarPercentilAdicional2:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMdk
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                if GLO.GLBLgrabarPercentilAdicional3:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMdk
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                if GLO.GLBLgrabarPercentilAdicional4:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMdk
+                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional4)])
                 if  GLO.GLBLgrabarPercentilesSubCeldas:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['SubCeldasAlt95SobreMdk'])  # aSubCeldasAlt95SobreMdk
                     listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell_split02mCell/Alt95SobreMdk/'])
@@ -3633,38 +3695,38 @@ class LasData(object):
             else:
                 self.aCeldasCotaMin10 = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
                 self.aCeldasCotaMax95 = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-    
+
             if GLO.GLBLgrabarPercentilesRelativos:
                 if GLO.GLBLcalcularMds:
                     self.aCeldasAlt95SobreMds = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
                     self.aCeldasAlt95SobreMds.fill(GLO.GLBLnoData)
-                    if GLO.GLBLgrabarPercentilAdicional:
-                        self.aCeldasAltXxSobreMds = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+                    if GLO.GLBLgrabarPercentilAdicional0:
+                        self.aCeldasAltXxSobreMds = np.zeros(self.nCeldasX * self.nCeldasY * TRNSnumMaxPercentiles, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, TRNSnumMaxPercentiles)
                         self.aCeldasAltXxSobreMds.fill(GLO.GLBLnoData)
                     else:
-                        self.aCeldasAltXxSobreMds = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                        self.aCeldasAltXxSobreMds = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 else:
                     self.aCeldasAlt95SobreMds = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-                    self.aCeldasAltXxSobreMds = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                    self.aCeldasAltXxSobreMds = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 if GLO.GLBLcalcularMdb:
                     self.aCeldasAlt95SobreMdb = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
                     self.aCeldasAlt95SobreMdb.fill(GLO.GLBLnoData)
-                    if GLO.GLBLgrabarPercentilAdicional:
-                        self.aCeldasAltXxSobreMdb = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+                    if GLO.GLBLgrabarPercentilAdicional0:
+                        self.aCeldasAltXxSobreMdb = np.zeros(self.nCeldasX * self.nCeldasY * TRNSnumMaxPercentiles, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, TRNSnumMaxPercentiles)
                         self.aCeldasAltXxSobreMdb.fill(GLO.GLBLnoData)
                     else:
-                        self.aCeldasAltXxSobreMdb = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                        self.aCeldasAltXxSobreMdb = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 else:
                     self.aCeldasAlt95SobreMdb = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-                    self.aCeldasAltXxSobreMdb = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                    self.aCeldasAltXxSobreMdb = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 if GLO.GLBLcalcularMdp:
                     self.aCeldasAlt95SobreMdf = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
                     self.aCeldasAlt95SobreMdf.fill(GLO.GLBLnoData)
-                    if GLO.GLBLgrabarPercentilAdicional:
-                        self.aCeldasAltXxSobreMdf = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+                    if GLO.GLBLgrabarPercentilAdicional0:
+                        self.aCeldasAltXxSobreMdf = np.zeros(self.nCeldasX * self.nCeldasY * TRNSnumMaxPercentiles, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, TRNSnumMaxPercentiles)
                         self.aCeldasAltXxSobreMdf.fill(GLO.GLBLnoData)
                     else:
-                        self.aCeldasAltXxSobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                        self.aCeldasAltXxSobreMdf = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                     if GLO.GLBLgrabarPercentilesSubCeldas:
                         self.aSubCeldasAlt95SobreMdf = np.zeros(
                             self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda, dtype=np.float32
@@ -3676,37 +3738,37 @@ class LasData(object):
                         self.aSubCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
                 else:
                     self.aCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-                    self.aCeldasAltXxSobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                    self.aCeldasAltXxSobreMdf = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                     self.aSubCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
             else:
                 self.aCeldasAlt95SobreMds = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-                self.aCeldasAltXxSobreMds = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                self.aCeldasAltXxSobreMds = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 self.aCeldasAlt95SobreMdb = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-                self.aCeldasAltXxSobreMdb = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                self.aCeldasAltXxSobreMdb = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 self.aCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-                self.aCeldasAltXxSobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                self.aCeldasAltXxSobreMdf = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 self.aSubCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
         else:
             self.aCeldasAjustable = np.zeros(1 * 1, dtype=np.int8).reshape(1, 1)
             self.aCeldasCotaMin10 = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
             self.aCeldasCotaMax95 = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
             self.aCeldasAlt95SobreMds = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-            self.aCeldasAltXxSobreMds = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+            self.aCeldasAltXxSobreMds = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
             self.aCeldasAlt95SobreMdb = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-            self.aCeldasAltXxSobreMdb = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+            self.aCeldasAltXxSobreMdb = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
             self.aCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-            self.aCeldasAltXxSobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+            self.aCeldasAltXxSobreMdf = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
             self.aSubCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
 
         if GLO.GLBLgrabarPercentilesRelativos:
             if GLO.GLBLcalcularMdk2mConPuntosClasificados:
                 self.aCeldasAlt95SobreMdk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
                 self.aCeldasAlt95SobreMdk.fill(GLO.GLBLnoData)
-                if GLO.GLBLgrabarPercentilAdicional:
-                    self.aCeldasAltXxSobreMdk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+                if GLO.GLBLgrabarPercentilAdicional0:
+                    self.aCeldasAltXxSobreMdk = np.zeros(self.nCeldasX * self.nCeldasY * TRNSnumMaxPercentiles, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, TRNSnumMaxPercentiles)
                     self.aCeldasAltXxSobreMdk.fill(GLO.GLBLnoData)
                 else:
-                    self.aCeldasAltXxSobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                    self.aCeldasAltXxSobreMdk = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 if GLO.GLBLgrabarPercentilesSubCeldas:
                     self.aSubCeldasAlt95SobreMdk = np.zeros(
                         self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda, dtype=np.float32
@@ -3718,11 +3780,11 @@ class LasData(object):
                     self.aSubCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
             else:
                 self.aCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-                self.aCeldasAltXxSobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+                self.aCeldasAltXxSobreMdk = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
                 self.aSubCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
         else:
             self.aCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-            self.aCeldasAltXxSobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+            self.aCeldasAltXxSobreMdk = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 0)
             self.aSubCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
 
         if not soloMdk:
@@ -5002,6 +5064,8 @@ class LasData(object):
             aCeldasAltXxSobreMdb = self.aCeldasAltXxSobreMdb,
             aCeldasAlt95SobreMdf = self.aCeldasAlt95SobreMdf,
             aCeldasAltXxSobreMdf = self.aCeldasAltXxSobreMdf,
+            aCeldasAlt95SobreMdk = self.aCeldasAlt95SobreMdk,
+            aCeldasAltXxSobreMdk = self.aCeldasAltXxSobreMdk,
             aCeldasNumPrimerosRetornosAltSuperiorRptoAmds = self.aCeldasNumPrimerosRetornosAltSuperiorRptoAmds,
             aCeldasNumTodosLosRetornosAltRangoRptoAmds = self.aCeldasNumTodosLosRetornosAltRangoRptoAmds,
             aCeldasNumPrimerosRetornosAltRangoRptoAmds = self.aCeldasNumPrimerosRetornosAltRangoRptoAmds,
@@ -7833,18 +7897,66 @@ class LasData(object):
                             self.aFiles['CeldasAlt95SobreMds'].write('%0.02f ' % self.aCeldasAlt95SobreMds[nX, nY])
                     self.aFiles['CeldasAlt95SobreMds'].write('\n')
                 self.aFiles['CeldasAlt95SobreMds'].close()
-            if GLO.GLBLgrabarPercentilAdicional:
-                if not self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional)] is None and self.aCeldasAltXxSobreMds.shape[0] > 1:
+            if GLO.GLBLgrabarPercentilAdicional0:
+                if not self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)] is None and self.aCeldasAltXxSobreMds.shape[0] > 1:
                     for nY in reversed(range(self.aCeldasAltXxSobreMds.shape[1])):
                         for nX in range(self.aCeldasAltXxSobreMds.shape[0]):
-                            if self.aCeldasAltXxSobreMds[nX, nY] == GLO.GLBLnoData:
-                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.0f ' % GLO.GLBLnoData)
-                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMds[nX, nY] < 0:
-                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional)].write('0.00 ')
+                            if self.aCeldasAltXxSobreMds[nX, nY, 0] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMds[nX, nY, 0] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)].write('0.00 ')
                             else:
-                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY])
-                        self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional)].write('\n')
-                    self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional)].close()
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY, 0])
+                        self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)].close()
+            if GLO.GLBLgrabarPercentilAdicional1:
+                if not self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)] is None and self.aCeldasAltXxSobreMds.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMds.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMds.shape[0]):
+                            if self.aCeldasAltXxSobreMds[nX, nY, 1] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMds[nX, nY, 1] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY, 1])
+                        self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)].close()
+            if GLO.GLBLgrabarPercentilAdicional2:
+                if not self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)] is None and self.aCeldasAltXxSobreMds.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMds.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMds.shape[0]):
+                            if self.aCeldasAltXxSobreMds[nX, nY, 2] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMds[nX, nY, 2] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY, 2])
+                        self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)].close()
+            if GLO.GLBLgrabarPercentilAdicional3:
+                if not self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)] is None and self.aCeldasAltXxSobreMds.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMds.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMds.shape[0]):
+                            if self.aCeldasAltXxSobreMds[nX, nY, 3] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMds[nX, nY, 3] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY, 3])
+                        self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)].close()
+            if GLO.GLBLgrabarPercentilAdicional4:
+                if not self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)] is None and self.aCeldasAltXxSobreMds.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMds.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMds.shape[0]):
+                            if self.aCeldasAltXxSobreMds[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMds[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY, 4])
+                        self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
 
         if GLO.GLBLgrabarPercentilesRelativos and GLO.GLBLcalcularMdb:
             if not self.aFiles['CeldasAlt95SobreMdb'] is None and self.aCeldasAlt95SobreMdb.shape[0] > 1:
@@ -7859,19 +7971,71 @@ class LasData(object):
                             self.aFiles['CeldasAlt95SobreMdb'].write('%0.02f ' % self.aCeldasAlt95SobreMdb[nX, nY])
                     self.aFiles['CeldasAlt95SobreMdb'].write('\n')
                 self.aFiles['CeldasAlt95SobreMdb'].close()
-            if GLO.GLBLgrabarPercentilAdicional:
-                if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
+            if GLO.GLBLgrabarPercentilAdicional0:
+                if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
                     for nY in reversed(range(self.aCeldasAltXxSobreMdb.shape[1])):
                         for nX in range(self.aCeldasAltXxSobreMdb.shape[0]):
                         # AltSobreTerreno/10mCell/
-                            if self.aCeldasAltXxSobreMdb[nX, nY] == GLO.GLBLnoData:
-                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.0f ' % GLO.GLBLnoData)
-                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY] < 0:
-                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional)].write('0.00 ')
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 0] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 0] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)].write('0.00 ')
                             else:
-                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY])
-                        self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional)].write('\n')
-                    self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional)].close()
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 0])
+                        self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)].close()
+            if GLO.GLBLgrabarPercentilAdicional1:
+                if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdb.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdb.shape[0]):
+                        # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 1] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 1] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 1])
+                        self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)].close()
+            if GLO.GLBLgrabarPercentilAdicional2:
+                if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdb.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdb.shape[0]):
+                        # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 2] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 2] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 2])
+                        self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)].close()
+            if GLO.GLBLgrabarPercentilAdicional3:
+                if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdb.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdb.shape[0]):
+                        # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 3] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 3] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 3])
+                        self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].close()
+            if GLO.GLBLgrabarPercentilAdicional0:
+                if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdb.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdb.shape[0]):
+                        # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 4])
+                        self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
 
         if GLO.GLBLgrabarPercentilesRelativos and GLO.GLBLcalcularMdp:
             if not self.aFiles['CeldasAlt95SobreMdf'] is None and self.aCeldasAlt95SobreMdf.shape[0] > 1:
@@ -7886,19 +8050,71 @@ class LasData(object):
                             self.aFiles['CeldasAlt95SobreMdf'].write('%0.02f ' % self.aCeldasAlt95SobreMdf[nX, nY])
                     self.aFiles['CeldasAlt95SobreMdf'].write('\n')
                 self.aFiles['CeldasAlt95SobreMdf'].close()
-            if GLO.GLBLgrabarPercentilAdicional:
-                if not self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional)] is None and self.aCeldasAltXxSobreMdf.shape[0] > 1:
+            if GLO.GLBLgrabarPercentilAdicional0:
+                if not self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)] is None and self.aCeldasAltXxSobreMdf.shape[0] > 1:
                     for nY in reversed(range(self.aCeldasAltXxSobreMdf.shape[1])):
                         for nX in range(self.aCeldasAltXxSobreMdf.shape[0]):
                             # AltSobreTerreno/10mCell/
-                            if self.aCeldasAltXxSobreMdf[nX, nY] == GLO.GLBLnoData:
-                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.0f ' % GLO.GLBLnoData)
-                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdf[nX, nY] < 0:
-                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional)].write('0.00 ')
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 0] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 0] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)].write('0.00 ')
                             else:
-                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.02f ' % self.aCeldasAltXxSobreMdf[nX, nY])
-                        self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional)].write('\n')
-                    self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional)].close()
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 0])
+                        self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)].close()
+            if GLO.GLBLgrabarPercentilAdicional1:
+                if not self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)] is None and self.aCeldasAltXxSobreMdf.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdf.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdf.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 1] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 1] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 1])
+                        self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)].close()
+            if GLO.GLBLgrabarPercentilAdicional2:
+                if not self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)] is None and self.aCeldasAltXxSobreMdf.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdf.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdf.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 2] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 2] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 2])
+                        self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)].close()
+            if GLO.GLBLgrabarPercentilAdicional3:
+                if not self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)] is None and self.aCeldasAltXxSobreMdf.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdf.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdf.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 3] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 3] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 3])
+                        self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)].close()
+            if GLO.GLBLgrabarPercentilAdicional4:
+                if not self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)] is None and self.aCeldasAltXxSobreMdf.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdf.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdf.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 4])
+                        self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
 
         if GLO.GLBLgrabarPercentilesRelativos and GLO.GLBLcalcularMdk2mConPuntosClasificados:
             if not self.aFiles['CeldasAlt95SobreMdk'] is None and self.aCeldasAlt95SobreMdk.shape[0] > 1:
@@ -7913,19 +8129,71 @@ class LasData(object):
                             self.aFiles['CeldasAlt95SobreMdk'].write('%0.02f ' % self.aCeldasAlt95SobreMdk[nX, nY])
                     self.aFiles['CeldasAlt95SobreMdk'].write('\n')
                 self.aFiles['CeldasAlt95SobreMdk'].close()
-            if GLO.GLBLgrabarPercentilAdicional:
-                if not self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional)] is None and self.aCeldasAltXxSobreMdk.shape[0] > 1:
+            if GLO.GLBLgrabarPercentilAdicional0:
+                if not self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)] is None and self.aCeldasAltXxSobreMdk.shape[0] > 1:
                     for nY in reversed(range(self.aCeldasAltXxSobreMdk.shape[1])):
                         for nX in range(self.aCeldasAltXxSobreMdk.shape[0]):
                             # AltSobreTerreno/10mCell/
-                            if self.aCeldasAltXxSobreMdk[nX, nY] == GLO.GLBLnoData:
-                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.0f ' % GLO.GLBLnoData)
-                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdk[nX, nY] < 0:
-                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional)].write('0.00 ')
+                            if self.aCeldasAltXxSobreMdk[nX, nY, 0] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdk[nX, nY, 0] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)].write('0.00 ')
                             else:
-                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY])
-                        self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional)].write('\n')
-                    self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional)].close()
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY, 0])
+                        self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)].close()
+            if GLO.GLBLgrabarPercentilAdicional1:
+                if not self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)] is None and self.aCeldasAltXxSobreMdk.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdk.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdk.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdk[nX, nY, 1] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdk[nX, nY, 1] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY, 1])
+                        self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)].close()
+            if GLO.GLBLgrabarPercentilAdicional2:
+                if not self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)] is None and self.aCeldasAltXxSobreMdk.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdk.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdk.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdk[nX, nY, 2] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdk[nX, nY, 2] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY, 2])
+                        self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)].close()
+            if GLO.GLBLgrabarPercentilAdicional3:
+                if not self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)] is None and self.aCeldasAltXxSobreMdk.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdk.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdk.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdk[nX, nY, 3] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdk[nX, nY, 3] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY, 3])
+                        self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)].close()
+            if GLO.GLBLgrabarPercentilAdicional4:
+                if not self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)] is None and self.aCeldasAltXxSobreMdk.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdk.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdk.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdk[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdk[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY, 4])
+                        self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
 
         if GLO.GLBLcalcularMdp:
             if GLO.GLBLgrabarPercentilesSubCeldas:

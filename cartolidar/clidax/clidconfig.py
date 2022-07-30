@@ -386,16 +386,16 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
         else:
             logLevelFile = logging.INFO  # 20
 
-    if myVerbose == 3:
+    if myVerboseCons == 3:
         logLevelCons = logging.DEBUG  # 10
-    elif myVerbose == 2:
+    elif myVerboseCons == 2:
         logLevelCons = logging.INFO  # 20
-    elif myVerbose == 1:
+    elif myVerboseCons == 1:
         if myQuiet:
             logLevelCons = logging.WARNING  # 30
         else:
             logLevelCons = logging.INFO  # 20
-    elif myVerbose == 0:
+    elif myVerboseCons == 0:
         if myQuiet:
             # logLevelCons = logging.CRITICAL
             logLevelCons = logging.ERROR  # 40
@@ -413,32 +413,12 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
             except:
                 print(f'No se ha podido crear el directorio {myLogPath}. Revisar derechos de escritura en esa ruta.')
                 sys.exit(0)
-    mainLogFile = os.path.join(myLogPath, f'clidbase.log')
-    thisLogFile = os.path.join(myLogPath, f'{myModule}.log')
-    # print(f'clidconfig-> mainLogFile: {mainLogFile}')
-    # print(f'clidconfig-> thisLogFile: {thisLogFile}')
-    try:
-        if not os.path.exists(mainLogFile):
-            controlConfigFile = open(mainLogFile, mode='w')
-            controlConfigFile.close()
-            os.remove(mainLogFile)
-        else:
-            controlConfigFile = open(mainLogFile, mode='r+')
-            controlConfigFile.close()
-    except:
-        callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
-        print(f'\n{"":_^80}')
-        print(f'clidconfig-> AVISO:')
-        print(f'{TB}-> No se puede guardar el fichero log:  {mainLogFile}')
-        print(f'{TB}-> Es posible que no tenga permisos de escritura en: {myLogPath}')
-        print(f'{TB}-> O que exista el fichero {mainLogFile} y este bloqueado.')
-        rutaAlternativa = True
+    if 'GLBLlogFile' in dir(GLO) and GLO.GLBLlogFile:
+        mainLogFile = os.path.join(myLogPath, f'clidbase.log')
+        thisLogFile = os.path.join(myLogPath, f'{myModule}.log')
+        # print(f'clidconfig-> mainLogFile: {mainLogFile}')
+        # print(f'clidconfig-> thisLogFile: {thisLogFile}')
         try:
-            MAIN_HOME_DIR = str(pathlib.Path.home())
-            MAIN_LOG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
-            print(f'\tSe intenta la ruta alternativa: {MAIN_LOG_DIR}')
-            mainLogFile = os.path.join(MAIN_LOG_DIR, f'clidbase.log')
-            thisLogFile = os.path.join(MAIN_LOG_DIR, f'{myModule}.log')
             if not os.path.exists(mainLogFile):
                 controlConfigFile = open(mainLogFile, mode='w')
                 controlConfigFile.close()
@@ -446,19 +426,40 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
             else:
                 controlConfigFile = open(mainLogFile, mode='r+')
                 controlConfigFile.close()
-            print(f'\tOk log file1: {mainLogFile}')
-            print(f'\tOk log file2: {thisLogFile}')
-            myLogPath = MAIN_LOG_DIR
         except:
-            print(f'\tTampoco se puede escribir en la ruta {MAIN_LOG_DIR}')
-            MAIN_HOME_DIR = str(pathlib.Path.home())
-            mainLogFile = os.path.join(MAIN_HOME_DIR, f'clidbase.log')
-            thisLogFile = os.path.join(MAIN_HOME_DIR, f'{myModule}.log')
-            print(f'\tSe opta por log file1: {mainLogFile}')
-            print(f'\tlog file2: {thisLogFile}')
-            myLogPath = MAIN_HOME_DIR
-        print(f'{TB}-> callingModulePrevio: {callingModulePrevio}')
-        print(f'{"":=^80}')
+            callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
+            print(f'\n{"":_^80}')
+            print(f'clidconfig-> AVISO:')
+            print(f'{TB}-> No se puede guardar el fichero log:  {mainLogFile}')
+            print(f'{TB}-> Es posible que no tenga permisos de escritura en: {myLogPath}')
+            print(f'{TB}-> O que exista el fichero {mainLogFile} y este bloqueado.')
+            rutaAlternativa = True
+            try:
+                MAIN_HOME_DIR = str(pathlib.Path.home())
+                MAIN_LOG_DIR = os.path.join(MAIN_HOME_DIR, 'Documents')
+                print(f'\tSe intenta la ruta alternativa: {MAIN_LOG_DIR}')
+                mainLogFile = os.path.join(MAIN_LOG_DIR, f'clidbase.log')
+                thisLogFile = os.path.join(MAIN_LOG_DIR, f'{myModule}.log')
+                if not os.path.exists(mainLogFile):
+                    controlConfigFile = open(mainLogFile, mode='w')
+                    controlConfigFile.close()
+                    os.remove(mainLogFile)
+                else:
+                    controlConfigFile = open(mainLogFile, mode='r+')
+                    controlConfigFile.close()
+                print(f'\tOk log file1: {mainLogFile}')
+                print(f'\tOk log file2: {thisLogFile}')
+                myLogPath = MAIN_LOG_DIR
+            except:
+                print(f'\tTampoco se puede escribir en la ruta {MAIN_LOG_DIR}')
+                MAIN_HOME_DIR = str(pathlib.Path.home())
+                mainLogFile = os.path.join(MAIN_HOME_DIR, f'clidbase.log')
+                thisLogFile = os.path.join(MAIN_HOME_DIR, f'{myModule}.log')
+                print(f'\tSe opta por log file1: {mainLogFile}')
+                print(f'\tlog file2: {thisLogFile}')
+                myLogPath = MAIN_HOME_DIR
+            print(f'{TB}-> callingModulePrevio: {callingModulePrevio}')
+            print(f'{"":=^80}')
 
     # return (myLogPath, mainLogFile, thisLogFile)
 
@@ -487,47 +488,61 @@ def creaLog(consLogYaCreado=False, myModule='module', myUser=myUser, myPath='.',
     formatterFile = logging.Formatter(formatter2, style='{', datefmt='%d-%m-%y %H:%M:%S')
     formatterCons = logging.Formatter(formatter0, style='{')
 
-    if not consLogYaCreado:
-        # print(f'clidconfig-> {myModule}-> Iniciando logging.basicConfig<> para fileLog & consLog')
-        # Este logger se mantiene activo para todos los modulos,
-        # pero no puedo utilizar myFilter con todos los modulos porque algunas librerias (matplotlib)
-        # lanzan mensajes de debug y no tienen definido el filtro, con lo que da error
-        # https://docs.python.org/3/library/logging.html#logging.basicConfig
-        logging.basicConfig(
-            filename=mainLogFile,
-            filemode='w',
-            format=formatter1,
-            style='{',
-            datefmt='%d-%m-%y %H:%M:%S',
-            # datefmt='%d-%b-%y %H:%M:%S',
-            level=logLevelFile,
-            # level=logging.DEBUG,
-            # level=logging.INFO,
-            # level=logging.WARNING,
-            # level=logging.ERROR,
-            # level=logging.CRITICAL,
-        )
-    else:
+    if consLogYaCreado:
         # qlidtwins.py se ejecuta lanzando el paquete cartolidar desde linea de comandos:
         #  python -m cartolidar
         # En __main__.py ya se ha confiigurado el logging.basicConfig()
         # print(f'clidconfig-> {myModule}-> Ya se ha creado el loggin de consola para todos los modulos en __main__.py')
         pass
-
+    else:
+        # print(f'clidconfig-> {myModule}-> Iniciando logging.basicConfig<> para fileLog & consLog')
+        # Este logger se mantiene activo para todos los modulos,
+        # pero no puedo utilizar myFilter con todos los modulos porque algunas librerias (matplotlib)
+        # lanzan mensajes de debug y no tienen definido el filtro, con lo que da error
+        # https://docs.python.org/3/library/logging.html#logging.basicConfig
+        if 'GLBLlogFile' in dir(GLO) and GLO.GLBLlogFile:
+            logging.basicConfig(
+                filename=mainLogFile,
+                filemode='w',
+                format=formatter1,
+                style='{',
+                datefmt='%d-%m-%y %H:%M:%S',
+                # datefmt='%d-%b-%y %H:%M:%S',
+                level=logLevelFile,
+                # level=logging.DEBUG,
+                # level=logging.INFO,
+                # level=logging.WARNING,
+                # level=logging.ERROR,
+                # level=logging.CRITICAL,
+            )
+        else:
+            logging.basicConfig(
+                format=formatter0,
+                style='{',
+                datefmt='%d-%m-%y %H:%M:%S',
+                # datefmt='%d-%b-%y %H:%M:%S',
+                level=logLevelCons,
+                # level=logging.DEBUG,
+                # level=logging.INFO,
+                # level=logging.WARNING,
+                # level=logging.ERROR,
+                # level=logging.CRITICAL,
+            )
     myLog = logging.getLogger(myModule)
     # myLog.setLevel(logging.DEBUG)
     myLog.addFilter(myFilter)
-    
-    # Este logger solo actua para este modulo:
-    # https://docs.python.org/3/library/logging.handlers.html#filehandler
-    fileLog = logging.FileHandler(thisLogFile, mode='w')
-    # fileLog.terminator = ''
-    fileLog.set_name(myModule)
-    fileLog.setLevel(logLevelFile)
-    fileLog.setFormatter(formatterFile)
-    fileLog.addFilter(myFilter)
-    # logging.getLogger().addHandler(fileLog)
-    myLog.addHandler(fileLog)
+
+    if 'GLBLlogFile' in dir(GLO) and GLO.GLBLlogFile:
+        # Este logger solo actua para este modulo:
+        # https://docs.python.org/3/library/logging.handlers.html#filehandler
+        fileLog = logging.FileHandler(thisLogFile, mode='w')
+        # fileLog.terminator = ''
+        fileLog.set_name(myModule)
+        fileLog.setLevel(logLevelFile)
+        fileLog.setFormatter(formatterFile)
+        fileLog.addFilter(myFilter)
+        # logging.getLogger().addHandler(fileLog)
+        myLog.addHandler(fileLog)
     if not consLogYaCreado:
         # https://docs.python.org/3/library/logging.handlers.html#logging.StreamHandler
         consLog = logging.StreamHandler(stream=sys.stdout)

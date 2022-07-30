@@ -52,7 +52,7 @@ try:
     from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
     gdalOk = True
 except:
-    print('clidflow-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
+    print('clidraster-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
     gdalOk = False
 if not gdalOk:
     try:
@@ -61,7 +61,7 @@ if not gdalOk:
         gdalOk = True
     except:
         gdalOk = False
-        print('clidflow-> Error importando gdal.')
+        print('clidraster-> Error importando gdal.')
         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions

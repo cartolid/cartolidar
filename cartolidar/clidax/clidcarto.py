@@ -469,7 +469,7 @@ class CartoRefVector(object):
     def leerArraysGuardadasVuelta01_cartoRefVector(self, npzFileNameArraysVuelta0a1, LCLverbose=False):
         self.LCLverbose = LCLverbose
         if GLO.GLBLverbose or self.LCLverbose or __verbose__:
-            myLog.info(f'\t-> clidcarto-> Leyendo npz: {npzFileNameArraysVuelta0a1}')
+            myLog.info(f'clidcarto-> Leyendo npz de vector: {npzFileNameArraysVuelta0a1}')
         if os.path.exists(npzFileNameArraysVuelta0a1):
             try:
                 npzArraysVuelta01 = np.load(npzFileNameArraysVuelta0a1, allow_pickle=True)
@@ -2337,7 +2337,7 @@ class CartoRefRaster(object):
     def leerArraysGuardadasVuelta01_cartoRefRaster(self, npzFileNameArraysVuelta0a1, LCLverbose=False):
         self.LCLverbose = LCLverbose
         if GLO.GLBLverbose or self.LCLverbose or __verbose__:
-            print('\t-> clidcarto-> Leyendo npz:', npzFileNameArraysVuelta0a1)
+            print(f'clidcarto-> Leyendo npz de raster: {npzFileNameArraysVuelta0a1}')
         if os.path.exists(npzFileNameArraysVuelta0a1):
             try:
                 npzArraysVuelta01 = np.load(npzFileNameArraysVuelta0a1, allow_pickle=True)
