@@ -7,7 +7,7 @@ from __future__ import division, print_function
 
 import os
 import sys
-# import pathlib
+import pathlib
 import time
 # import datetime
 # import types
@@ -31,36 +31,55 @@ import importlib.util
 # Paquetes de terceros
 import numpy as np
 
-spec = importlib.util.find_spec('cartolidar')
-if not spec is None:
-    from cartolidar.clidax import clidaux
-    # from cartolidar.clidax.clidconfig import GLO
-    from cartolidar.clidax import clidconfig
-    from cartolidar.clidfr import clidhead
-    from cartolidar.clidnb import clidnaux
-    try:
-        from cartolidar.clidnb import clidnv0
-    except:
-        print('cliddata-> No se importan clidnv0 por no estar disponible todavia')
+# ==============================================================================
+if '--cargadocliddata' in sys.argv:
+    moduloPreviamenteCargado = True
+    print(f'\ncliddata->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
 else:
+    moduloPreviamenteCargado = False
+    print(f'\ncliddata->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    sys.argv.append('--cargadocliddata')
+# ==============================================================================
+if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
+    ARGS_idProceso = sys.argv[sys.argv.index('--idProceso') + 1]
+else:
+    # ARGS_idProceso = str(random.randint(1, 999998))
+    ARGS_idProceso = '999999'
+    sys.argv.append('--idProceso')
+    sys.argv.append(ARGS_idProceso)
+# ==============================================================================
+if type(ARGS_idProceso) == int:
+    MAIN_idProceso = ARGS_idProceso
+elif type(ARGS_idProceso) == str:
     try:
-        from cartolidar.clidax import clidaux
-        # from cartolidar.clidax.clidconfig import GLO
-        from cartolidar.clidax import clidconfig
-        from cartolidar.clidfr import clidhead
-        from cartolidar.clidnb import clidnaux
+        MAIN_idProceso = int(ARGS_idProceso)
     except:
-        sys.stderr.write(f'cliddata-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-        sys.stderr.write('\t-> Se importan paquetes de cartolidar desde cliddata del directorio local {os.getcwd()}/....\n')
-        from clidax import clidaux
-        # from clidax.clidconfig import GLO
-        from clidax import clidconfig
-        from clidfr import clidhead
-        from clidnb import clidnaux
-    try:
-        from cartolidar.clidnb import clidnv0
-    except:
-        print('cliddata-> No se importan clidnv0 por no estar disponible todavia')
+        print(f'cliddata-> ATENCION: revisar asignacion de idProceso.')
+        print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+        print(f'sys.argv: {sys.argv}')
+else:
+    MAIN_idProceso = 0
+    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
+    print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
+    print(f'sys.argv: {sys.argv}')
+# ==============================================================================
+# Verbose provisional para la version alpha
+if '-vvv' in sys.argv:
+    __verbose__ = 3
+elif '-vv' in sys.argv:
+    __verbose__ = 2
+elif '-v' in sys.argv or '--verbose' in sys.argv:
+    __verbose__ = 1
+else:
+    # En eclipse se adopta el valor indicado en Run Configurations -> Arguments
+    __verbose__ = 0
+# ==============================================================================
+if '-q' in sys.argv:
+    __quiet__ = 1
+    __verbose__ = 0
+else:
+    __quiet__ = 0
+# ==============================================================================
 
 # ==============================================================================
 # ========================== Variables globales ================================
@@ -71,6 +90,65 @@ TV = ' ' * 3
 TW = ' ' * 2
 # ==============================================================================
 
+# ==============================================================================
+# ============================== Variables MAIN ================================
+# ==============================================================================
+# Directorios de la aplicacion:
+# Dir del modulo que se esta ejecutando (cliddata.py):
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))  # En calendula /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/cartolidar/cartolidar/clidax
+# Dir de clidbase.py:
+MAIN_BASE_DIR = os.path.join(MAIN_FILE_DIR, '..')
+# Dir de setup.py:
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_BASE_DIR, '..')) # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
+# Dir en el que esta el proyecto (D:/_clid o /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1):
+MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
+# Directorio desde el que se lanza la app (estos dos coinciden):
+MAIN_THIS_DIR = os.path.abspath('.')
+MAIN_WORK_DIR = os.getcwd()
+# Directorio que depende del entorno:
+MAIN_HOME_DIR = str(pathlib.Path.home())
+# ==============================================================================
+# Unidad de disco si MAIN_ENTORNO = 'windows'
+MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
+# ==============================================================================
+if MAIN_FILE_DIR[:12] == '/LUSTRE/HOME':
+    MAIN_ENTORNO = 'calendula'
+    MAIN_PC = 'calendula'
+elif MAIN_FILE_DIR[:8] == '/content':
+    MAIN_ENTORNO = 'colab'
+    MAIN_PC = 'colab'
+else:
+    MAIN_ENTORNO = 'windows'
+    try:
+        if MAIN_DRIVE[0] == 'D':
+            MAIN_PC = 'Casa'
+        else:
+            MAIN_PC = 'JCyL'
+    except:
+        MAIN_ENTORNO = 'calendula'
+        MAIN_PC = 'calendula'
+# ==============================================================================
+
+# ==============================================================================
+spec = importlib.util.find_spec('cartolidar')
+if spec is None or MAIN_ENTORNO == 'calendula':
+    sys.stdout.write(f'cliddata-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+    sys.stdout.write('\t-> Se importan paquetes de cartolidar desde cliddata del directorio local {os.getcwd()}/....\n')
+    from clidax import clidaux
+    # from clidax.clidconfig import GLO
+    from clidax import clidconfig
+    from clidfr import clidhead
+    from clidnb import clidnaux
+else:
+    from cartolidar.clidax import clidaux
+    # from cartolidar.clidax.clidconfig import GLO
+    from cartolidar.clidax import clidconfig
+    from cartolidar.clidfr import clidhead
+    from cartolidar.clidnb import clidnaux
+# ==============================================================================
+
+
+# ==============================================================================
 configVarsDict = clidconfig.leerCambiarVariablesGlobales(inspect_stack=inspect.stack())
 GLO = clidconfig.VariablesGlobales(configVarsDict)
 
@@ -3175,6 +3253,9 @@ class LasData(object):
         else:
             self.aCeldasCoeficientesMds = np.zeros(1 * 1 * 10, dtype=np.float32).reshape(1, 1, 10)
 
+        print(f'cliddata-> GLBLcalcularMds: {GLO.GLBLcalcularMds}')
+        print(f'cliddata-> aCeldasCoeficientesMds.shape = {(self.aCeldasCoeficientesMds).shape}')
+
         # Arrays para guardar el resultado de ajustar planos
         if (GLO.GLBLcalcularMdg and GLO.GLBLgrabarMdgAjusteCelda) or GLO.GLBLcalcularMdp:
             self.aCeldasCoeficientesMdg = np.zeros(self.nCeldasX * self.nCeldasY * 10, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, 10)
@@ -4212,22 +4293,6 @@ class LasData(object):
 
 
     # ==========================================================================
-    def anularSuelo(self, inputFile_las, listaArraysParaBorrar):
-        global GLD
-        clidaux.printMsg('ATENCION %s no tiene puntos suelo, se desactiva todo lo relacionado con los puntos clasificados suelo.\n' % inputFile_las)
-        GLO.GLBLcalcularMds = False
-        GLO.GLBLgrabarNumPuntosSuelo = False
-        GLO.GLBLgrabarCeldasClasesSueloVegetacion = False
-        GLO.GLBLgrabarCeldasClasesEdificio = False
-        GLO.GLBLgrabarCeldasClasesOtros = False
-        GLO.GLBLgrabarFccPorMayorDeAltConPrimerosRetRptoAmds = False
-        GLO.GLBLgrabarFccPorRangoDeAltConPrimerosRetRptoAmds = False
-        GLO.GLBLgrabarFccPorRangoDeAltConTodosLosRetRptoAmds = False
-        for miArray in listaArraysParaBorrar:
-            del miArray
-
-
-    # ==========================================================================
     def mostrarResultadoVuelta0(self, contadorPral):
         clidaux.printMsg('\n{:_^80}'.format(''))
         clidaux.printMsg(
@@ -5145,7 +5210,7 @@ class LasData(object):
                     # print('aCeldasAngMedTlrTlcPorPasada:', self.aCeldasAngMedTlrTlcPorPasada, type(self.aCeldasAngMedTlrTlcPorPasada))
                     # print('self.aCeldasAngMedTlrTlcPorPasada.shape:', self.aCeldasAngMedTlrTlcPorPasada.shape)
                     if not self.aFiles['Ang'] is None and self.aCeldasAngMedTlrTlcPorPasada.shape[0] > 1:
-                        miCeldaAnguloMedio = int(clidnv0.leerEscalarEnNdarrayId(self.aCeldasAngMedTlrTlcPorPasada[nX, nY], self.IDselec[nX, nY]))
+                        miCeldaAnguloMedio = int(clidnaux.leerEscalarEnNdarrayId(self.aCeldasAngMedTlrTlcPorPasada[nX, nY], self.IDselec[nX, nY]))
                         self.aFiles['Ang'].write('%02i ' % miCeldaAnguloMedio)
                     # for reCuentaPasadas in range(self.numTotalPasadas):
                     #    ID_nPtos = self.aCeldasNumPuntosTlrTlcEcpOk[nX, nY][reCuentaPasadas]

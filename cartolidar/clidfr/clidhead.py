@@ -373,30 +373,22 @@ if callingModuleInicial == 'clidtools' or callingModuleInicial == 'clidclas':
     MAIN_controlFileGral = None
 else:
     spec = importlib.util.find_spec('cartolidar')
-    if not spec is None:
+    if spec is None or MAIN_ENTORNO == 'calendula':
+        if True:
+        # try:
+            if CONFIGverbose:
+                sys.stdout.write(f'\nclidhead-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
+            from clidax import clidconfig
+            if CONFIGverbose:
+                sys.stdout.write(f'\nclidhead-> Ok clidconfig importado del clidax local (2)')
+        from clidnb import clidnaux
+    else:
         if CONFIGverbose:
             sys.stdout.write('\nclidhead-> Importando clidconfig desde cartolidar.clidax\n')
         from cartolidar.clidax import clidconfig
         if CONFIGverbose:
             sys.stdout.write(f'\nclidhead-> Ok clidconfig importado de cartolidar.clidax (1)')
         from cartolidar.clidnb import clidnaux
-    else:
-        try:
-            if CONFIGverbose:
-                sys.stdout.write('\nclidhead-> Importando clidconfig desde cartolidar.clidax\n')
-            from cartolidar.clidax import clidconfig
-            if CONFIGverbose:
-                sys.stdout.write(f'\nclidhead-> Ok clidconfig importado de cartolidar.clidax (1)')
-            from cartolidar.clidnb import clidnaux
-        except:
-            if True:
-            # try:
-                if CONFIGverbose:
-                    sys.stdout.write(f'\nclidhead-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
-                from clidax import clidconfig
-                if CONFIGverbose:
-                    sys.stdout.write(f'\nclidhead-> Ok clidconfig importado del clidax local (2)')
-            from clidnb import clidnaux
     configVarsDict = clidconfig.leerCambiarVariablesGlobales(
         LCL_idProceso=MAIN_idProceso
     )
@@ -2634,15 +2626,12 @@ class LasHeadClass(object):
 #             LCLnMaxPtosCeldaArrayPredimensionadaTodos = GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos
 
         spec = importlib.util.find_spec('cartolidar')
-        if not spec is None:
-            from cartolidar.clidfr import cliddata
+        if spec is None or MAIN_ENTORNO == 'calendula':
+            sys.stderr.write(f'clidhead-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
+            sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....')
+            from clidfr import cliddata
         else:
-            try:
-                from cartolidar.clidfr import cliddata
-            except:
-                sys.stderr.write(f'clidhead-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-                sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....')
-                from clidfr import cliddata
+            from cartolidar.clidfr import cliddata
         myLasData = cliddata.LasData(self)
         myLasData.nPtosAleer = self.numptrecords
         myLasData.sampleLas = 1

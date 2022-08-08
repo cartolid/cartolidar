@@ -206,6 +206,12 @@ else:
     __copyright__ = '@clid 2016-22'
 # ==============================================================================
 
+# ==============================================================================
+CONFIGverbose = __verbose__ > 2
+if CONFIGverbose:
+    print(f'\nclidconfig-> AVISO: CONFIGverbose True; __verbose__: {__verbose__}')
+# ==============================================================================
+
 
 # ==============================================================================
 # Duplico esta funcion de clidaux para no importar clidaux
@@ -274,6 +280,54 @@ def showCallingModules(inspect_stack=inspect.stack(), verbose=False):
 
 
 # ==============================================================================
+if CONFIGverbose:
+    sys.stdout.write(f'\n{" log - config ":_^80}\n')
+    sys.stdout.write(f'\nlidconfig-> Cargando lidconfig...\n')
+    sys.stdout.write(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {MAIN_WORK_DIR}\n')
+    sys.stdout.write(f'{TB}-> Revisando la pila de llamadas...\n')
+callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
+if CONFIGverbose:
+    sys.stdout.write(f'{TB}{TV}-> callingModulePrevio:  {callingModulePrevio}\n')
+    sys.stdout.write(f'{TB}{TV}-> callingModuleInicial: {callingModuleInicial}\n')
+    sys.stdout.write(f'{"":=^80}\n')
+# ==============================================================================
+
+
+# ==============================================================================
+if callingModuleInicial == 'clidflow':
+    printMsgToFile = False
+else:
+    printMsgToFile = True
+# ==============================================================================o
+def printLog(level='info', mensaje='', outputFileLas=True, verbose=True, newLine=True, end=None):
+    if verbose:
+        if not end is None:
+            print(mensaje, end=end)
+        elif not newLine:
+            end=''
+            print(mensaje, end=end)
+        else:
+            end=''
+            print(mensaje)
+    if printMsgToFile and outputFileLas:
+        try:
+            if 'controlFileLas' in dir(GLO) and GLO.controlFileLas:
+                try:
+                    GLO.controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
+                except:
+                    if GLO.controlFileGral:
+                        GLO.controlFileGral.write('Error writing control file (1).\n')
+            elif 'controlFileGral' in dir(GLO):
+                GLO.controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
+        except:
+            print(f'clidaux-> printMsg: no hay acceso a controlFileLas o controlFileGral.')
+            if 'controlFileLasName' in dir(GLO):
+                print(f'{TB}-> controlFileLasName:   {GLO.controlFileLasName}')
+            if 'GLBLficheroDeControlGral' in dir(GLO):
+                print(f'{TB}-> ficheroDeControlGral: {GLO.GLBLficheroDeControlGral}')
+
+
+# ==============================================================================
 def iniciaConsLog(myModule='clidconfig', myVerbose=False, myQuiet=False):
     if myVerbose == 3:
         logLevel = logging.DEBUG  # 10
@@ -323,48 +377,24 @@ def iniciaConsLog(myModule='clidconfig', myVerbose=False, myQuiet=False):
 
 
 # ==============================================================================
-def foo0():
-    pass
-
-# ==============================================================================
-CONFIGverbose = __verbose__ > 2
-if CONFIGverbose:
-    print(f'\nclidconfig-> AVISO: CONFIGverbose True; __verbose__: {__verbose__}')
-# ==============================================================================
-
-# ==============================================================================
 myUser = infoUsuario()
-myModule = __name__.split('.')[-1]
-# ==============================================================================
-if not moduloPreviamenteCargado or True:
-    # print('\nclidconfig-> AVISO: creando myLog (ConsLog)')
-    myLog = iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
-# ==============================================================================
-if CONFIGverbose:
-    myLog.debug(f'{"":_^80}')
-    myLog.debug(f'clidconfig-> Debug & alpha version info:')
-    myLog.debug(f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
-    myLog.debug(f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
-    myLog.debug(f'{TB}-> __package__ :     <{__package__ }>')
-    myLog.debug(f'{TB}-> __name__:         <{__name__}>')
-    myLog.debug(f'{TB}-> __verbose__:      <{__verbose__}>')
-    myLog.debug(f'{TB}-> IdProceso         <{MAIN_idProceso:006}>')
-    # myLog.debug(f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
-    myLog.debug(f'{TB}-> sys.argv:         <{sys.argv}>')
-    myLog.debug(f'{"":=^80}')
-# ==============================================================================
-
+# myModule = __name__.split('.')[-1]
+# if not moduloPreviamenteCargado or True:
+#     # print('\nclidconfig-> AVISO: creando myLog (ConsLog)')
+#     myLog = iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
 # ==============================================================================
 if CONFIGverbose:
-    myLog.info(f'\n{" log - config ":_^80}')
-    myLog.debug(f'\nclidconfig-> Cargando clidconfig...')
-    myLog.debug(f'{TB}-> Directorio desde el que se lanza la aplicacion-> os.getcwd(): {os.getcwd()}')
-    myLog.debug(f'{TB}-> Revisando la pila de llamadas...')
-callingModulePrevio, callingModuleInicial = showCallingModules(inspect_stack=inspect.stack(), verbose=False)
-if CONFIGverbose:
-    myLog.debug(f'{TB}{TV}-> callingModulePrevio:  {callingModulePrevio}')
-    myLog.debug(f'{TB}{TV}-> callingModuleInicial: {callingModuleInicial}')
-    myLog.info(f'{"":=^80}')
+    printLog(level='info', mensaje=f'{"":_^80}')
+    printLog(level='info', mensaje=f'clidconfig-> Debug & alpha version info:')
+    printLog(level='info', mensaje=f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
+    printLog(level='info', mensaje=f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
+    printLog(level='info', mensaje=f'{TB}-> __package__ :     <{__package__ }>')
+    printLog(level='info', mensaje=f'{TB}-> __name__:         <{__name__}>')
+    printLog(level='info', mensaje=f'{TB}-> __verbose__:      <{__verbose__}>')
+    printLog(level='info', mensaje=f'{TB}-> IdProceso         <{MAIN_idProceso:006}>')
+    # printLog(level='info', mensaje=f'{TB}-> configFile:       <{GLO.configFileNameCfg}>')
+    printLog(level='info', mensaje=f'{TB}-> sys.argv:         <{sys.argv}>')
+    printLog(level='info', mensaje=f'{"":=^80}')
 # ==============================================================================
 
 

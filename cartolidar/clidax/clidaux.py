@@ -405,31 +405,25 @@ if CONFIGverbose:
     # sys.path.insert(0, os.path.join(MAIN_PROJ_DIR, 'cartolidar/clidax'))
 
 spec = importlib.util.find_spec('cartolidar')
-if not spec is None:
+if spec is None or MAIN_ENTORNO == 'calendula':
+    if True:
+    # try:
+        if CONFIGverbose:
+            sys.stdout.write(f'\nclidaux-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
+        from clidax import clidconfig
+        if CONFIGverbose:
+            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado del clidax local (2)\n')
+    # except:
+    #     sys.stdout.write(f'\nclidaux-> Alternativa para cuando el modulo inicial es este u otro modulo de este package:\n')
+    #     import clidconfig
+    #     if CONFIGverbose:
+    #         sys.stdout.write(f'\nclidaux-> Ok clidconfig importado directamente (modulo inicial en el mismo package que clidconfig) (3)\n')
+else:
     if CONFIGverbose:
         sys.stdout.write('\nclidaux-> Importando clidconfig desde cartolidar.clidax\n')
     from cartolidar.clidax import clidconfig
     if CONFIGverbose:
         sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (0)\n')
-else:
-    try:
-        if CONFIGverbose:
-            sys.stdout.write('\nclidaux-> Importando clidconfig desde cartolidar.clidax\n')
-        from cartolidar.clidax import clidconfig
-        if CONFIGverbose:
-            sys.stdout.write(f'\nclidaux-> Ok clidconfig importado de cartolidar.clidax (1)\n')
-    except:
-        try:
-            if CONFIGverbose:
-                sys.stdout.write(f'\nclidaux-> Intento alternativo de importar clidconfig desde la version local {os.getcwd()}/clidax\n')
-            from clidax import clidconfig
-            if CONFIGverbose:
-                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado del clidax local (2)\n')
-        except:
-            sys.stdout.write(f'\nclidaux-> Alternativa para cuando el modulo inicial es este u otro modulo de este package:\n')
-            import clidconfig
-            if CONFIGverbose:
-                sys.stdout.write(f'\nclidaux-> Ok clidconfig importado directamente (modulo inicial en el mismo package que clidconfig) (3)\n')
 
 # ==============================================================================
 MAINusuario = infoUsuario(False)
@@ -2419,7 +2413,10 @@ def completarVariablesGlobales(
             and  GLO.MAINrutaLaz != ''
         ):
             if MAIN_ENTORNO == 'calendula':
-                GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, GLO.MAINrutaLaz)
+                if ':' in GLO.MAINrutaLaz:
+                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, 'laz2')
+                else:
+                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, GLO.MAINrutaLaz)
             else:
                 if ':' in GLO.MAINrutaLaz:
                     # GLO.MAINrutaLaz = 'E:/incendioZamora'
