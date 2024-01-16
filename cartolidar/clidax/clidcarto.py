@@ -50,7 +50,8 @@ if not gdalOk:
         gdalOk = True
     except:
         gdalOk = False
-        print('clidcarto-> Error importando gdal.')
+        print('clidcarto-> No se ha podido cargar gdal ni directamente ni desde osgeo')
+        print('clidcarto-> Se cierra el programa')
         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
@@ -118,10 +119,12 @@ elif MAIN_FILE_DIR[:8] == '/content':
 else:
     MAIN_ENTORNO = 'windows'
     try:
-        if MAIN_DRIVE[0] == 'D':
+        if 'benmarjo' in MAIN_HOME_DIR:
+            MAIN_PC = 'JCyL'
+        elif 'joseb' in MAIN_HOME_DIR:
             MAIN_PC = 'Casa'
         else:
-            MAIN_PC = 'JCyL'
+            MAIN_PC = 'Otro'
     except:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
@@ -142,12 +145,12 @@ elif type(ARGS_idProceso) == str:
     try:
         MAIN_idProceso = int(ARGS_idProceso)
     except:
-        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
+        print(f'clidcarto-> ATENCION: revisar asignacion de idProceso.')
         print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
         print(f'sys.argv: {sys.argv}')
 else:
     MAIN_idProceso = 0
-    print(f'clidconfig-> ATENCION: revisar codigo de idProceso.')
+    print(f'clidcarto-> ATENCION: revisar codigo de idProceso.')
     print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
     print(f'sys.argv: {sys.argv}')
 # ==============================================================================
@@ -213,8 +216,12 @@ if CONFIGverbose:
 # Recuperar la captura de errores de importacion en la version beta
 spec = importlib.util.find_spec('cartolidar')
 if spec is None or MAIN_ENTORNO == 'calendula':
-    sys.stdout.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
-    sys.stdout.write(f'\t-> Se importa clidconfig desde clidcarto del directorio local {os.getcwd()}/....\n')
+    if MAIN_ENTORNO == 'calendula':
+        if __verbose__:
+            sys.stdout.write(f'clidcarto-> Se esta ejecutando cartolidar en calendula, cargado desde la ruta {os.getcwd()}\n')
+    else:
+        sys.stdout.write(f'clidcarto-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+        sys.stdout.write(f'\t-> Se importa clidconfig desde clidcarto del directorio local {os.getcwd()}/....\n')
     from clidax import clidconfig
     from clidax import clidaux
 else:
@@ -280,7 +287,7 @@ else:
     configVarsDict = clidconfig.leerCambiarVariablesGlobales(
         LCL_idProceso=MAIN_idProceso
     )
-    GLO = clidconfig.VariablesGlobales(configVarsDict)
+    GLO = clidconfig.GLO_CLASS(configVarsDict)
 GLO.MAIN_idProceso = MAIN_idProceso
 mostrarCallingModuleInicial = False
 if not 'GLBLverbose' in dir(GLO):
@@ -310,13 +317,12 @@ if not 'GLBLrasterPixelSize' in dir(GLO):
 if mostrarCallingModuleInicial:
     print(f'clidcarto-> callingModuleInicial: {callingModuleInicial}')
 
-if 'MAINrutaOutput' in dir(GLO):
-    print(f'clidcarto-> MAINrutaOutput: {GLO.MAINrutaOutput}')
-if 'GLBL_TRAIN_DIR' in dir(GLO):
-    print(f'clidcarto-> GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
-if 'MAIN_MDLS_DIR' in dir(GLO):
-    print(f'clidcarto-> MAIN_MDLS_DIR:  {GLO.MAIN_MDLS_DIR}')
-# D:\_clid\data\datasets\cartolid\trainImg
+# if 'MAINrutaOutput' in dir(GLO):
+#     print(f'clidcarto-> MAINrutaOutput: {GLO.MAINrutaOutput}')
+# if 'GLBL_TRAIN_DIR' in dir(GLO):
+#     print(f'clidcarto-> GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
+# if 'MAIN_MDLS_DIR' in dir(GLO):
+#     print(f'clidcarto-> MAIN_MDLS_DIR:  {GLO.MAIN_MDLS_DIR}')
 # ==============================================================================
 
 
@@ -326,7 +332,47 @@ if callingModuleInicial == 'clidflow':
 else:
     printMsgToFile = True
 # ==============================================================================o
-def printLog(level='info', mensaje='', outputFileLas=True, verbose=True, newLine=True, end=None):
+
+# ==============================================================================o
+contadorErroresEscrituraControlFileLas = 0
+def printLog(mensaje='', level='info', outputFileLas=True, verbose=True, newLine=True, end=None):
+    global contadorErroresEscrituraControlFileLas
+    if printMsgToFile and outputFileLas:
+        try:
+            if 'controlFileLasObj' in dir(GLO) and GLO.controlFileLasObj:
+                try:
+                    if not end is None:
+                        GLO.controlFileLasObj.write(str(mensaje) + end + '\n' if newLine else ' ')
+                    else:
+                        GLO.controlFileLasObj.write(str(mensaje) + '\n' if newLine else ' ')
+                except:
+                    try:
+                        controlFileGralObj = open(GLO.GLBLficheroDeControlGral, mode='a+')
+                        controlFileGralObj.write(f'\nError (1) escribiendo en {GLO.controlFileLasObj}')
+                        controlFileGralObj.write(f'\nMensaje no escrito:\n')
+                        controlFileGralObj.write(str(mensaje))
+                        controlFileGralObj.close()
+                    except:
+                        contadorErroresEscrituraControlFileLas += 1
+                        if contadorErroresEscrituraControlFileLas < 10:
+                            print(f'clidcarto-> printLog: no hay acceso a controlFileLasObj ni controlFileGralObj.')
+                        else:
+                            mensaje = f'!!! {mensaje}'
+            elif 'GLBLficheroDeControlGral' in dir(GLO) and GLO.GLBLficheroDeControlGral:
+                controlFileGralObj = open(GLO.GLBLficheroDeControlGral, mode='a+')
+                controlFileGralObj.write(f'\nNo hay acceso a controlFileLasObj: {GLO.controlFileLasObj}\n')
+                controlFileGralObj.write(str(mensaje))
+                controlFileGralObj.close()
+        except:
+            contadorErroresEscrituraControlFileLas += 1
+            if contadorErroresEscrituraControlFileLas < 10:
+                print(f'clidcarto-> printLog: no hay acceso a controlFileLasObj o controlFileGralObj.')
+                if 'controlFileLasName' in dir(GLO):
+                    print(f'{TB}-> controlFileLasName:   {GLO.controlFileLasName}')
+                if 'GLBLficheroDeControlGral' in dir(GLO):
+                    print(f'{TB}-> ficheroDeControlGral: {GLO.GLBLficheroDeControlGral}')
+            else:
+                mensaje = f'### {mensaje}'
     if verbose:
         if not end is None:
             print(mensaje, end=end)
@@ -334,24 +380,7 @@ def printLog(level='info', mensaje='', outputFileLas=True, verbose=True, newLine
             end=''
             print(mensaje, end=end)
         else:
-            end=''
             print(mensaje)
-    if printMsgToFile and outputFileLas:
-        try:
-            if 'controlFileLas' in dir(GLO) and GLO.controlFileLas:
-                try:
-                    GLO.controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
-                except:
-                    if GLO.controlFileGral:
-                        GLO.controlFileGral.write('Error writing control file (1).\n')
-            elif 'controlFileGral' in dir(GLO):
-                GLO.controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
-        except:
-            print(f'clidaux-> printMsg: no hay acceso a controlFileLas o controlFileGral.')
-            if 'controlFileLasName' in dir(GLO):
-                print(f'{TB}-> controlFileLasName:   {GLO.controlFileLasName}')
-            if 'GLBLficheroDeControlGral' in dir(GLO):
-                print(f'{TB}-> ficheroDeControlGral: {GLO.GLBLficheroDeControlGral}')
 
 
 # ==============================================================================
@@ -374,19 +403,10 @@ if CONFIGverbose:
     printLog(level='debug', mensaje=f'{TB}-> sys.argv:         <{sys.argv}>')
     printLog(level='debug', mensaje=f'{TB}-> Modulo desde el que se importa: <{callingModulePrevio}>')
     printLog(level='debug', mensaje=f'{TB}-> Modulo ejecutado inicialmente:  <{callingModuleInicial}>')
-
-# printLog(level='debug', mensaje=f'{TB}-> ENTORNO:          {MAIN_ENTORNO}')
-
-printLog(level='debug', mensaje=f'{TB}-> Modulo principal: <{sys.argv[0]}>') # = __file__
-printLog(level='debug', mensaje=f'{TB}-> __package__ :     <{__package__ }>')
-printLog(level='debug', mensaje=f'{TB}-> __name__:         <{__name__}>')
-printLog(level='debug', mensaje=f'{TB}-> __verbose__:      <{__verbose__}>')
-printLog(level='debug', mensaje=f'{TB}-> IdProceso         <{MAIN_idProceso}>')
-printLog(level='debug', mensaje=f'{TB}-> sys.argv:         <{sys.argv}>')
-printLog(level='debug', mensaje='{:=^80}'.format(''))
+    printLog(level='debug', mensaje='{:=^80}'.format(''))
 # ==============================================================================
 
-if GLO.GLBLverbose or __verbose__:
+if GLO.GLBLverbose and __verbose__:
     printLog(level='debug', mensaje='->->Cargando clidcarto')
     # clidaux.showCallingModules(inspect_stack=inspect.stack())
 
@@ -402,13 +422,12 @@ if False:
     quit()
 
 
-
-if 'MAINrutaOutput' in dir(GLO) or 'GLBL_TRAIN_DIR' in dir(GLO):
-    print(f'clidcarto-> PROVISIONAL: chequeo rutas (a):')
-if 'MAINrutaOutput' in dir(GLO):
-    print(f'{TB}->> GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
-if 'GLBL_TRAIN_DIR' in dir(GLO):
-    print(f'{TB}->> GLO.GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
+# if 'MAINrutaOutput' in dir(GLO) or 'GLBL_TRAIN_DIR' in dir(GLO):
+#     print(f'clidcarto-> PROVISIONAL: chequeo rutas (a):')
+# if 'MAINrutaOutput' in dir(GLO):
+#     print(f'{TB}->> GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
+# if 'GLBL_TRAIN_DIR' in dir(GLO):
+#     print(f'{TB}->> GLO.GLBL_TRAIN_DIR: {GLO.GLBL_TRAIN_DIR}')
 
 
 # ==============================================================================
@@ -540,50 +559,59 @@ class CartoRefVector(object):
         self.LCLverbose = LCLverbose
         if GLO.GLBLverbose or self.LCLverbose or __verbose__:
             printLog(level='info', mensaje=f'clidcarto-> Leyendo npz de vector: {npzFileNameArraysVuelta0a1}')
-        if os.path.exists(npzFileNameArraysVuelta0a1):
-            try:
-                npzArraysVuelta01 = np.load(npzFileNameArraysVuelta0a1, allow_pickle=True)
-                if GLO.GLBLverbose or self.LCLverbose or __verbose__:
-                    print('\tLista de arrays guardadas en npz:')
-                for nArray in range(len(npzArraysVuelta01.files)):
-                    npzArrayName = npzArraysVuelta01.files[nArray]
-                    npzArrayData = npzArraysVuelta01[npzArrayName]
+        numIntentosEscritura = 0
+        while True:
+            numIntentosEscritura += 1
+            if os.path.exists(npzFileNameArraysVuelta0a1):
+                try:
+                    npzArraysVuelta01 = np.load(npzFileNameArraysVuelta0a1, allow_pickle=True)
                     if GLO.GLBLverbose or self.LCLverbose or __verbose__:
-                        try:
-                            if npzArrayData.shape[0] < 10:
-                                printLog(level='debug', mensaje=f'\t-> Array: {npzArrayName}, -> shape: {npzArrayData.shape}, -> dtype: {npzArrayData.dtype}, Valores: {npzArrayData}')
-                            else:
-                                printLog(level='debug', mensaje=f'\t-> Array: {npzArrayName}, -> shape: {npzArrayData.shape}, -> dtype: {npzArrayData.dtype}')
-                        except:
-                            printLog(level='debug', mensaje=f'\t-> Variable: {npzArrayName}, Valor: {npzArrayData}')
-                    if npzArrayData.shape == (): # ndim = 0
-                        setattr(self, npzArrayName, npzArrayData.item())
-                        if GLO.GLBLverbose or self.LCLverbose or __verbose__:
-                            printLog(level='debug', mensaje=f'\t\t-> Valor asignado: {getattr(self, npzArrayName)} {type(getattr(self, npzArrayName))}')
-                    else:
-                        setattr(self, npzArrayName, npzArrayData)
+                        print('\tLista de arrays guardadas en npz:')
+                    for nArray in range(len(npzArraysVuelta01.files)):
+                        npzArrayName = npzArraysVuelta01.files[nArray]
+                        npzArrayData = npzArraysVuelta01[npzArrayName]
                         if GLO.GLBLverbose or self.LCLverbose or __verbose__:
                             try:
                                 if npzArrayData.shape[0] < 10:
-                                    printLog(level='debug', mensaje=f'\t\t-> Array asignada: {type(getattr(self, npzArrayName))} {getattr(self, npzArrayName)}')
+                                    printLog(level='debug', mensaje=f'\t-> Array: {npzArrayName}, -> shape: {npzArrayData.shape}, -> dtype: {npzArrayData.dtype}, Valores: {npzArrayData}')
                                 else:
-                                    printLog(level='debug', mensaje=f'\t\t-> Array asignada: {type(getattr(self, npzArrayName))}')
+                                    printLog(level='debug', mensaje=f'\t-> Array: {npzArrayName}, -> shape: {npzArrayData.shape}, -> dtype: {npzArrayData.dtype}')
                             except:
-                                printLog(level='debug', mensaje=f'\t\t-> Valor asignado: {type(getattr(self, npzArrayName))} {getattr(self, npzArrayName)}')
-                self.leidoNpzVuelta0a1 = True
-            except:
-                printLog(level='warning', mensaje='clidcarto-> Aviso: error intentando leer {}'.format(npzFileNameArraysVuelta0a1))
-                printLog(level='warning', mensaje='\t-> Es probable que el fichero este corrupto por producirse una interrupcion mientras se generaba')
-                printLog(level='warning', mensaje='\t-> Se intenta borrar ese fichero:')
-                try:
-                    os.remove(npzFileNameArraysVuelta0a1)
-                    printLog(level='info', mensaje='\t\t-> Fichero npz borrado ok.')
+                                printLog(level='debug', mensaje=f'\t-> Variable: {npzArrayName}, Valor: {npzArrayData}')
+                        if npzArrayData.shape == (): # ndim = 0
+                            setattr(self, npzArrayName, npzArrayData.item())
+                            if GLO.GLBLverbose or self.LCLverbose or __verbose__:
+                                printLog(level='debug', mensaje=f'\t\t-> Valor asignado: {getattr(self, npzArrayName)} {type(getattr(self, npzArrayName))}')
+                        else:
+                            setattr(self, npzArrayName, npzArrayData)
+                            if GLO.GLBLverbose or self.LCLverbose or __verbose__:
+                                try:
+                                    if npzArrayData.shape[0] < 10:
+                                        printLog(level='debug', mensaje=f'\t\t-> Array asignada: {type(getattr(self, npzArrayName))} {getattr(self, npzArrayName)}')
+                                    else:
+                                        printLog(level='debug', mensaje=f'\t\t-> Array asignada: {type(getattr(self, npzArrayName))}')
+                                except:
+                                    printLog(level='debug', mensaje=f'\t\t-> Valor asignado: {type(getattr(self, npzArrayName))} {getattr(self, npzArrayName)}')
+                    self.leidoNpzVuelta0a1 = True
+                    break
                 except:
-                    printLog(level='warning', mensaje='\t\t-> Aviso: no se ha podido borrar el Fichero npz.')
+                    printLog(level='warning', mensaje='clidcarto-> Aviso: error intentando leer {}'.format(npzFileNameArraysVuelta0a1))
+                    printLog(level='warning', mensaje='\t-> Es probable que el fichero este corrupto por producirse una interrupcion mientras se generaba')
+                    printLog(level='warning', mensaje='\t-> Se intenta borrar ese fichero:')
+                    try:
+                        os.remove(npzFileNameArraysVuelta0a1)
+                        printLog(level='info', mensaje='\t\t-> Fichero npz borrado ok.')
+                    except:
+                        printLog(level='warning', mensaje='\t\t-> Aviso: no se ha podido borrar el Fichero npz.')
+                    self.leidoNpzVuelta0a1 = False
+                    time.sleep(15)
+                if numIntentosEscritura > 5:
+                    self.leidoNpzVuelta0a1 = False
+                    break
+            else:
+                print(f'\tAviso: no se encuentra el npz: {npzFileNameArraysVuelta0a1}')
                 self.leidoNpzVuelta0a1 = False
-        else:
-            print(f'\tAviso: no se encuentra el npz: {npzFileNameArraysVuelta0a1}')
-            self.leidoNpzVuelta0a1 = False
+                break
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -644,7 +672,7 @@ class CartoRefVector(object):
         try:
             targetRasterDataset = gdal.Open(targetRasterFileName, gdalconst.GA_ReadOnly)
             if targetRasterDataset is None:
-                printLog(level='error', mensaje=f'\tclidcarto-> Error abriendo raster {targetRasterFileName}')
+                printLog(level='error', mensaje=f'\tclidcarto-> Error abriendo raster (c) {targetRasterFileName}')
                 return False
             # printLog(level='debug', mensaje=f'{TW}clidcarto-> Capa leida ok: {targetRasterFileName})
 
@@ -674,8 +702,8 @@ class CartoRefVector(object):
             #         infoTargetRasterDataset = infoRasterDataset( sourceRasterDataset, mostrar=True)
             #         #origenX_Imagen = infoTargetRasterDataset['origenX']
             #         #origenY_Imagen = infoTargetRasterDataset['origenY']
-            #         pixelX = infoTargetRasterDataset['pixelX']
-            #         pixelY = infoTargetRasterDataset['pixelY']
+            #         pixelX = round(infoTargetRasterDataset['pixelX'], 3)
+            #         pixelY = round(infoTargetRasterDataset['pixelY'], 3)
             #         nCeldasX = infoTargetRasterDataset['nPixelsX']
             #         nCeldasY = infoTargetRasterDataset['nPixelsY']
             #         if nBandas == 0:
@@ -720,14 +748,14 @@ class CartoRefVector(object):
                     self.cartoRefRecortadaNumCeldasX / self.myLasData.nCeldasX != self.nPixelsPorCelda
                     or self.cartoRefRecortadaNumCeldasY / self.myLasData.nCeldasY != self.nPixelsPorCelda
                 ):
-                    printLog(level='critical', mensaje='clidcarto-> ATENCION: no sale una de estas cuentas:')
-                    printLog(level='critical', mensaje='\tcartoRefRecortadaNumCeldasX: {} / nCeldasX {}  != self.nPixelsPorCelda {}'.format(
+                    printLog(level='critical', mensaje='clidcarto-> ATENCION: no sale una de estas dos cuentas:')
+                    printLog(level='critical', mensaje='\tcartoRefRecortadaNumCeldasX: {} / nCeldasX {}  -> self.nPixelsPorCelda {}'.format(
                         self.cartoRefRecortadaNumCeldasX,
                         self.myLasData.nCeldasX,
                         self.nPixelsPorCelda,
                         )
                     )
-                    printLog(level='critical', mensaje='\tcartoRefRecortadaNumCeldasY: {} / nCeldasY {}  != self.nPixelsPorCelda {}'.format(
+                    printLog(level='critical', mensaje='\tcartoRefRecortadaNumCeldasY: {} / nCeldasY {}  -> self.nPixelsPorCelda {}'.format(
                         self.cartoRefRecortadaNumCeldasY,
                         self.myLasData.nCeldasY,
                         self.nPixelsPorCelda,
@@ -812,11 +840,11 @@ class CartoRefVector(object):
                 self.inputVectorRefFeatureCount),
             )
         # wkt = "POLYGON ((494000 4606000, 496000 4606000, 496000 4604000, 494000 4604000, 494000 4606000))"
-        # wkt = 'POLYGON ((%i %i, %i %i, %i %i, %i %i, %i %i))' % (self.myLasHead.xmin, self.myLasHead.ymin,
-        #                                                         self.myLasHead.xmin, self.myLasHead.ymax,
-        #                                                         self.myLasHead.xmax, self.myLasHead.ymax,
-        #                                                         self.myLasHead.xmax, self.myLasHead.ymin,
-        #                                                         self.myLasHead.xmin, self.myLasHead.ymin)
+        # wkt = 'POLYGON ((%i %i, %i %i, %i %i, %i %i, %i %i))' % (self.myLasHead.xminBloqueMalla, self.myLasHead.yminBloqueMalla,
+        #                                                         self.myLasHead.xminBloqueMalla, self.myLasHead.ymaxBloqueMalla,
+        #                                                         self.myLasHead.xmaxBloqueMalla, self.myLasHead.ymaxBloqueMalla,
+        #                                                         self.myLasHead.xmaxBloqueMalla, self.myLasHead.yminBloqueMalla,
+        #                                                         self.myLasHead.xminBloqueMalla, self.myLasHead.yminBloqueMalla)
         # miPoligono = ogr.CreateGeometryFromWkt(wkt5)
         # self.inputVectorRefLayer.SetSpatialFilter(miPoligono)
         # miFiltro = self.inputVectorRefLayer.GetSpatialFilter()
@@ -860,10 +888,10 @@ class CartoRefVector(object):
             self.xmaxBloqueH30 = self.myLasHead.xmaxBloqueH30
             self.ymaxBloqueH30 = self.myLasHead.ymaxBloqueH30
         else:
-            self.xminBloqueH30 = self.myLasHead.xmin
-            self.yminBloqueH30 = self.myLasHead.ymin
-            self.xmaxBloqueH30 = self.myLasHead.xmax
-            self.ymaxBloqueH30 = self.myLasHead.ymax
+            self.xminBloqueH30 = self.myLasHead.xminBloqueMalla
+            self.yminBloqueH30 = self.myLasHead.yminBloqueMalla
+            self.xmaxBloqueH30 = self.myLasHead.xmaxBloqueMalla
+            self.ymaxBloqueH30 = self.myLasHead.ymaxBloqueMalla
 
         pixelRational = (float(abs(GLO.GLBLrasterPixelSize))).as_integer_ratio()
         if pixelRational[1] == 1:
@@ -882,28 +910,34 @@ class CartoRefVector(object):
             metrosPorPixel = -1
             pixelsPorMetro = -1
 
+        TRNShacerAjustedeCoordenadasEnCartoRef = False
         if self.LCLhusoUTM != 30:
             printLog(level='debug', mensaje=f'{TW}clidcarto-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
             printLog(level='debug', mensaje=f'{TW}{TB}-> Previamente se abre la primera ortofoto, solo para conocer la dimension del pixel y hacer este ajuste antes de las intersecciones')
             printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> Dimension del pixel -> cartoRefRecortadaPixelX: {GLO.GLBLrasterPixelSize}; cartoRefRecortadaPixelY: {GLO.GLBLrasterPixelSize}')
             printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> metrosPorPixel/pixelsPorMetro: {metrosPorPixel}/{pixelsPorMetro}')
-            printLog(level='debug', mensaje=f'{TW}{TB}-> Antes del ajuste:')
+            if TRNShacerAjustedeCoordenadasEnCartoRef:
+                print(f'\t-> Antes del ajuste:')
+                printLog(level='debug', mensaje=f'{TW}{TB}-> Antes del ajuste:')
+            else:
+                printLog(level='debug', mensaje=f'{TW}{TB}-> Las coordenadas de la mallaBloque no se ajustan en cartoRef:')
             printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
             printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
-        if pixelsPorMetro != -1 and metrosPorPixel != -1:
-            self.xminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.xminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            self.xmaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.xmaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            self.yminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.yminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            self.ymaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.ymaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            if forzarRecorteCuadrado:
-                if (self.ymaxBloqueH30 - self.yminBloqueH30) > (self.xmaxBloqueH30 - self.xminBloqueH30):
-                    self.xmaxBloqueH30 = self.xminBloqueH30 + (self.ymaxBloqueH30 - self.yminBloqueH30)
-                if (self.xmaxBloqueH30 - self.xminBloqueH30) > (self.ymaxBloqueH30 - self.yminBloqueH30):
-                    self.ymaxBloqueH30 = self.yminBloqueH30 + (self.xmaxBloqueH30 - self.xminBloqueH30)
-        if self.LCLhusoUTM == 29:
-            printLog(level='debug', mensaje=f'{TW}{TB}-> Despues del ajuste:')
-            printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
-            printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
+        if TRNShacerAjustedeCoordenadasEnCartoRef:
+            if pixelsPorMetro != -1 and metrosPorPixel != -1:
+                self.xminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.xminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                self.xmaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.xmaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                self.yminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.yminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                self.ymaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.ymaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                if forzarRecorteCuadrado:
+                    if (self.ymaxBloqueH30 - self.yminBloqueH30) > (self.xmaxBloqueH30 - self.xminBloqueH30):
+                        self.xmaxBloqueH30 = self.xminBloqueH30 + (self.ymaxBloqueH30 - self.yminBloqueH30)
+                    if (self.xmaxBloqueH30 - self.xminBloqueH30) > (self.ymaxBloqueH30 - self.yminBloqueH30):
+                        self.ymaxBloqueH30 = self.yminBloqueH30 + (self.xmaxBloqueH30 - self.xminBloqueH30)
+            if self.LCLhusoUTM == 29:
+                printLog(level='debug', mensaje=f'{TW}{TB}-> Despues del ajuste:')
+                printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
+                printLog(level='debug', mensaje=f'{TW}{TB}{TV}-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
 
         # Filter (select) features that intersect my las block
         self.inputVectorRefLayer.SetSpatialFilterRect(
@@ -1102,8 +1136,8 @@ class CartoRefVector(object):
         if GLO.GLBLverbose or __verbose__:
             printLog(level='info', mensaje=f'{TW}{TB}-> targetRasterFileName: {targetRasterFileName}')
             printLog(level='info', mensaje=f'{TW}{TB}-> GLO.GLBLrasterPixelSize: {GLO.GLBLrasterPixelSize} self.LCLhusoUTM: {self.LCLhusoUTM}')
-            printLog(level='info', mensaje=f'{TW}{TB}-> x_max: {x_max} x_min: {x_min}')
-            printLog(level='info', mensaje=f'{TW}{TB}-> y_max: {y_max} y_min: {y_min}')
+            printLog(level='info', mensaje=f'{TW}{TB}-> x min - max: {x_min} - {x_max}')
+            printLog(level='info', mensaje=f'{TW}{TB}-> y min - max: {y_min} - {y_max}')
             printLog(level='info', mensaje=f'{TW}{TB}-> nPixelesXraster (X x Y): {nPixelesXraster} x {nPixelesYraster}')
 
         targetBands = 1
@@ -1116,7 +1150,8 @@ class CartoRefVector(object):
         nIntentosEscritura = 0
         while True:
             nIntentosEscritura += 1
-            try:
+            # try:
+            if True:
                 targetRasterDataset = driver.Create(
                     targetRasterFileName,
                     nPixelesXraster,
@@ -1135,14 +1170,15 @@ class CartoRefVector(object):
                     )
                 )
                 break
-            except:
-                if nIntentosEscritura > 5:
-                    printLog(level='error', mensaje=f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION!!!: No se ha podido crear crear {targetRasterFileName}')
-                    return False
-                printLog(level='error', mensaje=f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION: error al crear {targetRasterFileName}')
-                time.sleep(5)
+            # except:
+            #     if nIntentosEscritura > 5:
+            #         printLog(level='error', mensaje=f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION!!!: No se ha podido crear crear {targetRasterFileName}')
+            #         return False
+            #     printLog(level='error', mensaje=f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION: error al crear {targetRasterFileName}')
+            #     time.sleep(5)
 
-        try:
+        # try:
+        if True:
             if GLO.GLBLverbose or __verbose__:
                 printLog(level='debug', mensaje=f'{TW}clidcarto-> targetRasterDataset.SetGeoTransform: {x_min} {y_max}')
             # Pendiente revisar si esto es cierto para mi capa, que esta proyectada:
@@ -1200,9 +1236,9 @@ class CartoRefVector(object):
             self.vectorRefMaxX = self.vectorRefOrigenX + (self.vectorRefNumCeldasX * self.vectorRefPixelX)
             self.vectorRefMinY = self.vectorRefOrigenY + (self.vectorRefNumCeldasY * self.vectorRefPixelY)
             self.vectorRefMaxY = self.vectorRefOrigenY
-        except:
-            printLog(level='error', mensaje=f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION!!!: Error al crear {targetRasterFileName}')
-            return False
+        # except:
+        #     printLog(level='error', mensaje=f'{TW}clidcarto.{GLO.MAIN_idProceso:006d}-> ATENCION!!!: Error al crear {targetRasterFileName}')
+        #     return False
 
         if GLO.GLBLverbose or __verbose__:
             printLog(level='info', mensaje=f'{TW}clidcarto-> Nuevo raster creado (vector rasterizado):')
@@ -1729,7 +1765,7 @@ class CartoRefVector(object):
         mapUsoSingular = np.zeros(256, dtype=np.uint8)
 
         print('clidcarto-> Creando tiles de cartoref y exData:')
-        print('\t-> self.trainPathPng:    ', self.trainPathPng)
+        print('\t-> self.trainPathPng:            ', self.trainPathPng)
         print('\t-> self.trainPathExDataCartoRefA:', self.trainPathExDataCartoRefA)
         print('\t-> self.trainPathExDataCartoRefB:', self.trainPathExDataCartoRefB)
 
@@ -1754,8 +1790,8 @@ class CartoRefVector(object):
 
         # ======================================================================
         # ======================================================================
+        # Mapeo del valor de USO <=> singularUse8bits
         mapUsoSingularNoSingular = 0
-        mapUsoSingularAnulado = 0
         mapUsoSingularRio = 1
         mapUsoSingularEmbalseLago = 2
         mapUsoSingularCamino = 3
@@ -1765,19 +1801,20 @@ class CartoRefVector(object):
         mapUsoSingularPuente = 7
         mapUsoSingularEdificioNave = 8
         mapUsoSingularMiscelaneaConPosibleConstruccion = 9
+        mapUsoSingular = np.zeros(256, dtype=np.uint8)
         mapUsoSingular[0] = mapUsoSingularNoSingular            # 0, Celdas sin uso singular
         mapUsoSingular[1] = mapUsoSingularRio                   # 1. Rio (por el momento no se han incluido)
         mapUsoSingular[2:4] = mapUsoSingularEmbalseLago         # 2. Embalse, lago
-        mapUsoSingular[5] = mapUsoSingularCamino                # 3. Camino (por el momento se han excluido)
-        mapUsoSingular[14] = mapUsoSingularFerrocarril          # 4. Ferrocaril
-        mapUsoSingular[10] = mapUsoSingularCarretera            # 5. Carretera
-        mapUsoSingular[15] = mapUsoSingularCalzadaUrbana        # 6. Calzadas urbanas
-        mapUsoSingular[20] = mapUsoSingularPuente               # 7. Puente
-        mapUsoSingular[100:200] = mapUsoSingularEdificioNave    # 8. Edificio (100, 125, 150)
-        mapUsoSingular[200:256] = mapUsoSingularEdificioNave    # 8. Nave (200, 225)
-        mapUsoSingular[50] = mapUsoSingularMiscelaneaConPosibleConstruccion # 9. Construcciones menores (no seguras): excluir de entrenamiento con weight=0
-        mapUsoSingular[75] = mapUsoSingularAnulado # 0. Zonas con construcciones (no seguras): Ya no excluir de entrenamiento con weight=0
-        mapUsoSingular[175] = mapUsoSingularMiscelaneaConPosibleConstruccion # 9. Parkings: excluir de entrenamiento con weight=0
+        mapUsoSingular[10] = mapUsoSingularCarretera            # 3. Carretera
+        mapUsoSingular[15] = mapUsoSingularCalzadaUrbana        # 4. Calzadas urbanas
+        mapUsoSingular[20] = mapUsoSingularCamino               # 5. Camino (por el momento se han excluido)
+        mapUsoSingular[30] = mapUsoSingularFerrocarril          # 6. Ferrocaril
+        mapUsoSingular[40] = mapUsoSingularPuente               # 7. Puente
+        # Edificio (100, 105, 110, 115, 120, 125, 130), Nave (150, 175)
+        mapUsoSingular[100:255] = mapUsoSingularEdificioNave    # 8. Edificio
+        # Zonas con posibles construcciones menores (no seguras), zonas deportivas, cenemtarios, etc.:
+        # 50, 51, 52, 53, 54, 55, 60, 65, 70, 75, 80, 85, 90, 95
+        mapUsoSingular[50:99] = mapUsoSingularMiscelaneaConPosibleConstruccion # 9 Posibles construcciones
         # ======================================================================
         mainUsoSingular = np.array([mapUsoSingular[val] for val in self.aCeldasVectorRecRasterizado.flatten()]).reshape(self.aCeldasVectorRecRasterizado.shape)
         # Mapeo las categorias de self.aCeldasVectorRecRasterizado a una lista 0..4:
@@ -1891,7 +1928,7 @@ class CartoRefVector(object):
         # ======================================================================
 
         if GLO.GLBLverbose or __verbose__:
-            print(f'{TW}clidcarto->> Se van a crear {numTilesRows} x {numTilesCols} tiles')
+            print(f'{TW}clidcarto->> Se van a crear {numTilesRows} x {numTilesCols} tiles (a: crearTilesTargetFromVector)')
             print('\t\tLCLtileSizeMetros:', LCLtileSizeMetros,
                   'LCLtileSemiSolapeMetros:', LCLtileSemiSolapeMetros,
                   'GLBNtileSemiSolapePixelsSubCelda:', GLBNtileSemiSolapePixelsSubCelda
@@ -2253,7 +2290,7 @@ class CartoRefVector(object):
                     # colorMode = 'P' # (8-bit pixels, mapped to any other mode using a color palette) #Genera imagenes que no me valen ->Espacio de color: Color indexado (256 colores)
                     colorMode = 'L'  # (8-bit pixels, black and white) -> lleva el valor max a 255 y el min a 0 -> No respeta los valores del array ->Espacio de color: Escala de grises
                     if os.path.exists(pngFileName) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFromVector previo: {}'.format(pngFileName))
+                        print('clidcarto-> Eliminando tile pngFromVector previo:    {}'.format(pngFileName))
                         os.remove(pngFileName)
                     Image.fromarray(tileRecorteNormalizado, colorMode).save(pngFileName)
 
@@ -2402,6 +2439,23 @@ class CartoRefRaster(object):
         self.miRasterRefNumCeldas = np.array([0, 0], dtype=np.float32)
         self.miRasterRefCoordenadas = np.array([0, 0, 0, 0], dtype=np.float32)
 
+        if self.LCLhusoUTM != 30:
+            self.xminBloqueH30 = self.myLasHead.xminBloqueH30
+            self.yminBloqueH30 = self.myLasHead.yminBloqueH30
+            self.xmaxBloqueH30 = self.myLasHead.xmaxBloqueH30
+            self.ymaxBloqueH30 = self.myLasHead.ymaxBloqueH30
+        else:
+            self.xminBloqueH30 = self.myLasHead.xminBloqueMalla
+            self.yminBloqueH30 = self.myLasHead.yminBloqueMalla
+            self.xmaxBloqueH30 = self.myLasHead.xmaxBloqueMalla
+            self.ymaxBloqueH30 = self.myLasHead.ymaxBloqueMalla
+        if GLO.GLBLverbose > 1 or __verbose__ > 1:
+            print(f'clidcarto-> Dimensiones del raster iniciales:')
+            print(f'{TB}-> xminBloqueH30: {self.xminBloqueH30}')
+            print(f'{TB}-> xmaxBloqueH30: {self.xmaxBloqueH30}')
+            print(f'{TB}-> yminBloqueH30: {self.yminBloqueH30}')
+            print(f'{TB}-> ymaxBloqueH30: {self.ymaxBloqueH30}')
+
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def leerArraysGuardadasVuelta01_cartoRefRaster(self, npzFileNameArraysVuelta0a1, LCLverbose=False):
@@ -2487,6 +2541,12 @@ class CartoRefRaster(object):
             LCLrasterPixelSize = GLO.GLBLrasterPixelSize
             LCLrasterPixelSizeX = LCLrasterPixelSize
             LCLrasterPixelSizeY = LCLrasterPixelSize
+        elif self.tipoInfoRaster == 'Mda':
+            self.tipoDatoRaster = np.float32
+            self.nBandasPrevistas = 1
+            LCLrasterPixelSize = GLO.GLBLrasterPixelSize
+            LCLrasterPixelSizeX = LCLrasterPixelSize
+            LCLrasterPixelSizeY = LCLrasterPixelSize
         elif self.tipoInfoRaster == 'Mdt':
             self.tipoDatoRaster = np.float32
             self.nBandasPrevistas = 1
@@ -2514,23 +2574,6 @@ class CartoRefRaster(object):
             LCLrasterPixelSizeX = LCLrasterPixelSize
             LCLrasterPixelSizeY = LCLrasterPixelSize
 
-        if self.LCLhusoUTM != 30:
-            self.xminBloqueH30 = self.myLasHead.xminBloqueH30
-            self.yminBloqueH30 = self.myLasHead.yminBloqueH30
-            self.xmaxBloqueH30 = self.myLasHead.xmaxBloqueH30
-            self.ymaxBloqueH30 = self.myLasHead.ymaxBloqueH30
-        else:
-            self.xminBloqueH30 = self.myLasHead.xmin
-            self.yminBloqueH30 = self.myLasHead.ymin
-            self.xmaxBloqueH30 = self.myLasHead.xmax
-            self.ymaxBloqueH30 = self.myLasHead.ymax
-        if GLO.GLBLverbose or __verbose__:
-            print(f'clidcarto-> Dimensiones del raster iniciales:')
-            print(f'{TB}-> xminBloqueH30: {self.xminBloqueH30}')
-            print(f'{TB}-> xmaxBloqueH30: {self.xmaxBloqueH30}')
-            print(f'{TB}-> yminBloqueH30: {self.yminBloqueH30}')
-            print(f'{TB}-> ymaxBloqueH30: {self.ymaxBloqueH30}')
-
         pixelRational = (float(abs(LCLrasterPixelSize))).as_integer_ratio()
         if pixelRational[1] == 1:
             # Numero entero
@@ -2548,36 +2591,42 @@ class CartoRefRaster(object):
             metrosPorPixel = -1
             pixelsPorMetro = -1
 
+        TRNShacerAjustedeCoordenadasEnCartoRef = False
         if self.LCLhusoUTM != 30:
             print(f'\nclidcarto-> Ajustando la ventana del bloque Lidar a los pixeles del raster de referencia para que contenga integramente al bloque:')
             print(f'\t-> Previamente se abre la primera ortofoto, solo para conocer la dimension del pixel y hacer este ajuste antes de las intersecciones')
-            print(f'\t\t-> Dimension del pixel -> rasterRefMetrosPixelX: {self.rasterRefMetrosPixelX}; rasterRefMetrosPixelY: {self.rasterRefMetrosPixelY}')
-            print(f'\t\t-> metrosPorPixel/pixelsPorMetro: {metrosPorPixel}/{pixelsPorMetro}')
-            print(f'\t-> Antes del ajuste:')
+            print(f'\t\t-> Dimension del pixel:')
+            print(f'\t\t\t-> rasterRefMetrosPixelX: {self.rasterRefMetrosPixelX}')
+            print(f'\t\t\t-> rasterRefMetrosPixelY: {self.rasterRefMetrosPixelY}')
+            print(f'\t\t-> metrosPorPixel: {metrosPorPixel}/{pixelsPorMetro}')
+            if TRNShacerAjustedeCoordenadasEnCartoRef:
+                print(f'\t-> Antes del ajuste:')
+            else:
+                print(f'\t-> Las coordenadas de la mallaBloque no se ajustan en cartoRef:')
             print(f'\t\t-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
             print(f'\t\t-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
-        if pixelsPorMetro != -1 and metrosPorPixel != -1:
-            self.xminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.xminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            self.xmaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.xmaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            self.yminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.yminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            self.ymaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.ymaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
-            if (self.ymaxBloqueH30 - self.yminBloqueH30) > (self.xmaxBloqueH30 - self.xminBloqueH30):
-                self.xmaxBloqueH30 = self.xminBloqueH30 + (self.ymaxBloqueH30 - self.yminBloqueH30)
-            if (self.xmaxBloqueH30 - self.xminBloqueH30) > (self.ymaxBloqueH30 - self.yminBloqueH30):
-                self.ymaxBloqueH30 = self.yminBloqueH30 + (self.xmaxBloqueH30 - self.xminBloqueH30)
-            if GLO.GLBLverbose or __verbose__:
-                print(f'clidcarto-> Dimensiones del raster tras ajuste:')
-                print(f'{TB}-> pixelsPorMetro: {pixelsPorMetro}')
-                print(f'{TB}-> metrosPorPixel: {metrosPorPixel}')
-                print(f'{TB}-> xminBloqueH30: {self.xminBloqueH30}')
-                print(f'{TB}-> xmaxBloqueH30: {self.xmaxBloqueH30}')
-                print(f'{TB}-> yminBloqueH30: {self.yminBloqueH30}')
-                print(f'{TB}-> ymaxBloqueH30: {self.ymaxBloqueH30}')
-                
-        if self.LCLhusoUTM == 29:
-            print(f'\t-> Despues del ajuste:')
-            print(f'\t\t-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
-            print(f'\t\t-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
+        if TRNShacerAjustedeCoordenadasEnCartoRef:
+            if pixelsPorMetro != -1 and metrosPorPixel != -1:
+                self.xminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.xminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                self.xmaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.xmaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                self.yminBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.floor(self.yminBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                self.ymaxBloqueH30 = (metrosPorPixel / pixelsPorMetro) * math.ceil(self.ymaxBloqueH30 * (pixelsPorMetro / metrosPorPixel))
+                if (self.ymaxBloqueH30 - self.yminBloqueH30) > (self.xmaxBloqueH30 - self.xminBloqueH30):
+                    self.xmaxBloqueH30 = self.xminBloqueH30 + (self.ymaxBloqueH30 - self.yminBloqueH30)
+                if (self.xmaxBloqueH30 - self.xminBloqueH30) > (self.ymaxBloqueH30 - self.yminBloqueH30):
+                    self.ymaxBloqueH30 = self.yminBloqueH30 + (self.xmaxBloqueH30 - self.xminBloqueH30)
+                if GLO.GLBLverbose or __verbose__:
+                    print(f'clidcarto-> Dimensiones del raster tras ajuste:')
+                    print(f'{TB}-> pixelsPorMetro: {pixelsPorMetro}')
+                    print(f'{TB}-> metrosPorPixel: {metrosPorPixel}')
+                    print(f'{TB}-> xminBloqueH30: {self.xminBloqueH30}')
+                    print(f'{TB}-> xmaxBloqueH30: {self.xmaxBloqueH30}')
+                    print(f'{TB}-> yminBloqueH30: {self.yminBloqueH30}')
+                    print(f'{TB}-> ymaxBloqueH30: {self.ymaxBloqueH30}')
+            if self.LCLhusoUTM == 29:
+                print(f'\t-> Despues del ajuste:')
+                print(f'\t\t-> xminBloqueH30: {self.xminBloqueH30}; xmaxBloqueH30: {self.xmaxBloqueH30}')
+                print(f'\t\t-> yminBloqueH30: {self.yminBloqueH30}; ymaxBloqueH30: {self.ymaxBloqueH30}')
 
 
         # self.ySupIzdaDelLas = self.xSupIzdaDelNombre
@@ -2600,75 +2649,153 @@ class CartoRefRaster(object):
     def leerRaster(self):
         if not gdalOk:
             print('\tclidcarto-> Gdal no disponible; no se puede leer %s' % (self.rasterRefFileName))
-            self.usarRasterRef = 0
+            self.usarRasterRef = -2
             return
 
-        self.rasterRefFileName = os.path.join(self.rutaCartoCompleta, self.nombreCapaInputRaster)
-        print('\t-> clidcarto-> Leyendo raster file', self.nombreCapaInputRaster)
-        if not os.path.exists(self.rasterRefFileName):
-            print('\tclidcarto-> no esta disponible el fichero %s' % (self.rasterRefFileName))
-            self.usarRasterRef = 0
-            return
+        # coordVentana_ = np.array([self.xminBloqueH30, self.yminBloqueH30, self.xmaxBloqueH30, self.ymaxBloqueH30], dtype=np.float32) # Atencion, esta conversion a float32 elimina los decimales ??
+        coordVentana = np.array([self.xminBloqueH30, self.yminBloqueH30, self.xmaxBloqueH30, self.ymaxBloqueH30])
+        aNumCeldas = np.array([self.myLasData.nCeldasX, self.myLasData.nCeldasY], dtype=np.int32)
 
-        self.usarRasterRef = 1
+        listaRutasCartoCompleta = [self.rutaCartoCompleta]
+        if self.tipoInfoRaster == 'Mda':
+            if '_XX_' in self.rutaCartoCompleta:
+                listaRutasCartoCompleta.append((self.rutaCartoCompleta).replace('_XX_', f'_{(GLO.MAINcuadrante).upper()}_'))
+                self.rutaCartoCompleta = (self.rutaCartoCompleta).replace('_XX_', f'_{(GLO.MAINcuadrante).upper()}_')
+            if '_completo' in self.rutaCartoCompleta:
+                listaRutasCartoCompleta.append((self.rutaCartoCompleta).replace('_completo', ''))
+                listaRutasCartoCompleta.append((self.rutaCartoCompleta).replace('_completo', '_completo_'))
+                listaRutasCartoCompleta.append((self.rutaCartoCompleta).replace('_completo', '_'))
+
+        self.usarRasterRef = -1
+        for miRutaCartoCompleta in listaRutasCartoCompleta:
+            self.rasterRefFileName = os.path.join(miRutaCartoCompleta, self.nombreCapaInputRaster)
+            # print(f'clidcarto-> Leyendo raster file (b): {self.nombreCapaInputRaster}')
+            if not os.path.exists(self.rasterRefFileName):
+                if self.tipoInfoRaster == 'Mda':
+                    print(f'clidcarto-> INFO: no esta disponible el fichero: {self.rasterRefFileName}')
+                else:
+                    print(f'clidcarto-> AVISO: no esta disponible el fichero: {self.rasterRefFileName}')
+                continue
+            else:
+                fileSizeKB = os.stat(self.rasterRefFileName).st_size / 1000
+                # print(f'clidcarto-> (a) Size: {fileSizeKB} -> fichero: {self.rasterRefFileName}')
+                if fileSizeKB <= 5.0: # size en KB
+                    if self.tipoInfoRaster == 'Mda':
+                        print(f'clidcarto-> INFO: fichero sin contenido: {self.rasterRefFileName}')
+                    else:
+                        print(f'clidcarto-> AVISO: fichero sin contenido: {self.rasterRefFileName}')
+                    continue
+                self.rutaCartoCompleta = miRutaCartoCompleta
+                self.usarRasterRef = 1
+                break
+        if self.usarRasterRef == -1:
+            if self.tipoInfoRaster == 'Mda':
+                print(f'clidcarto-> AVISO: no se ha encontrado fichero con Mda (Mdt cartolidar previo), o no tiene contenido.')
+            return
 
         try:
             sourceDatasetRasterOriginal = gdal.Open(self.rasterRefFileName, gdalconst.GA_ReadOnly)
         except:
             sourceDatasetRasterOriginal = None
         if sourceDatasetRasterOriginal is None:
-            print('\tclidcarto-> Error abriendo raster', self.rasterRefFileName)
+            print('clidcarto-> Error abriendo raster (a)', self.rasterRefFileName)
             print('\t\t-> Comprobar si esta bloqueada por otra aplicacion o tiene algun error', self.rasterRefFileName)
-            rasterUsable = False
             self.usarRasterRef = 0
             return
 
         self.usarRasterRef = 1
         infoSourceDatasetRasterOriginal = infoRasterDataset(sourceDatasetRasterOriginal, mostrar=GLO.GLBLverbose)
-        # origenX_Imagen = infoSourceDatasetRasterOriginal['origenX']
-        # origenY_Imagen = infoSourceDatasetRasterOriginal['origenY']
-        self.rasterRefMetrosPixelX = infoSourceDatasetRasterOriginal['pixelX']
-        self.rasterRefMetrosPixelY = infoSourceDatasetRasterOriginal['pixelY']
-        # nPixelsX = infoSourceDatasetRasterOriginal['nPixelsX']
-        # nPixelsY = infoSourceDatasetRasterOriginal['nPixelsY']
+        origenX_Imagen = infoSourceDatasetRasterOriginal['origenX']
+        origenY_Imagen = infoSourceDatasetRasterOriginal['origenY']
+        self.rasterRefMetrosPixelX = round(infoSourceDatasetRasterOriginal['pixelX'], 3)
+        self.rasterRefMetrosPixelY = round(infoSourceDatasetRasterOriginal['pixelY'], 3)
+        self.nPixelsX = infoSourceDatasetRasterOriginal['nPixelsX']
+        self.nPixelsY = infoSourceDatasetRasterOriginal['nPixelsY']
         self.nBandasRaster = infoSourceDatasetRasterOriginal['nBandas']
-        sourceDatasetRasterOriginal = None
+        # sourceDatasetRasterOriginal = None
+        if GLO.GLBLverbose or __verbose__ or True:
+            print('clidcarto-> Geoparametros del raster:')
+            print(f'{TB}-> sourceDatasetRasterOriginal: {type(sourceDatasetRasterOriginal)}')
+            print(f'{TB}-> origenXY_Imagen: {origenX_Imagen}, {origenY_Imagen}')
+            print(f'{TB}-> nPixelsXY: {self.nPixelsX}, {self.nPixelsY}')
+            print(f'{TB}-> rasterRefMetrosPixelX: {self.rasterRefMetrosPixelX}')
+            print(f'{TB}-> nBandasRaster: {self.nBandasRaster}')
+            coordRaster = [
+                origenX_Imagen,
+                origenX_Imagen + (self.nPixelsX * self.rasterRefMetrosPixelX),
+                origenY_Imagen + (self.nPixelsY * self.rasterRefMetrosPixelY),
+                origenY_Imagen,
+            ]
+            print(f'clidcarto-> Se lee una ventana del raster:')
+            print(f'{TB}-> Con coordenadas: {coordRaster}')
+            print(f'{TB}-> Leyendo Ventana: {coordVentana}')
 
         self.dimensionarRaster()
         if self.nBandasPrevistas != self.nBandasRaster:
             print(f'clidcarto-> ATENCION: nBandasPrevistas:   {self.nBandasPrevistas}; nBandasRaster: {self.nBandasRaster} (deben ser iguales)')
 
-
-        # coordVentana_ = np.array([self.xminBloqueH30, self.yminBloqueH30, self.xmaxBloqueH30, self.ymaxBloqueH30], dtype=np.float32) # Atencion, esta conversion a float32 elimina los decimales ??
-        coordVentana = np.array([self.xminBloqueH30, self.yminBloqueH30, self.xmaxBloqueH30, self.ymaxBloqueH30])
-
-        aNumCeldas = np.array([self.myLasData.nCeldasX, self.myLasData.nCeldasY], dtype=np.int32)
-        (
-            self.miRasterRefVentanaOk,
-            self.rasterIncluyeLas,
-            self.nBandasRaster,
-            rasterRefRecortadoAsArrayInt,
-            self.rasterRefMetrosPixelX,
-            self.rasterRefMetrosPixelY,
-            self.intersectMinX,
-            self.intersectMinY,
-            self.intersectMaxX,
-            self.intersectMaxY,
-            self.nCeldasX_Intersec,
-            self.nCeldasY_Intersec,
-            self.xOffRaster,
-            self.yOffRaster,
-            noData,
-        ) = leerVentanaRaster(
-            self.rasterRefFileName,
-            coordVentana,
-            aNumCeldas,
-            self.tipoInfoRaster,
-            self.nBandasPrevistas,
-            self.tipoDatoRaster,
-            gdalOk,
-        )
-
+        if self.tipoInfoRaster == 'Mda':
+            srcbandOriginal = sourceDatasetRasterOriginal.GetRasterBand(1)
+            # stats1, stats2, ctable = infoSrcband(srcbandOriginal, True, False)
+            self.miRasterRefVentanaOk = 1
+            self.xOffRaster = 0
+            self.yOffRaster = 0
+            self.intersectNumPixelsX = self.nPixelsX
+            self.intersectNumPixelsY = self.nPixelsY
+            self.intersectMinX = origenX_Imagen
+            self.intersectMaxX = origenX_Imagen + (self.nPixelsX * self.rasterRefMetrosPixelX)
+            self.intersectMinY = origenY_Imagen + (self.nPixelsY * self.rasterRefMetrosPixelY)
+            self.intersectMaxY = origenY_Imagen
+            self.nCeldasX_Intersec = self.nPixelsX
+            self.nCeldasY_Intersec = self.nPixelsY
+            nodata = srcbandOriginal.GetNoDataValue()
+            if GLO.GLBLverbose or __verbose__ or True:
+                print('\nclidcarto-> Geoparametros del raster:')
+                print(f'{TB}-> srcbandOriginal: {type(srcbandOriginal)}')
+                # print(f'{TB}-> GetStatistics: {srcbandOriginal.GetStatistics(0, 1)}')
+                # print(f'{TB}-> GetMetadata: {srcbandOriginal.GetMetadata()}')
+                # srcbandAsArray = srcbandOriginal.ReadAsArray()
+                # print(f'{TB}-> Shape: {srcbandAsArray.shape}')
+                print(f'{TB}-> nPixelsXY:           {self.nPixelsX}, {self.nPixelsY}')
+                print(f'{TB}-> xyOffRaster:         {self.xOffRaster}, {self.yOffRaster}')
+                print(f'{TB}-> nCeldasXY_Intersect: {self.nCeldasX_Intersec}, {self.nCeldasY_Intersec}')
+            srcbandOriginalAsArrayInt, noData = infoSrcbandAsArray(
+                srcbandOriginal,
+                self.xOffRaster, self.yOffRaster,
+                self.nCeldasX_Intersec, self.nCeldasY_Intersec,
+                verbose=GLO.GLBLverbose,
+                tipoInfoRaster=self.tipoInfoRaster,
+            )
+            if GLO.GLBLverbose or __verbose__ or True:
+                print('clidcarto-> srcbandOriginalAsArrayInt.shape', srcbandOriginalAsArrayInt.shape)
+            rasterRefRecortadoAsArrayInt = srcbandOriginalAsArrayInt
+        else:
+            (
+                self.miRasterRefVentanaOk,
+                self.rasterIncluyeLas,
+                self.nBandasRaster,
+                rasterRefRecortadoAsArrayInt,
+                self.rasterRefMetrosPixelX,
+                self.rasterRefMetrosPixelY,
+                self.intersectMinX,
+                self.intersectMinY,
+                self.intersectMaxX,
+                self.intersectMaxY,
+                self.nCeldasX_Intersec,
+                self.nCeldasY_Intersec,
+                self.xOffRaster,
+                self.yOffRaster,
+                noData,
+            ) = leerVentanaRaster(
+                self.rasterRefFileName,
+                coordVentana,
+                aNumCeldas,
+                self.tipoInfoRaster,
+                self.nBandasPrevistas,
+                self.tipoDatoRaster,
+                gdalOk,
+            )
+#ç
         if not self.miRasterRefVentanaOk:
             #             rasterOk = 0
             #             #srcBandAsArrayInt = np.zeros(nCeldasX_Intersec * nCeldasY_Intersec, dtype=np.uint8).reshape(nCeldasX_Intersec, nCeldasY_Intersec)
@@ -2706,7 +2833,11 @@ class CartoRefRaster(object):
         # https://numpy.org/doc/stable/reference/generated/numpy.flip.html
         # https://stackoverflow.com/questions/49545758/flip-or-reverse-columns-in-numpy-array
         # -> m[::-1] equivale a un np.flip(m, axis=0); el flip que necesitaria cuando hay varias bandas (bandas=axes 0) seria np.flip(m, axis=1)
-        print('\t-> clidcarto-> rasterRefRecortadoAsArrayInt.shape (bandas, filas, columnas):', rasterRefRecortadoAsArrayInt.shape)
+
+        print(f'clidcarto-> Despues de leerVentanaRaster<> y calculaInterseccion<>:')
+        print(f'{TB}-> Esquina sup-izda del raster {self.tipoInfoRaster}-> X: {origenX_Imagen}; Y: {origenY_Imagen}')
+        print(f'{TB}-> Metros por pixel del raster {self.tipoInfoRaster}: {self.rasterRefMetrosPixelX}; {self.rasterRefMetrosPixelY}')
+        print(f'{TB}-> Shape (bandas, filas, columnas) de la interseccion: {rasterRefRecortadoAsArrayInt.shape}')
         if rasterRefRecortadoAsArrayInt.ndim == 2: # self.nBandasPrevistas = 1
             # mdt o landCover con 1 banda
             # self.aCeldasRasterRef = np.rot90(rasterRefRecortadoAsArrayInt, 3)
@@ -2922,13 +3053,19 @@ class CartoRefRaster(object):
         # ==========================================================================
         # Num de pixels del RasterRef (equivale a un bloque, normalmente de 2 x 2 km)
         if self.miRasterRefNumCeldas[0] != self.aCeldasRasterRef.shape[0] or self.miRasterRefNumCeldas[1] != self.aCeldasRasterRef.shape[1]:
-            print('clidcarto-> Revisar esto porque algo no lo he hecho bien en la lectura del raster')
+            print('clidcarto-> AVISO: revisar esto porque algo no lo he hecho bien en la lectura del raster')
         nPixelsRasterRefX = self.miRasterRefNumCeldas[0] # -> 2000
         nPixelsRasterRefY = self.miRasterRefNumCeldas[1] # -> 2000
         # ==========================================================================
         # Numero de Tiles (nRows & nCols)
         numTilesRows = int(math.ceil(nPixelsRasterRefY / GLBNtileSizeEnPixelsRasterRy)) # -> 8 ($4)
         numTilesCols = int(math.ceil(nPixelsRasterRefX / GLBNtileSizeEnPixelsRasterRx)) # -> 8 ($4)
+        if numTilesRows > 4:
+            print(f'clidcarto-> AVISO: revisar porque numTilesRows = {numTilesRows}')
+            print(f'{TB}-> nPixelsRasterRefY: {nPixelsRasterRefY}; GLBNtileSizeEnPixelsRasterRy: {GLBNtileSizeEnPixelsRasterRy}')
+        if numTilesCols > 4:
+            print(f'clidcarto-> AVISO: revisar porque numTilesRows = {numTilesCols}')
+            print(f'{TB}-> nPixelsRasterRefX: {nPixelsRasterRefX}; GLBNtileSizeEnPixelsRasterRx: {GLBNtileSizeEnPixelsRasterRx}')
         # ==========================================================================
         # Margen que sobresalen los Tiles fuera del rasterRef (bloque)
         margenXsobresalienteMetros = LCLtileSemiSolapeMetros + (((numTilesCols * GLBNtileKernelMetros) - GLO.GLBLmetrosBloque) / 2) # -> 24 ($6)
@@ -2960,7 +3097,7 @@ class CartoRefRaster(object):
         # ======================================================================
 
         if GLO.GLBLverbose or __verbose__:
-            print('\tclidcarto->> Se van a crear %i x %i tiles' % (numTilesRows, numTilesCols))
+            print(f'{TW}clidcarto->> Se van a crear {numTilesRows} x {numTilesCols} tiles (b: crearTilesTargetFromRaster)')
             print('\t\tLCLtileSizeMetros:', LCLtileSizeMetros,
                   'LCLtileSemiSolapeMetros:', LCLtileSemiSolapeMetros,
                   'GLBNtileSemiSolapePixelsSubCelda:', GLBNtileSemiSolapePixelsSubCelda
@@ -3283,6 +3420,26 @@ def leerVentanaRaster(
         tipoDatoRaster,
         gdalOk,
     ):
+    if not gdalOk:
+        print(f'clidcarto-> Gdal no disponible; no se puede leer {rasterConRuta}')
+        return (
+            0,
+            0,
+            1,
+            np.zeros([1, 1], dtype=tipoDatoRaster),
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            -9999,
+        )
+
     rasterExiste = True
     rasterUsable = True
     rasterSolapa = True
@@ -3290,25 +3447,39 @@ def leerVentanaRaster(
     if not os.path.exists(rasterConRuta):
         print('clidcarto-> AVISO: no esta disponible el fichero %s' % (rasterConRuta))
         rasterExiste = False
+    else:
+        fileSizeKB = os.stat(rasterConRuta).st_size / 1000
+        # print(f'clidcarto-> (b) Size: {fileSizeKB} -> fichero: {rasterConRuta}')
+        if fileSizeKB <= 5.0: # size en KB
+            print(f'clidcarto-> AVISO: fichero sin contenido: {rasterConRuta}')
+            rasterExiste = False
     if rasterExiste:
         try:
             sourceDatasetRasterOriginal = gdal.Open(rasterConRuta, gdalconst.GA_ReadOnly)
         except:
             sourceDatasetRasterOriginal = None
         if sourceDatasetRasterOriginal is None:
-            print('\tclidcarto-> Error abriendo raster', rasterConRuta)
+            print('\tclidcarto-> Error abriendo raster (b)', rasterConRuta)
             print('\t\t-> Comprobar si esta bloqueada por otra aplicacion o tiene algun error', rasterConRuta)
             rasterUsable = False
 
     if rasterExiste and rasterUsable:
         infoSourceDatasetRasterOriginal = infoRasterDataset(sourceDatasetRasterOriginal, mostrar=GLO.GLBLverbose)
-        # origenX_Imagen = infoSourceDatasetRasterOriginal['origenX']
-        # origenY_Imagen = infoSourceDatasetRasterOriginal['origenY']
-        rasterRefMetrosPixelX = infoSourceDatasetRasterOriginal['pixelX']
-        rasterRefMetrosPixelY = infoSourceDatasetRasterOriginal['pixelY']
-        # nPixelsX = infoSourceDatasetRasterOriginal['nPixelsX']
-        # nPixelsY = infoSourceDatasetRasterOriginal['nPixelsY']
+        origenX_Imagen = infoSourceDatasetRasterOriginal['origenX']
+        origenY_Imagen = infoSourceDatasetRasterOriginal['origenY']
+        rasterRefMetrosPixelX = round(infoSourceDatasetRasterOriginal['pixelX'], 3)
+        rasterRefMetrosPixelY = round(infoSourceDatasetRasterOriginal['pixelY'], 3)
+        nPixelsX = infoSourceDatasetRasterOriginal['nPixelsX']
+        nPixelsY = infoSourceDatasetRasterOriginal['nPixelsY']
         nBandasRaster = infoSourceDatasetRasterOriginal['nBandas']
+        if GLO.GLBLverbose or __verbose__ or True:
+            print('\nclidcarto-> Geoparametros del raster:')
+            print(f'{TB}-> sourceDatasetRasterOriginal: {type(sourceDatasetRasterOriginal)}')
+            print(f'{TB}-> origenXY_Imagen: {origenX_Imagen}, {origenY_Imagen}')
+            print(f'{TB}-> nPixelsXY: {nPixelsX}, {nPixelsY}')
+            print(f'{TB}-> rasterRefMetrosPixelX: {rasterRefMetrosPixelX}')
+            print(f'{TB}-> nBandasRaster: {nBandasRaster}')
+
         if nBandasPrevistas != nBandasRaster:
             print(f'clidcarto-> ATENCION: nBandasPrevistas:   {nBandasPrevistas}; nBandasRaster: {nBandasRaster} (deben ser iguales)')
 
@@ -3362,10 +3533,36 @@ def leerVentanaRaster(
                 print('\nclidcarto-> Recorriendo bandas del raster a intersectar (leer ventana):')
             for nBand in range(nBandasRaster):
                 if GLO.GLBLverbose or __verbose__:
-                    print(f'\tclidcarto-> nBand: {nBand}')
+                    print(f'\tclidcarto-> nBand: {nBand} -> banda {nBand + 1} de {nBandasRaster}')
                 srcbandOriginal = sourceDatasetRasterOriginal.GetRasterBand(nBand + 1)
                 # stats1, stats2, ctable = infoSrcband(srcbandOriginal, True, False)
-                srcbandOriginalAsArrayInt, noData = infoSrcbandAsArray(srcbandOriginal, xOffRaster, yOffRaster, nCeldasX_Intersec, nCeldasY_Intersec, verbose=GLO.GLBLverbose, tipoInfoRaster=tipoInfoRaster)
+
+                if GLO.GLBLverbose or __verbose__:
+                    print('\nclidcarto-> Geoparametros del raster:')
+                    print(f'{TB}-> srcbandOriginal: {type(srcbandOriginal)}')
+                    # print(f'{TB}-> GetStatistics: {srcbandOriginal.GetStatistics(0, 1)}')
+                    # print(f'{TB}-> GetMetadata: {srcbandOriginal.GetMetadata()}')
+                    # srcbandAsArray = srcbandOriginal.ReadAsArray()
+                    # print(f'{TB}-> Shape: {srcbandAsArray.shape}')
+                    print(f'{TB}-> nPixelsXY:           {nPixelsX}, {nPixelsY}')
+                    print(f'{TB}-> xyOffRaster:         {xOffRaster}, {yOffRaster}')
+                    print(f'{TB}-> nCeldasXY_Intersect: {nCeldasX_Intersec}, {nCeldasY_Intersec}')
+                    if nCeldasX_Intersec > nPixelsX - xOffRaster:
+                        nCeldasX_Intersec = nPixelsX - xOffRaster
+                        print(f'{TB}-> ATENCION: revisar porque hace falta recalcular nCeldasX_Intersect:')
+                        print(f'{TB}{TV}-> nCeldasX_Intersect: {nCeldasX_Intersec}')
+                    if nCeldasY_Intersec > nPixelsY - yOffRaster:
+                        nCeldasY_Intersec = nPixelsY - yOffRaster
+                        print(f'{TB}-> ATENCION: revisar porque hace falta recalcular nCeldasY_Intersect:')
+                        print(f'{TB}{TV}-> nCeldasY_Intersect: {nCeldasY_Intersec}')
+
+                srcbandOriginalAsArrayInt, noData = infoSrcbandAsArray(
+                    srcbandOriginal,
+                    xOffRaster, yOffRaster,
+                    nCeldasX_Intersec, nCeldasY_Intersec,
+                    verbose=GLO.GLBLverbose,
+                    tipoInfoRaster=tipoInfoRaster,
+                )
                 if GLO.GLBLverbose or __verbose__:
                     print('\tclidcarto-> srcbandOriginalAsArrayInt.shape', srcbandOriginalAsArrayInt.shape)
                 if nBandasRaster == 1:
@@ -3373,11 +3570,11 @@ def leerVentanaRaster(
                 else:
                     rasterRefRecortadoAsArrayInt[nBand] = srcbandOriginalAsArrayInt
         else:
-            print(f'clidcarto-> ATENCION: raster {nBandasPrevistas} no solapa.')
+            print(f'\nclidcarto-> ATENCION: raster no solapa.')
             origenX_Imagen = infoSourceDatasetRasterOriginal['origenX']
             origenY_Imagen = infoSourceDatasetRasterOriginal['origenY']
-            pixelX = infoSourceDatasetRasterOriginal['pixelX']
-            pixelY = infoSourceDatasetRasterOriginal['pixelY']
+            pixelX = round(infoSourceDatasetRasterOriginal['pixelX'], 3)
+            pixelY = round(infoSourceDatasetRasterOriginal['pixelY'], 3)
             nPixelsX = infoSourceDatasetRasterOriginal['nPixelsX']
             nPixelsY = infoSourceDatasetRasterOriginal['nPixelsY']
             rasterMinX = origenX_Imagen
@@ -3488,8 +3685,8 @@ def foo():
 #     infoSourceDataset = infoRasterDataset( sourceDataset, mostrar0True)
 #     origenX_Imagen = infoSourceDataset['origenX']
 #     origenY_Imagen = infoSourceDataset['origenY']
-#     pixelX = infoSourceDataset['pixelX']
-#     pixelY = infoSourceDataset['pixelY']
+#     pixelX = round(infoSourceDataset['pixelX'], 3)
+#     pixelY = round(infoSourceDataset['pixelY'], 3)
 #     nCeldasX = infoSourceDataset['nPixelsX']
 #     nCeldasY = infoSourceDataset['nPixelsY']
 #     if nBandas == 0:
@@ -3758,10 +3955,18 @@ def infoSrcband(srcband, verbose=False, reclaculaStats=False):
 
 
 # ==============================================================================
-def infoSrcbandAsArray(srcband, xOffRaster, yOffRaster, nCeldasX_Intersec, nCeldasY_Intersec, verbose=False, tipoInfoRaster=''):
+def infoSrcbandAsArray(
+        srcband,
+        xOffRaster, yOffRaster,
+        nCeldasX_Intersec, nCeldasY_Intersec,
+        verbose=False,
+        tipoInfoRaster='',
+    ):
     srcbandAsArray = srcband.ReadAsArray(xOffRaster, yOffRaster, nCeldasX_Intersec, nCeldasY_Intersec)
     if tipoInfoRaster == 'landCover':
         srcBandAsArrayInt = srcbandAsArray.astype(np.uint8)
+    elif tipoInfoRaster == 'Mda':
+        srcBandAsArrayInt = srcbandAsArray.astype(np.float32)
     elif tipoInfoRaster == 'Mdt':
         srcBandAsArrayInt = srcbandAsArray.astype(np.float32)
     elif tipoInfoRaster == 'Orto':
@@ -3891,15 +4096,55 @@ def calculaInterseccion(
     ):
     origenX_Imagen = infoSourceDataset['origenX']
     origenY_Imagen = infoSourceDataset['origenY']
-    pixelX = infoSourceDataset['pixelX']
-    pixelY = infoSourceDataset['pixelY']
+    pixelX = round(infoSourceDataset['pixelX'], 3)
+    pixelY = round(infoSourceDataset['pixelY'], 3)
     nPixelsX = infoSourceDataset['nPixelsX']
     nPixelsY = infoSourceDataset['nPixelsY']
 
-    rasterMinX = origenX_Imagen
-    rasterMaxX = origenX_Imagen + (nPixelsX * pixelX)
-    rasterMinY = origenY_Imagen + (nPixelsY * pixelY)
-    rasterMaxY = origenY_Imagen
+    # Chequeo si el pixelSize es cuadrado y es un numero racional:
+    #  Racional -> entero o submutiplo de 1 metro o puede obtenerse por division de dos enteros bajos (p. ej. < 10)
+    #  Atencion porque 0.1 o 0.2 no parecen racionales aunque lo son; por eso tiro de is_integer()
+    # Con esto establezco los limites de la ventana del bloqueLidar transformado a huso 30
+    #  a un origen en numero entero de pixeles de la ortofoto
+    #  mayorando la ventana para que contenga completamente al bloque 
+    if abs(pixelX) == abs(pixelY):
+        pixelRational = (float(abs(pixelX))).as_integer_ratio()
+        if pixelRational[1] == 1:
+            # Numero entero
+            metrosEnterosEnUnPixel = int(abs(pixelX))
+            pixelsEnterosEnUnMetro = 1
+            # print(f'\t\t-> metrosEnterosEnUnPixel: {metrosEnterosEnUnPixel}/{pixelsEnterosEnUnMetro}')
+        elif float(1 / abs(pixelX)).is_integer():
+            # Fraccion entera de 1 m
+            metrosEnterosEnUnPixel = 1
+            pixelsEnterosEnUnMetro = int(1 / abs(pixelX))
+            # print(f'\t\t-> metrosEnterosEnUnPixel: {metrosEnterosEnUnPixel}/{pixelsEnterosEnUnMetro}')
+        elif pixelRational[1] < 10:
+            # Numero fraccionario racional
+            metrosEnterosEnUnPixel = pixelRational[0]
+            pixelsEnterosEnUnMetro = pixelRational[1]
+            # print(f'\t\t-> metrosEnterosEnUnPixel: {metrosEnterosEnUnPixel}/{pixelsEnterosEnUnMetro}')
+        else:
+            metrosEnterosEnUnPixel = -2
+            pixelsEnterosEnUnMetro = -2
+            print(f'\t\t-> AVISO la dimension del pixel no es racional {pixelX} // {pixelY} m.')
+    else:
+        metrosEnterosEnUnPixel = -1
+        pixelsEnterosEnUnMetro = -1
+        print(f'\t\t-> AVISO el pixel no es cuadrado {pixelX} // {pixelY} m.')
+
+    if pixelsEnterosEnUnMetro != -1 and metrosEnterosEnUnPixel != -1:
+        # rasterMinX = (metrosEnterosEnUnPixel / pixelsEnterosEnUnMetro) * math.floor(origenX_Imagen * (pixelsEnterosEnUnMetro / metrosEnterosEnUnPixel))
+        rasterMinX = (metrosEnterosEnUnPixel / pixelsEnterosEnUnMetro) * int(round(origenX_Imagen * (pixelsEnterosEnUnMetro / metrosEnterosEnUnPixel), 0))
+        rasterMaxX = rasterMinX  + (nPixelsX * pixelX)
+        # rasterMaxY = (metrosEnterosEnUnPixel / pixelsEnterosEnUnMetro) * math.ceil(origenY_Imagen * (pixelsEnterosEnUnMetro / metrosEnterosEnUnPixel))
+        rasterMaxY = (metrosEnterosEnUnPixel / pixelsEnterosEnUnMetro) * int(round(origenY_Imagen * (pixelsEnterosEnUnMetro / metrosEnterosEnUnPixel), 0))
+        rasterMinY = rasterMaxY + (nPixelsY * pixelY)
+    else:
+        rasterMinX = origenX_Imagen
+        rasterMaxX = origenX_Imagen + (nPixelsX * pixelX)
+        rasterMinY = origenY_Imagen + (nPixelsY * pixelY)
+        rasterMaxY = origenY_Imagen
     pixel_with = abs(pixelX)
     pixel_height = abs(pixelY)
 
@@ -3912,20 +4157,16 @@ def calculaInterseccion(
     ySupDchaLas = coordVentana[3]
     # ySupIzdaLas = coordVentana[3]
 
-    if False: # GLO.GLBLhuso29 or '_H29_' in GLO.MAINprocedimiento:
-        print('\tclidcarto-> Revisando coordenadas del bloque Lidar y de la ortofoto (o raster que sea)')
-        print('\t\t-> xInfIzdaLas, rasterMinX:', xInfIzdaLas, rasterMinX)
-        print('\t\t-> xSupDchaLas, rasterMaxX:', xSupDchaLas, rasterMaxX)
-        print('\t\t-> yInfIzdaLas, rasterMinY:', yInfIzdaLas, rasterMinY)
-        print('\t\t-> ySupDchaLas, rasterMaxY:', ySupDchaLas, rasterMaxY)
+    if True: # GLO.GLBLhuso29 or '_H29_' in GLO.MAINprocedimiento:
+        print(f'clidcarto-> Revisando coordenadas del bloque Lidar y de la ortofoto (o raster que sea).')
+        print(f'{TB}Coordenadas de la ventana de interseccion:')
+        print(f'{TB}-> xInfIzdaLas-> {xInfIzdaLas} {rasterMinX} <-ortoRasterMinX')
+        print(f'{TB}-> xSupDchaLas-> {xSupDchaLas} {rasterMaxX} <-ortoRasterMaxX')
+        print(f'{TB}-> yInfIzdaLas-> {yInfIzdaLas} {rasterMinY} <-ortoRasterMinY')
+        print(f'{TB}-> ySupDchaLas-> {ySupDchaLas} {rasterMaxY} <-ortoRasterMaxY')
 
     if xSupDchaLas < rasterMinX or xInfIzdaLas > rasterMaxX or ySupDchaLas < rasterMinY or yInfIzdaLas > rasterMaxY:
-        if LCLverbose:
-            print('\tclidcarto-> Cuadrado Lidar fuera de la imagen raster')
-            print('\t\t-> xSupDchaLas, rasterMinX:', xSupDchaLas, rasterMinX)
-            print('\t\t-> xInfIzdaLas, rasterMaxX:', xInfIzdaLas, rasterMaxX)
-            print('\t\t-> ySupDchaLas, rasterMinY:', ySupDchaLas, rasterMinY)
-            print('\t\t-> yInfIzdaLas, rasterMaxY:', yInfIzdaLas, rasterMaxY)
+        print(f'clidcarto-> El bloque Lidar no solapa con la orto/imagen raster')
         haySolape = False
     else:
         haySolape = True
@@ -3974,17 +4215,20 @@ def calculaInterseccion(
                 intersectNumPixelsX = bloqueLidarNumPixelsX
             else:
                 intersectMaxX = rasterMaxX
-                intersectNumPixelsX = bloqueLidarNumPixelsX - math.floor(((bloqueLidarCoordMaxX - rasterMaxX) / pixel_with))
+                # intersectNumPixelsX = bloqueLidarNumPixelsX - math.floor(((bloqueLidarCoordMaxX - rasterMaxX) / pixel_with))
+                intersectNumPixelsX = nPixelsX - xOffRaster
             # print('\tclidcarto-> Intersecccion->1a', intersectMinX, intersectMaxX)
         else:
             xOffRaster = 0
             intersectMinX = rasterMinX
             if rasterMaxX > bloqueLidarCoordMaxX:
                 intersectMaxX = bloqueLidarCoordMaxX
-                intersectNumPixelsX = bloqueLidarNumPixelsX - math.floor(((rasterMinX - bloqueLidarCoordMinX) / pixel_with))
+                # intersectNumPixelsX = bloqueLidarNumPixelsX - math.floor(((rasterMinX - bloqueLidarCoordMinX) / pixel_with))
+                intersectNumPixelsX = math.floor((bloqueLidarCoordMaxX - rasterMinX) / pixel_with)
             else:
                 intersectMaxX = rasterMaxX
-                intersectNumPixelsX = bloqueLidarNumPixelsX - math.floor(((bloqueLidarCoordMaxX - rasterMaxX + rasterMinX - bloqueLidarCoordMinX) / pixel_with))
+                # intersectNumPixelsX = bloqueLidarNumPixelsX - math.floor(((bloqueLidarCoordMaxX - rasterMaxX + rasterMinX - bloqueLidarCoordMinX) / pixel_with))
+                intersectNumPixelsX = nPixelsX
             # print('\tclidcarto-> Intersecccion->1b', intersectMinX, intersectMaxX)
 
         if rasterMaxY > bloqueLidarCoordMaxY:
@@ -3995,17 +4239,21 @@ def calculaInterseccion(
                 intersectNumPixelsY = bloqueLidarNumPixelsY
             else:
                 intersectMinY = rasterMinY
-                intersectNumPixelsY = bloqueLidarNumPixelsY - math.floor(((rasterMinY - bloqueLidarCoordMinY) / pixel_with))
+                # intersectNumPixelsY = bloqueLidarNumPixelsY - math.floor(((rasterMinY - bloqueLidarCoordMinY) / pixel_with))
+                intersectNumPixelsY = nPixelsY - yOffRaster
             # print('\tclidcarto-> Intersecccion->2a', intersectMinY, intersectMaxY)
         else:
             yOffRaster = 0
             intersectMaxY = rasterMaxY
             if rasterMinY < bloqueLidarCoordMinY:
-                intersectNumPixelsY = bloqueLidarNumPixelsY - math.floor(((bloqueLidarCoordMaxY - rasterMaxY) / pixel_with))
                 intersectMinY = bloqueLidarCoordMinY
+                # intersectNumPixelsY = bloqueLidarNumPixelsY - math.floor(((bloqueLidarCoordMaxY - rasterMaxY) / pixel_with))
+                intersectNumPixelsY = math.floor((rasterMaxY - bloqueLidarCoordMinY) / pixel_with)
             else:
-                intersectNumPixelsY = bloqueLidarNumPixelsY - math.floor(((bloqueLidarCoordMaxY - rasterMaxY + rasterMinY - bloqueLidarCoordMinY) / pixel_with))
                 intersectMinY = rasterMinY
+                # intersectNumPixelsY = bloqueLidarNumPixelsY - math.floor(((bloqueLidarCoordMaxY - rasterMaxY + rasterMinY - bloqueLidarCoordMinY) / pixel_with))
+                intersectNumPixelsY = nPixelsY
+
             # print('\tclidcarto-> Intersecccion->2b', intersectMinY, intersectMaxY)
         xOffRaster = int(xOffRaster)
         yOffRaster = int(yOffRaster)
@@ -4016,8 +4264,8 @@ def calculaInterseccion(
 
 #     origenX_Imagen = infoSourceDataset['origenX']
 #     origenY_Imagen = infoSourceDataset['origenY']
-#     pixelX = infoSourceDataset['pixelX']
-#     pixelY = infoSourceDataset['pixelY']
+#     pixelX = round(infoSourceDataset['pixelX'], 3)
+#     pixelY = round(infoSourceDataset['pixelY'], 3)
 #     nPixelsX = infoSourceDataset['nPixelsX']
 #     nPixelsY = infoSourceDataset['nPixelsY']
     if LCLverbose: # or GLO.GLBLhuso29 or '_H29_' in GLO.MAINprocedimiento:
@@ -4479,12 +4727,12 @@ def crearTilesTargetReDepurados(
         for nCol in range(numTilesCols):
 
             if nRow == 0:
-                xInfIzdaTile = (myLasHead.xmin - margenXsobresalienteMetros)
+                xInfIzdaTile = (myLasHead.xminBloqueMalla - margenXsobresalienteMetros)
                 recorteIniY = 0
                 recorteIniY1m = 0
             else:
                 xInfIzdaTile = (
-                    myLasHead.xmin
+                    myLasHead.xminBloqueMalla
                     + (
                         GLO.GLBLtileSizeMetros
                         - margenXsobresalienteMetros
@@ -4512,12 +4760,12 @@ def crearTilesTargetReDepurados(
                     - GLBNtileSemiSolapePixelsCeldilla
                  )
             if nCol == 0:
-                yInfIzdaTile = (myLasHead.ymin - margenYsobresalienteMetros)
+                yInfIzdaTile = (myLasHead.yminBloqueMalla - margenYsobresalienteMetros)
                 recorteIniX = 0
                 recorteIniX1m = 0
             else:
                 yInfIzdaTile = (
-                    myLasHead.ymin
+                    myLasHead.yminBloqueMalla
                     + (
                         GLO.GLBLtileSizeMetros
                         - margenYsobresalienteMetros
@@ -4571,7 +4819,7 @@ def crearTilesTargetReDepurados(
                 finX = int(GLBNtileSizeEnPixelsSubCelda)
                 finX1m = int(GLBNtileSizeEnPixelsCeldilla)
 
-            if GLO.GLBLverbose or __verbose__:
+            if GLO.GLBLverbose or (__verbose__):
                 print('\tclidcarto-> tiles 2m:', nRow, nCol, '->', iniY, finY, iniX, finX,
                       '->1m', nRow, nCol, '->', iniY1m, finY1m, iniX1m, finX1m)
                 print('\t\ttiles 2m recorte', recorteIniY, recorteIniY + finY - iniY,
@@ -4632,7 +4880,7 @@ def crearTilesTargetReDepurados(
                     minPorcentajePixeles = [GLO.GLBLminPctjEdificiosParaCrearTileTargetMiniSubCel]
                 miHistograma = np.bincount(tileRecorte0TargetTriClass.flatten())
                 if len(miHistograma) <= min(listaSelectedTargets):
-                    if GLO.GLBLverbose or __verbose__:
+                    if GLO.GLBLverbose or (__verbose__):
                         print('\t\tclidcarto-> tiles 2m:', nRow, nCol,
                               '-> Sin valores target seleccionados:', listaSelectedTargets)
                     continue
@@ -4646,7 +4894,7 @@ def crearTilesTargetReDepurados(
                     else:
                         nPixelsSelectedTargets.append(0)
                 if not tieneSuficientesPixelesDeLasCLasesElegidas:
-                    if GLO.GLBLverbose or __verbose__:
+                    if GLO.GLBLverbose or (__verbose__):
                         print('\t\tclidcarto-> tiles 2m:', nRow, nCol,
                               '-> Insuficientes pixeles de las clases seleccionadas')
                     continue
@@ -4693,7 +4941,7 @@ def crearTilesTargetReDepurados(
                     colorMode = 'L'
                     myImageBN = Image.fromarray(np.rot90(tileRecorte0TargetTriClass), colorMode)
                     if os.path.exists(pngFileNameTargetTriClass) and not LCLmantenerTilesGuardados:
-                        print('\t\tclidcarto->->-> Eliminando fichero triClass existente con pathlib:', pngFileNameTargetTriClass)
+                        print('clidcarto->->-> Eliminando fichero triClass existente con pathlib:', pngFileNameTargetTriClass)
                         #os.remove(pngFileNameTargetTriClass)
                         (pathlib.Path(pngFileNameTargetTriClass)).unlink()
                         if os.path.exists(pngFileNameTargetTriClass):
@@ -4760,7 +5008,7 @@ def crearTilesTargetReDepurados(
 #                     ).reshape(tileRecorte0TargetOriClass.shape)
 #                     myImageBN = Image.fromarray(np.rot90(tileRecorteExData), colorMode)
 #                     if os.path.exists(pngFileNameExData) and not LCLmantenerTilesGuardados:
-#                         print('\t\tclidcarto->->-> Eliminando fichero existente:', pngFileNameExData)
+#                         print('clidcarto->->-> Eliminando fichero existente:', pngFileNameExData)
 #                         os.remove(pngFileNameExData)
 #                     myImageBN.save(pngFileNameExData)
 
@@ -4788,7 +5036,7 @@ def crearTilesTargetReDepurados(
                         ).reshape(tileRecorte0TargetBinClas.shape)
                     myImageBN = Image.fromarray(np.rot90(tileRecorteExData), colorMode)
                     if os.path.exists(pngFileNameExData) and not LCLmantenerTilesGuardados:
-                        print('\t\tclidcarto->->-> Eliminando fichero exData existente con pathlib:', pngFileNameExData)
+                        print('clidcarto->->-> Eliminando fichero exData existente con pathlib:', pngFileNameExData)
                         #os.remove(pngFileNameExData)
                         (pathlib.Path(pngFileNameExData)).unlink()
                         if os.path.exists(pngFileNameExData):
@@ -4845,8 +5093,8 @@ def crearTilesInputTarget(
     margenYsobresalientePixelsCdA = int(math.floor(margenYsobresalienteMetros / GLO.GLBLmetrosCeldilla))
     margenYsobresalientePixelsCdB = int(math.ceil(margenYsobresalienteMetros / GLO.GLBLmetrosCeldilla))
 
-    if GLO.GLBLverbose or __verbose__:
-        print(f'clidcarto-> Se van a crear {numTilesRows} x {numTilesCols} tiles')
+    if GLO.GLBLverbose or (__verbose__):
+        print(f'clidcarto-> Se van a crear tilesInputTarget: {numTilesRows} x {numTilesCols} tiles.')
         print(f'{TB}nSubCeldasRasterRefY: {nSubCeldasRasterRefY}; nSubCeldasRasterRefX: {nSubCeldasRasterRefX}')
         print(f'{TB}GLO.GLBLtileSizeMetros: {GLO.GLBLtileSizeMetros} '
               f'GLO.GLBLtileSemiSolapeMetros: {GLO.GLBLtileSemiSolapeMetros} '
@@ -5242,7 +5490,8 @@ def crearTilesInputTarget(
                 ),
                 axis=2,
             )
-            print('clidcarto->', trainSubDir1, 'arrayCapas1.dtype:', arrayCapas1.dtype, arrayCapas1.min(), arrayCapas1.max())
+            print('clidcarto-> trainSubDir:', trainSubDir1, 'arrayCapas1.dtype:', arrayCapas1.dtype, 'Min:', arrayCapas1.min(), 'Max:', arrayCapas1.max())
+
             # print(myLasData.aSubCeldasNDVIMed[10:12, 10:12])
             # print('clidcarto-> mostrando ndvi en origen:')
             # print('clidcarto-> mostrando ndvi en destino:')
@@ -5285,7 +5534,7 @@ def crearTilesInputTarget(
                         arrayCapas2[nX, nY][0] = myLasData.aSubCeldasPuntoMaxiSubCel_Tlp[nX, nY]['nir']
                         arrayCapas2[nX, nY][1] = myLasData.aSubCeldasPuntoMaxiSubCel_Tlp[nX, nY]['red']
                         arrayCapas2[nX, nY][2] = myLasData.aSubCeldasPuntoMaxiSubCel_Tlp[nX, nY]['green']
-            print('clidcarto->', trainSubDir2, 'arrayCapas2.dtype:', arrayCapas2.dtype, arrayCapas2.min(), arrayCapas2.max())
+            print('clidcarto-> trainSubDir:', trainSubDir2, 'arrayCapas2.dtype:', arrayCapas2.dtype, 'Min:', arrayCapas2.min(), 'Max:', arrayCapas2.max())
 
             # Las siguientes variables son del miniSubCel
             # preVuelta2
@@ -5320,7 +5569,7 @@ def crearTilesInputTarget(
                     ),
                     axis=2,
                 )
-            print('clidcarto->', trainSubDir3, 'arrayCapas3.dtype:', arrayCapas3.dtype, arrayCapas3.min(), arrayCapas3.max())
+            print('clidcarto-> trainSubDir:', trainSubDir3, 'arrayCapas3.dtype:', arrayCapas3.dtype, 'Min:', arrayCapas3.min(), 'Max:', arrayCapas3.max())
 
             # preVuelta2
             trainSubDir4 = 'pngInputVar_planoNubePuntual_miniSubCel'
@@ -5361,7 +5610,7 @@ def crearTilesInputTarget(
                     ),
                     axis=2,
                 )
-            print('clidcarto->', trainSubDir4, 'arrayCapas4.dtype:', arrayCapas4.dtype, arrayCapas4.min(), arrayCapas1.max())
+            print('clidcarto-> trainSubDir:', trainSubDir4, 'arrayCapas4.dtype:', arrayCapas4.dtype, 'Min:', arrayCapas4.min(), 'Max:', arrayCapas4.max())
 
             # # ==================================================================
             # #Obtencion de cotaMinBloque
@@ -5446,7 +5695,7 @@ def crearTilesInputTarget(
                     ),
                     axis=2,
                 )
-            print('clidcarto->', trainSubDir5, 'arrayCapas5.dtype:', arrayCapas5.dtype, arrayCapas5.min(), arrayCapas5.max())
+            print('clidcarto-> trainSubDir:', trainSubDir5, 'arrayCapas5.dtype:', arrayCapas5.dtype, 'Min:', arrayCapas5.min(), 'Max:', arrayCapas5.max())
 
             # preVuelta2
             trainSubDir6 = 'pngInputVar_MdgEcmrPtes'
@@ -5462,7 +5711,7 @@ def crearTilesInputTarget(
                 ),
                 axis=2,
             )
-            print('clidcarto->', trainSubDir6, 'arrayCapas6.dtype:', arrayCapas6.dtype, arrayCapas6.min(), arrayCapas6.max())
+            print('clidcarto-> trainSubDir:', trainSubDir6, 'arrayCapas6.dtype:', arrayCapas6.dtype, 'Min:', arrayCapas6.min(), 'Max:', arrayCapas6.max())
 
             # ======================================================================
             if GLO.GLBLcalcularAutovaloresDeCadaPunto:
@@ -5547,6 +5796,17 @@ def crearTilesInputTarget(
                 grabarCapaRm = True
 
             if grabarCapa1:
+                if (
+                    myLasData.aSubCeldasIntSRetMed.shape != myLasData.aSubCeldasNDVIMed.shape
+                    or myLasData.aSubCeldasNDVIMed.shape != myLasData.aSubCeldasNDWIMed.shape
+                ):
+                    grabarCapa1 = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aSubCeldasIntSRetMed {myLasData.aSubCeldasIntSRetMed.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasNDVIMed    {myLasData.aSubCeldasNDVIMed.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasNDWIMed    {myLasData.aSubCeldasNDWIMed.shape}')
+
+            if grabarCapa1:
                 # postVuelta2
                 trainPathPng1 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_int_ndvi_ndwi/')
                 if GLO.GLBLformatoTilesAscInput:
@@ -5560,7 +5820,7 @@ def crearTilesInputTarget(
                     ),
                     axis=2,
                 )
-    
+
             if grabarCapa2:
                 # postVuelta2
                 trainPathPng2 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_nirRedGreen_maxiSubCel/')
@@ -5599,6 +5859,17 @@ def crearTilesInputTarget(
                             arrayCapas2[nX, nY][2] = myLasData.aSubCeldasPuntoMaxiSubCel_Tlp[nX, nY]['green']
 
             if grabarCapa3:
+                if (
+                    myLasData.aSubCeldasPlanoTejado.shape != myLasData.aSubCeldasAltMaxSobreMdf.shape
+                    or myLasData.aSubCeldasAltMaxSobreMdf.shape != myLasData.aSubCeldasMdfCotaElegida.shape
+                ):
+                    grabarCapa3 = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aSubCeldasPlanoTejado    {myLasData.aSubCeldasPlanoTejado.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasAltMaxSobreMdf {myLasData.aSubCeldasAltMaxSobreMdf.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasMdfCotaElegida {myLasData.aSubCeldasMdfCotaElegida.shape}')
+
+            if grabarCapa3:
                 # postVuelta2
                 trainPathPng3 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_hTejado_hMaxSmdf_Mdf/')
                 if GLO.GLBLformatoTilesAscInput:
@@ -5609,20 +5880,28 @@ def crearTilesInputTarget(
                     'AltMaxSobreMdf',
                     'cotaMdf',
                 ]
-    
-                print('clidcarto-> myLasData.aSubCeldasPlanoTejado', myLasData.aSubCeldasPlanoTejado.shape)
-                print('clidcarto-> myLasData.aSubCeldasAltMaxSobreMdf', myLasData.aSubCeldasAltMaxSobreMdf.shape)
-                print('clidcarto-> myLasData.aSubCeldasMdfCotaPlus', myLasData.aSubCeldasMdfCotaPlus.shape)
+
                 # arrayCapas3 = np.concatenate( ( myLasData.aSubCeldasAlt95SobreMdf[..., np.newaxis].astype(np.float64),
-                # arrayCapas3 = np.concatenate( ( myLasData.aSubCeldasMdfCotaPlus[..., np.newaxis].astype(np.float64),
+                # arrayCapas3 = np.concatenate( ( myLasData.aSubCeldasMdfCotaElegida[..., np.newaxis].astype(np.float64),
                 arrayCapas3 = np.concatenate(
                     (
                         myLasData.aSubCeldasPlanoTejado[..., np.newaxis].astype(np.float64),
                         myLasData.aSubCeldasAltMaxSobreMdf[..., np.newaxis].astype(np.float64),
-                        myLasData.aSubCeldasMdfCotaPlus[..., np.newaxis].astype(np.float64),
+                        myLasData.aSubCeldasMdfCotaElegida[..., np.newaxis].astype(np.float64),
                     ),
                     axis=2,
                 )
+
+            if grabarCapa4:
+                if (
+                    myLasData.aSubCeldasLateralidadMinMinMacro.shape != myLasData.aSubCeldasLateralidadMinMinMesos.shape
+                    or myLasData.aSubCeldasLateralidadMinMinMesos.shape != myLasData.aSubCeldasLateralidadMinMinMicro.shape
+                ):
+                    grabarCapa4 = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aSubCeldasLateralidadMinMinMacro {myLasData.aSubCeldasLateralidadMinMinMacro.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasLateralidadMinMinMesos {myLasData.aSubCeldasLateralidadMinMinMesos.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasLateralidadMinMinMicro {myLasData.aSubCeldasLateralidadMinMinMicro.shape}')
 
             if grabarCapa4:
                 # postVuelta2
@@ -5638,7 +5917,18 @@ def crearTilesInputTarget(
                     ),
                     axis=2,
                 )
-    
+
+            if grabarCapa5:
+                if (
+                    myLasData.aSubCeldasRugosidadMinMaxMacroInterSubCeldas.shape != myLasData.aSubCeldasRugosidadMinMaxMesosInterSubCeldas.shape
+                    or myLasData.aSubCeldasRugosidadMinMaxMesosInterSubCeldas.shape != myLasData.aSubCeldasRugosidadMinMaxMicroInterSubCeldas.shape
+                ):
+                    grabarCapa5 = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aSubCeldasRugosidadMinMaxMacroInterSubCeldas {myLasData.aSubCeldasRugosidadMinMaxMacroInterSubCeldas.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasRugosidadMinMaxMesosInterSubCeldas {myLasData.aSubCeldasRugosidadMinMaxMesosInterSubCeldas.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasRugosidadMinMaxMicroInterSubCeldas {myLasData.aSubCeldasRugosidadMinMaxMicroInterSubCeldas.shape}')
+
             if grabarCapa5:
                 # postVuelta2
                 trainPathPng5 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_rugMacroMesosMicro/')
@@ -5653,7 +5943,7 @@ def crearTilesInputTarget(
                     ),
                     axis=2,
                 )
-    
+
             if grabarCapa6:
                 # postVuelta2
                 trainPathPng6 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_MdgEcmrPtes/')  # ok
@@ -5668,7 +5958,18 @@ def crearTilesInputTarget(
                     ),
                     axis=2,
                 )
-    
+
+            if grabarCapa7:
+                if (
+                    myLasData.aSubCeldasMdfCotaElegida.shape != myLasData.aSubCeldasCotaMinAA.shape
+                    or myLasData.aSubCeldasCotaMinAA.shape != myLasData.aSubCeldasCotaMaxAA.shape
+                ):
+                    grabarCapa7 = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aSubCeldasMdfCotaElegida {myLasData.aSubCeldasMdfCotaElegida.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasCotaMinAA      {myLasData.aSubCeldasCotaMinAA.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasCotaMaxAA      {myLasData.aSubCeldasCotaMaxAA.shape}')
+
             # En principio sin uso:
             if grabarCapa7:
                 # postVuelta2
@@ -5677,27 +5978,52 @@ def crearTilesInputTarget(
                 nombreCapas7 = ['cotaMdf', 'cotaMin', 'cotaMax']
                 arrayCapas7 = np.concatenate(
                     (
-                        myLasData.aSubCeldasMdfCotaPlus[..., np.newaxis].astype(np.float64),
+                        myLasData.aSubCeldasMdfCotaElegida[..., np.newaxis].astype(np.float64),
                         myLasData.aSubCeldasCotaMinAA[..., np.newaxis].astype(np.float64),
                         myLasData.aSubCeldasCotaMaxAA[..., np.newaxis].astype(np.float64),
                     ),
                     axis=2,
                 )
-                # myLasData.aSubCeldasPuntoMaxiSubCel_Tlp[:,:]['cotaDmPlus20SobreMdt8bits'].astype(np.float64) ),
-    
+
+            if grabarCapa8:
+                if (
+                    myLasData.aSubCeldasCotaMaxAA.shape != myLasData.aSubCeldasMdfCotaElegida.shape
+                    or myLasData.aSubCeldasMdfCotaElegida.shape != myLasData.aSubCeldasMdpCotaMacro.shape
+                    or myLasData.aSubCeldasMdpCotaMacro.shape != myLasData.aSubCeldasMdpCotaMicro.shape
+                ):
+                    grabarCapa8 = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aSubCeldasCotaMaxAA      {myLasData.aSubCeldasCotaMaxAA.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasMdfCotaElegida {myLasData.aSubCeldasMdfCotaElegida.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasMdpCotaMacro   {myLasData.aSubCeldasMdpCotaMacro.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasMdpCotaMicro   {myLasData.aSubCeldasMdpCotaMicro.shape}')
+
             if grabarCapa8:
                 # postVuelta2
                 trainPathPng8 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_Hmax_sMdf_sMdpmacro_sMdpMicro/')
                 nombreCapas8 = ['AltMaxSobreMdfResta', 'AltMaxSobreMdpMacro', 'AltMaxSobreMdpMicro']
                 arrayCapas8 = np.concatenate(
                     (
-                        (myLasData.aSubCeldasCotaMaxAA[..., np.newaxis].astype(np.float64) - myLasData.aSubCeldasMdfCotaPlus[..., np.newaxis].astype(np.float64)),
+                        (myLasData.aSubCeldasCotaMaxAA[..., np.newaxis].astype(np.float64) - myLasData.aSubCeldasMdfCotaElegida[..., np.newaxis].astype(np.float64)),
                         (myLasData.aSubCeldasCotaMaxAA[..., np.newaxis].astype(np.float64) - myLasData.aSubCeldasMdpCotaMacro[..., np.newaxis].astype(np.float64)),
                         (myLasData.aSubCeldasCotaMaxAA[..., np.newaxis].astype(np.float64) - myLasData.aSubCeldasMdpCotaMicro[..., np.newaxis].astype(np.float64)),
                     ),
                     axis=2,
                 )
-    
+
+            if grabarCapa9:
+                if (
+                    myLasData.aSubCeldasRugosidadMacroInterCeldillas.shape != myLasData.aSubCeldasRugosidadMesosInterCeldillas.shape
+                    or myLasData.aSubCeldasRugosidadMesosInterCeldillas.shape != myLasData.aSubCeldasRugosidadMicroInterCeldillas.shape
+                    or myLasData.aSubCeldasRugosidadMicroInterCeldillas.shape != myLasData.aSubCeldasRugosidadMegasInterCeldillas.shape
+                ):
+                    grabarCapa9 = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aSubCeldasRugosidadMacroInterCeldillas {myLasData.aSubCeldasRugosidadMacroInterCeldillas.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasRugosidadMesosInterCeldillas {myLasData.aSubCeldasRugosidadMesosInterCeldillas.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasRugosidadMicroInterCeldillas {myLasData.aSubCeldasRugosidadMicroInterCeldillas.shape}')
+                    print(f'{TB}-> myLasData.aSubCeldasRugosidadMegasInterCeldillas {myLasData.aSubCeldasRugosidadMegasInterCeldillas.shape}')
+
             if grabarCapa9:
                 # postVuelta2
                 trainPathPng9 = os.path.join(GLO.MAINrutaOutput, train_dir, 'pngInputVar_RiC_Macro_Mesos_Micro_Megas/')
@@ -5715,6 +6041,17 @@ def crearTilesInputTarget(
                 )
 
             if grabarCapaIm:
+                if (
+                    myLasData.aMetricoIntSRet.shape != myLasData.aMetricoNDVIMed.shape
+                    or myLasData.aMetricoNDVIMed.shape != myLasData.aMetricoPlanoTejado.shape
+                ):
+                    grabarCapaIm = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aMetricoIntSRet     {myLasData.aMetricoIntSRet.shape}')
+                    print(f'{TB}-> myLasData.aMetricoNDVIMed     {myLasData.aMetricoNDVIMed.shape}')
+                    print(f'{TB}-> myLasData.aMetricoPlanoTejado {myLasData.aMetricoPlanoTejado.shape}')
+
+            if grabarCapaIm:
                 # postVuelta2
                 trainPathPngInt1m = os.path.join(GLO.MAINrutaOutput, train_dir, 'png1mInputVar_int_ndvi_hTejado/')
                 nombreCapasInt1m = ['intSRetMed1m', 'ndviMed1m', 'AltPlanoTejado1m']
@@ -5725,6 +6062,17 @@ def crearTilesInputTarget(
                         myLasData.aMetricoPlanoTejado[..., np.newaxis]), axis=2
                 )
     
+            if grabarCapaRm:
+                if (
+                    myLasData.aMetricoRugosidadMacroInterCeldillas.shape != myLasData.aMetricoRugosidadMesosInterCeldillas.shape
+                    or myLasData.aMetricoRugosidadMesosInterCeldillas.shape != myLasData.aMetricoRugosidadMicroInterCeldillas.shape
+                ):
+                    grabarCapaRm = False
+                    print(f'clidcarto-> ATENCION: shapes distintos:')
+                    print(f'{TB}-> myLasData.aMetricoRugosidadMacroInterCeldillas {myLasData.aMetricoRugosidadMacroInterCeldillas.shape}')
+                    print(f'{TB}-> myLasData.aMetricoRugosidadMesosInterCeldillas {myLasData.aMetricoRugosidadMesosInterCeldillas.shape}')
+                    print(f'{TB}-> myLasData.aMetricoRugosidadMicroInterCeldillas {myLasData.aMetricoRugosidadMicroInterCeldillas.shape}')
+
             if grabarCapaRm:
                 # postVuelta2
                 trainPathPngRiC1m = os.path.join(GLO.MAINrutaOutput, train_dir, 'png1mInputVar_RiC_macro_mesos_micro/')
@@ -5782,8 +6130,9 @@ def crearTilesInputTarget(
         # ======================================================================
 
 
-    if GLO.GLBLverbose or __verbose__:
-        print('clidcarto-> Se generan los {} x {} tiles.'.format(numTilesRows, numTilesCols))
+    # ==========================================================================
+    if GLO.GLBLverbose or (__verbose__):
+        print(f'clidcarto-> Se van a generar los tilesInputTarget: {numTilesRows} x {numTilesCols} tiles.')
     for nRow in range(numTilesRows):
         for nCol in range(numTilesCols):
 
@@ -5801,45 +6150,50 @@ def crearTilesInputTarget(
                         '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol)
                     )
                     if not os.path.exists(pngFileNameTargetSingUse):
-                        if GLO.GLBLverbose or __verbose__:
-                            print('\t-> Se salta el tile {}-{} porque no existe el equivalente en cartoRef singUse.'.format(nRow, nCol))
+                        if GLO.GLBLverbose or (__verbose__):
+                            print(f'\t-> Se salta el tile {nRow}-{nCol} porque no existe el equivalente en cartoRef singUse.')
+                            print(f'\t\t-> {pngFileNameTargetSingUse}')
                         continue
+            if GLO.GLBLcrearTilesInputSoloSiHayTilesTargetDeNucleos:
                 if GLO.GLBLcrearTilesTargetDeCartoRefNucleos and not cartoRefNucleosUrbanos is None:
-                    trainPathTargetSingUsePng = os.path.join(
+                    trainPathTargetNucleosPng = os.path.join(
                         GLO.MAINrutaOutput,
                         train_dir,
                         'png{}/'.format(cartoRefNucleosUrbanos.tilesTargetPathTroncal)
                     )
-                    pngFileNameTargetSingUse = os.path.join(
-                        trainPathTargetSingUsePng,
+                    pngFileNameTargetNucleos = os.path.join(
+                        trainPathTargetNucleosPng,
                         '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol)
                     )
-                    if not os.path.exists(pngFileNameTargetSingUse):
-                        if GLO.GLBLverbose or __verbose__:
-                            print('\t-> Se salta el tile {}-{} porque no existe el equivalente en cartoRef nucleos.'.format(nRow, nCol))
+                    if not os.path.exists(pngFileNameTargetNucleos):
+                        if GLO.GLBLverbose or (__verbose__):
+                            print(f'\t-> Se salta el tile {nRow}-{nCol} porque no existe el equivalente en cartoRef nucleos.')
+                            print(f'\t\t-> {pngFileNameTargetNucleos}')
                         continue
+            if GLO.GLBLcrearTilesInputSoloSiHayTilesTargetDeLandCover:
                 if GLO.GLBLcrearTilesTargetDeCartoRefLandCover and not cartoRefLandCover is None:
-                    trainPathTargetSingUsePng = os.path.join(
+                    trainPathTargetLandCovPng = os.path.join(
                         GLO.MAINrutaOutput,
                         train_dir,
                         'png{}/'.format(cartoRefLandCover.tilesTargetPathTroncal)
                     )
-                    pngFileNameTargetSingUse = os.path.join(
-                        trainPathTargetSingUsePng,
+                    pngFileNameTargetLandCov = os.path.join(
+                        trainPathTargetLandCovPng,
                         '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol)
                     )
-                    if not os.path.exists(pngFileNameTargetSingUse):
-                        if GLO.GLBLverbose or __verbose__:
-                            print('\t-> Se salta el tile {}-{} porque no existe el equivalente en cartoRef landCover.'.format(nRow, nCol))
+                    if not os.path.exists(pngFileNameTargetLandCov):
+                        if GLO.GLBLverbose or (__verbose__):
+                            print(f'\t-> Se salta el tile {nRow}-{nCol} porque no existe el equivalente en cartoRef landCover.')
+                            print(f'\t\t-> {pngFileNameTargetLandCov}')
                         continue
 
             if nRow == 0:
-                xInfIzdaTile = (myLasHead.xmin - margenXsobresalienteMetros)
+                xInfIzdaTile = (myLasHead.xminBloqueMalla - margenXsobresalienteMetros)
                 recorteIniY = 0
                 recorteIniY1m = 0
             else:
                 xInfIzdaTile = (
-                    myLasHead.xmin
+                    myLasHead.xminBloqueMalla
                     + (
                         GLO.GLBLtileSizeMetros
                         - margenXsobresalienteMetros
@@ -5867,12 +6221,12 @@ def crearTilesInputTarget(
                     - GLBNtileSemiSolapePixelsCeldilla
                  )
             if nCol == 0:
-                yInfIzdaTile = (myLasHead.ymin - margenYsobresalienteMetros)
+                yInfIzdaTile = (myLasHead.yminBloqueMalla - margenYsobresalienteMetros)
                 recorteIniX = 0
                 recorteIniX1m = 0
             else:
                 yInfIzdaTile = (
-                    myLasHead.ymin
+                    myLasHead.yminBloqueMalla
                     + (
                         GLO.GLBLtileSizeMetros
                         - margenYsobresalienteMetros
@@ -5926,7 +6280,7 @@ def crearTilesInputTarget(
                 finX = int(GLBNtileSizeEnPixelsSubCelda)
                 finX1m = int(GLBNtileSizeEnPixelsCeldilla)
 
-            if GLO.GLBLverbose or __verbose__:
+            if GLO.GLBLverbose or (__verbose__):
                 print('\tclidcarto-> tiles 2m:', nRow, nCol, '->', iniY, finY, iniX, finX,
                       '->1m', nRow, nCol, '->', iniY1m, finY1m, iniX1m, finX1m)
                 print('\t\ttiles 2m recorte', recorteIniY, recorteIniY + finY - iniY,
@@ -5958,7 +6312,7 @@ def crearTilesInputTarget(
                     minPorcentajePixeles = [GLO.GLBLminPctjEdificiosParaCrearTileTargetMiniSubCel]
                     miHistograma = np.bincount(tileRecorte0TargetOriClass.flatten())
                     if len(miHistograma) <= min(listaSelectedTargets):
-                        if GLO.GLBLverbose or __verbose__:
+                        if GLO.GLBLverbose or (__verbose__):
                             print('\t\tclidcarto-> tiles 2m:', nRow, nCol,
                                   '-> Sin valores target seleccionados:', listaSelectedTargets)
                         continue
@@ -5972,7 +6326,7 @@ def crearTilesInputTarget(
                         else:
                             nPixelsSelectedTargets.append(0)
                     if not tieneSuficientesPixelesDeLasCLasesElegidas:
-                        if GLO.GLBLverbose or __verbose__:
+                        if GLO.GLBLverbose or (__verbose__):
                             print('\t\tclidcarto-> tiles 2m:', nRow, nCol,
                                   '-> Insuficientes pixeles de las clases seleccionadas')
                         continue
@@ -6171,414 +6525,499 @@ def crearTilesInputTarget(
             #    print('ddddddddddddd')
             #    plt.show()
 
-            if GLO.GLBLformatoTilesPng:
-                pngFileNameTargetOriClass = os.path.join(trainPathPngTargetOriClass, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileNameTargetTriClass = os.path.join(trainPathPngTargetTriClass, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileNameTargetBinClass = os.path.join(trainPathPngTargetBinClass, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName1 = os.path.join(trainPathPng1, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName2 = os.path.join(trainPathPng2, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName3 = os.path.join(trainPathPng3, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName4 = os.path.join(trainPathPng4, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName5 = os.path.join(trainPathPng5, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName6 = os.path.join(trainPathPng6, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName7 = os.path.join(trainPathPng7, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName8 = os.path.join(trainPathPng8, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileName9 = os.path.join(trainPathPng9, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileNameInt1m = os.path.join(trainPathPngInt1m, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
-                pngFileNameRiC1m = os.path.join(trainPathPngRiC1m, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            if not GLO.GLBLformatoTilesPng:
+                tilesCreados = False
+                print('\n{:_^80}'.format(''))
+                print('clidcarto-> Tiles no creados creados porque GLBLformatoTilesPng es False: {}'.format(grupoTiles))
+                print('{:=^80}'.format(''))
+                return tilesCreados
 
-#                 if GLO.GLBLverbose or __verbose__:
-#                     print('\tclidcarto-> Creando tilesPng.')
-#                     print('\t\tpngFileNameTargetOriClass: {}'.format(pngFileNameTargetOriClass))
-#                     print('\t\tpngFileNameTargetBinClass: {}'.format(pngFileNameTargetBinClass))
-#                     print('\t\tpngFileName1:              {}'.format(pngFileName1))
-#                     print('\t\tpngFileName2:              {}'.format(pngFileName2))
-#                     print('\t\tpngFileName3:              {}'.format(pngFileName3))
-#                     print('\t\tpngFileName4:              {}'.format(pngFileName4))
-#                     print('\t\tpngFileName5:              {}'.format(pngFileName5))
-#                     print('\t\tpngFileName6:              {}'.format(pngFileName6))
+            pngFileNameTargetOriClass = os.path.join(trainPathPngTargetOriClass, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileNameTargetTriClass = os.path.join(trainPathPngTargetTriClass, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileNameTargetBinClass = os.path.join(trainPathPngTargetBinClass, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName1 = os.path.join(trainPathPng1, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName2 = os.path.join(trainPathPng2, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName3 = os.path.join(trainPathPng3, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName4 = os.path.join(trainPathPng4, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName5 = os.path.join(trainPathPng5, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName6 = os.path.join(trainPathPng6, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName7 = os.path.join(trainPathPng7, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName8 = os.path.join(trainPathPng8, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileName9 = os.path.join(trainPathPng9, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileNameInt1m = os.path.join(trainPathPngInt1m, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
+            pngFileNameRiC1m = os.path.join(trainPathPngRiC1m, '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol))
 
-                # colorMode
-                # -> https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.fromarray
-                #   -> https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
-                #   -> https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image.convert
-                #     -> https://pillow.readthedocs.io/en/stable/reference/Image.html?highlight=Image.ADAPTIVE#palettes
-                #  The mode of an image defines the type and depth of a pixel in the image.
-                #  Each pixel uses the full range of the bit depth.
-                #  So a 1-bit pixel has a range of 0-1, an 8-bit pixel has a range of 0-255 and so on.
-                #  1 (1-bit pixels, black and white, stored with one pixel per byte)
-                #  L (8-bit pixels, black and white) -> Se refiere a niveles de gris
-                #  P (8-bit pixels, mapped to any other mode using a color palette) (reduce el num de niveles de gris)
-                #  RGB (3x8-bit pixels, true color)
-                #  RGBA (4x8-bit pixels, true color with transparency mask)
-                # The Python Imaging Library uses a Cartesian pixel coordinate system, with (0,0) in the upper left corner.
-                # Note that the coordinates refer to the implied pixel corners;
-                # the centre of a pixel addressed as (0, 0) actually lies at (0.5, 0.5).
-                '''
-                >>> myImage = Image.fromarray(b, 'L')
-                >>> myImage.save('d:/_ws/borrarImagen.png')
-                >>> a = np.random.rand(256, 256)
-                >>> b= np.uint8(a*255)
-                >>> myImage1 = Image.fromarray(b, 'L') # Imagen con 256 niveles de gris (8bit)
-                >>> myImage1.save('d:/_ws/borrarImagen1.png')
-                >>> myImage2 = Image.fromarray(b, '1') # Imagen en blanco y negro (1bit)
-                >>> myImage2.save('d:/_ws/borrarImagen2.png')
-                >>> myImageP = myImage1.convert('P', palette = Image.ADAPTIVE, colors = 10) # Imagen con 10 niveles de gris (8bit)
-                >>> myImageP.save('d:/_ws/borrarImagenP.png')
-                '''
+            # if GLO.GLBLverbose or __verbose__:
+            #     print('\tclidcarto-> Creando tilesPng.')
+            #     print('\t\tpngFileNameTargetOriClass: {}'.format(pngFileNameTargetOriClass))
+            #     print('\t\tpngFileNameTargetBinClass: {}'.format(pngFileNameTargetBinClass))
+            #     print('\t\tpngFileName1:              {}'.format(pngFileName1))
+            #     print('\t\tpngFileName2:              {}'.format(pngFileName2))
+            #     print('\t\tpngFileName3:              {}'.format(pngFileName3))
+            #     print('\t\tpngFileName4:              {}'.format(pngFileName4))
+            #     print('\t\tpngFileName5:              {}'.format(pngFileName5))
+            #     print('\t\tpngFileName6:              {}'.format(pngFileName6))
 
-                if grabarTarget:
-                    if GLO.GLBLcrearTilesConTodasLasClasesMiniSubCel:
-                        # 'lasClassOriginal'
-                        # colorMode = 'P'
-                        # palette = []
-                        colorMode = 'L'
-                        myImageBN = Image.fromarray(np.rot90(tileRecorte0TargetOriClass), colorMode)
-                        # https://pillow.readthedocs.io/en/5.1.x/reference/Image.html#PIL.Image.Image.save
-                        #  https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#image-file-formats
-                        #   https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#png
-                        if os.path.exists(pngFileNameTargetOriClass) and not LCLmantenerTilesGuardados:
-                            print('clidcarto-> Eliminando tile pngTargetOriClas previo: {}'.format(pngFileNameTargetOriClass))
-                            os.remove(pngFileNameTargetOriClass)
-                        myImageBN.save(pngFileNameTargetOriClass)
-                        # ATENCION: No elegir el modo "P" (palette) porque reorganiza los valores de los pixeles y luego no se pueden interpretar
-                        # myImageConPaleta = myImageBN.convert("P", palette = Image.ADAPTIVE, colors = 25)
-                        # myImageConPaleta.save(pngFileNameTargetOriClass)
-                        if GLO.GLBLformatoTilesAscTargetMiniSubCelLasClass:
-                            capaTileRecorte = tileRecorte0TargetOriClass[:, :]
-                            nombreCapa = nombreCapaTargetOriClass
-                            ascFileNameScipyZoom = os.path.join(trainPathAscTargetOriClass, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=2,
-                            )
-                        # Creacion de los tiles exData propiamente dichos para tiles con lasClass original sin reagrupar
-                        if GLO.GLBLcrearTilesExDataMiniSubCelLasClass:
-                            lookupTable = [0 if (i == 0 or i == 12) else 1 for i in range(256)]
-                            # for lasClassNoData in [0, 12]:
-                            #     lookupTable[int(lasClassNoData)] = 0
-                            pngFileNameExData = os.path.join(
-                                trainPathExDataMiniSubCelLasClassOriginal,
-                                '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol)
-                            )
-                            # print('\t->->-> guardando exDataMiniSubCelLasClassOriginal:', pngFileNameExData)
-                            # Mapeo las 10 categorias de tileRecorteNormalizado a 1 y 0 (ceros las que se excluyen del entrenamiento):
-                            # Atencion: si uso colorMode = 'L' tengo que usar dtype=np.uint8
-                            colorMode = 'L'  # (8-bit pixels, black and white) -> lleva el valor max a 255 y el min a 0 -> No respeta los valores del array ->Espacio de color: Escala de grises
-                            tileRecorteExData = np.array(
-                                [lookupTable[val] for val in tileRecorte0TargetOriClass.flatten()],
-                                dtype=np.uint8
-                            ).reshape(tileRecorte0TargetOriClass.shape)
-                            myImageBN = Image.fromarray(np.rot90(tileRecorteExData), colorMode)
-                            if os.path.exists(pngFileNameExData) and not LCLmantenerTilesGuardados:
-                                print('\t\tclidcarto->->-> Eliminando fichero exData existente con pathlib:', pngFileNameExData)
-                                #os.remove(pngFileNameExData)
-                                (pathlib.Path(pngFileNameExData)).unlink()
-                                if os.path.exists(pngFileNameExData):
-                                    print('\t\t\tNo se ha podido eliminar el fichero existente')
-                            myImageBN.save(pngFileNameExData)
+            # colorMode
+            # -> https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.fromarray
+            #   -> https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-modes
+            #   -> https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.Image.convert
+            #     -> https://pillow.readthedocs.io/en/stable/reference/Image.html?highlight=Image.ADAPTIVE#palettes
+            #  The mode of an image defines the type and depth of a pixel in the image.
+            #  Each pixel uses the full range of the bit depth.
+            #  So a 1-bit pixel has a range of 0-1, an 8-bit pixel has a range of 0-255 and so on.
+            #  1 (1-bit pixels, black and white, stored with one pixel per byte)
+            #  L (8-bit pixels, black and white) -> Se refiere a niveles de gris
+            #  P (8-bit pixels, mapped to any other mode using a color palette) (reduce el num de niveles de gris)
+            #  RGB (3x8-bit pixels, true color)
+            #  RGBA (4x8-bit pixels, true color with transparency mask)
+            # The Python Imaging Library uses a Cartesian pixel coordinate system, with (0,0) in the upper left corner.
+            # Note that the coordinates refer to the implied pixel corners;
+            # the centre of a pixel addressed as (0, 0) actually lies at (0.5, 0.5).
+            '''
+            >>> myImage = Image.fromarray(b, 'L')
+            >>> myImage.save('d:/_ws/borrarImagen.png')
+            >>> a = np.random.rand(256, 256)
+            >>> b= np.uint8(a*255)
+            >>> myImage1 = Image.fromarray(b, 'L') # Imagen con 256 niveles de gris (8bit)
+            >>> myImage1.save('d:/_ws/borrarImagen1.png')
+            >>> myImage2 = Image.fromarray(b, '1') # Imagen en blanco y negro (1bit)
+            >>> myImage2.save('d:/_ws/borrarImagen2.png')
+            >>> myImageP = myImage1.convert('P', palette = Image.ADAPTIVE, colors = 10) # Imagen con 10 niveles de gris (8bit)
+            >>> myImageP.save('d:/_ws/borrarImagenP.png')
+            '''
 
-
-                    if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345:
-                        # print('clidcarto->->-> guardando targetTrinario:', pngFileNameTargetTriClass)
-                        colorMode = 'L'
-                        myImageBN = Image.fromarray(np.rot90(tileRecorte0TargetTriClass), colorMode)
-                        if os.path.exists(pngFileNameTargetTriClass) and not LCLmantenerTilesGuardados:
-                            print('\t\tclidcarto->->-> Eliminando fichero triLasClass existente con pathlib:', pngFileNameTargetTriClass)
-                            #os.remove(pngFileNameTargetTriClass)
-                            (pathlib.Path(pngFileNameTargetTriClass)).unlink()
-                            if os.path.exists(pngFileNameTargetTriClass):
+            if grabarTarget:
+                if GLO.GLBLcrearTilesConTodasLasClasesMiniSubCel:
+                    # 'lasClassOriginal'
+                    # colorMode = 'P'
+                    # palette = []
+                    colorMode = 'L'
+                    myImageBN = Image.fromarray(np.rot90(tileRecorte0TargetOriClass), colorMode)
+                    # https://pillow.readthedocs.io/en/5.1.x/reference/Image.html#PIL.Image.Image.save
+                    #  https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#image-file-formats
+                    #   https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#png
+                    if os.path.exists(pngFileNameTargetOriClass) and not LCLmantenerTilesGuardados:
+                        print('clidcarto-> Eliminando tile pngTargetOriClas previo: {}'.format(pngFileNameTargetOriClass))
+                        os.remove(pngFileNameTargetOriClass)
+                    myImageBN.save(pngFileNameTargetOriClass)
+                    # ATENCION: No elegir el modo "P" (palette) porque reorganiza los valores de los pixeles y luego no se pueden interpretar
+                    # myImageConPaleta = myImageBN.convert("P", palette = Image.ADAPTIVE, colors = 25)
+                    # myImageConPaleta.save(pngFileNameTargetOriClass)
+                    if GLO.GLBLformatoTilesAscTargetMiniSubCelLasClass:
+                        capaTileRecorte = tileRecorte0TargetOriClass[:, :]
+                        nombreCapa = nombreCapaTargetOriClass
+                        ascFileNameScipyZoom = os.path.join(trainPathAscTargetOriClass, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=2,
+                        )
+                    # Creacion de los tiles exData propiamente dichos para tiles con lasClass original sin reagrupar
+                    if GLO.GLBLcrearTilesExDataMiniSubCelLasClass:
+                        lookupTable = [0 if (i == 0 or i == 12) else 1 for i in range(256)]
+                        # for lasClassNoData in [0, 12]:
+                        #     lookupTable[int(lasClassNoData)] = 0
+                        pngFileNameExData = os.path.join(
+                            trainPathExDataMiniSubCelLasClassOriginal,
+                            '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol)
+                        )
+                        # print('\t->->-> guardando exDataMiniSubCelLasClassOriginal:', pngFileNameExData)
+                        # Mapeo las 10 categorias de tileRecorteNormalizado a 1 y 0 (ceros las que se excluyen del entrenamiento):
+                        # Atencion: si uso colorMode = 'L' tengo que usar dtype=np.uint8
+                        colorMode = 'L'  # (8-bit pixels, black and white) -> lleva el valor max a 255 y el min a 0 -> No respeta los valores del array ->Espacio de color: Escala de grises
+                        tileRecorteExData = np.array(
+                            [lookupTable[val] for val in tileRecorte0TargetOriClass.flatten()],
+                            dtype=np.uint8
+                        ).reshape(tileRecorte0TargetOriClass.shape)
+                        myImageBN = Image.fromarray(np.rot90(tileRecorteExData), colorMode)
+                        if os.path.exists(pngFileNameExData) and not LCLmantenerTilesGuardados:
+                            print('clidcarto->->-> Eliminando fichero exData existente con pathlib:', pngFileNameExData)
+                            #os.remove(pngFileNameExData)
+                            (pathlib.Path(pngFileNameExData)).unlink()
+                            if os.path.exists(pngFileNameExData):
                                 print('\t\t\tNo se ha podido eliminar el fichero existente')
-                        myImageBN.save(pngFileNameTargetTriClass)
-                        if GLO.GLBLformatoTilesAscInput:
-                            capaTileRecorte = tileRecorte0TargetTriClass[:, :]
-                            nombreCapa = nombreCapaTargetTriClass
-                            ascFileNameScipyZoom = os.path.join(trainPathAscTargetTriClass, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=2,
-                            )
-
-                    if GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase:
-                        colorMode = 'L'
-                        myImageBN = Image.fromarray(np.rot90(tileRecorte0TargetBinClas), colorMode)
-                        if os.path.exists(pngFileNameTargetBinClass) and not LCLmantenerTilesGuardados:
-                            print('clidcarto-> Eliminando tile pngTargetBinClas previo: {}'.format(pngFileNameTargetBinClass))
-                            os.remove(pngFileNameTargetBinClass)
-                        myImageBN.save(pngFileNameTargetBinClass)
-                        if GLO.GLBLformatoTilesAscInput:
-                            capaTileRecorte = tileRecorte0TargetBinClas[:, :]
-                            nombreCapa = nombreCapaTargetBinClass
-                            ascFileNameScipyZoom = os.path.join(trainPathAscTargetBinClass, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=2,
-                            )
-
-                    # Creacion de los tiles exData propiamente dichos para tiles cuatrinarios y binarios (se usa el mismo para ambos)
-                    if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345 or GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase:
-                        if GLO.GLBLcrearTilesExDataMiniSubCelLasClass:
-                            # Solo se usan los miniSubCel que estan en alguna de las 3 clases (edificio, suelo, vegetacion)
-                            lookupTable = [1 if (i in [1, 2, 3]) else 0 for i in range(256)]
-                            # for lasClassNoData in [0, 12]:
-                            #     lookupTable[int(lasClassNoData)] = 0
-                            pngFileNameExData = os.path.join(
-                                trainPathExDataMiniSubCelLasClass_2_345_6,
-                                '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol)
-                            )
-                            # print('\t->->-> guardando exDataMiniSubCelLasClass_2_345_6:', pngFileNameExData)
-                            # Mapeo las 10 categorias de tileRecorteNormalizado a 1 y 0 (ceros las que se excluyen del entrenamiento):
-                            # Atencion: si uso colorMode = 'L' tengo que usar dtype=np.uint8
-                            colorMode = 'L'  # (8-bit pixels, black and white) -> lleva el valor max a 255 y el min a 0 -> No respeta los valores del array ->Espacio de color: Escala de grises
-                            if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345:
-                                tileRecorteExData = np.array(
-                                    [lookupTable[val] for val in tileRecorte0TargetTriClass.flatten()],
-                                    dtype=np.uint8
-                                ).reshape(tileRecorte0TargetTriClass.shape)
-                            elif GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase:
-                                tileRecorteExData = np.array(
-                                    [lookupTable[val] for val in tileRecorte0TargetBinClas.flatten()],
-                                    dtype=np.uint8
-                                ).reshape(tileRecorte0TargetBinClas.shape)
-                            myImageBN = Image.fromarray(np.rot90(tileRecorteExData), colorMode)
-                            if os.path.exists(pngFileNameExData) and not LCLmantenerTilesGuardados:
-                                print('\t\tclidcarto->->-> Eliminando fichero exData existente con pathlib:', pngFileNameExData)
-                                #os.remove(pngFileNameExData)
-                                (pathlib.Path(pngFileNameExData)).unlink()
-                                if os.path.exists(pngFileNameExData):
-                                    print('\t\t\tNo se ha podido eliminar el fichero existente')
-                            myImageBN.save(pngFileNameExData)
+                        myImageBN.save(pngFileNameExData)
 
 
-                colorMode = 'RGB'  # ATENCION: Creo q lleva el rango a 0-255. Eso ya lo he hecho yo para cada capa de forma independeinte con normalizar8bits{}
-                # print('clidcarto->->-> grabarCapa1->', grabarCapa1, 'pngFileName1->', pngFileName1)
-                if grabarCapa1:
-                    # grupoTiles='preVuelta2'  -> nombreCapas1 = ['intSRetMed', 'ndviMed', 'ndwiMed'] -> '%train_dir%/pngInputVar_int_ndvi_ndwi/'
-                    # grupoTiles='postVuelta2' -> nombreCapas1 = ['IntSRetMed', 'ndviMed', 'ndwiMed'] -> '%train_dir%/pngInputVar_int_ndvi_ndwi/'
-                    if os.path.exists(pngFileName1) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName1 previo: {}'.format(pngFileName1))
-                        os.remove(pngFileName1)
-                    tileRecorte1NormalizadoImg = Image.fromarray(np.rot90(tileRecorte1Normalizado), colorMode)
-                    # print('clidcarto-> tileRecorte1Normalizado dtype', tileRecorte1Normalizado.dtype)
-                    # print('clidcarto-> tileRecorte1Normalizado shape', tileRecorte1Normalizado.shape)
-                    # print('clidcarto-> tileRecorte1Normalizado A ', tileRecorte1Normalizado[10, 10])
-                    # print('clidcarto-> tileRecorte1Normalizado B ', (np.rot90(tileRecorte1Normalizado))[-10, 10])
-                    # print('clidcarto-> tileRecorte1Normalizado B ', (np.rot90(tileRecorte1Normalizado))[-11, 10])
-                    # print('clidcarto-> tileRecorte1NormalizadoImg', tileRecorte1NormalizadoImg.getpixel((256-11, 10)))
-                    tileRecorte1NormalizadoImg.save(pngFileName1)
+                if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345:
+                    # print('clidcarto->->-> guardando targetTrinario:', pngFileNameTargetTriClass)
+                    colorMode = 'L'
+                    myImageBN = Image.fromarray(np.rot90(tileRecorte0TargetTriClass), colorMode)
+                    if os.path.exists(pngFileNameTargetTriClass) and not LCLmantenerTilesGuardados:
+                        print('clidcarto->->-> Eliminando fichero triLasClass existente con pathlib:', pngFileNameTargetTriClass)
+                        #os.remove(pngFileNameTargetTriClass)
+                        (pathlib.Path(pngFileNameTargetTriClass)).unlink()
+                        if os.path.exists(pngFileNameTargetTriClass):
+                            print('\t\t\tNo se ha podido eliminar el fichero existente')
+                    myImageBN.save(pngFileNameTargetTriClass)
                     if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte1.shape[2]):
+                        capaTileRecorte = tileRecorte0TargetTriClass[:, :]
+                        nombreCapa = nombreCapaTargetTriClass
+                        ascFileNameScipyZoom = os.path.join(trainPathAscTargetTriClass, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=2,
+                        )
+
+                if GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase:
+                    colorMode = 'L'
+                    myImageBN = Image.fromarray(np.rot90(tileRecorte0TargetBinClas), colorMode)
+                    if os.path.exists(pngFileNameTargetBinClass) and not LCLmantenerTilesGuardados:
+                        print('clidcarto-> Eliminando tile pngTargetBinClas previo: {}'.format(pngFileNameTargetBinClass))
+                        os.remove(pngFileNameTargetBinClass)
+                    myImageBN.save(pngFileNameTargetBinClass)
+                    if GLO.GLBLformatoTilesAscInput:
+                        capaTileRecorte = tileRecorte0TargetBinClas[:, :]
+                        nombreCapa = nombreCapaTargetBinClass
+                        ascFileNameScipyZoom = os.path.join(trainPathAscTargetBinClass, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=2,
+                        )
+
+                # Creacion de los tiles exData propiamente dichos para tiles cuatrinarios y binarios (se usa el mismo para ambos)
+                if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345 or GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase:
+                    if GLO.GLBLcrearTilesExDataMiniSubCelLasClass:
+                        # Solo se usan los miniSubCel que estan en alguna de las 3 clases (edificio, suelo, vegetacion)
+                        lookupTable = [1 if (i in [1, 2, 3]) else 0 for i in range(256)]
+                        # for lasClassNoData in [0, 12]:
+                        #     lookupTable[int(lasClassNoData)] = 0
+                        pngFileNameExData = os.path.join(
+                            trainPathExDataMiniSubCelLasClass_2_345_6,
+                            '%s_%s_%i_%i.png' % (fileCoordYear, 'Train', nRow, nCol)
+                        )
+                        # print('\t->->-> guardando exDataMiniSubCelLasClass_2_345_6:', pngFileNameExData)
+                        # Mapeo las 10 categorias de tileRecorteNormalizado a 1 y 0 (ceros las que se excluyen del entrenamiento):
+                        # Atencion: si uso colorMode = 'L' tengo que usar dtype=np.uint8
+                        colorMode = 'L'  # (8-bit pixels, black and white) -> lleva el valor max a 255 y el min a 0 -> No respeta los valores del array ->Espacio de color: Escala de grises
+                        if GLO.GLBLreorganizaLasClassParaGenerarTilesCuaTrinarios_X_6_2_345:
+                            tileRecorteExData = np.array(
+                                [lookupTable[val] for val in tileRecorte0TargetTriClass.flatten()],
+                                dtype=np.uint8
+                            ).reshape(tileRecorte0TargetTriClass.shape)
+                        elif GLO.GLBLreorganizaLasClassParaGenerarTilesBinariosMonoClase:
+                            tileRecorteExData = np.array(
+                                [lookupTable[val] for val in tileRecorte0TargetBinClas.flatten()],
+                                dtype=np.uint8
+                            ).reshape(tileRecorte0TargetBinClas.shape)
+                        myImageBN = Image.fromarray(np.rot90(tileRecorteExData), colorMode)
+                        if os.path.exists(pngFileNameExData) and not LCLmantenerTilesGuardados:
+                            print('clidcarto->->-> Eliminando fichero exData existente con pathlib:', pngFileNameExData)
+                            #os.remove(pngFileNameExData)
+                            (pathlib.Path(pngFileNameExData)).unlink()
+                            if os.path.exists(pngFileNameExData):
+                                print('\t\t\tNo se ha podido eliminar el fichero existente')
+                        myImageBN.save(pngFileNameExData)
+
+
+            colorMode = 'RGB'  # ATENCION: Creo q lleva el rango a 0-255. Eso ya lo he hecho yo para cada capa de forma independeinte con normalizar8bits{}
+            # print('clidcarto->->-> grabarCapa1->', grabarCapa1, 'pngFileName1->', pngFileName1)
+            if grabarCapa1:
+                # grupoTiles='preVuelta2'  -> nombreCapas1 = ['intSRetMed', 'ndviMed', 'ndwiMed'] -> '%train_dir%/pngInputVar_int_ndvi_ndwi/'
+                # grupoTiles='postVuelta2' -> nombreCapas1 = ['IntSRetMed', 'ndviMed', 'ndwiMed'] -> '%train_dir%/pngInputVar_int_ndvi_ndwi/'
+                if os.path.exists(pngFileName1) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName1 previo: {}'.format(pngFileName1))
+                    os.remove(pngFileName1)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName1: {}'.format(pngFileName1))
+                # Image.fromarray(np.rot90(tileRecorte1Normalizado), colorMode).save(pngFileName1)
+                # Hago lo anterior en dos pasos para consultar tileRecorte1NormalizadoImg:
+                tileRecorte1NormalizadoImg = Image.fromarray(np.rot90(tileRecorte1Normalizado), colorMode)
+                # print('clidcarto-> tileRecorte1Normalizado dtype', tileRecorte1Normalizado.dtype)
+                # print('clidcarto-> tileRecorte1Normalizado shape', tileRecorte1Normalizado.shape)
+                # print('clidcarto-> tileRecorte1Normalizado A ', tileRecorte1Normalizado[10, 10])
+                # print('clidcarto-> tileRecorte1Normalizado B ', (np.rot90(tileRecorte1Normalizado))[-10, 10])
+                # print('clidcarto-> tileRecorte1Normalizado B ', (np.rot90(tileRecorte1Normalizado))[-11, 10])
+                # print('clidcarto-> tileRecorte1NormalizadoImg', tileRecorte1NormalizadoImg.getpixel((256-11, 10)))
+                tileRecorte1NormalizadoImg.save(pngFileName1)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte1.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte1Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte1[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapas1[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAsc1, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa2:
+                # grupoTiles='preVuelta2'  -> nombreCapas2 = ['NirPtoMax', 'RedPtoMax', 'GreenPtoMax'] -> '%train_dir%/pngInputVar_nirRedGreen_maxiSubCel/'
+                # grupoTiles='postVuelta2' -> nombreCapas2 = ['NirPtoMax', 'RedPtoMax', 'GreenPtoMax'] -> '%train_dir%/pngInputVar_nirRedGreen_maxiSubCel/'
+                if os.path.exists(pngFileName2) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName2 previo: {}'.format(pngFileName2))
+                    os.remove(pngFileName2)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName2: {}'.format(pngFileName2))
+                Image.fromarray(np.rot90(tileRecorte2Normalizado), colorMode).save(pngFileName2)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte2.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte2Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte2[:, :, numCapa]
+                            nTipoDato = 4
+                        nombreCapa = nombreCapas2[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAsc2, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa3:
+                # grupoTiles='preVuelta2'  -> nombreCapas3 = ['NirPtoMin', 'RedPtoMin', 'GreenPtoMin'] -> '%train_dir%/pngInputVar_nirRedGreen_miniSubCel/'
+                # grupoTiles='postVuelta2' -> nombreCapas7 = ['AltPlanoTejado', 'AltMaxSobreMdf', 'AltMinSobreMdf',] -> '%train_dir%/pngInputVar_hTejado_hMaxSmdf_Mdf/'
+                if os.path.exists(pngFileName3) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName3 previo: {}'.format(pngFileName3))
+                    os.remove(pngFileName3)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName3: {}'.format(pngFileName3))
+                Image.fromarray(np.rot90(tileRecorte3Normalizado), colorMode).save(pngFileName3)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte3.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte3Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte3[:, :, numCapa]
+                            nTipoDato = 0
+                        nombreCapa = nombreCapas3[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAsc3, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa4:
+                # grupoTiles='preVuelta2'  -> nombreCapas4 = ['mseByteMicroPlanoNubePuntual', 'pteXx50MicroPlanoNubePuntual', 'pteYx50MicroPlanoNubePuntual'] -> '%train_dir%/pngInputVar_planoNubePuntual_miniSubCel/')
+                # grupoTiles='postVuelta2' -> nombreCapas4 = ['LateralidadMinMinMacro', 'LateralidadMinMinMesos', 'LateralidadMinMinMicro'] -> '%train_dir%/pngInputVar_latMacroMesosMicro/'
+                if os.path.exists(pngFileName4) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName4 previo: {}'.format(pngFileName4))
+                    os.remove(pngFileName4)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName4: {}'.format(pngFileName4))
+                Image.fromarray(np.rot90(tileRecorte4Normalizado), colorMode).save(pngFileName4)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte4.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte4Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte4[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapas4[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAsc4, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa5:
+                # grupoTiles='preVuelta2'  -> nombreCapas5 = ['cotaAbsolutaDmMinSubCel', 'cotaRelDmMaxNubePuntual', 'cotaRelDmPlanoNubePuntual'] -> '%train_dir%/pngInputVar_cotasRelativas_miniSubCel/'
+                # grupoTiles='postVuelta2' -> nombreCapas5 = ['RugosidadMinMaxMacro', 'RugosidadMinMaxMesos', 'RugosidadMinMaxMicro'] -> '%train_dir%/pngInputVar_rugMacroMesosMicro/'
+                if os.path.exists(pngFileName5) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName5 previo: {}'.format(pngFileName5))
+                    os.remove(pngFileName5)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName5: {}'.format(pngFileName5))
+                Image.fromarray(np.rot90(tileRecorte5Normalizado), colorMode).save(pngFileName5)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte5.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte5Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte5[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapas5[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAsc5, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa6:
+                # grupoTiles='preVuelta2'  -> nombreCapas6 = ['pteXglobal', 'pteYglobal', 'ecmrGlobal'] -> '%train_dir%/pngInputVar_ecmrGlobal_MdgPtes/'
+                # grupoTiles='postVuelta2' -> nombreCapas3 = ['pteXglobal', 'pteYglobal', 'ecmrGlobal'] -> '%train_dir%/pngInputVar_mse_pteX_pteY/'
+                if os.path.exists(pngFileName6) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName6 previo: {}'.format(pngFileName6))
+                    os.remove(pngFileName6)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName6: {}'.format(pngFileName6))
+                Image.fromarray(np.rot90(tileRecorte6Normalizado), colorMode).save(pngFileName6)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte6.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte6Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte6[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapas6[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAsc6, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa7:
+                # grupoTiles='preVuelta2'  -> nombreCapas7 = ['anisotropy', 'planarity', 'sphericity'] -> '%train_dir%/pngInputVar_miniSubCel_autovalores/'
+                # grupoTiles='postVuelta2' -> nombreCapas7 = ['cotaMin', 'DifCota', 'AltDmPlus20SobreMdt8bits']
+                if os.path.exists(pngFileName7) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName7 previo: {}'.format(pngFileName7))
+                    os.remove(pngFileName7)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName7: {}'.format(pngFileName7))
+                Image.fromarray(np.rot90(tileRecorte7Normalizado), colorMode).save(pngFileName7)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte7.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte7Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte7[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapas7[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa8:
+                # ['AltMaxSobreMdfResta', 'AltMaxSobreMdpMacro', 'AltMaxSobreMdpMicro']
+                if os.path.exists(pngFileName8) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileName9 previo: {}'.format(pngFileName9))
+                    os.remove(pngFileName8)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileName8: {}'.format(pngFileName8))
+                Image.fromarray(np.rot90(tileRecorte8Normalizado), colorMode).save(pngFileName8)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorte8.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte8Normalizado[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorte8[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapas8[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLBNtileSizeEnPixelsSubCelda,
+                            GLO.GLBLmetrosSubCelda,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
+
+            if grabarCapa9:
+                # ['rugoInterCeldillasMacro', 'rugoInterCeldillasMesos', 'rugoInterCeldillasMicro', 'rugoInterCeldillasEscarpe']
+                if GLO.GLBLguardarCapaRugosidadInterCeldillasSubCeldas:
+                    if os.path.exists(pngFileName9) and not LCLmantenerTilesGuardados:
+                        print('clidcarto-> Eliminando tile pngFileName9_ previo: {}'.format(pngFileName9))
+                        os.remove(pngFileName9)
+                    if __verbose__:
+                        print('clidcarto-> Creando tile pngFileName9: {}'.format(pngFileName9))
+                    Image.fromarray(np.rot90(tileRecorte9Normalizado), colorMode).save(pngFileName9)
+                    if GLO.GLBLformatoTilesAscInput:
+                        for numCapa in range(tileRecorte9.shape[2]):
                             if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte1Normalizado[:, :, numCapa]
+                                capaTileRecorte = tileRecorte9Normalizado[:, :, numCapa]
                                 nTipoDato = 3
                             else:
-                                capaTileRecorte = tileRecorte1[:, :, numCapa]
+                                capaTileRecorte = tileRecorte9[:, :, numCapa]
                                 nTipoDato = 5
-                            nombreCapa = nombreCapas1[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAsc1, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
-
-                if grabarCapa2:
-                    # grupoTiles='preVuelta2'  -> nombreCapas2 = ['NirPtoMax', 'RedPtoMax', 'GreenPtoMax'] -> '%train_dir%/pngInputVar_nirRedGreen_maxiSubCel/'
-                    # grupoTiles='postVuelta2' -> nombreCapas2 = ['NirPtoMax', 'RedPtoMax', 'GreenPtoMax'] -> '%train_dir%/pngInputVar_nirRedGreen_maxiSubCel/'
-                    if os.path.exists(pngFileName2) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName2 previo: {}'.format(pngFileName2))
-                        os.remove(pngFileName2)
-                    Image.fromarray(np.rot90(tileRecorte2Normalizado), colorMode).save(pngFileName2)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte2.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte2Normalizado[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorte2[:, :, numCapa]
-                                nTipoDato = 4
-                            nombreCapa = nombreCapas2[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAsc2, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
-
-                if grabarCapa3:
-                    # grupoTiles='preVuelta2'  -> nombreCapas3 = ['NirPtoMin', 'RedPtoMin', 'GreenPtoMin'] -> '%train_dir%/pngInputVar_nirRedGreen_miniSubCel/'
-                    # grupoTiles='postVuelta2' -> nombreCapas7 = ['AltPlanoTejado', 'AltMaxSobreMdf', 'AltMinSobreMdf',] -> '%train_dir%/pngInputVar_hTejado_hMaxSmdf_Mdf/'
-                    if os.path.exists(pngFileName3) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName3 previo: {}'.format(pngFileName3))
-                        os.remove(pngFileName3)
-                    Image.fromarray(np.rot90(tileRecorte3Normalizado), colorMode).save(pngFileName3)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte3.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte3Normalizado[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorte3[:, :, numCapa]
-                                nTipoDato = 0
-                            nombreCapa = nombreCapas3[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAsc3, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
-
-                if grabarCapa4:
-                    # grupoTiles='preVuelta2'  -> nombreCapas4 = ['mseByteMicroPlanoNubePuntual', 'pteXx50MicroPlanoNubePuntual', 'pteYx50MicroPlanoNubePuntual'] -> '%train_dir%/pngInputVar_planoNubePuntual_miniSubCel/')
-                    # grupoTiles='postVuelta2' -> nombreCapas4 = ['LateralidadMinMinMacro', 'LateralidadMinMinMesos', 'LateralidadMinMinMicro'] -> '%train_dir%/pngInputVar_latMacroMesosMicro/'
-                    if os.path.exists(pngFileName4) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName4 previo: {}'.format(pngFileName4))
-                        os.remove(pngFileName4)
-                    Image.fromarray(np.rot90(tileRecorte4Normalizado), colorMode).save(pngFileName4)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte4.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte4Normalizado[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorte4[:, :, numCapa]
-                                nTipoDato = 5
-                            nombreCapa = nombreCapas4[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAsc4, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
-
-                if grabarCapa5:
-                    # grupoTiles='preVuelta2'  -> nombreCapas5 = ['cotaAbsolutaDmMinSubCel', 'cotaRelDmMaxNubePuntual', 'cotaRelDmPlanoNubePuntual'] -> '%train_dir%/pngInputVar_cotasRelativas_miniSubCel/'
-                    # grupoTiles='postVuelta2' -> nombreCapas5 = ['RugosidadMinMaxMacro', 'RugosidadMinMaxMesos', 'RugosidadMinMaxMicro'] -> '%train_dir%/pngInputVar_rugMacroMesosMicro/'
-                    if os.path.exists(pngFileName5) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName5 previo: {}'.format(pngFileName5))
-                        os.remove(pngFileName5)
-                    Image.fromarray(np.rot90(tileRecorte5Normalizado), colorMode).save(pngFileName5)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte5.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte5Normalizado[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorte5[:, :, numCapa]
-                                nTipoDato = 5
-                            nombreCapa = nombreCapas5[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAsc5, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
-
-                if grabarCapa6:
-                    # grupoTiles='preVuelta2'  -> nombreCapas6 = ['pteXglobal', 'pteYglobal', 'ecmrGlobal'] -> '%train_dir%/pngInputVar_ecmrGlobal_MdgPtes/'
-                    # grupoTiles='postVuelta2' -> nombreCapas3 = ['pteXglobal', 'pteYglobal', 'ecmrGlobal'] -> '%train_dir%/pngInputVar_mse_pteX_pteY/'
-                    if os.path.exists(pngFileName6) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName6 previo: {}'.format(pngFileName6))
-                        os.remove(pngFileName6)
-                    Image.fromarray(np.rot90(tileRecorte6Normalizado), colorMode).save(pngFileName6)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte6.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte6Normalizado[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorte6[:, :, numCapa]
-                                nTipoDato = 5
-                            nombreCapa = nombreCapas6[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAsc6, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
-
-                if grabarCapa7:
-                    # grupoTiles='preVuelta2'  -> nombreCapas7 = ['anisotropy', 'planarity', 'sphericity'] -> '%train_dir%/pngInputVar_miniSubCel_autovalores/'
-                    # grupoTiles='postVuelta2' -> nombreCapas7 = ['cotaMin', 'DifCota', 'AltDmPlus20SobreMdt8bits']
-                    if os.path.exists(pngFileName7) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName7 previo: {}'.format(pngFileName7))
-                        os.remove(pngFileName7)
-                    Image.fromarray(np.rot90(tileRecorte7Normalizado), colorMode).save(pngFileName7)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte7.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte7Normalizado[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorte7[:, :, numCapa]
-                                nTipoDato = 5
-                            nombreCapa = nombreCapas7[numCapa]
+                            nombreCapa = nombreCapas9[numCapa]
                             ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
                             crearASC(
                                 ascFileNameScipyZoom,
@@ -6593,122 +7032,67 @@ def crearTilesInputTarget(
                                 nTipoDato=nTipoDato,
                             )
 
-                if grabarCapa8:
-                    # ['AltMaxSobreMdfResta', 'AltMaxSobreMdpMacro', 'AltMaxSobreMdpMicro']
-                    if os.path.exists(pngFileName8) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileName9 previo: {}'.format(pngFileName9))
-                        os.remove(pngFileName8)
-                    Image.fromarray(np.rot90(tileRecorte8Normalizado), colorMode).save(pngFileName8)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorte8.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte8Normalizado[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorte8[:, :, numCapa]
-                                nTipoDato = 5
-                            nombreCapa = nombreCapas8[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLBNtileSizeEnPixelsSubCelda,
-                                GLO.GLBLmetrosSubCelda,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
+            if grabarCapaIm:
+                # ['intSRetMed1m', 'ndviMed1m', 'AltPlanoTejado1m']
+                if os.path.exists(pngFileNameInt1m) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileNameInt1m previo: {}'.format(pngFileNameInt1m))
+                    os.remove(pngFileNameInt1m)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileNameInt1m: {}'.format(pngFileNameInt1m))
+                Image.fromarray(np.rot90(tileRecorte1NormalizaInt1m), colorMode).save(pngFileNameInt1m)
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorteInt1m.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte1NormalizaInt1m[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorteInt1m[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapasInt1m[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLO.GLBLtileSizeMetros,
+                            GLO.GLBLtileSizeMetros,
+                            GLO.GLBLmetrosCeldilla,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
 
-                if grabarCapa9:
-                    # ['rugoInterCeldillasMacro', 'rugoInterCeldillasMesos', 'rugoInterCeldillasMicro', 'rugoInterCeldillasEscarpe']
-                    if GLO.GLBLguardarCapaRugosidadInterCeldillasSubCeldas:
-                        if os.path.exists(pngFileName9) and not LCLmantenerTilesGuardados:
-                            print('clidcarto-> Eliminando tile pngFileName9_ previo: {}'.format(pngFileName9))
-                            os.remove(pngFileName9)
-                        Image.fromarray(np.rot90(tileRecorte9Normalizado), colorMode).save(pngFileName9)
-                        if GLO.GLBLformatoTilesAscInput:
-                            for numCapa in range(tileRecorte9.shape[2]):
-                                if GLO.GLBLnormalizarTilesAscInput:
-                                    capaTileRecorte = tileRecorte9Normalizado[:, :, numCapa]
-                                    nTipoDato = 3
-                                else:
-                                    capaTileRecorte = tileRecorte9[:, :, numCapa]
-                                    nTipoDato = 5
-                                nombreCapa = nombreCapas9[numCapa]
-                                ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                                crearASC(
-                                    ascFileNameScipyZoom,
-                                    capaTileRecorte,
-                                    capaTileRecorte.shape,
-                                    GLBNtileSizeEnPixelsSubCelda,
-                                    GLBNtileSizeEnPixelsSubCelda,
-                                    GLO.GLBLmetrosSubCelda,
-                                    xInfIzdaTile,
-                                    yInfIzdaTile,
-                                    GLO.GLBLnoData,
-                                    nTipoDato=nTipoDato,
-                                )
-
-                if grabarCapaIm:
-                    # ['intSRetMed1m', 'ndviMed1m', 'AltPlanoTejado1m']
-                    if os.path.exists(pngFileNameInt1m) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileNameInt1m previo: {}'.format(pngFileNameInt1m))
-                        os.remove(pngFileNameInt1m)
-                    Image.fromarray(np.rot90(tileRecorte1NormalizaInt1m), colorMode).save(pngFileNameInt1m)
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorteInt1m.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte1NormalizaInt1m[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorteInt1m[:, :, numCapa]
-                                nTipoDato = 5
-                            nombreCapa = nombreCapasInt1m[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLO.GLBLtileSizeMetros,
-                                GLO.GLBLtileSizeMetros,
-                                GLO.GLBLmetrosCeldilla,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
-
-                if grabarCapaRm:
-                    if os.path.exists(pngFileNameRiC1m) and not LCLmantenerTilesGuardados:
-                        print('clidcarto-> Eliminando tile pngFileNameRiC1m previo: {}'.format(pngFileNameRiC1m))
-                        os.remove(pngFileNameRiC1m)
-                    Image.fromarray(np.rot90(tileRecorte1NormalizaRiC1m), colorMode).save(pngFileNameRiC1m)
-                    # ['RugosidadMacro1m', 'RugosidadMesos1m', 'RugosidadMicro1m']
-                    if GLO.GLBLformatoTilesAscInput:
-                        for numCapa in range(tileRecorteRiC1m.shape[2]):
-                            if GLO.GLBLnormalizarTilesAscInput:
-                                capaTileRecorte = tileRecorte1NormalizaRiC1m[:, :, numCapa]
-                                nTipoDato = 3
-                            else:
-                                capaTileRecorte = tileRecorteRiC1m[:, :, numCapa]
-                                nTipoDato = 5
-                            nombreCapa = nombreCapasRiC1m[numCapa]
-                            ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
-                            crearASC(
-                                ascFileNameScipyZoom,
-                                capaTileRecorte,
-                                capaTileRecorte.shape,
-                                GLO.GLBLtileSizeMetros,
-                                GLO.GLBLtileSizeMetros,
-                                GLO.GLBLmetrosCeldilla,
-                                xInfIzdaTile,
-                                yInfIzdaTile,
-                                GLO.GLBLnoData,
-                                nTipoDato=nTipoDato,
-                            )
+            if grabarCapaRm:
+                if os.path.exists(pngFileNameRiC1m) and not LCLmantenerTilesGuardados:
+                    print('clidcarto-> Eliminando tile pngFileNameRiC1m previo: {}'.format(pngFileNameRiC1m))
+                    os.remove(pngFileNameRiC1m)
+                if __verbose__:
+                    print('clidcarto-> Creando tile pngFileNameRiC1m: {}'.format(pngFileNameRiC1m))
+                Image.fromarray(np.rot90(tileRecorte1NormalizaRiC1m), colorMode).save(pngFileNameRiC1m)
+                # ['RugosidadMacro1m', 'RugosidadMesos1m', 'RugosidadMicro1m']
+                if GLO.GLBLformatoTilesAscInput:
+                    for numCapa in range(tileRecorteRiC1m.shape[2]):
+                        if GLO.GLBLnormalizarTilesAscInput:
+                            capaTileRecorte = tileRecorte1NormalizaRiC1m[:, :, numCapa]
+                            nTipoDato = 3
+                        else:
+                            capaTileRecorte = tileRecorteRiC1m[:, :, numCapa]
+                            nTipoDato = 5
+                        nombreCapa = nombreCapasRiC1m[numCapa]
+                        ascFileNameScipyZoom = os.path.join(trainPathAscOtros, '%s_%s_%i_%i.asc' % (fileCoordYear, nombreCapa, nRow, nCol))
+                        crearASC(
+                            ascFileNameScipyZoom,
+                            capaTileRecorte,
+                            capaTileRecorte.shape,
+                            GLO.GLBLtileSizeMetros,
+                            GLO.GLBLtileSizeMetros,
+                            GLO.GLBLmetrosCeldilla,
+                            xInfIzdaTile,
+                            yInfIzdaTile,
+                            GLO.GLBLnoData,
+                            nTipoDato=nTipoDato,
+                        )
 
             # Scipy normaliza la imagen al crearla (usa PIL)
             # scipy.misc.toimage(tileRecorte).save(pngFileName)

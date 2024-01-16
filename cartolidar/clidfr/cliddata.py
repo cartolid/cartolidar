@@ -9,7 +9,7 @@ import os
 import sys
 import pathlib
 import time
-# import datetime
+import datetime
 # import types
 # import csv
 # import re
@@ -120,10 +120,12 @@ elif MAIN_FILE_DIR[:8] == '/content':
 else:
     MAIN_ENTORNO = 'windows'
     try:
-        if MAIN_DRIVE[0] == 'D':
+        if 'benmarjo' in MAIN_HOME_DIR:
+            MAIN_PC = 'JCyL'
+        elif 'joseb' in MAIN_HOME_DIR:
             MAIN_PC = 'Casa'
         else:
-            MAIN_PC = 'JCyL'
+            MAIN_PC = 'Otro'
     except:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
@@ -150,7 +152,7 @@ else:
 
 # ==============================================================================
 configVarsDict = clidconfig.leerCambiarVariablesGlobales(inspect_stack=inspect.stack())
-GLO = clidconfig.VariablesGlobales(configVarsDict)
+GLO = clidconfig.GLO_CLASS(configVarsDict)
 
 if GLO.GLBLverbose:
     print('->->Cargando cliddata')
@@ -168,7 +170,9 @@ if (
 else:
     GLBNmuestreoAcumulativoOEntrenamientoOInferencia = False
 
-if GLO.GLBLgrabarPercentilAdicional4:
+if GLO.GLBLgrabarPercentilAdicional5:
+    TRNSnumMaxPercentiles = 6
+elif GLO.GLBLgrabarPercentilAdicional4:
     TRNSnumMaxPercentiles = 5
 elif GLO.GLBLgrabarPercentilAdicional3:
     TRNSnumMaxPercentiles = 4
@@ -203,7 +207,7 @@ class LasData(object):
     # ==========================================================================
     def readLasData(self, byREFAlmacenarPuntosComoNumpyDtype=False, entrenamiento=False):
         """
-        Opens lasFile (self.infile) and read dataPoints (after header) and stores in self.ficheroCompletoEnLaRAM
+        Opens lasFile (self.infile) and read dataPoints (after header) and stores in self.pointsAllFromFile_xtypePFXX
         This variable is different depending on GLO.GLBLalmacenarPuntosComoNumpyDtype:
             if True: Also creates self.numPuntosCargadosEnLaRAM
         """
@@ -216,13 +220,18 @@ class LasData(object):
             sys.exit()
         self.infile.seek(self.myLasHead.headDict['offset'])
 
+        print(f'cliddata-> Leyendo dichero lidar con:')
+        print(f'{TB}-> GLBLalmacenarPuntosComoNumpyDtype:  {GLO.GLBLalmacenarPuntosComoNumpyDtype}')
+        print(f'{TB}-> byREFAlmacenarPuntosComoNumpyDtype: {byREFAlmacenarPuntosComoNumpyDtype}')
+        if GLO.GLBLalmacenarPuntosComoNumpyDtype or byREFAlmacenarPuntosComoNumpyDtype:
+            print(f'{TB}-> formatoDtypePointFormatXXNotacionNpDtype: {self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype}')
         if GLO.GLBLalmacenarPuntosComoNumpyDtype or byREFAlmacenarPuntosComoNumpyDtype:
             # print( 'cliddata-> Reading dataPoints with np.dtype() to store them in a ndArray' )
             # print( 'cliddata-> (Just the number of points indicated in head of lasFile (file could have more points)' )
             # TODO: Check also np.savez()
             # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
             try:
-                self.ficheroCompletoEnLaRAM = np.fromfile(
+                self.pointsAllFromFile_xtypePFXX = np.fromfile(
                     self.infile,
                     dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
                     count=self.myLasHead.numptrecords
@@ -233,7 +242,7 @@ class LasData(object):
                 print('np.dtype():', self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype)
                 quit()
             # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-            self.numPuntosCargadosEnLaRAM = len(self.ficheroCompletoEnLaRAM)
+            self.numPuntosCargadosEnLaRAM = len(self.pointsAllFromFile_xtypePFXX)
             if self.numPuntosCargadosEnLaRAM != self.nPtosAleer:
                 print('cliddata-> Number of points to read different to number of points in lasFile')
                 print('cliddata-> Number of points in lasFile: %i' % self.numPuntosCargadosEnLaRAM)
@@ -244,14 +253,14 @@ class LasData(object):
             )
             print('cliddata-> It is read just the number of points indicated in head of lasFile (there could be more)')
             try:
-                self.ficheroCompletoEnLaRAM = self.infile.read(self.myLasHead.pointreclen * self.myLasHead.numptrecords)
+                self.pointsAllFromFile_xtypePFXX = self.infile.read(self.myLasHead.pointreclen * self.myLasHead.numptrecords)
             except:
                 print('cliddata-> Error reading with self.infile.read()')
                 clidaux.memoriaRam('4b')
-                self.ficheroCompletoEnLaRAM = None
+                self.pointsAllFromFile_xtypePFXX = None
 
-            print('cliddata-> Tipo de objeto self.ficheroCompletoEnLaRAM:', type(self.ficheroCompletoEnLaRAM))
-            self.numPuntosCargadosEnLaRAM = len(self.ficheroCompletoEnLaRAM) / self.myLasHead.pointreclen
+            print('cliddata-> Tipo de objeto self.pointsAllFromFile_xtypePFXX:', type(self.pointsAllFromFile_xtypePFXX))
+            self.numPuntosCargadosEnLaRAM = len(self.pointsAllFromFile_xtypePFXX) / self.myLasHead.pointreclen
 
         self.infile.close()
 
@@ -263,13 +272,18 @@ class LasData(object):
             fileCoordYear,
             LCLordenColoresInput,
         ):
-        TRNShuso29 = clidaux.chequearHuso29(fileCoordYear)
-        clidaux.printMsg(f'\n{"":_^80}')
-        clidaux.printMsg(f'{" Fase previa-1 ":_^80}')
-        clidaux.printMsg(f'{" Lectura del fichero lidar (lasFile o lazFile) ":_^80}')
-        clidaux.printMsg(f'{"":=^80}')
+        TRNShuso29_coord, TRNShuso29_ubica = clidaux.chequearHuso29(fileCoordYear)
         if GLO.GLBLverbose:
-            clidaux.printMsg(f'cliddata.{fileCoordYear}-> Leyendo el contenido de {self.myLasHead.infileConRuta}')
+            clidaux.printMsg(f'\n{"":_^80}')
+            clidaux.printMsg(f'cliddata.{fileCoordYear}-> leerLasDataLazLas-> Cargando en memoria el contenido de fichero lidar: {self.myLasHead.infileConRuta}')
+            clidaux.printMsg(f'{TB}-> GLBLdescomprimirLazEnMemoria:  {GLO.GLBLdescomprimirLazEnMemoria}')
+            clidaux.printMsg(f'{TB}-> Formato de punto:       {self.myLasHead.pointformat}')
+            clidaux.printMsg(f'{TB}-> nBytes del pointFormat: {self.myLasHead.nBytesPorPunto}')
+            clidaux.printMsg(f'{TB}-> extraBytesPorRegistro:  {self.myLasHead.extraBytesPorRegistro}')
+            # clidaux.printMsg(f'{TB}-> extraBytesPorRegistro: {self.myLasHead.headDict["extraBytesPorRegistro"]}')
+            clidaux.printMsg(f'{TB}-> formatoDtypePointFormatXXNotacionNpDtype: {self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype}')
+            clidaux.printMsg(f'{TB}-> Numero de bytes del formatoDtypePointFormatXXNotacionNpDtype: {(self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype).itemsize}')
+
         if infileRgxConRuta[-4:].lower() == '.las':
             # clidaux.printMsg('\n---------------->cliddata-> infileLasConRuta_ (rgx): {}'.format(infileRgxConRuta))
             self.readLasData()
@@ -283,7 +297,8 @@ class LasData(object):
                 # clidaux.printMsg('\ncliddata-> lasDataMem: {} {}'.format(type(lasDataMem), len(lasDataMem)))
                 # ==============================================================
                 if GLO.GLBLverbose:
-                    clidaux.printMsg('cliddata.{}-> Leyendo la cabecera del fichero laz descomprimido en memoria'.format(fileCoordYear))
+                    clidaux.printMsg(f'\ncliddata.{fileCoordYear}-> leerLasDataLazLas-> Leyendo la cabecera del fichero laz descomprimido en memoria')
+                    clidaux.printMsg(f'{TB}-> Se lee de nuevo la cabecera desde el objeto lasDataMem (descomprimido) porque ya no incluye el VLR de laszip')
 
                 # ATENCION: Recalculo las propiedades de la cabecera con el fichero descomprimido en memoria
                 # porque el fichero comprimido tiene un offset de 335 en lugar de 229 por el VLR de laszip 
@@ -296,67 +311,57 @@ class LasData(object):
                     metersBlock=GLO.GLBLmetrosBloque,
                     metersCell=GLO.GLBLmetrosCelda,
                     LCLordenColoresInput=LCLordenColoresInput,
+                    TRNShuso29_coord=TRNShuso29_coord,
+                    TRNShuso29_ubica=TRNShuso29_ubica,
+                    fileCoordYearDelNombre=fileCoordYear,
                     verbose=GLO.GLBLverbose,
-                    TRNShuso29=TRNShuso29,
                     )
                 if not self.myLasHead.readOk:
                     return
 
-                if (
-                    (len(lasDataMem) - self.myLasHead.headDict['offset']) / self.myLasHead.pointreclen != self.myLasHead.numptrecords
-                ):
-                    clidaux.printMsg('\ncliddata-> ATENCION: las cuentas NO cuadran con el offset:')
-                    clidaux.printMsg(
-                        '\t-> len(lasDataMem): {}; Calculado por el num. de puntos: {}; Diferencia: {}'.format(
-                            len(lasDataMem),
-                            (self.myLasHead.headDict['offset'] + (self.myLasHead.pointreclen * self.myLasHead.numptrecords)),
-                            len(lasDataMem) - (self.myLasHead.headDict['offset'] + (self.myLasHead.pointreclen * self.myLasHead.numptrecords))
-                        )
-                    )
-
+                numPuntosCalculado = (len(lasDataMem) - self.myLasHead.headDict['offset']) / self.myLasHead.pointreclen
                 if GLO.GLBLverbose:
-                    clidaux.printMsg(f'cliddata.{fileCoordYear}-> Cargando en un ndArray los puntos del fichero descomprimido en memoria')
+                    clidaux.printMsg(f'\n{"":_^80}')
+                    clidaux.printMsg(f'cliddata.{fileCoordYear}-> leerLasDataLazLas-> Cargando en un ndArray los puntos del fichero descomprimido en memoria')
+                if numPuntosCalculado != self.myLasHead.numptrecords:
+                    clidaux.printMsg('\ncliddata-> ATENCION: las cuentas NO cuadran con el offset:')
+                    clidaux.printMsg(f'{TB}-> Numero puntos segun cabecera: {self.myLasHead.numptrecords}')
+                if numPuntosCalculado != self.myLasHead.numptrecords or GLO.GLBLverbose:
                     clidaux.printMsg(f'{TB}-> A. len(lasDataMem): {len(lasDataMem)}')
                     clidaux.printMsg(f'{TB}-> B. offset:          {self.myLasHead.headDict["offset"]}')
                     clidaux.printMsg(f'{TB}-> C. pointreclen:     {self.myLasHead.pointreclen}')
-                    clidaux.printMsg(f'{TB}-> D. numptrecords:    {self.myLasHead.numptrecords}')
-                    clidaux.printMsg(f'{TB}-> (A - B) / C:        {(len(lasDataMem) - self.myLasHead.headDict["offset"]) / self.myLasHead.pointreclen}')
+                    clidaux.printMsg(f'{TB}-> Numero puntos calculado (A-B)/C: {(len(lasDataMem) - self.myLasHead.headDict["offset"]) / self.myLasHead.pointreclen}')
+                    clidaux.printMsg(f'{TB}-> Numero puntos segun cabecera:    {self.myLasHead.numptrecords}')
+                    if numPuntosCalculado != self.myLasHead.numptrecords:
+                        clidaux.printMsg(f'{TB}{TV}-> Diferencia: {numPuntosCalculado - self.myLasHead.numptrecords}')
+                        self.myLasHead.numptrecords = int(numPuntosCalculado)
+                        clidaux.printMsg(f'{TB}{TV}-> Se intenta leer el numero de puntos calculados con los bytes del fichero: {numPuntosCalculado} -> {self.myLasHead.numptrecords}')
+                    else:
+                        clidaux.printMsg(f'{TB}{TV}-> Numero de puntos segun cabecera acorde con el numero de bytes del lasFile.')
                 # https://numpy.org/doc/stable/reference/generated/numpy.frombuffer.html
 
+                    
                 try:
-                    if self.myLasHead.numptrecords <= len(lasDataMem):
-                        self.ficheroCompletoEnLaRAM = np.frombuffer(
-                            lasDataMem,
-                            dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
-                            count=self.myLasHead.numptrecords,
-                            offset=self.myLasHead.headDict['offset'])
-                    else:
-                        clidaux.printMsg(
-                            'cliddata-> ATENCION: revisar por que lasDataMem tiene menos registros ({}) que los previstos: {}; offset: {}'.format(
-                                len(lasDataMem),
-                                self.myLasHead.numptrecords,
-                                self.myLasHead.headDict['offset']
-                            )
-                        )
-                        self.ficheroCompletoEnLaRAM = np.frombuffer(
-                            lasDataMem,
-                            dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
-                            count=self.myLasHead.numptrecords,
-                            offset=self.myLasHead.headDict['offset'])
+                    self.pointsAllFromFile_xtypePFXX = np.frombuffer(
+                        lasDataMem,
+                        dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
+                        count=self.myLasHead.numptrecords,
+                        offset=self.myLasHead.headDict['offset'])
                 except:
+                    self.pointsAllFromFile_xtypePFXX = ''
+                    clidaux.printMsg(f'cliddata-> Error en frombuffer()')
+                    clidaux.printMsg(f'{TB}-> lasDataMem:   {len(lasDataMem)}')
                     clidaux.printMsg(
-                        'cliddata-> Error en frombuffer() lasDataMem: {}; dtype: {}; count: {}; offset: {}'.format(
-                            len(lasDataMem),
-                            self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
-                            self.myLasHead.numptrecords,
-                            self.myLasHead.headDict['offset'],
-                        )
+                        f'{TB}-> numptrecords (cabecera): {self.myLasHead.numptrecords};',
+                        f'offset: {self.myLasHead.headDict["offset"]};',
+                        f'pointreclen: {self.myLasHead.pointreclen}'
                     )
+                    clidaux.printMsg(f'{TB}-> dtype: {self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype}')
                     self.myLasHead.readOk = False
                     return
                     # sys.exit(0)
                 # ==================================================================
-                self.numPuntosCargadosEnLaRAM = len(self.ficheroCompletoEnLaRAM)
+                self.numPuntosCargadosEnLaRAM = len(self.pointsAllFromFile_xtypePFXX)
                 # ==================================================================
                 TRNSchequearUsoDeBytesIO = False
                 if TRNSchequearUsoDeBytesIO:
@@ -371,13 +376,13 @@ class LasData(object):
                     #    https://docs.python.org/3/library/io.html#io.BytesIO
                     import io
                     lasDataBinaryStream = io.BytesIO(lasDataMem)
-                    clidaux.printMsg('cliddata-> lasDataBinaryStream: {}'.format(type(lasDataBinaryStream)))
+                    clidaux.printMsg('cliddata-> leerLasDataLazLas-> lasDataBinaryStream: {}'.format(type(lasDataBinaryStream)))
                     # clidaux.printMsg(dir(lasDataBinaryStream)) # 'close', 'closed', 'detach', 'fileno', 'flush', 'getbuffer', 'getvalue', 'isatty', 'read', 'read1', 'readable', 'readinto', 'readinto1', 'readline', 'readlines', 'seek', 'seekable', 'tell', 'truncate', 'writable', 'write', 'writelines']
                     if False:
                         miCabecera = lasDataBinaryStream.read(227)
                         clidaux.printMsg('cliddata-> miCabecera leida con read(<class "_io.BytesIO"">): {}'.format(type(miCabecera), miCabecera))
         
-                    # self.ficheroCompletoEnLaRAM = np.fromfile(
+                    # self.pointsAllFromFile_xtypePFXX = np.fromfile(
                     #     lasDataBinaryStream,
                     #     dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
                     #     count=self.myLasHead.numptrecords,
@@ -400,17 +405,17 @@ class LasData(object):
                     clidaux.printMsg('cliddata-> lasDataView == lasDataMem: {}'.format(lasDataView == lasDataMem)) # True
         
                     # Uso de np.frombuffer() con memoryview, con dos dtypes:
-                    LCLficheroCompletoEnLaRAM = np.frombuffer(
+                    LCLpointsAllFromFile_xtypePFXX = np.frombuffer(
                         lasDataView,
                         dtype=np.uint8
                     )
-                    clidaux.printMsg('cliddata-> np.frombuffer(lasDataView, dtype=np.uint8): {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM))) # <class 'numpy.ndarray'> 160615413
-                    LCLficheroCompletoEnLaRAM = np.frombuffer(
+                    clidaux.printMsg('cliddata-> np.frombuffer(lasDataView, dtype=np.uint8): {} {}'.format(type(LCLpointsAllFromFile_xtypePFXX), len(LCLpointsAllFromFile_xtypePFXX))) # <class 'numpy.ndarray'> 160615413
+                    LCLpointsAllFromFile_xtypePFXX = np.frombuffer(
                         lasDataViewPoints,
                         dtype=self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype,
                         count=self.myLasHead.numptrecords
                     )
-                    clidaux.printMsg('cliddata-> np.frombuffer(lasDataViewPoints, dtype=myLasHead.formatoDtypePointFormatXXNotacionNpDtype): {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM))) # <class 'numpy.ndarray'> 4723976
+                    clidaux.printMsg('cliddata-> np.frombuffer(lasDataViewPoints, dtype=myLasHead.formatoDtypePointFormatXXNotacionNpDtype): {} {}'.format(type(LCLpointsAllFromFile_xtypePFXX), len(LCLpointsAllFromFile_xtypePFXX))) # <class 'numpy.ndarray'> 4723976
         
                     # Propiedades de memoryview()
                     # memoryview objects allow Python code to access the internal data of an object that supports the buffer protocol without copying.
@@ -437,42 +442,54 @@ class LasData(object):
                     #  https://docs.python.org/dev/library/stdtypes.html#memoryview.cast
                     clidaux.printMsg('14 cast() {} {}'.format(type(lasDataView.cast('b')), len(lasDataView.cast('b')))) #<class 'memoryview'>
                     try:
-                        LCLficheroCompletoEnLaRAM = np.frombuffer(lasDataView.tobytes())
-                        clidaux.printMsg('13a frombuffer {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM)))
+                        LCLpointsAllFromFile_xtypePFXX = np.frombuffer(lasDataView.tobytes())
+                        clidaux.printMsg('13a frombuffer {} {}'.format(type(LCLpointsAllFromFile_xtypePFXX), len(LCLpointsAllFromFile_xtypePFXX)))
                     except:
                         clidaux.printMsg('13a Error en np.frombuffer(lasDataView.tobytes())')
                     try:
-                        LCLficheroCompletoEnLaRAM = np.frombuffer(lasDataView.cast('b'))
-                        clidaux.printMsg('14a frombuffer {} {}'.format(type(LCLficheroCompletoEnLaRAM), len(LCLficheroCompletoEnLaRAM)))
+                        LCLpointsAllFromFile_xtypePFXX = np.frombuffer(lasDataView.cast('b'))
+                        clidaux.printMsg('14a frombuffer {} {}'.format(type(LCLpointsAllFromFile_xtypePFXX), len(LCLpointsAllFromFile_xtypePFXX)))
                     except:
                         clidaux.printMsg('14a Error en np.frombuffer(lasDataView.cast("b"))')
                     clidaux.printMsg('________________________________________________________________________________')
                 # ==================================================================
     
             else:
+                if GLO.GLBLverbose:
+                    clidaux.printMsg(f'\ncliddata.{fileCoordYear}-> leerLasDataLazLas-> Descomprimiendo lazFile en disco.')
                 infileLasConRuta = clidaux.descomprimeLaz(infileRgxConRuta, descomprimirLazEnMemoria=False)
                 # ATENCION: recalculo las propiedades de la cabecera con el fichero descomprimido en memoria
                 # porque el fichero comprimido tiene un offset de 335 en lugar de 229 por el VLR de laszip 
                 # Se puede abreviar a cambiar solo esa propiedad
                 # clidaux.printMsg('\n---------------->cliddata-> infileLasConRuta11 (rgx): {}'.format(infileLasConRuta))
+                if GLO.GLBLverbose:
+                    clidaux.printMsg(f'\n{"":_^80}')
+                    clidaux.printMsg(f'\ncliddata.{fileCoordYear}-> leerLasDataLazLas-> Leyendo la cabecera del fichero laz descomprimido en disco')
+                    clidaux.printMsg(f'{TB}-> Se lee de nuevo la cabecera desde el objeto lasDataMem (descomprimido) porque ya no incluye el VLR de laszip')
                 self.myLasHead = clidhead.LasHeadClass(
                     infileLasConRuta,
                     lasDataMem=None,
                     metersBlock=GLO.GLBLmetrosBloque,
                     metersCell=GLO.GLBLmetrosCelda,
                     LCLordenColoresInput=LCLordenColoresInput,
+                    TRNShuso29_coord=TRNShuso29_coord,
+                    TRNShuso29_ubica=TRNShuso29_ubica,
+                    fileCoordYearDelNombre=fileCoordYear,
                     verbose=GLO.GLBLverbose,
-                    TRNShuso29=TRNShuso29,
                 )
-                # Obtengo self.ficheroCompletoEnLaRAM:
+                # Obtengo self.s:
+                if GLO.GLBLverbose:
+                    clidaux.printMsg(f'cliddata.{fileCoordYear}-> leerLasDataLazLas-> Cargando en memoria el contenido de fichero lidar: {self.myLasHead.infileConRuta}')
+                    clidaux.printMsg(f'{TB}-> GLBLdescomprimirLazEnMemoria:  {GLO.GLBLdescomprimirLazEnMemoria}')
+                    clidaux.printMsg(f'{TB}-> formatoDtypePointFormatXXNotacionNpDtype: {self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype}')
                 self.readLasData()
         else:
-            clidaux.printMsg(f'cliddata-> ATENCION: extension del fichero no las ni laz: revisar codigo')
+            clidaux.printMsg(f'cliddata-> leerLasDataLazLas-> ATENCION: extension del fichero no las ni laz: revisar codigo')
 
 
     # ==========================================================================
     def crearPuntoRecordDtypes(self):
-        # Este no lo uso porque lo obtengo en clidnv0.numbaMainVuelta0() con miPtoNpRecordPointFormatXX = arrayFicheroCompletoEnLaRAM[contadorPral]
+        # Este no lo uso porque lo obtengo en clidnv0.numbaMainVuelta0() con miPtoNpRecordPointFormatXX = ...
         miPtoNpArrayRecord = np.zeros(1, dtype=np.dtype(self.myLasHead.formatoDtypePointFormatXXNotacionNpDtype))
         self.miPtoNpRecordPointFormatXX = miPtoNpArrayRecord[0]
 
@@ -553,6 +570,8 @@ class LasData(object):
         arrayFilesConRuta = []
         arrayFilesNombreLote = []
 
+        print(f'{TB}cliddata-> Generando lista de output files...')
+
         contadorLotes = 0
         if GLO.GLBLverbose:
             print('cliddata-> GLO.MAINrutaOutput->->', GLO.MAINrutaOutput)
@@ -577,7 +596,7 @@ class LasData(object):
                         lasOrigRecl
                     )
                     fileNameSinRuta = '{}_{}.asc'.format(fileCoord, fileText)
-                    fileRuta = os.path.join(GLO.MAINrutaOutput, 'PointClass/{}/10mCell/NumPtos/'.format(lasOrigRecl))
+                    fileRuta = os.path.join(GLO.MAINrutaOutput, f'PointClass/{lasOrigRecl}/{int(GLO.GLBLmetrosCelda)}mCell/NumPtos/')
                     fileNameConRuta = os.path.join(
                         fileRuta,
                         fileNameSinRuta
@@ -600,16 +619,16 @@ class LasData(object):
                 if GLO.GLBLgrabarCeldasClasesSueloVegetacion: # PointClass/{Orig/Recl}/10mCell/
                     listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosSuelo_{}'.format(lasOrigRecl)])  # aCeldasNumPrimerosRetornosSuelo {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
                     listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosVeget_{}'.format(lasOrigRecl)])  # aCeldasNumPrimerosRetornosVeget {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
-                    listaRutasCobs.extend(['PointClass/{}/10mCell/PorcentajePtosSuelo/'.format(lasOrigRecl)])
-                    listaRutasCobs.extend(['PointClass/{}/10mCell/PorcentajePtosVegetacion/'.format(lasOrigRecl)])
+                    listaRutasCobs.extend([f'PointClass/{lasOrigRecl}/{int(GLO.GLBLmetrosCelda)}mCell/PorcentajePtosSuelo/'])
+                    listaRutasCobs.extend([f'PointClass/{lasOrigRecl}/{int(GLO.GLBLmetrosCelda)}mCell/PorcentajePtosVegetacion/'])
                 if GLO.GLBLgrabarCeldasClasesEdificio: # PointClass/{Orig/Recl}/10mCell/
-                    listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosEdifi_{}'.format(lasOrigRecl)])  # aCeldasNumPrimerosRetornosEdificio {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
-                    listaRutasCobs.extend(['PointClass/{}/10mCell/PorcentajePtosEdificio/'.format(lasOrigRecl)])
+                    listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosEdifi_{lasOrigRecl}'])  # aCeldasNumPrimerosRetornosEdificio {LasOrig/Recl}, aCeldasNumPrimerosRetornosT}'])  # aCeldasNumPrimerosRetornosEdificio {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
+                    listaRutasCobs.extend([f'PointClass/{lasOrigRecl}/{int(GLO.GLBLmetrosCelda)}mCell/PorcentajePtosEdificio/'])
                 if GLO.GLBLgrabarCeldasClasesOtros: # PointClass/{Orig/Recl}/10mCell/
-                    listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosOverl_{}'.format(lasOrigRecl)])  # aCeldasNumTodosLosRetornosOverlap {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
-                    listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosOtros_{}'.format(lasOrigRecl)])  # aCeldasNumPrimerosRetornosOtros {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
-                    listaRutasCobs.extend(['PointClass/{}/10mCell/PorcentajePtosOverlay/'.format(lasOrigRecl)])
-                    listaRutasCobs.extend(['PointClass/{}/10mCell/PorcentajePtosOtros/'.format(lasOrigRecl)])
+                    listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosOverl_{lasOrigRecl}'])  # aCeldasNumTodosLosRetornosOverlap {LasOrig/Recl}, aCeldasNumPrimerosRetornosT}'])  # aCeldasNumTodosLosRetornosOverlap {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
+                    listaFilesSinRutaCobs.extend(['CeldasPrcntjPrimerosRetornosOtros_{lasOrigRecl}'])  # aCeldasNumPrimerosRetornosOtros {LasOrig/Recl}, aCeldasNumPrimerosRetornosT}'])  # aCeldasNumPrimerosRetornosOtros {LasOrig/Recl}, aCeldasNumPrimerosRetornosTlp
+                    listaRutasCobs.extend([f'PointClass/{lasOrigRecl}/{int(GLO.GLBLmetrosCelda)}mCell/PorcentajePtosOverlay/'])
+                    listaRutasCobs.extend([f'PointClass/{lasOrigRecl}/{int(GLO.GLBLmetrosCelda)}mCell/PorcentajePtosOtros/'])
                 for item in range(len(listaFilesSinRutaCobs)):
                     txtFileRuta = listaRutasCobs[item]
                     fileText = listaFilesSinRutaCobs[item]
@@ -627,28 +646,28 @@ class LasData(object):
                 listaRutasnPtosClasesSubCeldas = []
                 listaFilesSinRutaClasesSubCeldas = []
                 listaFilesConRutaClasesSubCeldas = []
-                if GLO.GLBLgrabarSubCeldasClasesSueloVegetacion: # PointClass/{Orig/Recl}/02mCell/
-                    listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09TodosLosRetornosSuelo_{}'.format(lasOrigRecl)])  # aSubCeldasProp09TodosLosRetornosSuelo {LasOrig/Recl}
-                    listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09TodosLosRetornosVeget_{}'.format(lasOrigRecl)])  # aSubCeldasProp09TodosLosRetornosVeget {LasOrig/Recl}
-                    listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09SueloTlr/'.format(lasOrigRecl)])
-                    listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09VegetacionTlr/'.format(lasOrigRecl)])
+                if GLO.GLBLgrabarSubCeldasClasesSueloVegetacion: # PointClass/{Orig/Recl}/{GLO.GLBLmetrosSubCelda}mCell/
+                    listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09TodosLosRetornosSuelo_{lasOrigRecl}'])  # aSubCeldasProp09TodosLosRetornosSuelo {LasOrig/Rec}'])  # aSubCeldasProp09TodosLosRetornosSuelo {LasOrig/Recl}
+                    listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09TodosLosRetornosVeget_{lasOrigRecl}'])  # aSubCeldasProp09TodosLosRetornosVeget {LasOrig/Rec}'])  # aSubCeldasProp09TodosLosRetornosVeget {LasOrig/Recl}
+                    listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09SueloTlr/'])
+                    listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09VegetacionTlr/'])
                     if GLO.GLBLgrabarSubCeldasClasesConPrimerosRetornos:
-                        listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09PrimerosRetornosSuelo_{}'.format(lasOrigRecl)])  # aSubCeldasProp09PrimerosRetornosSuelo {LasOrig/Recl}
-                        listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09PrimerosRetornosVeget_{}'.format(lasOrigRecl)])  # aSubCeldasProp09PrimerosRetornosVeget {LasOrig/Recl}
-                        listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09SueloRt1/'.format(lasOrigRecl)])
-                        listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09VegetacionRt1/'.format(lasOrigRecl)])
-                if GLO.GLBLgrabarSubCeldasClasesEdificio: # PointClass/{Orig/Recl}/02mCell/
-                    listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09TodosLosRetornosEdificio_{}'.format(lasOrigRecl)])  # aSubCeldasProp09TodosLosRetornosEdificio {LasOrig/Recl}
-                    listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09EdificioTlr/'.format(lasOrigRecl)])
+                        listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09PrimerosRetornosSuelo_{lasOrigRecl}'])  # aSubCeldasProp09PrimerosRetornosSuelo {LasOrig/Rec}'])  # aSubCeldasProp09PrimerosRetornosSuelo {LasOrig/Recl}
+                        listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09PrimerosRetornosVeget_{lasOrigRecl}'])  # aSubCeldasProp09PrimerosRetornosVeget {LasOrig/Rec}'])  # aSubCeldasProp09PrimerosRetornosVeget {LasOrig/Recl}
+                        listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09SueloRt1/'])
+                        listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09VegetacionRt1/'])
+                if GLO.GLBLgrabarSubCeldasClasesEdificio: # PointClass/{Orig/Recl}/{GLO.GLBLmetrosSubCelda}mCell/
+                    listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09TodosLosRetornosEdificio_{lasOrigRecl}'])  # aSubCeldasProp09TodosLosRetornosEdificio {LasOrig/Rec}'])  # aSubCeldasProp09TodosLosRetornosEdificio {LasOrig/Recl}
+                    listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09EdificioTlr/'])
                     if GLO.GLBLgrabarSubCeldasClasesConPrimerosRetornos:
-                        listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09PrimerosRetornosEdificio_{}'.format(lasOrigRecl)])  # aSubCeldasProp09PrimerosRetornosEdificio {LasOrig/Recl}
-                        listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09EdificioRt1/'.format(lasOrigRecl)])
-                if GLO.GLBLgrabarSubCeldasClasesOtros: # PointClass/{Orig/Recl}/02mCell/
-                    listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09TodosLosRetornosOtros_{}'.format(lasOrigRecl)])  # aSubCeldasProp09TodosLosRetornosOtros {LasOrig/Recl}
-                    listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09OtrosTlr/'.format(lasOrigRecl)])
+                        listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09PrimerosRetornosEdificio_{lasOrigRecl}'])  # aSubCeldasProp09PrimerosRetornosEdificio {LasOrig/Rec}'])  # aSubCeldasProp09PrimerosRetornosEdificio {LasOrig/Recl}
+                        listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09EdificioRt1/'])
+                if GLO.GLBLgrabarSubCeldasClasesOtros: # PointClass/{Orig/Recl}/{GLO.GLBLmetrosSubCelda}mCell/
+                    listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09TodosLosRetornosOtros_{lasOrigRecl}'])  # aSubCeldasProp09TodosLosRetornosOtros {LasOrig/Rec}'])  # aSubCeldasProp09TodosLosRetornosOtros {LasOrig/Recl}
+                    listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09OtrosTlr/'])
                     if GLO.GLBLgrabarSubCeldasClasesConPrimerosRetornos:
-                        listaFilesSinRutaClasesSubCeldas.extend(['SubCeldasProp09PrimerosRetornosOtros_{}'.format(lasOrigRecl)])  # aSubCeldasProp09PrimerosRetornosOtros {LasOrig/Recl}
-                        listaRutasnPtosClasesSubCeldas.extend(['PointClass/{}/02mCell/Prop09OtrosRt1/'.format(lasOrigRecl)])
+                        listaFilesSinRutaClasesSubCeldas.extend([f'SubCeldasProp09PrimerosRetornosOtros_{lasOrigRecl}'])  # aSubCeldasProp09PrimerosRetornosOtros {LasOrig/Recl}
+                        listaRutasnPtosClasesSubCeldas.extend([f'PointClass/{lasOrigRecl}/{GLO.GLBLmetrosSubCelda}mCell/Prop09OtrosRt1/'])
                 for item in range(len(listaFilesSinRutaClasesSubCeldas)):
                     txtFileRuta = listaRutasnPtosClasesSubCeldas[item]
                     fileText = listaFilesSinRutaClasesSubCeldas[item]
@@ -663,7 +682,7 @@ class LasData(object):
             # ======================================================================
             if GLO.GLBLgrabarMetricoClasesSueloVegetacion or GLO.GLBLgrabarMetricoClasesEdificio or GLO.GLBLgrabarMetricoClasesOtros:
                 # print(
-                #     'cliddata-> GLBLgrabarMetricoClasesSueloVegetacion: {}; GLBLgrabarMetricoClasesEdificio: {}; GLBLgrabarMetricoClasesOtros: {}'.format(
+                #     'cliddata-> GLBLgrabarMetricoClasesSueloVegetacion: {}; GLBLgrabarMetricoClasesEdificio: {}; GLBLgrabarMetricoClasesOtros: {t(}'.format(
                 #         GLO.GLBLgrabarMetricoClasesSueloVegetacion,
                 #         GLO.GLBLgrabarMetricoClasesEdificio,
                 #         GLO.GLBLgrabarMetricoClasesOtros
@@ -673,27 +692,27 @@ class LasData(object):
                 listaFilesSinRutaClasesMetrico = []
                 listaFilesConRutaClasesMetrico = []
                 if GLO.GLBLgrabarMetricoClasesSueloVegetacion: # PointClass/{Orig/Recl}/01mCell/
-                    listaFilesSinRutaClasesMetrico.extend(['MetricoProp09TodosLosRetornosSuelo_{}'.format(lasOrigRecl)])  # aMetricoProp09TodosLosRetornosSuelo {LasOrig/Recl}
-                    listaFilesSinRutaClasesMetrico.extend(['MetricoProp09TodosLosRetornosVeget_{}'.format(lasOrigRecl)])  # aMetricoProp09TodosLosRetornosVeget {LasOrig/Recl}
-                    listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09SueloTlr/'.format(lasOrigRecl)])
-                    listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09VegetacionTlr/'.format(lasOrigRecl)])
+                    listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09TodosLosRetornosSuelo_{lasOrigRecl}'])  # aMetricoProp09TodosLosRetornosSuelo {LasOrig/Recl}
+                    listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09TodosLosRetornosVeget_{lasOrigRecl}'])  # aMetricoProp09TodosLosRetornosVeget {LasOrig/Recl}
+                    listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09SueloTlr/'])
+                    listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09VegetacionTlr/'])
                     if GLO.GLBLgrabarMetricoClasesConPrimerosRetornos:
-                        listaFilesSinRutaClasesMetrico.extend(['MetricoProp09PrimerosRetornosSuelo_{}'.format(lasOrigRecl)])  # aMetricoProp09PrimerosRetornosSuelo {LasOrig/Recl}
-                        listaFilesSinRutaClasesMetrico.extend(['MetricoProp09PrimerosRetornosVeget_{}'.format(lasOrigRecl)])  # aMetricoProp09PrimerosRetornosVeget {LasOrig/Recl}
-                        listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09SueloRt1/'.format(lasOrigRecl)])
-                        listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09VegetacionRt1/'.format(lasOrigRecl)])
+                        listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09PrimerosRetornosSuelo_{lasOrigRecl}'])  # aMetricoProp09PrimerosRetornosSuelo {LasOrig/Recl}
+                        listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09PrimerosRetornosVeget_{lasOrigRecl}'])  # aMetricoProp09PrimerosRetornosVeget {LasOrig/Recl}
+                        listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09SueloRt1/'])
+                        listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09VegetacionRt1/'])
                 if GLO.GLBLgrabarMetricoClasesEdificio: # PointClass/{Orig/Recl}/01mCell/
-                    listaFilesSinRutaClasesMetrico.extend(['MetricoProp09TodosLosRetornosEdificio_{}'.format(lasOrigRecl)])  # aMetricoProp09TodosLosRetornosEdificio {LasOrig/Recl}
-                    listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09EdificioTlr/'.format(lasOrigRecl)])
+                    listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09TodosLosRetornosEdificio_{lasOrigRecl}'])  # aMetricoProp09TodosLosRetornosEdificio {LasOrig/Recl}
+                    listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09EdificioTlr/'])
                     if GLO.GLBLgrabarMetricoClasesConPrimerosRetornos:
-                        listaFilesSinRutaClasesMetrico.extend(['MetricoProp09PrimerosRetornosEdificio_{}'.format(lasOrigRecl)])  # aMetricoProp09PrimerosRetornosEdificio {LasOrig/Recl}
-                        listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09EdificioRt1/'.format(lasOrigRecl)])
+                        listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09PrimerosRetornosEdificio_{lasOrigRecl}'])  # aMetricoProp09PrimerosRetornosEdificio {LasOrig/Recl}
+                        listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09EdificioRt1/'])
                 if GLO.GLBLgrabarMetricoClasesOtros: # PointClass/{Orig/Recl}/01mCell/
-                    listaFilesSinRutaClasesMetrico.extend(['MetricoProp09TodosLosRetornosOtros_{}'.format(lasOrigRecl)])  # aMetricoProp09TodosLosRetornosOtros {LasOrig/Recl}
-                    listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09OtrosTlr/'.format(lasOrigRecl)])
+                    listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09TodosLosRetornosOtros_{lasOrigRecl}'])  # aMetricoProp09TodosLosRetornosOtros {LasOrig/Recl}
+                    listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09OtrosTlr/'])
                     if GLO.GLBLgrabarMetricoClasesConPrimerosRetornos:
-                        listaFilesSinRutaClasesMetrico.extend(['MetricoProp09PrimerosRetornosOtros_{}'.format(lasOrigRecl)])  # aMetricoProp09PrimerosRetornosOtros {LasOrig/Recl}
-                        listaRutasnPtosClasesMetrico.extend(['PointClass/{}/01mCell/Prop09OtrosRt1/'.format(lasOrigRecl)])
+                        listaFilesSinRutaClasesMetrico.extend([f'MetricoProp09PrimerosRetornosOtros_{lasOrigRecl}'])  # aMetricoProp09PrimerosRetornosOtros {LasOrig/Recl}
+                        listaRutasnPtosClasesMetrico.extend([f'PointClass/{lasOrigRecl}/01mCell/Prop09OtrosRt1/'])
                 for item in range(len(listaFilesSinRutaClasesMetrico)):
                     txtFileRuta = listaRutasnPtosClasesMetrico[item]
                     fileText = listaFilesSinRutaClasesMetrico[item]
@@ -733,15 +752,9 @@ class LasData(object):
                 listaFilesConRutaFccsPrimRet = []
                 if GLBLgrabar:
                     for miAltura in self.listaRangos_AlturasMasDe[:-1]:
-                        fileText = '{}{:04}'.format(
-                            tipoFCC,
-                            int(miAltura * 100)
-                        )
+                        fileText = f'{tipoFCC}{int(miAltura * 100):04}'
                         fileRuta = os.path.join(
-                            GLO.MAINrutaOutput,'Fcc/10mCell/{}{:04}'.format(
-                                tipoFCC[3:],
-                                int(miAltura * 100)
-                            )
+                            GLO.MAINrutaOutput, f'Fcc/{int(GLO.GLBLmetrosCelda)}mCell/{tipoFCC[3:]}{int(miAltura * 100):04}'
                         )
                         fileNameConRuta = os.path.join(
                             fileRuta,
@@ -778,10 +791,7 @@ class LasData(object):
                         miAltura2Txt = self.listaRangos_AlturasPctjTxt[nRango + 1]
                         fileText = '{}_{}_{}'.format(tipoFCC, miAltura1Txt, miAltura2Txt)
                         fileRuta = os.path.join(
-                            GLO.MAINrutaOutput,'Fcc/10mCell/Fcc_Rango_{}_{}'.format(
-                                miAltura1Txt,
-                                miAltura2Txt,
-                            )
+                            GLO.MAINrutaOutput, f'Fcc/{int(GLO.GLBLmetrosCelda)}mCell/Fcc_Rango_{miAltura1Txt}_{miAltura2Txt}'
                         )
                         fileNameConRuta = os.path.join(
                             fileRuta,
@@ -833,11 +843,7 @@ class LasData(object):
                             int(miAltura2 * 100),
                         )
                         fileRuta = os.path.join(
-                            GLO.MAINrutaOutput,'Fcc/10mCell/{}_Rango_{:04}_{:04}'.format(
-                                tipoFCC[3:],
-                                int(miAltura1 * 100),
-                                int(miAltura2 * 100),
-                            )
+                            GLO.MAINrutaOutput, f'Fcc/{int(GLO.GLBLmetrosCelda)}mCell/{tipoFCC[3:]}_Rango_{ int(miAltura1 * 100):04}_{ int(miAltura2 * 100):04}'
                         )
                         fileNameConRuta = os.path.join(
                             fileRuta,
@@ -865,7 +871,7 @@ class LasData(object):
                 'AltClaseEdificiosRptoAzMin',
             ]  # aCeldasCotaMediaTlrEdiPsel - aCeldasCotaMinAbsPse
             for fileText in listaFilesSinRutaAlts:
-                fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'PointClass/Orig/10mCell/Alt/', '%s_%s.asc' % (fileCoord, fileText))
+                fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'PointClass/Orig/{int(GLO.GLBLmetrosCelda)}mCell/Alt/', '%s_%s.asc' % (fileCoord, fileText))
                 listaFilesConRutaAlts.append(fileNameConRuta)
                 dictFilesSinConRuta[fileText] = fileNameConRuta
         arrayFilesSinRuta.append(listaFilesSinRutaAlts)
@@ -886,8 +892,9 @@ class LasData(object):
             ] # aCeldasApices
             for fileText in listaFilesSinRutaApices:
                 fileNameConRuta = os.path.join(
-                    GLO.MAINrutaOutput,'Apices/10mCell/{}/'.format(fileText[-5:]),
-                    '{}_{}.asc'.format(fileCoord, fileText)
+                    GLO.MAINrutaOutput,
+                    f'Apices/{int(GLO.GLBLmetrosCelda)}mCell/{fileText[-5:]}/',
+                    f'{fileCoord}_{fileText}.asc'
                 )
                 listaFilesConRutaApices.append(fileNameConRuta)
                 dictFilesSinConRuta[fileText] = fileNameConRuta
@@ -902,89 +909,104 @@ class LasData(object):
         if GLO.GLBLgrabarNumPuntosTotales:
             listaFilesSinRutaVarios.extend(['numPuntosTotalesDentroDeBloque'])
             listaFilesSinRutaVarios.extend(['numPuntosPasadaSelecOk'])
-            listaRutasVarios.extend(['NumPtos/10mCell/Totales/'])
-            listaRutasVarios.extend(['NumPtos/10mCell/PasadaSelec/'])
-        if GLO.GLBLgrabarPrimerosRetornosNoSolape:
-            listaFilesSinRutaVarios.extend(['numPuntosPrimRetSinSolape'])
-            listaRutasVarios.extend(['NumPtos/10mCell/SinSolapeRt1/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/TlcTlrTlp/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/PasadaSelec/'])
+        if GLO.GLBLgrabarNumPuntosPrimerosRetornos:
+            listaFilesSinRutaVarios.extend(['numPuntosPrimRetTlp'])
+            listaFilesSinRutaVarios.extend(['numPuntosPrimRetClaseNoSolape'])
+            listaFilesSinRutaVarios.extend(['numPuntosPrimRetPsel'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Rt1/Tlp/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Rt1/NoSolape/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Rt1/Psel/'])
+        if GLO.GLBLgrabarNumPuntosRetornosSiguientes:
+            listaFilesSinRutaVarios.extend(['RetornosSiguientesTodasLasPasadas'])
+            listaFilesSinRutaVarios.extend(['RetornosSiguientesPasadaSel'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/PorRetornos/RetSigTlp/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/PorRetornos/RetSigPsel/'])
+        if GLO.GLBLgrabarNumPulsosSingleMultiReturns:
+            listaFilesSinRutaVarios.extend(['SingleReturnTodasLasPasadas'])
+            listaFilesSinRutaVarios.extend(['MultiReturnTodasLasPasadas'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/PorNumDeRetornos/SingleReturn/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/PorNumDeRetornos/MultiReturn/'])
         if GLO.GLBLgrabarNumPuntosAuxiliar:
             listaFilesSinRutaVarios.extend(['numPuntosAlmacenablesSinOutliers'])
             listaFilesSinRutaVarios.extend(['numPuntosPasadaSelecSinFiltrarSospechosos'])
-            listaRutasVarios.extend(['NumPtos/10mCell/Auxiliar/'])
-            listaRutasVarios.extend(['NumPtos/10mCell/Auxiliar/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Auxiliar/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Auxiliar/'])
         if GLO.GLBLgrabarNumIdPasada:
             listaFilesSinRutaVarios.extend(['numPasadas'])
             listaFilesSinRutaVarios.extend(['idPasadaBasalSeleccionada'])
             listaFilesSinRutaVarios.extend(['idPasadaSueloSeleccionada'])
-            listaRutasVarios.extend(['Pasadas/10mCell/NumPasadas/'])
-            listaRutasVarios.extend(['Pasadas/10mCell/IdPasadaBasal/'])
-            listaRutasVarios.extend(['Pasadas/10mCell/IdPasadaSuelo/'])
+            listaRutasVarios.extend([f'Pasadas/{int(GLO.GLBLmetrosCelda)}mCell/NumPasadas/'])
+            listaRutasVarios.extend([f'Pasadas/{int(GLO.GLBLmetrosCelda)}mCell/IdPasadaBasal/'])
+            listaRutasVarios.extend([f'Pasadas/{int(GLO.GLBLmetrosCelda)}mCell/IdPasadaSuelo/'])
 
         if GLO.GLBLgrabarCotaMinMaxCelda:
             listaFilesSinRutaVarios.extend(['CeldasCotaMinAbsTlp', 'CeldasCotaMaxAbsTlp'])
-            listaRutasVarios.extend(['CotaMinMax/10mCell/', 'CotaMinMax/10mCell/'])
+            listaRutasVarios.extend([f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/', f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/'])
         if GLO.GLBLcalcularMds and GLO.GLBLgrabarNumPuntosSuelo:
             listaFilesSinRutaVarios.extend(['numPuntosSueloTodasLasPasadas', 'numPuntosSueloPsue', 'numPuntosSueloPselOk'])
-            listaRutasVarios.extend(['NumPtos/10mCell/Suelo/', 'NumPtos/10mCell/Suelo/', 'NumPtos/10mCell/Suelo/'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/', f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/', f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/'])
 
         if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
             #listaFilesSinRutaVarios.extend(['zMediaPtsTodosOtraPasada'])
-            listaFilesSinRutaVarios.extend(['zMediaPtsTodosDiferenciaEntrePasadas'])
-            listaRutasVarios.extend(['Pasadas/DifEntrePasadas'])
+            listaFilesSinRutaVarios.extend(['zMediaPtsTodosDiferenciaEntrePselPotr'])
+            listaRutasVarios.extend([f'Pasadas/{int(GLO.GLBLmetrosCelda)}mCell/DifEntrePasadas/MediaPtosTodos'])
+            listaFilesSinRutaVarios.extend(['zMediaPtsSueloDiferenciaEntrePselPotr'])
+            listaRutasVarios.extend([f'Pasadas/{int(GLO.GLBLmetrosCelda)}mCell/DifEntrePasadas/MediaPtosSueloPselPotr'])
+            listaFilesSinRutaVarios.extend(['zMediaPtsSueloDiferenciaEntrePsuePotr'])
+            listaRutasVarios.extend([f'Pasadas/{int(GLO.GLBLmetrosCelda)}mCell/DifEntrePasadas/MediaPtosSueloPsuePotr'])
 
         if GLO.GLBLgrabarCotasMediasPorClase:
             listaFilesSinRutaVarios.extend(['zMediaPtsVegetPsel', 'zMediaPtsEdifiPsel'])
-            listaRutasVarios.extend(['CotaMinMax/10mCell/Veget/', 'CotaMinMax/10mCell/Edifi'])
+            listaRutasVarios.extend([f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/Veget/', f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/Edifi'])
             if GLO.GLBLcalcularMds:
                 listaFilesSinRutaVarios.extend(['zMediaPtsSueloPsel', 'zMediaPtsSueloPsue'])
-                listaRutasVarios.extend(['CotaMinMax/10mCell/Suelo/', 'CotaMinMax/10mCell/Suelo'])
+                listaRutasVarios.extend([f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/', f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/Suelo'])
 
         if GLO.GLBLgrabarPercentilesAbsolutos:
             listaFilesSinRutaVarios.extend(['zMin10', 'zMax95', 'zRango10a95'])
-            listaRutasVarios.extend(['CotaMinMax/10mCell/', 'CotaMinMax/10mCell/', 'CotaMinMax/10mCell/'])
+            listaRutasVarios.extend([f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/', f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/', f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/'])
             if GLO.GLBLcalcularMds:
                 listaFilesSinRutaVarios.extend(['zRangoDesdeMediaSueloHasta95'])
-                listaRutasVarios.extend(['CotaMinMax/10mCell/'])
+                listaRutasVarios.extend([f'CotaMinMax/{int(GLO.GLBLmetrosCelda)}mCell/'])
 
-        if GLO.GLBLgrabarPrimerosVsSegundosRetornos:
-            listaFilesSinRutaVarios.extend(
-                [
-                    'SingleReturnTodasLasPasadas',
-                    'MultiReturnTodasLasPasadas',
-                    'RetornosPrimerosTodasLasPasadas',
-                    'RetornosSiguientesTodasLasPasadas',
-                    'RetornosPrimerosPasadaSel',
-                    'RetornosSiguientesPasadaSel',
-                ]
-            )
-            listaRutasVarios.extend(
-                [
-                    'NumPtos/10mCell/PorRetornos/SingleReturn/',
-                    'NumPtos/10mCell/PorRetornos/MultiReturn/',
-                    'NumPtos/10mCell/PorRetornos/RetPriTlp/',
-                    'NumPtos/10mCell/PorRetornos/RetSigTlp/',
-                    'NumPtos/10mCell/PorRetornos/RetPriPsel/',
-                    'NumPtos/10mCell/PorRetornos/RetSigPsel/'
-                 ]
-            )
+        if GLO.GLBLgrabarCeldasConOutliers:
+            print('cliddata-> incluyendo CeldasConOutliers en la lista de ficheros de salida.')
+            listaFilesSinRutaVarios.extend(['CeldasConOutliersVuelta0'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Outliers'])
+            listaFilesSinRutaVarios.extend(['CeldasConOutliersVuelta1'])
+            listaRutasVarios.extend([f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Outliers'])
+        else:
+            print('cliddata-> La lista de ficheros de salida no incluye CeldasConOutliers.')
 
         if GLO.GLBLleerGrabarCeldasEdge:
             listaFilesSinRutaVarios.extend(['scanEdge'])
             listaRutasVarios.extend(['Varios/'])
         if GLO.GLBLgrabarPropiedadTime:
-            listaFilesSinRutaVarios.extend(['rawTime'])
-            listaRutasVarios.extend(['Varios/'])
+            listaFilesSinRutaVarios.extend(['segundosDesde19800106Menos1e9Med'])
+            listaRutasVarios.extend(['Varios/TimeSeconds/'])
+            listaFilesSinRutaVarios.extend(['segundosDesde19800106Menos1e9Min'])
+            listaRutasVarios.extend(['Varios/TimeSeconds/'])
+            listaFilesSinRutaVarios.extend(['segundosDesde19800106Menos1e9Max'])
+            listaRutasVarios.extend(['Varios/TimeSeconds/'])
+            listaFilesSinRutaVarios.extend(['diasDesde20100101Med'])
+            listaRutasVarios.extend(['Varios/TimeDays/'])
+            listaFilesSinRutaVarios.extend(['diasDesde20100101Min'])
+            listaRutasVarios.extend(['Varios/TimeDays/'])
+            listaFilesSinRutaVarios.extend(['diasDesde20100101Max'])
+            listaRutasVarios.extend(['Varios/TimeDays/'])
         if GLO.GLBLgrabarAngulos:
-            listaFilesSinRutaVarios.extend(['Ang'])
-            listaRutasVarios.extend(['Varios/'])
+            listaFilesSinRutaVarios.extend(['AnguloMed_PasadaSelec'])
+            listaRutasVarios.extend(['Varios/Angulos/'])
 
-        if GLO.GLBLcalcularSubCeldas and GLO.GLBLgrabarCotaMinMaxSubCelda:  # Mde/02mCell/CotaMinMax/
+        if GLO.GLBLcalcularSubCeldas and GLO.GLBLgrabarCotaMinMaxSubCelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/CotaMinMax/
             listaFilesSinRutaVarios.extend(['SubCeldasCotaMin'])  # aSubCeldasCotaMinAA
-            # fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'CotaMinMax/02mCell/CotaMin/', '%s_%s.asc' % (fileCoord, fileText))
-            listaRutasVarios.extend(['CotaMinMax/02mCell/CotaMin'])
+            # fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMin/', '%s_%s.asc' % (fileCoord, fileText))
+            listaRutasVarios.extend([f'CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMin'])
             listaFilesSinRutaVarios.extend(['SubCeldasCotaMax'])  # aSubCeldasCotaMaxAA
-            # fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'CotaMinMax/02mCell/CotaMax/', '%s_%s.asc' % (fileCoord, fileText))
-            listaRutasVarios.extend(['CotaMinMax/02mCell/CotaMax'])
+            # fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMax/', '%s_%s.asc' % (fileCoord, fileText))
+            listaRutasVarios.extend([f'CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMax'])
 
         for item in range(len(listaFilesSinRutaVarios)):
             txtFileRuta = listaRutasVarios[item]
@@ -1003,90 +1025,110 @@ class LasData(object):
         if GLO.GLBLgrabarPercentilesRelativos:
             if GLO.GLBLcalcularMds:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMds'])  # aCeldasAlt95SobreMds
-                listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMds/'])
+                listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt95SobreMds/'])
                 if GLO.GLBLgrabarPercentilAdicional0:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMds
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional0:02}SobreMds/'])
                 if GLO.GLBLgrabarPercentilAdicional1:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMds
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional1:02}SobreMds/'])
                 if GLO.GLBLgrabarPercentilAdicional2:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMds
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional2:02}SobreMds/'])
                 if GLO.GLBLgrabarPercentilAdicional3:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMds
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional3:02}SobreMds/'])
                 if GLO.GLBLgrabarPercentilAdicional4:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMds
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMds/'.format(GLO.GLBLgrabarPercentilAdicional4)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional4:02}SobreMds/'])
+                if GLO.GLBLgrabarPercentilAdicional5:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional5)])  # aCeldasAltXxSobreMds
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional5:02}SobreMds/'])
             if GLO.GLBLcalcularMdb:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMdb'])  # aCeldasAlt95SobreMdb
-                listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMdb/'])
+                listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt95SobreMdb/'])
                 if GLO.GLBLgrabarPercentilAdicional0:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMdb
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional0:02}SobreMdb/'])
                 if GLO.GLBLgrabarPercentilAdicional1:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMdb
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional1:02}SobreMdb/'])
                 if GLO.GLBLgrabarPercentilAdicional2:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMdb
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional2:02}SobreMdb/'])
                 if GLO.GLBLgrabarPercentilAdicional3:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMdb
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional3:02}SobreMdb/'])
                 if GLO.GLBLgrabarPercentilAdicional4:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMdb
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdb/'.format(GLO.GLBLgrabarPercentilAdicional4)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional4:02}SobreMdb/'])
+                if GLO.GLBLgrabarPercentilAdicional5:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional5)])  # aCeldasAltXxSobreMdb
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional5:02}SobreMdb/'])
             if GLO.GLBLcalcularMdp:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMdf'])  # aCeldasAlt95SobreMdf
-                listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMdf/'])
+                listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt95SobreMdf/'])
                 if GLO.GLBLgrabarPercentilAdicional0:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMdf
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional0:02}SobreMdf/'])
                 if GLO.GLBLgrabarPercentilAdicional1:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMdf
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional1:02}SobreMdf/'])
                 if GLO.GLBLgrabarPercentilAdicional2:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMdf
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional2:02}SobreMdf/'])
                 if GLO.GLBLgrabarPercentilAdicional3:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMdf
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional3:02}SobreMdf/'])
                 if GLO.GLBLgrabarPercentilAdicional4:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMdf
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdf/'.format(GLO.GLBLgrabarPercentilAdicional4)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional4:02}SobreMdf/'])
+                if GLO.GLBLgrabarPercentilAdicional5:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional5)])  # aCeldasAltXxSobreMdf
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional5:02}SobreMdf/'])
                 if  GLO.GLBLgrabarPercentilesSubCeldas:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['SubCeldasAlt95SobreMdf'])  # aSubCeldasAlt95SobreMdf
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell_split02mCell/Alt95SobreMdf/'])
-            if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell_split{GLO.GLBLmetrosSubCelda}mCell/Alt95SobreMdf/'])
+            if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+            ):  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Basal/
                 listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt95SobreMdk'])  # aCeldasAlt95SobreMdk
-                listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt95SobreMdk/'])
+                listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt95SobreMdk/'])
                 if GLO.GLBLgrabarPercentilAdicional0:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional0)])  # aCeldasAltXxSobreMdk
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional0)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional0:02}SobreMdk/'])
                 if GLO.GLBLgrabarPercentilAdicional1:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional1)])  # aCeldasAltXxSobreMdk
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional1)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional1:02}SobreMdk/'])
                 if GLO.GLBLgrabarPercentilAdicional2:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional2)])  # aCeldasAltXxSobreMdk
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional2)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional2:02}SobreMdk/'])
                 if GLO.GLBLgrabarPercentilAdicional3:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional3)])  # aCeldasAltXxSobreMdk
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional3)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional3:02}SobreMdk/'])
                 if GLO.GLBLgrabarPercentilAdicional4:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)])  # aCeldasAltXxSobreMdk
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell/Alt{:02}SobreMdk/'.format(GLO.GLBLgrabarPercentilAdicional4)])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional4:02}SobreMdk/'])
+                if GLO.GLBLgrabarPercentilAdicional5:
+                    listaFilesSinRutaAlturaSobreSuelo.extend(['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional5)])  # aCeldasAltXxSobreMdk
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell/Alt{GLO.GLBLgrabarPercentilAdicional5:02}SobreMdk/'])
                 if  GLO.GLBLgrabarPercentilesSubCeldas:
                     listaFilesSinRutaAlturaSobreSuelo.extend(['SubCeldasAlt95SobreMdk'])  # aSubCeldasAlt95SobreMdk
-                    listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/10mCell_split02mCell/Alt95SobreMdk/'])
+                    listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{int(GLO.GLBLmetrosCelda)}mCell_split{GLO.GLBLmetrosSubCelda}mCell/Alt95SobreMdk/'])
         if GLO.GLBLgrabarSubCeldasAltMaxSobreMdf:
             if GLO.GLBLcalcularMdp and GLO.GLBLcalcularSubCeldas:
                 listaFilesSinRutaAlturaSobreSuelo.extend(['SubCeldasAltMaxSobreMdf'])  # aSubCeldasAltMaxSobreMdf
-                listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/02mCell/AltMaxSobreMdf/'])
+                listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{GLO.GLBLmetrosSubCelda}mCell/AltMaxSobreMdf/'])
         if GLO.GLBLgrabarSubCeldasAltMaxSobreMdk:
-            if GLO.GLBLcalcularMdk2mConPuntosClasificados and GLO.GLBLcalcularSubCeldas:
+            if (
+                GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                    GLO.GLBLcalcularMdkConClasificacionInferida
+                    and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+                ) and GLO.GLBLcalcularSubCeldas
+            ): #  Mde/{GLO.GLBLmetrosSubCelda}mCell/Basal/
                 listaFilesSinRutaAlturaSobreSuelo.extend(['SubCeldasAltMaxSobreMdk'])  # aSubCeldasAltMaxSobreMdk
-                listaRutasAlturaSobreSuelo.extend(['AltSobreTerreno/02mCell/AltMaxSobreMdk/'])
+                listaRutasAlturaSobreSuelo.extend([f'AltSobreTerreno/{GLO.GLBLmetrosSubCelda}mCell/AltMaxSobreMdk/'])
 
         for item in range(len(listaFilesSinRutaAlturaSobreSuelo)):
             txtFileRuta = listaRutasAlturaSobreSuelo[item]
@@ -1106,7 +1148,12 @@ class LasData(object):
             or GLO.GLBLcalcularMdc
             or GLO.GLBLcalcularMdm
             or GLO.GLBLcalcularMdg
-            or GLO.GLBLcalcularMdk2mConPuntosClasificados
+            or (
+                GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                    GLO.GLBLcalcularMdkConClasificacionInferida
+                    and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+                )
+            )
             or GLO.GLBLcalcularMdc2mConTodosLosPuntos
         ):
             listaFilesSinRutaAjustes = []
@@ -1123,7 +1170,8 @@ class LasData(object):
                 print('cliddata-> GLBLcalcularMdc:', GLO.GLBLcalcularMdc)
                 print('cliddata-> GLBLcalcularMdm:', GLO.GLBLcalcularMdm)
                 print('cliddata-> GLBLcalcularMdg:', GLO.GLBLcalcularMdg)
-                print('cliddata-> GLBLcalcularMdk2mConPuntosClasificados:', GLO.GLBLcalcularMdk2mConPuntosClasificados)
+                print('cliddata-> GLBLcalcularMdkConClasificacionInferida:', GLO.GLBLcalcularMdkConClasificacionInferida)
+                print('cliddata-> GLBLcalcularMdkConClasificacionOriginal:', GLO.GLBLcalcularMdkConClasificacionOriginal)
                 print('cliddata-> GLBLcalcularMdc2mConTodosLosPuntos:    ', GLO.GLBLcalcularMdc2mConTodosLosPuntos)
 
             # ->Estos ficheros se graban con guardarAjustesMdxPreInterpol{} y guardarCoeficientesAjuste{}
@@ -1147,7 +1195,7 @@ class LasData(object):
                     listaFilesSinRutaAjustes.extend(
                         ['planoBasal_EcmrInicial']
                     )  # aCeldasCoeficientesMdxAll[nX, nY, nTP=0, 5] -> aCeldasCoeficientesMdb[nX, nY, 5]
-                if GLO.GLBLcalcularMdbCotaSubcelda:  # Mde/02mCell/Basal/
+                if GLO.GLBLcalcularMdbCotaSubcelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Basal/
                     if GLO.GLBLverbose:
                         print('cliddata-> Creando output files para SubCeldasMdb*')
                     if GLO.GLBLgrabarMdbCotaSubceldaPreInterpol:
@@ -1155,13 +1203,16 @@ class LasData(object):
                     if GLO.GLBLgrabarMdbCotaSubceldaPosInterpol:
                         listaFilesSinRutaAjustes.extend(['SubCeldasMdbPostInterpol'])  # aSubCeldasMdbPostInterpol
                     # listaFilesSinRutaAjustes.extend(['SubCeldasMdbPost2Interpol'])  # aSubCeldasMdbPost2Interpol
-            if GLO.GLBLcalcularMdk2mConPuntosClasificados:  # Mde/02mCell/Basal/
+            if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+            ):  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Basal/
                 if GLO.GLBLverbose:
                     print('cliddata-> Creando output files para SubCeldasMdk*')
                 listaFilesSinRutaAjustes.extend(['SubCeldasMdkCotaMed'])  # aSubCeldasMdkCotaMed
                 listaFilesSinRutaAjustes.extend(['SubCeldasMdkCotaMin'])  # aSubCeldasMdkCotaMin
                 listaFilesSinRutaAjustes.extend(['SubCeldasMdkCotaItp'])  # aSubCeldasMdkCotaItp
-            if GLO.GLBLcalcularMdc2mConTodosLosPuntos:  # Mde/02mCell/Basal/
+            if GLO.GLBLcalcularMdc2mConTodosLosPuntos:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Basal/
                 listaFilesSinRutaAjustes.extend(['SubCeldasMdcCotaMax'])  # aSubCeldasMdcCotaMax
 
             if GLO.GLBLcalcularMdc and GLO.GLBLgrabarMdc:
@@ -1222,42 +1273,42 @@ class LasData(object):
             for fileText in listaFilesSinRutaAjustes:
                 if fileText.lower().startswith('planosuelo'.lower()):
                     if fileText.lower().startswith('planosuelo_intercept'.lower()):
-                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Suelo/mdt/', '%s_%s.asc' % (fileCoord, fileText))
+                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/mdt/', '%s_%s.asc' % (fileCoord, fileText))
                     else:
-                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Suelo/', '%s_%s.asc' % (fileCoord, fileText))
+                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('planobasal'.lower()):
                     if fileText.lower().startswith('planoBasal_intercept'.lower()):
-                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Basal/mdt/', '%s_%s.asc' % (fileCoord, fileText))
+                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Basal/mdt/', '%s_%s.asc' % (fileCoord, fileText))
                     else:
-                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Basal/', '%s_%s.asc' % (fileCoord, fileText))
+                        fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Basal/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdb'.lower()):
                     if GLO.GLBLverbose:
                         print('cliddata-> Creando output dir para SubCeldasMdb*')
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Basal/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Basal/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdkCotaItp'.lower()):
                     if GLO.GLBLverbose:
                         print('cliddata-> Creando output dir para SubCeldasMdkCotaItp')
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Klass/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Klass/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdk'.lower()):
                     if GLO.GLBLverbose:
                         print('cliddata-> Creando output dir para SubCeldasMdk*')
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Klass/SinInterpol', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Klass/SinInterpol', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdc'.lower()):
                     if GLO.GLBLverbose:
                         print('cliddata-> Creando output dir para SubCeldasMdc*')
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Cielo/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Cielo/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('celdasMdg'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Global/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Global/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('planocielo'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Cielo/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Cielo/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('planoglobal'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Global/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Global/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('planomajor'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Major/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Major/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('planogridd'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Gridd/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Gridd/', '%s_%s.asc' % (fileCoord, fileText))
                 else:
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/', '%s_%s.asc' % (fileCoord, fileText))
                 listaFilesConRutaAjustes.append(fileNameConRuta)
                 dictFilesSinConRuta[fileText] = fileNameConRuta
             arrayFilesSinRuta.append(listaFilesSinRutaAjustes)
@@ -1273,7 +1324,7 @@ class LasData(object):
             ):
             listaFilesSinRutaAjustesMdp = []
             listaFilesConRutaAjustesMdp = []
-            if GLO.GLBLcalcularMdp and GLO.GLBLcalcularSubCeldas and GLO.GLBLgrabarCotaMinMaxSubCelda:  # Mde/02mCell/CotaMinMax/
+            if GLO.GLBLcalcularMdp and GLO.GLBLcalcularSubCeldas and GLO.GLBLgrabarCotaMinMaxSubCelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/CotaMinMax/
                 listaFilesSinRutaAjustesMdp.extend(['SubCeldasCotaMiniMacroEsOk'])  # aSubCeldasCotaMiniMacroEsOk
                 listaFilesSinRutaAjustesMdp.extend(['SubCeldasCotaMiniMicroEsOk'])  # aSubCeldasCotaMiniMicroEsOk
             if GLO.GLBLcalcularMdp:
@@ -1291,7 +1342,7 @@ class LasData(object):
                 if GLO.GLBLcalcularSubCeldas:
                     listaFilesSinRutaAjustesMdp.extend(['SubCeldasPuntoMiniSubCelValidado'])  # aSubCeldasPuntoMiniSubCelValidado
             if GLO.GLBLcalcularSubCeldas:
-                if GLO.GLBLcalcularMdg and GLO.GLBLgrabarMdgAjusteSubCelda:  # Mde/02mCell/Global/
+                if GLO.GLBLcalcularMdg and GLO.GLBLgrabarMdgAjusteSubCelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Global/
                     if GLO.GLBLgrabarInterceptMdg:
                         listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdgCota'])  # aSubCeldasMdgAjuste
                     if GLO.GLBLgrabarCoeficientesXYMdg:
@@ -1300,24 +1351,24 @@ class LasData(object):
                     if GLO.GLBLgrabarEcmrMdg:
                         listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdgEcmr'])  # aSubCeldasMdgAjuste
                 if GLO.GLBLcalcularMdp:
-                    if GLO.GLBLgrabarMdpCotaSubceldaMacroMicro:  # Mde/Pleno/02mCell/
+                    if GLO.GLBLgrabarMdpCotaSubceldaMacroMicro:  # Mde/Pleno/{GLO.GLBLmetrosSubCelda}mCell/
                         listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdpCotaMacroManual'])  # aSubCeldasMdpCotaMacroManual
                         listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdpCotaMicroManual'])  # aSubCeldasMdpCotaMicroManual
-                    if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/02mCell/Final/
+                    if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                         if GLO.GLBLcalcularMdfConMiniSubCelValidadosConMetodoManualPuro:
                             listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdfCotaManual'])  # aSubCeldasMdfCotaManual
                         if GLO.GLBLcalcularMdfConMiniSubCelValidadosConModeloConvolucional:
                             listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdfCotaConvol'])  # aSubCeldasMdfCotaConvol
                         if GLO.GLBLcalcularMdfConMiniSubCelValidadosConModConvoManualizado:
                             listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdfCotaConual'])  # aSubCeldasMdfCotaConual
-                    if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/02mCell/Final/
+                    if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                         if GLO.GLBLcalcularMdfConMiniSubCelValidadosConMetodoManualPuro:
                             listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdfCotaTransitoriaManual'])  # aSubCeldasMdfCotaTransitoriaManual
                         if GLO.GLBLcalcularMdfConMiniSubCelValidadosConModeloConvolucional:
                             listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdfCotaTransitoriaConvol'])  # aSubCeldasMdfCotaTransitoriaConvol
                         if GLO.GLBLcalcularMdfConMiniSubCelValidadosConModConvoManualizado:
                             listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdfCotaTransitoriaConual'])  # aSubCeldasMdfCotaTransitoriaConual
-                    if GLO.GLBLgrabarMdpInfoAuxiliar:  # Mde/02mCell/Pleno/Auxiliar/
+                    if GLO.GLBLgrabarMdpInfoAuxiliar:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Pleno/Auxiliar/
                         listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdpTipoCotaMacroManual'])  # aSubCeldasMdpTipoCotaMacroManual
                         listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdpTipoCotaMicroManual'])  # aSubCeldasMdpTipoCotaMicroManual
 
@@ -1325,7 +1376,7 @@ class LasData(object):
                 listaFilesSinRutaAjustesMdp.extend(['CeldasMdrGridNearest'])  # aCeldasMdrCoeficientes
                 listaFilesSinRutaAjustesMdp.extend(['CeldasMdrGridLinear'])  # aCeldasMdrCoeficientes
                 listaFilesSinRutaAjustesMdp.extend(['CeldasMdrGridCubic'])  # aCeldasMdrCoeficientes
-                if GLO.GLBLcalcularCotaDeSubceldasConGriddata:  # Mde/02mCell/Grid/
+                if GLO.GLBLcalcularCotaDeSubceldasConGriddata:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Grid/
                     listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdrGridPtoMinor'])  # aSubCeldasMdrCotaInterpolada
                     listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdrGridNearest'])  # aSubCeldasMdrCotaInterpolada
                     listaFilesSinRutaAjustesMdp.extend(['SubCeldasMdrGridLinear'])  # aSubCeldasMdrCotaInterpolada
@@ -1333,32 +1384,32 @@ class LasData(object):
 
             for fileText in listaFilesSinRutaAjustesMdp:
                 if fileText.lower().startswith('CeldaMdp'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Pleno/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Pleno/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdp'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Pleno/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Pleno/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdg'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Global/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Global/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdf'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Final/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('CeldasMdpNumPtosMini'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Pleno/Auxiliar/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Pleno/Auxiliar/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdpTipoCota'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Pleno/Auxiliar/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Pleno/Auxiliar/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('CeldasMdrGrid'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/10mCell/Grid/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'Mde/{int(GLO.GLBLmetrosCelda)}mCell/Grid/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasMdrGrid'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/Grid/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/Grid/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasCotaMiniM'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'CotaMinMax/02mCell/CotaMiniOk/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMiniOk/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasCotaMin'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'CotaMinMax/02mCell/CotaMin/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMin/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasCotaMax'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'CotaMinMax/02mCell/CotaMax/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMax/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasPuntoMiniSubCelValidado'.lower()):
                     fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'convolLasClassLandCover/MiniSubCelClass/ClassSueloValidadaPorMdp/', '%s_%s.asc' % (fileCoord, fileText))
 
                 elif fileText.lower().startswith('subCelda'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/02mCell/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'Mde/{GLO.GLBLmetrosSubCelda}mCell/', '%s_%s.asc' % (fileCoord, fileText))
                 else:
                     fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'Mde/', '%s_%s.asc' % (fileCoord, fileText))
                 listaFilesConRutaAjustesMdp.append(fileNameConRuta)
@@ -1377,7 +1428,7 @@ class LasData(object):
                 listaFilesSinRutaHiperFormas.extend(['CeldasRugosidadMesosInterCeldillas'])  # aCeldasRugosidadMesosInterCeldillas
                 listaFilesSinRutaHiperFormas.extend(['CeldasRugosidadMicroInterCeldillas'])  # aCeldasRugosidadMicroInterCeldillas
                 listaFilesSinRutaHiperFormas.extend(['CeldasRugosidadMegasInterCeldillas'])  # aCeldasRugosidadMegasInterCeldillas
-            if GLO.GLBLguardarCapaRugosidadInterCeldillasSubCeldas:  # HiperCubo/Rugosidad/02mCell/
+            if GLO.GLBLguardarCapaRugosidadInterCeldillasSubCeldas:  # HiperCubo/Rugosidad/{GLO.GLBLmetrosSubCelda}mCell/
                 listaFilesSinRutaHiperFormas.extend(['SubCeldasRugosidadMacroInterCeldillas'])  # aSubCeldasRugosidadMacroInterCeldillas
                 listaFilesSinRutaHiperFormas.extend(['SubCeldasRugosidadMesosInterCeldillas'])  # aSubCeldasRugosidadMesosInterCeldillas
                 listaFilesSinRutaHiperFormas.extend(['SubCeldasRugosidadMicroInterCeldillas'])  # aSubCeldasRugosidadMicroInterCeldillas
@@ -1390,21 +1441,21 @@ class LasData(object):
             if GLO.GLBLidentificarPlanos and GLO.GLBLguardarPlanosTejadoCeldas:  # HiperCubo/Tejado/10mCell/
                 listaFilesSinRutaHiperFormas.extend(['CeldasNumeroDePlanosTejado'])  # aCeldasNumeroDePlanosTejado
                 listaFilesSinRutaHiperFormas.extend(['CeldasPuntosEnPlanosTejado'])  # aCeldasPuntosEnPlanosTejado
-            if GLO.GLBLidentificarPlanos and GLO.GLBLguardarPlanosTejadoSubCeldas:  # HiperCubo/Tejado/02mCell/
+            if GLO.GLBLidentificarPlanos and GLO.GLBLguardarPlanosTejadoSubCeldas:  # HiperCubo/Tejado/{GLO.GLBLmetrosSubCelda}mCell/
                 listaFilesSinRutaHiperFormas.extend(['SubCeldasPlanoTejado'])  # aSubCeldasPlanoTejado
             if GLO.GLBLidentificarPlanos and GLO.GLBLguardarPlanosTejadoMetrico:  # HiperCubo/Tejado/01mCell/
                 listaFilesSinRutaHiperFormas.extend(['MetricoPlanoTejado'])  # aMetricoPlanoTejado
             for fileText in listaFilesSinRutaHiperFormas:
                 if fileText.lower().startswith('CeldasRugosidad'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'HiperCubo/10mCell/Rugosidad/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'HiperCubo/{int(GLO.GLBLmetrosCelda)}mCell/Rugosidad/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasRugosidad'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'HiperCubo/02mCell/Rugosidad/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'HiperCubo/{GLO.GLBLmetrosSubCelda}mCell/Rugosidad/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('MetricoRugosidad'.lower()):
                     fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'HiperCubo/01mCell/Rugosidad/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText == 'CeldasPuntosEnPlanosTejado' or fileText == 'CeldasNumeroDePlanosTejado':
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'HiperCubo/10mCell/Tejado/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'HiperCubo/{int(GLO.GLBLmetrosCelda)}mCell/Tejado/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('SubCeldasPlanoTejado'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'HiperCubo/02mCell/Tejado/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'HiperCubo/{GLO.GLBLmetrosSubCelda}mCell/Tejado/', '%s_%s.asc' % (fileCoord, fileText))
                 elif fileText.lower().startswith('MetricoPlanoTejado'.lower()):
                     fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'HiperCubo/01mCell/Tejado/', '%s_%s.asc' % (fileCoord, fileText))
                 else:
@@ -1420,31 +1471,31 @@ class LasData(object):
         if GLO.GLBLgrabarIndicesVegetacionNDVIetAlSubCelda or GLO.GLBLgrabarIndicesVegetacionNDVIetAlMetricos:
             listaFilesSinRutaRGBI = []
             listaFilesConRutaRGBI = []
-            if GLO.GLBLgrabarIndicesVegetacionNDVIetAlSubCelda:  # RGBI/02mCell/***/
-                if GLO.GLBLgrabarIndicesVegetacionIntSRet:  # RGBI/02mCell/IntSRet/
+            if GLO.GLBLgrabarIndicesVegetacionNDVIetAlSubCelda:  # RGBI/{GLO.GLBLmetrosSubCelda}mCell/***/
+                if GLO.GLBLgrabarIndicesVegetacionIntSRet:  # RGBI/{GLO.GLBLmetrosSubCelda}mCell/IntSRet/
                     fileText = 'SubCeldasIntSRetMed'
                     listaFilesSinRutaRGBI.extend([fileText])  # aSubCeldasIntSRetMed
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RGBI/02mCell/IntSRet/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RGBI/{GLO.GLBLmetrosSubCelda}mCell/IntSRet/', '%s_%s.asc' % (fileCoord, fileText))
                     listaFilesConRutaRGBI.append(fileNameConRuta)
-                if GLO.GLBLgrabarIndicesVegetacionIntMRet:  # RGBI/02mCell/IntMRet/
+                if GLO.GLBLgrabarIndicesVegetacionIntMRet:  # RGBI/{GLO.GLBLmetrosSubCelda}mCell/IntMRet/
                     fileText = 'SubCeldasIntMRetMed'
                     listaFilesSinRutaRGBI.extend([fileText])  # aSubCeldasIntMRetMed
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RGBI/02mCell/IntMRet/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RGBI/{GLO.GLBLmetrosSubCelda}mCell/IntMRet/', '%s_%s.asc' % (fileCoord, fileText))
                     listaFilesConRutaRGBI.append(fileNameConRuta)
-                if GLO.GLBLgrabarIndicesVegetacionEVI2:  # RGBI/02mCell/EVI2/
+                if GLO.GLBLgrabarIndicesVegetacionEVI2:  # RGBI/{GLO.GLBLmetrosSubCelda}mCell/EVI2/
                     fileText = 'SubCeldasEVI2'
                     listaFilesSinRutaRGBI.extend([fileText])  # aSubCeldasEVI2Med
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RGBI/02mCell/EVI2/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RGBI/{GLO.GLBLmetrosSubCelda}mCell/EVI2/', '%s_%s.asc' % (fileCoord, fileText))
                     listaFilesConRutaRGBI.append(fileNameConRuta)
-                if GLO.GLBLgrabarIndicesVegetacionNDVI:  # RGBI/02mCell/NDVI/
+                if GLO.GLBLgrabarIndicesVegetacionNDVI:  # RGBI/{GLO.GLBLmetrosSubCelda}mCell/NDVI/
                     fileText = 'SubCeldasNDVI'
                     listaFilesSinRutaRGBI.extend([fileText])  # aSubCeldasNDVIMed
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RGBI/02mCell/NDVI/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RGBI/{GLO.GLBLmetrosSubCelda}mCell/NDVI/', '%s_%s.asc' % (fileCoord, fileText))
                     listaFilesConRutaRGBI.append(fileNameConRuta)
-                if GLO.GLBLgrabarIndicesVegetacionNDWI:  # RGBI/02mCell/NDWI/
+                if GLO.GLBLgrabarIndicesVegetacionNDWI:  # RGBI/{GLO.GLBLmetrosSubCelda}mCell/NDWI/
                     fileText = 'SubCeldasNDWI'
                     listaFilesSinRutaRGBI.extend([fileText])  # aSubCeldasNDWIMed
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RGBI/02mCell/NDWI/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RGBI/{GLO.GLBLmetrosSubCelda}mCell/NDWI/', '%s_%s.asc' % (fileCoord, fileText))
                     listaFilesConRutaRGBI.append(fileNameConRuta)
             if GLO.GLBLgrabarIndicesVegetacionNDVIetAlMetricos:  # RGBI/01mCell/***/
                 if GLO.GLBLgrabarIndicesVegetacionIntSRet:  # RGBI/01mCell/IntSRet/
@@ -1518,15 +1569,15 @@ class LasData(object):
                 listaFilesSinRutaRugoLateralidad.extend(['MultiCeldasEstruct'])  # RugoLateralidad/MultiCelda/Auxiliar/
             for fileText in listaFilesSinRutaRugoLateralidad:
                 if (fileText.lower()).startswith('SubCeldasLateralidadMinMax'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RugoLateralidad/02mCell/LateralidadMinMax/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RugoLateralidad/{GLO.GLBLmetrosSubCelda}mCell/LateralidadMinMax/', '%s_%s.asc' % (fileCoord, fileText))
                 elif (fileText.lower()).startswith('SubCeldasLateralidadMinMin'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RugoLateralidad/02mCell/LateralidadMinMin/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RugoLateralidad/{GLO.GLBLmetrosSubCelda}mCell/LateralidadMinMin/', '%s_%s.asc' % (fileCoord, fileText))
                 elif (fileText.lower()).startswith('SubCeldasRugosidad'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RugoLateralidad/02mCell/Rugosidad/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,f'RugoLateralidad/{GLO.GLBLmetrosSubCelda}mCell/Rugosidad/', '%s_%s.asc' % (fileCoord, fileText))
                 elif (fileText.lower()).startswith('MultiCeldas'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RugoLateralidad/10mCell/MultiCelda/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'RugoLateralidad/{int(GLO.GLBLmetrosCelda)}mCell/MultiCelda/', '%s_%s.asc' % (fileCoord, fileText))
                 elif (fileText.lower()).startswith('MultiCeldasEstruct'.lower()):
-                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RugoLateralidad/10mCell/MultiCelda/Auxiliar/', '%s_%s.asc' % (fileCoord, fileText))
+                    fileNameConRuta = os.path.join(GLO.MAINrutaOutput, f'RugoLateralidad/{int(GLO.GLBLmetrosCelda)}mCell/MultiCelda/Auxiliar/', '%s_%s.asc' % (fileCoord, fileText))
                 else:
                     fileNameConRuta = os.path.join(GLO.MAINrutaOutput,'RugoLateralidad/', '%s_%s.asc' % (fileCoord, fileText))
 
@@ -1723,7 +1774,7 @@ class LasData(object):
     def prepararOutputFiles(self):
         self.aFiles = {}
         totalFicheros = 0
-        print(f'cliddata-> Creando output files con cabecera:')
+        print(f'{TB}cliddata-> Creando output files con cabecera...')
         for fileSinRuta in self.dictFilesSinConRuta.keys():
             # ==================================================================
             miFileName = self.dictFilesSinConRuta[fileSinRuta]
@@ -1771,8 +1822,8 @@ class LasData(object):
             # ==================================================================
 
             noData = GLO.GLBLnoData
-            xInfIzda = self.myLasHead.xmin
-            yInfIzda = self.myLasHead.ymin
+            xInfIzda = self.myLasHead.xminBloqueMalla
+            yInfIzda = self.myLasHead.yminBloqueMalla
 
             if GLO.GLBLverbose:
                 print(f'{TB}-> Creando: {totalFicheros} {fileSinRuta} {self.dictFilesSinConRuta[fileSinRuta]}')
@@ -1801,8 +1852,8 @@ class LasData(object):
 
                 nCeldasX = GLBNtileKernelPixelsSubCelda * numTilesCols + margenXsobresalientePixelsScA + margenXsobresalientePixelsScB # 1006
                 nCeldasY = GLBNtileKernelPixelsSubCelda * numTilesRows + margenYsobresalientePixelsScA + margenYsobresalientePixelsScB # 1006
-                xInfIzda = self.myLasHead.xmin - margenXsobresalienteMetros # 24
-                yInfIzda = self.myLasHead.ymin - margenYsobresalienteMetros # 24
+                xInfIzda = self.myLasHead.xminBloqueMalla - margenXsobresalienteMetros # 24
+                yInfIzda = self.myLasHead.yminBloqueMalla - margenYsobresalienteMetros # 24
 
             elif 'subcelda' in str(fileSinRuta).lower():
                 # Capas de subCelda
@@ -1848,15 +1899,11 @@ class LasData(object):
             elif 'multiceldas' in str(fileSinRuta).lower():
                 # Capas de celda
                 # 'MultiCeldas***'
-                # 'CeldasMdpNumPtosMiniMacro', 'CeldasMdpNumPtosMiniMicro'
-                # ['CeldasRugosidadMacroInterCeldillas', 'CeldasRugosidadMesosInterCeldillas', 'CeldasRugosidadMicroInterCeldillas', 'CeldasRugosidadMegasInterCeldillas']
-                # etc
                 metrosPixel = GLO.GLBLmetrosCelda
                 nCeldasX = self.nCeldasX
                 nCeldasY = self.nCeldasY
             else:
                 # Capas de celda
-                # 'MultiCeldas***'
                 # 'CeldasMdpNumPtosMiniMacro', 'CeldasMdpNumPtosMiniMicro'
                 # ['CeldasRugosidadMacroInterCeldillas', 'CeldasRugosidadMesosInterCeldillas', 'CeldasRugosidadMicroInterCeldillas', 'CeldasRugosidadMegasInterCeldillas']
                 # etc
@@ -1982,6 +2029,8 @@ class LasData(object):
                 'CeldasRugosidadMegasInterCeldillas',
                 'CeldasNumeroDePlanosTejado',
                 'CeldasPuntosEnPlanosTejado',
+                'CeldasConOutliersVuelta0',
+                'CeldasConOutliersVuelta1',
             ]:
                 # Celda
                 noData = 0
@@ -1998,10 +2047,24 @@ class LasData(object):
                 # Valores por defecto de capa de 10 m
                 pass
 
-            totalFicheros += 1
+            if self.myLasHead.TRNShuso29:
+                LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH29X
+                LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH29Y
+            else:
+                LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH30X
+                LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH30Y
+            desfaseIzdaX = (self.myLasHead.xminBloqueMalla - LCLorigenDeCoordenadasX) % GLO.GLBLmetrosCelda
+            desfaseAbjoY = (self.myLasHead.yminBloqueMalla - LCLorigenDeCoordenadasY) % GLO.GLBLmetrosCelda
+            desfaseDchaX = (GLO.GLBLmetrosCelda - desfaseIzdaX) % GLO.GLBLmetrosCelda
+            desfaseArrbY = (GLO.GLBLmetrosCelda - desfaseAbjoY) % GLO.GLBLmetrosCelda
+
+            # coordXinfIzda = xInfIzda + desfaseDchaX + (metrosPixel / 2)
+            # coordYinfIzda = yInfIzda + desfaseArrbY + (metrosPixel / 2)
             coordXinfIzda = xInfIzda + (metrosPixel / 2)
             coordYinfIzda = yInfIzda + (metrosPixel / 2)
-            clidaux.creaRutaDeFichero(miFileName)
+
+            totalFicheros += 1
+            clidconfig.creaRutaDeFichero(miFileName)
             self.aFiles[fileSinRuta] = open(miFileName, mode='w+')
             self.cabeceraOutputFiles(
                 self.aFiles[fileSinRuta],
@@ -2012,6 +2075,80 @@ class LasData(object):
                 metrosPixel=metrosPixel,
                 noData=noData,
             )
+
+
+    # ==========================================================================
+    def prepararOutputPasadaFiles(self, fileCoordYear):
+        print(f'{TB}cliddata-> Creando output files para cada pasada con cabecera...')
+        xInfIzda = self.myLasHead.xminBloqueMalla
+        yInfIzda = self.myLasHead.yminBloqueMalla
+        metrosPixel = GLO.GLBLmetrosCelda
+
+        if self.myLasHead.TRNShuso29:
+            LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH29X
+            LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH29Y
+        else:
+            LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH30X
+            LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH30Y
+        desfaseIzdaX = (self.myLasHead.xminBloqueMalla - LCLorigenDeCoordenadasX) % GLO.GLBLmetrosCelda
+        desfaseAbjoY = (self.myLasHead.yminBloqueMalla - LCLorigenDeCoordenadasY) % GLO.GLBLmetrosCelda
+        desfaseDchaX = (GLO.GLBLmetrosCelda - desfaseIzdaX) % GLO.GLBLmetrosCelda
+        desfaseArrbY = (GLO.GLBLmetrosCelda - desfaseAbjoY) % GLO.GLBLmetrosCelda
+
+        # coordXinfIzda = xInfIzda + desfaseDchaX + (metrosPixel / 2)
+        # coordYinfIzda = yInfIzda + desfaseArrbY + (metrosPixel / 2)
+        coordXinfIzda = xInfIzda + (metrosPixel / 2)
+        coordYinfIzda = yInfIzda + (metrosPixel / 2)
+
+        nCeldasX = self.nCeldasX
+        nCeldasY = self.nCeldasY
+
+        for nOrdenPasada in range(self.numTotalPasadas):
+            pasadaID = self.listaPasadasBloque[nOrdenPasada]
+
+            if GLO.GLBLgrabarNumPuntosEnCadaPasada:
+                noData = 0
+                fileRuta = os.path.join(GLO.MAINrutaOutput, f'NumPtos/{int(GLO.GLBLmetrosCelda)}mCell/Rt1/PorPasada/Pasada_{pasadaID}')
+                fileText = f'NumPrimerosRetornos_Pasada{pasadaID}'
+                fileNameSinRuta = '{}_{}.asc'.format(fileCoordYear, fileText)
+                fileNameConRuta = os.path.join(
+                    fileRuta,
+                    fileNameSinRuta
+                )
+                clidconfig.creaRutaDeFichero(fileNameConRuta)
+                self.aFiles[fileText] = open(fileNameConRuta, mode='w+')
+                self.cabeceraOutputFiles(
+                    self.aFiles[fileText],
+                    coordXinfIzda=coordXinfIzda,
+                    coordYinfIzda=coordYinfIzda,
+                    nCeldasX=nCeldasX,
+                    nCeldasY=nCeldasY,
+                    metrosPixel=metrosPixel,
+                    noData=noData,
+                )
+
+            if GLO.GLBLgrabarAngulos:
+                noData = GLO.GLBLnoData
+                fileRuta = os.path.join(GLO.MAINrutaOutput, f'Varios/Angulos/PorPasada/Pasada_{pasadaID}')
+                misMedMinMax = ['Med', 'Min', 'Max']
+                for medMinMax in misMedMinMax:
+                    fileText = f'Angulo{medMinMax}_Pasada{pasadaID}'
+                    fileNameSinRuta = '{}_{}.asc'.format(fileCoordYear, fileText)
+                    fileNameConRuta = os.path.join(
+                        fileRuta,
+                        fileNameSinRuta
+                    )
+                    clidconfig.creaRutaDeFichero(fileNameConRuta)
+                    self.aFiles[fileText] = open(fileNameConRuta, mode='w+')
+                    self.cabeceraOutputFiles(
+                        self.aFiles[fileText],
+                        coordXinfIzda=coordXinfIzda,
+                        coordYinfIzda=coordYinfIzda,
+                        nCeldasX=nCeldasX,
+                        nCeldasY=nCeldasY,
+                        metrosPixel=metrosPixel,
+                        noData=noData,
+                    )
 
 
     # ==========================================================================
@@ -2035,7 +2172,13 @@ class LasData(object):
 
     # ==========================================================================
     def iniciaVariablesParaVuelta0rapida(self):
-        self.lasPointPF99All = np.zeros(self.myLasHead.numptrecords, dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype))
+        if 'PASADAS' in GLO.MAINprocedimiento and GLO.GLBLusarNumbaParaVuelta0Pasadas:
+            # self.pointsBloqueDepositoVacio_dtypePF01 = np.zeros(GLO.GLBLnumPuntosMaximoEnBloque, dtype=np.dtype(self.myLasHead.formatoDtypePointFormat01NotacionNpDtype))
+            self.pointsBloqueDepositoVacio_dtypePF99 = np.zeros(GLO.GLBLnumPuntosMaximoEnBloque, dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype))
+        else:
+            # self.pointsBloqueDepositoVacio_dtypePF01 = np.zeros(1, dtype=np.dtype(self.myLasHead.formatoDtypePointFormat01NotacionNpDtype))
+            self.pointsBloqueDepositoVacio_dtypePF99 = np.zeros(1, dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype))
+        self.pointsAllDeposito_dtypePF99 = np.zeros(self.myLasHead.numptrecords, dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype))
         self.arrayRangoFechasDeVuelo = np.zeros((2, 4), dtype=np.uint8)
         self.listaPasadasBloque = np.full(GLO.GLBLnumMaxPasadas, GLO.GLBLnoData, dtype=np.int32)
         self.aCeldasNumPuntosEcpVuelta0Rapida = np.zeros(
@@ -2050,8 +2193,29 @@ class LasData(object):
         self.aNumReturnsByPulseAll = np.zeros(GLO.GLBLnumeroMaximoDeRetornosPorPulso + 1, dtype=np.int64)
 
         self.nPuntosPorClase = np.zeros(256, dtype=np.int32)
-        self.minMaxRGBIrI = np.array([[65536, 0]] * 6, dtype=np.uint64)
+        self.minMaxRGBIrI = np.array([[65536, 0]] * 6, dtype=np.uint32)
 
+        if GLO.GLBLgrabarNumeroPuntosPorClase:
+            self.aCeldasNumPtosPorClaseTlrTlp = np.zeros(self.nCeldasX * self.nCeldasY * GLO.GLBLnumMaximoDeClases, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY, GLO.GLBLnumMaximoDeClases)
+        else:
+            self.aCeldasNumPtosPorClaseTlrTlp = np.zeros(1 * GLO.GLBLnumMaximoDeClases, dtype=np.int16).reshape(1, 1, GLO.GLBLnumMaximoDeClases)
+
+        if (
+            'LAS_INFO' in GLO.MAINprocedimiento
+            or GLO.GLBLgrabarNumPuntosPrimerosRetornos
+            or GLO.GLBLgrabarNumPuntosRetornosSiguientes
+            or GLO.GLBLgrabarNumPulsosSingleMultiReturns
+            or GLO.GLBLgrabarPuntosPorClaseLasOrig and (
+                GLO.GLBLgrabarCeldasClasesSueloVegetacion
+                or GLO.GLBLgrabarCeldasClasesEdificio
+                or GLO.GLBLgrabarCeldasClasesOtros
+            )
+        ):
+            self.aCeldasNumPrimerosRetornosTlp = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
+            self.aCeldasNumPrimerosRetornosNoSolape = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
+        else:
+            self.aCeldasNumPrimerosRetornosTlp = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
+            self.aCeldasNumPrimerosRetornosNoSolape = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
 
         # ======================================================================
         # Numero total de puntos:
@@ -2087,8 +2251,8 @@ class LasData(object):
         #     self.aCeldasNumPrimerosRetornosTlp
         #     self.aCeldasNumPrimerosRetornosNoSolape
         #     self.aCeldasNumSiguientesRetornosTlp
-        #     self.aCeldasNumSingleReturnTlp
-        #     self.aCeldasNumMultiReturnTlp
+        #     self.aCeldasNumPulsosSingleReturnTlp
+        #     self.aCeldasNumPulsosMultiReturnTlp
         #     self.aCeldasNumPrimerosRetornosSuelo
         #     self.aCeldasNumTodosLosRetornosSuelo
         #     self.aCeldasNumPrimerosRetornosVeget
@@ -2165,6 +2329,116 @@ class LasData(object):
         #       self.numPuntosValidosTotalesUsables = self.contadorAllEnArrayPral + [self.contadorAllEnArrayAux si noNumba] (ya no uso self.contadorAllEnArrayAux)
         # ======================================================================
 
+
+    # ==========================================================================
+    def crearArraysSubCelPuntoMiniMaxi(self):
+        if GLO.GLBLusarMiniSubCelPselEnVezDeTlp:
+            # Punto mini -> Psel
+            if GLO.GLBLusarFormatoDtypeMaxiMiniSubCel:
+                # Opcion elegida siempre
+                self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(
+                    self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
+                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+                ).reshape(
+                    self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda
+                )
+                self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(
+                    self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
+                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+                ).reshape(
+                    self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda
+                )
+                self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(
+                    1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
+                    dtype=np.float64
+                ).reshape(
+                    1, 1, self.nCamposPorPuntoMaxiMiniSubCel
+                )
+                self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(
+                    1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
+                    dtype=np.float64
+                ).reshape(
+                    1, 1, self.nCamposPorPuntoMaxiMiniSubCel
+                )
+            else:
+                # A extinguir
+                self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(
+                    1 * 1,
+                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+                ).reshape(
+                    1, 1
+                )
+                self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(
+                    1 * 1,
+                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+                ).reshape(
+                    1, 1
+                )
+                # Lo mas probable es que no use esto porque gasto float64 para cada variable de cada punto: poco eficiente
+                self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(
+                    self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda * self.nCamposPorPuntoMaxiMiniSubCel,
+                    dtype=np.float64
+                ).reshape(
+                    self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda, self.nCamposPorPuntoMaxiMiniSubCel
+                )
+                self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(
+                    self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda * self.nCamposPorPuntoMaxiMiniSubCel,
+                    dtype=np.float64
+                ).reshape(
+                    self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda, self.nCamposPorPuntoMaxiMiniSubCel
+                )
+            self.aSubCeldasPuntoMiniSubCel_Tlp = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+            ).reshape(
+                1, 1
+            )
+            self.aSubCeldasPuntoMaxiSubCel_Tlp = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+            ).reshape(
+                1, 1
+            )
+        else:
+            # Punto mini -> Tlp
+            self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+            ).reshape(
+                1, 1
+            )
+            self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+            ).reshape(
+                1, 1
+            )
+            self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(
+                1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
+                dtype=np.float64
+            ).reshape(
+                1, 1, self.nCamposPorPuntoMaxiMiniSubCel
+            )
+            self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(
+                1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
+                dtype=np.float64
+            ).reshape(
+                1, 1, self.nCamposPorPuntoMaxiMiniSubCel
+            )
+            self.aSubCeldasPuntoMiniSubCel_Tlp = np.zeros(
+                self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+            ).reshape(
+                self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda
+            )
+            self.aSubCeldasPuntoMaxiSubCel_Tlp = np.zeros(
+                self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
+            ).reshape(
+                self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda
+            )
+
+
     # ==========================================================================
     def iniciaVariablesParaVuelta0normal(self):
         # En esta funcion se crean:
@@ -2220,6 +2494,9 @@ class LasData(object):
             self.nCeldasX * self.nCeldasY, dtype=np.uint16).reshape(
                 self.nCeldasX, self.nCeldasY)
 
+        self.aCeldasNumPuntosTlrTlcTlpTrasFiltros0a6 = np.zeros(
+            self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(
+                self.nCeldasX, self.nCeldasY)
         self.aCeldasNumPuntosTlrTlcTlpOk = np.zeros(
             self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(
                 self.nCeldasX, self.nCeldasY)
@@ -2242,8 +2519,9 @@ class LasData(object):
 
         # ======================================================================
         if (
-            GLO.GLBLgrabarPrimerosVsSegundosRetornos
-            or GLO.GLBLgrabarPrimerosRetornosNoSolape
+            GLO.GLBLgrabarNumPuntosPrimerosRetornos
+            or GLO.GLBLgrabarNumPuntosRetornosSiguientes
+            or GLO.GLBLgrabarNumPulsosSingleMultiReturns
             or GLO.GLBLgrabarPuntosPorClaseLasOrig and (
                 GLO.GLBLgrabarCeldasClasesSueloVegetacion
                 or GLO.GLBLgrabarCeldasClasesEdificio
@@ -2255,21 +2533,31 @@ class LasData(object):
         else:
             self.aCeldasNumPrimerosRetornosTlp = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
             self.aCeldasNumPrimerosRetornosNoSolape = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
-        if GLO.GLBLgrabarPrimerosVsSegundosRetornos:
+        if GLO.GLBLgrabarNumPuntosRetornosSiguientes:
             self.aCeldasNumSiguientesRetornosTlp = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
-            self.aCeldasNumSingleReturnTlp = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
-            self.aCeldasNumMultiReturnTlp = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
         else:
             self.aCeldasNumSiguientesRetornosTlp = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
-            self.aCeldasNumSingleReturnTlp = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
-            self.aCeldasNumMultiReturnTlp = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
+        if GLO.GLBLgrabarNumPulsosSingleMultiReturns:
+            self.aCeldasNumPulsosSingleReturnTlp = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
+            self.aCeldasNumPulsosMultiReturnTlp = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
+        else:
+            self.aCeldasNumPulsosSingleReturnTlp = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
+            self.aCeldasNumPulsosMultiReturnTlp = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
         # ======================================================================
 
         # ======================================================================
         if GLO.GLBLgrabarPropiedadTime:
-            self.aCeldasRawTime = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float64).reshape(self.nCeldasX, self.nCeldasY)
+            self.aCeldasRawTime = np.zeros(
+                self.nCeldasX * self.nCeldasY * 3, dtype=np.int64
+            ).reshape(self.nCeldasX, self.nCeldasY, 3)
+            # self.aCeldasRawTime[0:self.nCeldasX, 0:self.nCeldasY, 1].fill((2**64) - 1)
+            self.aCeldasDiaDesde1Ene2010 = np.zeros(
+                self.nCeldasX * self.nCeldasY * 3, dtype=np.int32
+            ).reshape(self.nCeldasX, self.nCeldasY, 3)
+            # self.aCeldasDiaDesde1Ene2010[0:self.nCeldasX, 0:self.nCeldasY, 1].fill((2**32) - 1)
         else:
-            self.aCeldasRawTime = np.zeros(1, dtype=np.float64).reshape(1, 1)
+            self.aCeldasRawTime = np.zeros(1, dtype=np.int64).reshape(1, 1, 1)
+            self.aCeldasDiaDesde1Ene2010 = np.zeros(1, dtype=np.int64).reshape(1, 1, 1)
         if GLO.GLBLleerGrabarCeldasEdge:
             self.aCeldasEsCeldaEdge = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
         else:
@@ -2310,6 +2598,7 @@ class LasData(object):
         # ======================================================================
 
         self.contadorPtosLeidosTotales = 0
+        self.contadorPtosLeidosTotales_TrasExcluirLosSaltadosPorExcesoDePuntosEnBloque = 0
         self.nPuntosDescartadosIntraBloque = 0
         self.nPuntosDescartadosExtraBloque = 0
 
@@ -2326,6 +2615,7 @@ class LasData(object):
         self.numPuntosDescartadosPorCoordenadasNulas = 0
         self.numPuntosDescartadosPorPasadaTransversal = 0
         self.numPuntosDescartadosPorCoordenadasErroneas = 0
+        self.numPuntosDescartadosPorCoordenadasEscaladas = 0
         self.numPuntosDescartadosPorFueraDeBloque = 0
         self.numPuntosDescartadosPorOutlier = 0
         self.numPuntosDescartadosPorPasadaConDemasiadosPuntosUnoDeCadaN = 0
@@ -2384,31 +2674,56 @@ class LasData(object):
                 )
                 print('\tCon numba no puedo usar un array Aux')
 
-            self.aCeldasListaDePtosExtrVar = np.zeros(
-                self.nCeldasX * self.nCeldasY * self.LCLnMaxPtosCeldaArrayPredimensionadaTodos,
-                dtype=np.dtype(self.myLasHead.formatoDtypeExtrVarNotacionNpDtype)
-            ).reshape(self.nCeldasX, self.nCeldasY, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
-
-            self.aCeldasListaDePtosTlcPralPF99 = np.zeros(
-                self.nCeldasX * self.nCeldasY * self.LCLnMaxPtosCeldaArrayPredimensionadaTodos,
-                dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype)
-            ).reshape(self.nCeldasX, self.nCeldasY, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
+            try:
+                self.aCeldasListaDePtosExtrVar = np.zeros(
+                    self.nCeldasX * self.nCeldasY * self.LCLnMaxPtosCeldaArrayPredimensionadaTodos,
+                    dtype=np.dtype(self.myLasHead.formatoDtypeExtrVarNotacionNpDtype)
+                ).reshape(self.nCeldasX, self.nCeldasY, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
+                self.aCeldasListaDePtosTlcPralPF99 = np.zeros(
+                    self.nCeldasX * self.nCeldasY * self.LCLnMaxPtosCeldaArrayPredimensionadaTodos,
+                    dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype)
+                ).reshape(self.nCeldasX, self.nCeldasY, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
+            except:
+                self.LCLnMaxPtosCeldaArrayPredimensionadaTodos = int(self.LCLnMaxPtosCeldaArrayPredimensionadaTodos / 2)
+                print(f'cliddata-> ATENCION: no hay memoria suficiente para crear un arry con')
+                print(f'{TB}LCLnMaxPtosCeldaArrayPredimensionadaTodos: {self.LCLnMaxPtosCeldaArrayPredimensionadaTodos}')
+                print(f'{TB}-> Se reduce a la mitad')
+                self.aCeldasListaDePtosExtrVar = np.zeros(
+                    self.nCeldasX * self.nCeldasY * self.LCLnMaxPtosCeldaArrayPredimensionadaTodos,
+                    dtype=np.dtype(self.myLasHead.formatoDtypeExtrVarNotacionNpDtype)
+                ).reshape(self.nCeldasX, self.nCeldasY, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
+                self.aCeldasListaDePtosTlcPralPF99 = np.zeros(
+                    self.nCeldasX * self.nCeldasY * self.LCLnMaxPtosCeldaArrayPredimensionadaTodos,
+                    dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype)
+                ).reshape(self.nCeldasX, self.nCeldasY, self.LCLnMaxPtosCeldaArrayPredimensionadaTodos)
 
             self.aListaDePtosDescartadosDeArrayPralPF99 = np.zeros(GLO.GLBLnMaxPtosArrayDescartadosDeArrayPral,
                 dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype)
             )
 
             if GLO.GLBLcalcularMds and GLO.GLBLguardarPuntosSueloEnArrayPredimensionada:
-                self.aCeldasListaDePtosSuePralPF99 = np.zeros(
-                    self.nCeldasX * self.nCeldasY * GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo,
-                    dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype),
-                ).reshape(self.nCeldasX, self.nCeldasY, GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo)
+                try:
+                    self.aCeldasListaDePtosSuePralPF99 = np.zeros(
+                        self.nCeldasX * self.nCeldasY * GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo,
+                        dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype),
+                    ).reshape(self.nCeldasX, self.nCeldasY, GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo)
+                except:
+                    GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo = int(GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo / 2)
+                    print(f'cliddata-> ATENCION: no hay memoria suficiente para crear un arry con')
+                    print(f'{TB}GLBLnMaxPtosCeldaArrayPredimensionadaSuelo: {GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo}')
+                    print(f'{TB}-> Se reduce a la mitad')
+                    self.aCeldasListaDePtosSuePralPF99 = np.zeros(
+                        self.nCeldasX * self.nCeldasY * GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo,
+                        dtype=np.dtype(self.myLasHead.formatoDtypePointFormat99NotacionNpDtype),
+                    ).reshape(self.nCeldasX, self.nCeldasY, GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo)
+
             else:
                 self.aCeldasListaDePtosSuePralPF99 = np.zeros(
                     1 * 1 * 1, dtype=np.dtype(
                         self.myLasHead.formatoDtypePointFormat99NotacionNpDtype
                     )
                 ).reshape(1, 1, 1)
+            self.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo = GLO.GLBLnMaxPtosCeldaArrayPredimensionadaSuelo
 
             if GLO.GLBLverbose:
                 print('cliddata-> Memoria ocupada por aCeldasListaDePtosTlcPralPF99 %6.2f Mb' % (self.aCeldasListaDePtosTlcPralPF99.nbytes / 1e6))
@@ -2504,89 +2819,7 @@ class LasData(object):
             print('cliddata-> Memoria ocupada por aCeldasListaDePtosSueAll %0.2f Mb' % (self.aCeldasListaDePtosSuePralPF99.nbytes / 1e6))
 
         if GLO.GLBLcalcularSubCeldas:
-            # Este array lo uso en vuelta4 pero lo creo ya en todo caso (aunque no haya vuelta4)
-            # porque de todas formas lo guardo con guardarArraysMiniSubCel_myLasData<>
-            if GLO.GLBLcalcularMdp:
-                self.aSubCeldasPuntoMiniSubCelValidado = np.zeros(
-                    self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
-                    dtype=np.int8
-                ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda)
-            else:
-                self.aSubCeldasPuntoMiniSubCelValidado = np.zeros(1 * 1, dtype=np.int8).reshape(1, 1)
-            if GLO.GLBLusarMiniSubCelPselEnVezDeTlp:
-                # Punto mini -> Psel
-                if GLO.GLBLusarFormatoDtypeMaxiMiniSubCel:
-                    # Opcion elegida siempre
-                    self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(
-                        self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
-                        dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
-                    ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda)
-
-                    self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(
-                        self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
-                        dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
-                    ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda)
-
-                    self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(
-                        1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
-                        dtype=np.float64).reshape(
-                        1, 1, self.nCamposPorPuntoMaxiMiniSubCel
-                    )
-                    self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(
-                        1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
-                        dtype=np.float64).reshape(
-                        1, 1, self.nCamposPorPuntoMaxiMiniSubCel
-                    )
-                else:
-                    # A extinguir
-                    self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(
-                        1 * 1,
-                        dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-                    self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(
-                        1 * 1,
-                        dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-                    # Lo mas probable es que no use esto porque gasto float64 para cada variable de cada punto: poco eficiente
-                    self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(
-                        self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda * self.nCamposPorPuntoMaxiMiniSubCel,
-                        dtype=np.float64
-                    ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda, self.nCamposPorPuntoMaxiMiniSubCel)
-                    self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(
-                        self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda * self.nCamposPorPuntoMaxiMiniSubCel,
-                        dtype=np.float64
-                    ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda, self.nCamposPorPuntoMaxiMiniSubCel)
-                self.aSubCeldasPuntoMiniSubCel_Tlp = np.zeros(
-                    1 * 1,
-                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-                self.aSubCeldasPuntoMaxiSubCel_Tlp = np.zeros(
-                    1 * 1,
-                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-            else:
-                # Punto mini -> Tlp
-                self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(
-                    1 * 1,
-                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-                self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(
-                    1 * 1,
-                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-                self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(
-                    1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
-                    dtype=np.float64).reshape(
-                    1, 1,
-                    self.nCamposPorPuntoMaxiMiniSubCel
-                )
-                self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(
-                    1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
-                    dtype=np.float64).reshape(
-                    1, 1, self.nCamposPorPuntoMaxiMiniSubCel
-                )
-                self.aSubCeldasPuntoMiniSubCel_Tlp = np.zeros(
-                    self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
-                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
-                ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda)
-                self.aSubCeldasPuntoMaxiSubCel_Tlp = np.zeros(
-                    self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
-                    dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype
-                ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda)
+            self.crearArraysSubCelPuntoMiniMaxi()
             self.aSubCeldasCotaMinAA = np.zeros(
                 self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
                 dtype=np.float32).reshape(
@@ -2600,17 +2833,31 @@ class LasData(object):
             )
             self.aSubCeldasCotaMaxAA.fill(GLO.GLBLnoData)
         else:
+            self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
+            self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
+            self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(
+                1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
+                dtype=np.float64
+            ).reshape(
+                1, 1, self.nCamposPorPuntoMaxiMiniSubCel
+            )
+            self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(
+                1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel,
+                dtype=np.float64
+            ).reshape(
+                1, 1, self.nCamposPorPuntoMaxiMiniSubCel
+            )
+            self.aSubCeldasPuntoMiniSubCel_Tlp = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
+            self.aSubCeldasPuntoMaxiSubCel_Tlp = np.zeros(
+                1 * 1,
+                dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
             self.aSubCeldasPuntoMiniSubCelValidado = np.zeros(1 * 1, dtype=np.int8).reshape(1, 1)
-            self.aSubCeldasPuntoMiniSubCelPsuePsel = np.zeros(1 * 1, dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-            self.aSubCeldasPuntoMaxiSubCelPsuePsel = np.zeros(1 * 1, dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-            self.aSubCeldasPuntoMiniSubCelPsel = np.zeros(1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel, dtype=np.float64).reshape(
-                1, 1, self.nCamposPorPuntoMaxiMiniSubCel
-            )
-            self.aSubCeldasPuntoMaxiSubCelPsel = np.zeros(1 * 1 * self.nCamposPorPuntoMaxiMiniSubCel, dtype=np.float64).reshape(
-                1, 1, self.nCamposPorPuntoMaxiMiniSubCel
-            )
-            self.aSubCeldasPuntoMiniSubCel_Tlp = np.zeros(1 * 1, dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
-            self.aSubCeldasPuntoMaxiSubCel_Tlp = np.zeros(1 * 1, dtype=self.myLasHead.formatoDtypePointMaxMinNotacionNpDtype).reshape(1, 1)
             self.aSubCeldasCotaMinAA = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
             self.aSubCeldasCotaMaxAA = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
 
@@ -2826,6 +3073,17 @@ class LasData(object):
             self.aMetricoProp09TodosLosRetornosOtros = np.zeros(1 * 1, dtype=np.uint8).reshape(1, 1)
             self.aMetricoProp09PrimerosRetornosOtros = np.zeros(1 * 1, dtype=np.uint8).reshape(1, 1)
 
+        if GLO.GLBLgrabarCeldasConOutliers:
+            self.aCeldasConOutliersEnVuelta0 = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+        else:
+            self.aCeldasConOutliersEnVuelta0 = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
+
+        if GLO.GLBLgrabarNumPuntosEnCadaPasada:
+            self.aCeldasNumPrimerosRetornosEnCadaPasada = np.zeros(
+                self.nCeldasX * self.nCeldasY *  self.numTotalPasadas, dtype=np.int32
+            ).reshape(self.nCeldasX, self.nCeldasY,  self.numTotalPasadas)
+        else:
+            self.aCeldasNumPrimerosRetornosEnCadaPasada = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
 
     # ==========================================================================
     # ->Nota: En iniciaVariablesParaVuelta2{} se crean otras tres arrays de subcelda:
@@ -3051,7 +3309,9 @@ class LasData(object):
         self.myCeldaNumPtosTlrClaPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
         self.myCeldaNumPtosTlrSuePorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
         self.myCeldaAngAcumTlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
-        self.myCeldaAngMedTlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
+        self.myCeldaAngMinTlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
+        self.myCeldaAngMaxTlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
+        # self.myCeldaAngMedTlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
         self.myCeldaMinX_TlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
         self.myCeldaMaxX_TlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
         self.myCeldaMinY_TlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
@@ -3060,17 +3320,21 @@ class LasData(object):
         self.myCeldaRangoY_TlrTlcPorPasada = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
         self.myCeldaPasadasElegibles = np.full((self.numTotalPasadas), GLO.GLBLnoData, dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype)
         # Esta array es dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype (por eso la creo aqui, fuera de numba. Contiene los valores de cada una de las celdas y se guardan para despues
-        self.aCeldasAngMedTlrTlcPorPasada = np.full(
-            (self.nCeldasX, self.nCeldasY, self.numTotalPasadas),
+        print('cliddata-> Creando aCeldasAngMedMinMaxTlrTlcPorPasada:')
+        self.aCeldasAngMedMinMaxTlrTlcPorPasada = np.full(
+            (self.nCeldasX, self.nCeldasY, 3, self.numTotalPasadas),
             GLO.GLBLnoData,
             dtype=self.myLasHead.formatoDtypeIdValNotacionNpDtype
         )
+        print('\tself.aCeldasAngMedMinMaxTlrTlcPorPasada.shape:', self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape)
+        print('\tself.aCeldasAngMedMinMaxTlrTlcPorPasada[0, 0, 0]:', self.aCeldasAngMedMinMaxTlrTlcPorPasada[0, 0, 0, :3])
+        print(int(clidnaux.leerEscalarEnNdarrayId(self.aCeldasAngMedMinMaxTlrTlcPorPasada[0, 0, 0], 888)))
 
 
     # ==========================================================================
     def iniciaVariablesParaVuelta1(self):
         # Estos se calculan en la vuelta 0:
-        #    self.aCeldasNumPuntosTlrTlcTlpOk = np.zeros(self.nCeldasX*self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
+        #    self.aCeldasNumPuntosTlrTlcTlpTrasFiltros0a6 = np.zeros(self.nCeldasX*self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
         #    #self.aCeldasListaPasadasConPuntos = np.zeros(self.nCeldasX*self.nCeldasY, dtype=np.object).reshape(self.nCeldasX, self.nCeldasY)
         #    self.aCeldasNumPuntosTlrTlcEcpOk = np.zeros(self.nCeldasX*self.nCeldasY, dtype=np.object).reshape(self.nCeldasX, self.nCeldasY)
         # Estos se calculan al seleccionar pasada:
@@ -3107,7 +3371,9 @@ class LasData(object):
 
         self.aCeldasPuntoMinAbsPse = np.zeros(self.nCeldasX * self.nCeldasY * 3, dtype=np.float64).reshape(self.nCeldasX, self.nCeldasY, 3)
         self.aCeldasPuntoMinAbsPse.fill(GLO.GLBLnoData)
-        # Se usan en vuelta2 y para interpolar:
+        # Se mantiene por si se usa en:
+        #  Vuelta4: al calcular hipercubo
+        #  Vuelta5: si se quiere mostrar su valor (mostrarCelda) al interpolar  planos:
         self.aCeldasCotaMinAbsPse = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
         self.aCeldasCotaMinAbsPse.fill(9999)
         self.aCeldasCotaMaxAbsPse = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
@@ -3145,7 +3411,7 @@ class LasData(object):
         self.aCeldasNumPuntosTlrSuePsueOk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
         # ======================================================================
         self.aCeldasNumPuntosRpriTlcPselOk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
-        if GLO.GLBLgrabarPrimerosVsSegundosRetornos:
+        if GLO.GLBLgrabarNumPuntosRetornosSiguientes:
             self.aCeldasNumPuntosRsigTlcPselOk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
         else:
             self.aCeldasNumPuntosRsigTlcPselOk = np.zeros(1 * 1, dtype=np.int16).reshape(1, 1)
@@ -3156,26 +3422,34 @@ class LasData(object):
         if GLO.GLBLgrabarCotasDiferenciaEntrePasadas or GLO.GLBLgrabarAlturasRptoAzMin:
             # Si no uso numba el NumPuntosTlrTlcPotrOk lo guardo para cada celda con miCeldaNumPtosTodosPasadaOtra (no necesito array de tipo aCeldas...)
             self.aCeldasNumPuntosTlrTlcPotrOk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
+            self.aCeldasNumPuntosTlrSuePotrOk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
             self.aCeldasCotaMediaTlrTlcPsel = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
             self.aCeldasCotaMediaTlrTlcPotr = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+            self.aCeldasCotaMediaTlrSuePsue = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+            self.aCeldasCotaMediaTlrSuePotr = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
         else:
             self.aCeldasNumPuntosTlrTlcPotrOk = np.zeros(1, dtype=np.int16).reshape(1, 1)
+            self.aCeldasNumPuntosTlrSuePotrOk = np.zeros(1, dtype=np.float32).reshape(1, 1)
             self.aCeldasCotaMediaTlrTlcPsel = np.zeros(1, dtype=np.float32).reshape(1, 1)
             self.aCeldasCotaMediaTlrTlcPotr = np.zeros(1, dtype=np.float32).reshape(1, 1)
+            self.aCeldasCotaMediaTlrSuePsue = np.zeros(1, dtype=np.float32).reshape(1, 1)
+            self.aCeldasCotaMediaTlrSuePotr = np.zeros(1, dtype=np.float32).reshape(1, 1)
+
+        if GLO.GLBLgrabarCotasDiferenciaEntrePasadas or GLO.GLBLgrabarAlturasRptoAzMin or GLO.GLBLgrabarCotasMediasPorClase:
+            self.aCeldasCotaMediaTlrSuePsel = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+        else:
+            self.aCeldasCotaMediaTlrSuePsel = np.zeros(1, dtype=np.float32).reshape(1, 1)
+
         if GLO.GLBLgrabarCotasMediasPorClase:
             self.aCeldasNumPuntosTlrVegPselOk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
             self.aCeldasNumPuntosTlrEdiPselOk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.int16).reshape(self.nCeldasX, self.nCeldasY)
             self.aCeldasCotaMediaTlrVegPsel = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
             self.aCeldasCotaMediaTlrEdiPsel = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
-            self.aCeldasCotaMediaTlrSuePsel = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
-            self.aCeldasCotaMediaTlrSuePsue = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
         else:
             self.aCeldasNumPuntosTlrVegPselOk = np.zeros(1, dtype=np.int16).reshape(1, 1)
             self.aCeldasNumPuntosTlrEdiPselOk = np.zeros(1, dtype=np.int16).reshape(1, 1)
             self.aCeldasCotaMediaTlrVegPsel = np.zeros(1, dtype=np.float32).reshape(1, 1)
             self.aCeldasCotaMediaTlrEdiPsel = np.zeros(1, dtype=np.float32).reshape(1, 1)
-            self.aCeldasCotaMediaTlrSuePsel = np.zeros(1, dtype=np.float32).reshape(1, 1)
-            self.aCeldasCotaMediaTlrSuePsue = np.zeros(1, dtype=np.float32).reshape(1, 1)
         # ======================================================================
 
         # ======================================================================
@@ -3184,6 +3458,11 @@ class LasData(object):
         else:
             self.aSubCeldasMdgAjuste = np.zeros((1, 1, 4), dtype=np.float32)
         # ======================================================================
+
+        if GLO.GLBLgrabarCeldasConOutliers:
+            self.aCeldasConOutliersEnVuelta1 = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
+        else:
+            self.aCeldasConOutliersEnVuelta1 = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
 
 
     # ==========================================================================
@@ -3257,7 +3536,8 @@ class LasData(object):
         print(f'cliddata-> aCeldasCoeficientesMds.shape = {(self.aCeldasCoeficientesMds).shape}')
 
         # Arrays para guardar el resultado de ajustar planos
-        if (GLO.GLBLcalcularMdg and GLO.GLBLgrabarMdgAjusteCelda) or GLO.GLBLcalcularMdp:
+        # if (GLO.GLBLcalcularMdg and GLO.GLBLgrabarMdgAjusteCelda) or GLO.GLBLcalcularMdp:
+        if GLO.GLBLcalcularMdg or GLO.GLBLcalcularMdp:
             self.aCeldasCoeficientesMdg = np.zeros(self.nCeldasX * self.nCeldasY * 10, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, 10)
             for nX in range(self.nCeldasX):
                 for nY in range(self.nCeldasY):
@@ -3283,7 +3563,7 @@ class LasData(object):
             self.aSubCeldasMdrCotaInterpolada = np.zeros(1 * 3, dtype=np.float32).reshape(1, 1, 3)
 
         # Arrays para ajustar plano Pleno
-        if GLO.GLBLcalcularMdp:
+        if GLO.GLBLcalcularMdp or GLO.GLBLcalcularMdr:
             self.aCeldasMdpAjuste = np.zeros(self.nCeldasX * self.nCeldasY * 7, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, 7)
             # self.aCeldasCoeficientesMdpB = np.zeros(self.nCeldasX*self.nCeldasY*7, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY, 7)
             # Coef [0] = intercept
@@ -3310,6 +3590,11 @@ class LasData(object):
                 for nY in range(self.nCeldasY):
                     self.aCeldasMdpAjuste[nX, nY, -1] = -1
                     # self.aCeldasCoeficientesMdpB[nX, nY, -1] = -1
+
+            self.aSubCeldasPuntoMiniSubCelValidado = np.zeros(
+                self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda,
+                dtype=np.int8
+            ).reshape(self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda)
 
             if GLO.GLBLcalcularSubCeldas:
                 self.aSubCeldasCotaMiniMacroEsOk = np.zeros(
@@ -3503,6 +3788,7 @@ class LasData(object):
         else:
             self.aCeldasMdpAjuste = np.zeros(1 * 1 * 6, dtype=np.float32).reshape(1, 1, 6)
 
+            self.aSubCeldasPuntoMiniSubCelValidado = np.zeros(1 * 1, dtype=np.int8).reshape(1, 1)
             self.aSubCeldasCotaMiniMacroEsOk = np.zeros(1, dtype=np.int8).reshape(1, 1)
             self.aSubCeldasCotaMiniMicroEsOk = np.zeros(1, dtype=np.int8).reshape(1, 1)
             self.aSubCeldasMdfCotaManual = np.zeros(1, dtype=np.float32).reshape(1, 1)
@@ -3615,7 +3901,10 @@ class LasData(object):
                 self.aCeldasCotaMediaMdy = np.full((1, 1, 1), GLO.GLBLnoData, dtype=np.float32)
             self.aCeldasCoeficientesMdxRing = np.full((1, 1, 1, 4), GLO.GLBLnoData, dtype=np.float32)
 
-        if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+        if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+            GLO.GLBLcalcularMdkConClasificacionInferida
+            and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+        ):
             self.aSubCeldasMdkCotaMed = np.zeros(self.nCeldasX * GLBNsubCeldasPorCelda * self.nCeldasY * GLBNsubCeldasPorCelda, dtype=np.float32).reshape(
                 self.nCeldasX * GLBNsubCeldasPorCelda, self.nCeldasY * GLBNsubCeldasPorCelda
             )
@@ -3842,7 +4131,10 @@ class LasData(object):
             self.aSubCeldasAlt95SobreMdf = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
 
         if GLO.GLBLgrabarPercentilesRelativos:
-            if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+            if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+            ):
                 self.aCeldasAlt95SobreMdk = np.zeros(self.nCeldasX * self.nCeldasY, dtype=np.float32).reshape(self.nCeldasX, self.nCeldasY)
                 self.aCeldasAlt95SobreMdk.fill(GLO.GLBLnoData)
                 if GLO.GLBLgrabarPercentilAdicional0:
@@ -3865,7 +4157,7 @@ class LasData(object):
                 self.aSubCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
         else:
             self.aCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
-            self.aCeldasAltXxSobreMdk = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 0)
+            self.aCeldasAltXxSobreMdk = np.zeros(1 * 1 * 1, dtype=np.float32).reshape(1, 1, 1)
             self.aSubCeldasAlt95SobreMdk = np.zeros(1 * 1, dtype=np.float32).reshape(1, 1)
 
         if not soloMdk:
@@ -3897,7 +4189,10 @@ class LasData(object):
                 self.aCeldasNumPrimerosRetornosAltSuperiorRptoAmdf = np.zeros(1, dtype=np.int8).reshape(1, 1, 1)
 
         if len(self.listaRangos_AlturasMasDe) > 1:
-            if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+            if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+            ):
                 self.aCeldasNumPrimerosRetornosAltSuperiorRptoAmdk = np.zeros(
                     self.nCeldasX * self.nCeldasY * (len(self.listaRangos_AlturasMasDe) - 0), dtype=np.int8
                 ).reshape(self.nCeldasX, self.nCeldasY, (len(self.listaRangos_AlturasMasDe) - 0))
@@ -3954,7 +4249,10 @@ class LasData(object):
                 self.aCeldasNumPrimerosRetornosAltRangoRptoAmdf = np.zeros(1, dtype=np.int8).reshape(1, 1, 1)
 
         if len(self.listaRangos_AlturasRango) > 1:
-            if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+            if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+            ):
                 self.aCeldasNumTodosLosRetornosAltRangoRptoAmdk = np.zeros(
                     self.nCeldasX * self.nCeldasY * (len(self.listaRangos_AlturasRango) - 1), dtype=np.int8
                 ).reshape(self.nCeldasX, self.nCeldasY, (len(self.listaRangos_AlturasRango) - 1))
@@ -3984,7 +4282,10 @@ class LasData(object):
                 self.aCeldasNumTodosLosRetornosAltPctjRptoAmdb = np.zeros(1, dtype=np.int8).reshape(1, 1, 1)
 
         if len(self.listaRangos_AlturasPctjTxt) > 1:
-            if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+            if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+            ):
                 self.aCeldasNumTodosLosRetornosAltPctjRptoAmdk = np.zeros(
                     self.nCeldasX * self.nCeldasY * (len(self.listaRangos_AlturasPctjTxt) - 1), dtype=np.int8
                 ).reshape(self.nCeldasX, self.nCeldasY, (len(self.listaRangos_AlturasPctjTxt) - 1))
@@ -4020,11 +4321,13 @@ class LasData(object):
             completo=False,
             arraysGuardadas=False,
         ):
-        if GLO.GLBLgrabarPrimerosVsSegundosRetornos:
-            del self.aCeldasNumSingleReturnTlp
-            del self.aCeldasNumMultiReturnTlp
+        if GLO.GLBLgrabarNumPuntosPrimerosRetornos:
             del self.aCeldasNumPrimerosRetornosTlp
+        if GLO.GLBLgrabarNumPuntosRetornosSiguientes:
             del self.aCeldasNumSiguientesRetornosTlp
+        if GLO.GLBLgrabarNumPulsosSingleMultiReturns:
+            del self.aCeldasNumPulsosSingleReturnTlp
+            del self.aCeldasNumPulsosMultiReturnTlp
         if GLO.GLBLgrabarCeldasClasesSueloVegetacion or GLO.GLBLgrabarAlturasRptoAzMin:
             del self.aCeldasNumPrimerosRetornosSuelo
             del self.aCeldasNumTodosLosRetornosSuelo # Ya no se usa en cliddata.guardarMiscelaneaDasoLidar{}
@@ -4072,7 +4375,7 @@ class LasData(object):
         del self.aCeldasAjustable
         del self.aCeldasAjustableMds
         del (
-            self.aCeldasAngMedTlrTlcPorPasada
+            self.aCeldasAngMedMinMaxTlrTlcPorPasada
         )  # Si no uso Numba se guardan como dictionary en vez de ndArray -> self.aCeldasAnguloMedPasadaSel[IDsel][nX, nY]
         if GLO.GLBLcalcularMdb or GLO.GLBLcalcularMdc or GLO.GLBLcalcularMdm:
             #del self.aCeldasCoeficientesMdb
@@ -4110,6 +4413,7 @@ class LasData(object):
             # del self.aCeldasCotaMediaTlrSueTlp # Se usa en clidnv6.calculaVariablesDasoLidar().
             del self.aCeldasCotaMediaTlrTlcPsel  # Si no uso Numba, se calcula y graba cada celda -> self.miCeldaCotaMediaPasadaSeleccionada
             del self.aCeldasCotaMediaTlrTlcPotr
+            del self.aCeldasCotaMediaTlrSuePotr
             # del self.aCeldasCotaMediaTlrTlcTlp #Se usa en clidnv6.calculaVariablesDasoLidar()
         if GLO.GLBLgrabarCotasMediasPorClase or True:
             del self.aCeldasCotaMediaTlrVegPsel  # Si no uso Numba, se calcula y graba cada celda -> ??self.miCeldaCotaMediaV****
@@ -4142,6 +4446,7 @@ class LasData(object):
         del self.aCeldasNumPuntosTlrVegPselOk
         del self.aCeldasNumPuntosTlrEdiPselOk
         del self.aCeldasNumPuntosTlrTlcPotrOk
+        del self.aCeldasNumPuntosTlrSuePotrOk
         # del self.aCeldasNumPuntosTlrTlcPselOk
         del self.aCeldasNumPuntosTlrTlcPsueOk
         # del self.aCeldasNumPuntosTlrTlcTlpOk #Se usa en self.calculaVariablesDasoLidar() y clidnv6.calculaVariablesDasoLidar()
@@ -4150,6 +4455,7 @@ class LasData(object):
         del self.aCeldasRangoBasal
         del self.aCeldasRangoCielo
         del self.aCeldasRawTime  # Si no uso Numba, se calcula y graba cada celda -> self.miCeldaRawTime
+        del self.aCeldasDiaDesde1Ene2010
         del self.aCeldasSumaCotasTlrSueTlpVuelta0
         del self.aCeldasSumaCotasTlrTlcTlpOk  # Se usa en self.calculaVariablesDasoLidar
         # del self.aFiles
@@ -4169,7 +4475,9 @@ class LasData(object):
         del self.myCeldaNumPtosTlrClaPorPasada
         del self.myCeldaNumPtosTlrSuePorPasada
         del self.myCeldaAngAcumTlrTlcPorPasada
-        del self.myCeldaAngMedTlrTlcPorPasada
+        del self.myCeldaAngMinTlrTlcPorPasada
+        del self.myCeldaAngMaxTlrTlcPorPasada
+        # del self.myCeldaAngMedTlrTlcPorPasada
         del self.myCeldaMinX_TlrTlcPorPasada
         del self.myCeldaMaxX_TlrTlcPorPasada
         del self.myCeldaMinY_TlrTlcPorPasada
@@ -4319,20 +4627,28 @@ class LasData(object):
             % self.numPuntosDescartadosPorCoordenadasErroneas
         )
         clidaux.printMsg(
-            '    Numero de puntos fuera de bloque (>%i metro(s)):   %i puntos (numPuntosDescartadosPorFueraDeBloque)'
-            % (GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque, self.numPuntosDescartadosPorFueraDeBloque)
+            '    Numero de puntos con coord erroneas (imposibles):  %i puntos (numPuntosDescartadosPorCoordenadasEscaladas)'
+            % self.numPuntosDescartadosPorCoordenadasEscaladas
         )
         clidaux.printMsg(
-            '  Numero de puntos leidos validos DENTRO DEL BLOQUE:   %i puntos (numPuntosValidosDentroDelBloque)' % self.numPuntosValidosDentroDelBloque
+            '    Numero de puntos fuera de bloque (< {:2.1f} metros): {} puntos (numPuntosDescartadosPorFueraDeBloque)'.format(
+                GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque, self.numPuntosDescartadosPorFueraDeBloque
+            )
         )
         clidaux.printMsg(
-            '    numPuntosValidosDentroDelBloque (%i) = nPtosAleer (%i) [sampleLas=%i] - (numPuntosDescartadosPorPasadaTransversal (%i) + numPuntosDescartadosPorCoordenadasErroneas (%i) + numPuntosDescartadosPorFueraDeBloque (%i))'
+            '  Numero de puntos leidos validos DENTRO DEL BLOQUE:   {} puntos (numPuntosValidosDentroDelBloque)'.format(
+                self.numPuntosValidosDentroDelBloque
+            )
+        )
+        clidaux.printMsg(
+            '    numPuntosValidosDentroDelBloque (%i) = nPtosAleer (%i) [sampleLas=%i] - (numPuntosDescartadosPorPasadaTransversal (%i) + numPuntosDescartadosPorCoordenadasErroneas (%i) + numPuntosDescartadosPorCoordenadasEscaladas (%i) + numPuntosDescartadosPorFueraDeBloque (%i))'
             % (
                 self.numPuntosValidosDentroDelBloque,
                 self.nPtosAleer,
                 self.sampleLas,
                 self.numPuntosDescartadosPorPasadaTransversal,
                 self.numPuntosDescartadosPorCoordenadasErroneas,
+                self.numPuntosDescartadosPorCoordenadasEscaladas,
                 self.numPuntosDescartadosPorFueraDeBloque,
             )
         )
@@ -4382,7 +4698,7 @@ class LasData(object):
             for nX in range(self.nCeldasX):
                 sumaCeldasNumPuntosTlrTlcTlpOk += self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]
         clidaux.printMsg(
-            f'{TB}-> Debe coincidir con                                  {sumaCeldasNumPuntosTlrTlcTlpOk} = sum(self.aCeldasNumPuntosTlrTlcTlpOk)'
+            f'{TB}-> Debe coincidir con {sumaCeldasNumPuntosTlrTlcTlpOk} = sum(self.aCeldasNumPuntosTlrTlcTlpOk)'
         )
         sumaNeta = (
             int(self.nPtosAleer / self.sampleLas)
@@ -4390,6 +4706,7 @@ class LasData(object):
                 self.numPuntosDescartadosPorPasadaTransversal
                 + self.numPuntosDescartadosPorCoordenadasNulas
                 + self.numPuntosDescartadosPorCoordenadasErroneas
+                + self.numPuntosDescartadosPorCoordenadasEscaladas
                 + self.numPuntosDescartadosPorFueraDeBloque
                 # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
                 + self.numPuntosDescartadosPorOutlier
@@ -4400,10 +4717,11 @@ class LasData(object):
         )
 
         clidaux.printMsg(
-            f'{TB}-> Debe coincidir con                                   {sumaNeta}: '
+            f'{TB}-> Debe coincidir con {sumaNeta}: '
             'self.nPtosAleer (/self.sampleLas) '
             '- (self.numPuntosDescartadosPorPasadaTransversal '
             '+ self.numPuntosDescartadosPorCoordenadasErroneas '
+            '+ self.numPuntosDescartadosPorCoordenadasEscaladas '
             '+ self.numPuntosDescartadosPorFueraDeBloque '
             '+ self.numPuntosDescartadosPorOutlier '
             '+ self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes '
@@ -4414,6 +4732,7 @@ class LasData(object):
             self.numPuntosDescartadosPorCoordenadasNulas
             + self.numPuntosDescartadosPorPasadaTransversal
             + self.numPuntosDescartadosPorCoordenadasErroneas
+            + self.numPuntosDescartadosPorCoordenadasEscaladas
             + self.numPuntosDescartadosPorFueraDeBloque
             # + self.numPuntosDescartadosPorCeldaConDemasiadosPuntosTotales
             + self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes
@@ -4479,8 +4798,8 @@ class LasData(object):
                                 % (
                                     nX,
                                     nY,
-                                    int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                                    int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                                    int(self.myLasHead.xminBloqueMalla + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                                    int(self.myLasHead.yminBloqueMalla + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                                 )
                             )
                         elif self.celdasSinPuntos == 6:
@@ -4492,8 +4811,8 @@ class LasData(object):
                                 % (
                                     nX,
                                     nY,
-                                    int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                                    int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                                    int(self.myLasHead.xminBloqueMalla + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                                    int(self.myLasHead.yminBloqueMalla + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                                 )
                             )
                         elif self.celdasConPocosPuntosTotales == 6:
@@ -4525,8 +4844,8 @@ class LasData(object):
                                 nX,
                                 nY,
                                 GLO.GLBLnMaxPtosCeldaTlrTlpPrevioExtremo,
-                                int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                                int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                                int(self.myLasHead.xminBloqueMalla + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                                int(self.myLasHead.yminBloqueMalla + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                             )
                         )
                     elif self.nCeldasConDemasiadosPuntosTlrTlp == 6:
@@ -4539,8 +4858,8 @@ class LasData(object):
                                 nX,
                                 nY,
                                 LCL_higLimit,
-                                int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                                int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                                int(self.myLasHead.xminBloqueMalla + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                                int(self.myLasHead.yminBloqueMalla + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                             )
                         )
                     elif self.nCeldasConMasDeHigLimPuntos == 6:
@@ -4553,8 +4872,8 @@ class LasData(object):
                                 nX,
                                 nY,
                                 LCL_lowLimit,
-                                int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                                int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                                int(self.myLasHead.xminBloqueMalla + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                                int(self.myLasHead.yminBloqueMalla + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                             )
                         )
                     elif self.nCeldasConMasDeLowLimPuntos == 6:
@@ -4572,8 +4891,8 @@ class LasData(object):
                     #             nX,
                     #             nY,
                     #             GLO.GLBLnMaxPtosCeldaTlrPas,
-                    #             int(self.myLasHead.xmin + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
-                    #             int(self.myLasHead.ymin + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
+                    #             int(self.myLasHead.xminBloqueMalla + ((nX + 0.5) * GLO.GLBLmetrosCelda)),
+                    #             int(self.myLasHead.yminBloqueMalla + ((nY + 0.5) * GLO.GLBLmetrosCelda)),
                     #         )
                     #     )
                     # elif self.nCeldasConMasDeMidLimPuntos == 6:
@@ -4762,22 +5081,12 @@ class LasData(object):
                 print('\tNo se ha podido eliminar el fichero npz existente: {}'.format(npzFileNameArrays_myLasData))
         np.savez_compressed(
             npzFileNameArrays_myLasData,
-            # clidnv0.numbaMainVuelta0<>:
-            aSubCeldasPuntoMiniSubCel_Tlp=self.aSubCeldasPuntoMiniSubCel_Tlp,
-            aSubCeldasPuntoMaxiSubCel_Tlp=self.aSubCeldasPuntoMaxiSubCel_Tlp,
-            # clidnv1.procesaCeldasVuelta1b<>:
-            aSubCeldasPuntoMiniSubCelPsel=self.aSubCeldasPuntoMiniSubCelPsel,
-            aSubCeldasPuntoMaxiSubCelPsel=self.aSubCeldasPuntoMaxiSubCelPsel,
-            aSubCeldasPuntoMiniSubCelPsuePsel=self.aSubCeldasPuntoMiniSubCelPsuePsel,
-            aSubCeldasPuntoMaxiSubCelPsuePsel=self.aSubCeldasPuntoMaxiSubCelPsuePsel,
             # clidtrain.predecirClasificacion<>:
-            okPrediccionMiniSubCel = self.okPrediccionMiniSubCel,
-            aSubCeldasMiniSubCelLasClassPredicha = self.aSubCeldasMiniSubCelLasClassPredicha,
-            # clidnv2y.numbaVueltaAjustesMdp<>:
-            # aSubCeldasPuntoMiniSubCel_Tlp = self.aSubCeldasPuntoMiniSubCel_Tlp, # Se guarda antes
-            # aSubCeldasPuntoMiniSubCelPsuePsel = self.aSubCeldasPuntoMiniSubCelPsuePsel, # Se guarda antes
-            # aSubCeldasPuntoMiniSubCelPsel = self.aSubCeldasPuntoMiniSubCelPsel, # Se guarda antes
-            aSubCeldasPuntoMiniSubCelValidado = self.aSubCeldasPuntoMiniSubCelValidado,
+            okPrediccionMiniSubCel=self.okPrediccionMiniSubCel,
+            aSubCeldasMiniSubCelLasClassPredicha=self.aSubCeldasMiniSubCelLasClassPredicha,
+            # okPrediccionMiniSubCel = self.okPrediccionMiniSubCel,
+            # aSubCeldasMiniSubCelLasClassPredicha=self.aSubCeldasMiniSubCelLasClassPredicha,
+            aMultiTilesMiniSubCelLasClassPredicha=self.aMultiTilesMiniSubCelLasClassPredicha, # No lo uso (salvo guardar asc)
         )
 
 
@@ -4795,11 +5104,12 @@ class LasData(object):
             minMaxRGBIrI=self.minMaxRGBIrI,
             listaPasadasBloque=self.listaPasadasBloque,
             listaPasadasCuadrante=self.listaPasadasCuadrante,
-            gpsTimeMin=self.gpsTimeMin,
-            gpsTimeMax=self.gpsTimeMax,
+            gpsTimeMin=self.gpsTimeMinAbsoluto,
+            gpsTimeMax=self.gpsTimeMaxAbsoluto,
             aIDPasadasEdge=self.aIDPasadasEdge,
             orientacionPasadaEnGrados=self.orientacionPasadaEnGrados,
             contadorPtosLeidosTotales=self.contadorPtosLeidosTotales,
+            contadorPtosLeidosTotales_TrasExcluirLosSaltadosPorExcesoDePuntosEnBloque=self.contadorPtosLeidosTotales_TrasExcluirLosSaltadosPorExcesoDePuntosEnBloque,
             nPuntosPorClase=self.nPuntosPorClase,
             numTotalPasadas=self.numTotalPasadas,
             esFicheroClasificado=self.esFicheroClasificado,
@@ -4829,12 +5139,16 @@ class LasData(object):
             numPuntosDescartadosPorCoordenadasNulas = self.numPuntosDescartadosPorCoordenadasNulas,
             numPuntosDescartadosPorPasadaTransversal=self.numPuntosDescartadosPorPasadaTransversal,
             numPuntosDescartadosPorCoordenadasErroneas=self.numPuntosDescartadosPorCoordenadasErroneas,
+            numPuntosDescartadosPorCoordenadasEscaladas=self.numPuntosDescartadosPorCoordenadasEscaladas,
             numPuntosDescartadosPorFueraDeBloque=self.numPuntosDescartadosPorFueraDeBloque,
             numPuntosDescartadosPorOutlier=self.numPuntosDescartadosPorOutlier,
             numPuntosDescartadosPorPasadaConDemasiadosPuntosUnoDeCadaN=self.numPuntosDescartadosPorPasadaConDemasiadosPuntosUnoDeCadaN,
             numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes=self.numPuntosDescartadosPorPasadaConDemasiadosPuntosRestantes,
             numPuntosDescartadosPorCeldaConNumPuntosExtremo=self.numPuntosDescartadosPorCeldaConNumPuntosExtremo,
             numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos=self.numPuntosDescartadosPorMaxPtosCeldaArrayPredimensionadaTodos,
+
+            aCeldasConOutliersEnVuelta0 = self.aCeldasConOutliersEnVuelta0,
+            aCeldasConOutliersEnVuelta1 = self.aCeldasConOutliersEnVuelta1,
 
             hayCeldasConDemasiadosPuntos=self.hayCeldasConDemasiadosPuntos,
             hayCeldasConDemasiadosPuntosEnLaPasada=self.hayCeldasConDemasiadosPuntosEnLaPasada,
@@ -4848,13 +5162,16 @@ class LasData(object):
             aCeldasNumPuntosTlrTlcEcpTlvSinFiltrar=self.aCeldasNumPuntosTlrTlcEcpTlvSinFiltrar,
             aCeldasNumPuntosTlrTlcEcpOk=self.aCeldasNumPuntosTlrTlcEcpOk,
             aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar=self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar,
+            aCeldasNumPuntosTlrTlcTlpTrasFiltros0a6=self.aCeldasNumPuntosTlrTlcTlpTrasFiltros0a6,
             aCeldasNumPuntosTlrTlcTlpOk=self.aCeldasNumPuntosTlrTlcTlpOk,
             aCeldasNumPuntosTlrSueTlpTlvSinFiltrar=self.aCeldasNumPuntosTlrSueTlpTlvSinFiltrar,
             aCeldasNumPuntosTlrSueTlpVuelta0=self.aCeldasNumPuntosTlrSueTlpVuelta0,
             aCeldasSumaCotasTlrTlcTlpOk=self.aCeldasSumaCotasTlrTlcTlpOk,
             aCeldasSumaCotasTlrSueTlpVuelta0=self.aCeldasSumaCotasTlrSueTlpVuelta0,
-            aCeldasNumSingleReturnTlp=self.aCeldasNumSingleReturnTlp,
-            aCeldasNumMultiReturnTlp=self.aCeldasNumMultiReturnTlp,
+            aCeldasNumPulsosSingleReturnTlp=self.aCeldasNumPulsosSingleReturnTlp,
+            aCeldasNumPulsosMultiReturnTlp=self.aCeldasNumPulsosMultiReturnTlp,
+
+            aCeldasNumPrimerosRetornosEnCadaPasada=self.aCeldasNumPrimerosRetornosEnCadaPasada,
             aCeldasNumPrimerosRetornosNoSolape=self.aCeldasNumPrimerosRetornosNoSolape,
             aCeldasNumPrimerosRetornosTlp=self.aCeldasNumPrimerosRetornosTlp,
             aCeldasNumSiguientesRetornosTlp=self.aCeldasNumSiguientesRetornosTlp,
@@ -4897,6 +5214,16 @@ class LasData(object):
             aMetricoEVI2Med=self.aMetricoEVI2Med,
             aMetricoNDVIMed=self.aMetricoNDVIMed,
             aMetricoNDWIMed=self.aMetricoNDWIMed,
+
+            # Creados con iniciaVariablesParaVuelta0normal<> y SI procesados en clidnv0.numbaMainVuelta0<>
+            aSubCeldasPuntoMiniSubCel_Tlp=self.aSubCeldasPuntoMiniSubCel_Tlp,
+            aSubCeldasPuntoMaxiSubCel_Tlp=self.aSubCeldasPuntoMaxiSubCel_Tlp,
+            # Creados con iniciaVariablesParaVuelta0normal<> y no procesados todavia en clidnv0.numbaMainVuelta0<>
+            aSubCeldasPuntoMiniSubCelPsuePsel=self.aSubCeldasPuntoMiniSubCelPsuePsel,
+            aSubCeldasPuntoMaxiSubCelPsuePsel=self.aSubCeldasPuntoMaxiSubCelPsuePsel,
+            aSubCeldasPuntoMiniSubCelPsel=self.aSubCeldasPuntoMiniSubCelPsel,
+            aSubCeldasPuntoMaxiSubCelPsel=self.aSubCeldasPuntoMaxiSubCelPsel,
+
             # clidnv0.numbaSeleccionaPasadaTrasVuelta0<>:
             seleccionOk=self.seleccionOk,
             IDselec=self.IDselec,
@@ -4910,10 +5237,11 @@ class LasData(object):
             aCeldasNumPuntosTlrClaPsueSinFiltrarSospechosos=self.aCeldasNumPuntosTlrClaPsueSinFiltrarSospechosos,
             aCeldasNumPuntosTlrSuePsueSinFiltrarSospechosos=self.aCeldasNumPuntosTlrSuePsueSinFiltrarSospechosos,
             aCeldasNumPasadasConPuntos=self.aCeldasNumPasadasConPuntos,
-            aCeldasAngMedTlrTlcPorPasada=self.aCeldasAngMedTlrTlcPorPasada,
+            aCeldasAngMedMinMaxTlrTlcPorPasada=self.aCeldasAngMedMinMaxTlrTlcPorPasada,
             nCeldasEnLasQueSeHanIgnoradoPuntosPorDemasiadosEnLaPasadaTrasGuardarlosEnArray=self.nCeldasEnLasQueSeHanIgnoradoPuntosPorDemasiadosEnLaPasadaTrasGuardarlosEnArray,
             nPuntosIgnoradosPorDemasiadosEnLaPasadaTrasGuardarlosEnArray=self.nPuntosIgnoradosPorDemasiadosEnLaPasadaTrasGuardarlosEnArray,
             aCeldasRawTime=self.aCeldasRawTime,
+            aCeldasDiaDesde1Ene2010=self.aCeldasDiaDesde1Ene2010,
             aCeldasEsCeldaEdge=self.aCeldasEsCeldaEdge,
             aCeldasNumPtosPorClaseTlrTlp=self.aCeldasNumPtosPorClaseTlrTlp,
             # clidnv1.detectarAgua<>:
@@ -4929,6 +5257,8 @@ class LasData(object):
             aCeldasNumPuntosTlrTlcPsueOk=self.aCeldasNumPuntosTlrTlcPsueOk,
             aCeldasNumPuntosTlrSuePselOk=self.aCeldasNumPuntosTlrSuePselOk,
             aCeldasNumPuntosTlrSuePsueOk=self.aCeldasNumPuntosTlrSuePsueOk,
+            aCeldasNumPuntosTlrTlcPotrOk=self.aCeldasNumPuntosTlrTlcPotrOk,
+            aCeldasNumPuntosTlrSuePotrOk=self.aCeldasNumPuntosTlrSuePotrOk,
             aCeldasNumPuntosTlrVegPselOk=self.aCeldasNumPuntosTlrVegPselOk,
             aCeldasNumPuntosTlrEdiPselOk=self.aCeldasNumPuntosTlrEdiPselOk,
             aCeldasNumPuntosRpriTlcPselOk=self.aCeldasNumPuntosRpriTlcPselOk,
@@ -4937,6 +5267,7 @@ class LasData(object):
             aCeldasCotaMediaTlrSueTlp=self.aCeldasCotaMediaTlrSueTlp,
             aCeldasCotaMediaTlrTlcPsel=self.aCeldasCotaMediaTlrTlcPsel,
             aCeldasCotaMediaTlrTlcPotr=self.aCeldasCotaMediaTlrTlcPotr,
+            aCeldasCotaMediaTlrSuePotr=self.aCeldasCotaMediaTlrSuePotr,
             aCeldasCotaMediaTlrSuePsel=self.aCeldasCotaMediaTlrSuePsel,
             aCeldasCotaMediaTlrSuePsue=self.aCeldasCotaMediaTlrSuePsue,
             aCeldasCotaMediaTlrVegPsel=self.aCeldasCotaMediaTlrVegPsel,
@@ -4948,20 +5279,13 @@ class LasData(object):
             aCeldasCotaMinAbsPse=self.aCeldasCotaMinAbsPse,
             aCeldasCotaMaxAbsPse=self.aCeldasCotaMaxAbsPse,
             # clidnv1.procesaCeldasVuelta1b<>:
-#             aSubCeldasPuntoMiniSubCelPsel=self.aSubCeldasPuntoMiniSubCelPsel,
-#             aSubCeldasPuntoMaxiSubCelPsel=self.aSubCeldasPuntoMaxiSubCelPsel,
-#             aSubCeldasPuntoMiniSubCelPsuePsel=self.aSubCeldasPuntoMiniSubCelPsuePsel,
-#             aSubCeldasPuntoMaxiSubCelPsuePsel=self.aSubCeldasPuntoMaxiSubCelPsuePsel,
+
             # clidnv1.procesaCeldasVuelta1b<> post:
             nPuntosTotalPsel = self.nPuntosTotalPsel,
             # aSubCeldasCotaMinAA=self.aSubCeldasCotaMinAA,
             # aSubCeldasCotaMaxAA=self.aSubCeldasCotaMaxAA,
             aSubCeldasMdgAjuste=self.aSubCeldasMdgAjuste,
             # aCeldasListaDePtosExtrVar=self.aCeldasListaDePtosExtrVar, # Se guarda con guardarArrayExtrVars_myLasData<>
-            # clidtrain.predecirClasificacion<>:
-#             okPrediccionMiniSubCel = self.okPrediccionMiniSubCel,
-#             aSubCeldasMiniSubCelLasClassPredicha = self.aSubCeldasMiniSubCelLasClassPredicha,
-            # aMultiTilesMiniSubCelLasClassPredicha = self.aMultiTilesMiniSubCelLasClassPredicha, # No lo uso (salvo guardar asc)
             # clidtrain.guardarPrediccionMiniSubCel<>:
             # aSubCeldasPuntoMiniSubCel_Tlp = self.aSubCeldasPuntoMiniSubCel_Tlp, # Ya esta mas arriba
             # aSubCeldasPuntoMiniSubCelPsel = self.aSubCeldasPuntoMiniSubCelPsel, # Ya esta mas arriba
@@ -4979,6 +5303,9 @@ class LasData(object):
             # clidtrain.transferirUsoSingCartoSinguPredichaAlArrayPral<>:
             # aCeldasListaDePtosTlcPralPF99 = self.aCeldasListaDePtosTlcPralPF99, # Se guarda con guardarArrayPralPF99_myLasData<>
             # aCeldasListaDePtosExtrVar = self.aCeldasListaDePtosExtrVar, # Se guarda con guardarArrayExtrVars_myLasData<>
+
+            newLasFileNameConRutaHXX=self.newLasFileNameConRutaHXX,
+
         )
         '''
         # Arrays que se crean en iniciaVariablesParaVuelta0<> pero son de 
@@ -5078,10 +5405,18 @@ class LasData(object):
             aMultiCeldasRugosidadMacroInterSubCeldas = self.aMultiCeldasRugosidadMacroInterSubCeldas,
             aMultiCeldasRugosidadMesosInterSubCeldas = self.aMultiCeldasRugosidadMesosInterSubCeldas,
             aMultiCeldasRugosidadMicroInterSubCeldas = self.aMultiCeldasRugosidadMicroInterSubCeldas,
-#             aSubCeldasPuntoMiniSubCel_Tlp = self.aSubCeldasPuntoMiniSubCel_Tlp,
-#             aSubCeldasPuntoMiniSubCelPsuePsel = self.aSubCeldasPuntoMiniSubCelPsuePsel,
-#             aSubCeldasPuntoMiniSubCelPsel = self.aSubCeldasPuntoMiniSubCelPsel,
-#             aSubCeldasPuntoMiniSubCelValidado = self.aSubCeldasPuntoMiniSubCelValidado,
+
+            # Creados con iniciaVariablesParaVuelta0normal<> y ya procesados en clidnv0.numbaMainVuelta0<>
+            aSubCeldasPuntoMiniSubCel_Tlp=self.aSubCeldasPuntoMiniSubCel_Tlp,
+            aSubCeldasPuntoMaxiSubCel_Tlp=self.aSubCeldasPuntoMaxiSubCel_Tlp,
+            # Creados con iniciaVariablesParaVuelta0normal<> y procesados en clidnv2y.numbaVueltaAjustesMdp<>:
+            aSubCeldasPuntoMiniSubCelPsuePsel=self.aSubCeldasPuntoMiniSubCelPsuePsel,
+            aSubCeldasPuntoMaxiSubCelPsuePsel=self.aSubCeldasPuntoMaxiSubCelPsuePsel,
+            aSubCeldasPuntoMiniSubCelPsel=self.aSubCeldasPuntoMiniSubCelPsel,
+            aSubCeldasPuntoMaxiSubCelPsel=self.aSubCeldasPuntoMaxiSubCelPsel,
+
+            aSubCeldasPuntoMiniSubCelValidado=self.aSubCeldasPuntoMiniSubCelValidado,
+
             # clidnv2y.asignaCotaSobreMdfParaListaDePtosTlcPralPF99<>:
             # aCeldasListaDePtosTlcPralPF99 = self.aCeldasListaDePtosTlcPralPF99,  # Se guarda con guardarArrayPralPF99_myLasData<>
             # clidnv3.controlarCalidadTopografica<>:
@@ -5171,7 +5506,10 @@ class LasData(object):
         myClassArray1 = getattr(self, 'aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos', None)
         myClassArray2 = getattr(self, 'aCeldasCotaMediaTlrTlcPsel', None)
         myClassArray3 = getattr(self, 'aCeldasCotaMediaTlrTlcPotr', None)
+        myClassArray4 = getattr(self, 'aCeldasCotaMediaTlrSuePotr', None)
+
         # ======================================================================
+        # contadorCeldasSinDiferenciDeCotaENtrePasadas = 0
         for nY in reversed(range(self.nCeldasY)):
             for nX in range(self.nCeldasX):
                 if not myClassArray1 is None and isinstance(myClassArray1, np.ndarray) and (
@@ -5179,74 +5517,68 @@ class LasData(object):
                     or nY >= self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos.shape[1]
                 ):
                     continue
-                if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
-                    if not myClassArray2 is None and isinstance(myClassArray2, np.ndarray) and (
-                        nX >= self.aCeldasCotaMediaTlrTlcPsel.shape[0]
-                        or nY >= self.aCeldasCotaMediaTlrTlcPsel.shape[1]
-                    ):
-                        continue
-                    if not myClassArray3 is None and isinstance(myClassArray3, np.ndarray) and (
-                        nX >= self.aCeldasCotaMediaTlrTlcPotr.shape[0]
-                        or nY >= self.aCeldasCotaMediaTlrTlcPotr.shape[1]
-                    ):
-                        continue
 
-                if GLO.GLBLgrabarPrimerosVsSegundosRetornos:
-                    if not self.aFiles['SingleReturnTodasLasPasadas'] is None and self.aCeldasNumSingleReturnTlp.shape[0] > 1:
-                        self.aFiles['SingleReturnTodasLasPasadas'].write(str(self.aCeldasNumSingleReturnTlp[nX, nY]) + ' ')
-                    if not self.aFiles['MultiReturnTodasLasPasadas'] is None and self.aCeldasNumMultiReturnTlp.shape[0] > 1:
-                        self.aFiles['MultiReturnTodasLasPasadas'].write(str(self.aCeldasNumMultiReturnTlp[nX, nY]) + ' ')
-                    if not self.aFiles['RetornosPrimerosTodasLasPasadas'] is None and self.aCeldasNumPrimerosRetornosTlp.shape[0] > 1:
-                        self.aFiles['RetornosPrimerosTodasLasPasadas'].write(str(self.aCeldasNumPrimerosRetornosTlp[nX, nY]) + ' ')
+                if self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrPas:
+                    self.nCeldasConDemasiadosPuntosTlrPas += 1
+                    if self.nCeldasConDemasiadosPuntosTlrPas < 10:
+                        print(
+                            'cliddata->', nX, nY,
+                            'Hay mas de %i puntos en una celda en la pasada seleccionada' % GLO.GLBLnMaxPtosCeldaTlrPas,
+                            '-> self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]', self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY],
+                        )
+                        print(
+                            '\t-> Celda (%i %i) con %i puntos totales y %i en la pasada sel (y mas de %i puntos en la pasada seleccionada)'
+                            % (nX, nY,
+                               self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY],
+                               self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY],
+                               GLO.GLBLnMaxPtosCeldaTlrPas)
+                        )
+                    elif self.nCeldasConDemasiadosPuntosTlrPas == 10:
+                        print(
+                            'cliddata-> Revisar la seleccion de la pasada-> aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY]',
+                            self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY],
+                        )
+                    # input('Revisar aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY]')
+
+                if GLO.GLBLgrabarNumPuntosTotales:
+                    if not self.aFiles['numPuntosTotalesDentroDeBloque'] is None and self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar.shape[0] > 1:
+                        self.aFiles['numPuntosTotalesDentroDeBloque'].write(str(self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY]) + ' ')
+                    if not self.aFiles['numPuntosPasadaSelecOk'] is None and self.aCeldasNumPuntosTlrTlcPselOk.shape[0] > 1:
+                        self.aFiles['numPuntosPasadaSelecOk'].write(str(self.aCeldasNumPuntosTlrTlcPselOk[nX, nY]) + ' ')
+
+                if GLO.GLBLgrabarNumPuntosPrimerosRetornos:
+                    if not self.aFiles['numPuntosPrimRetTlp'] is None and self.aCeldasNumPrimerosRetornosTlp.shape[0] > 1:
+                        self.aFiles['numPuntosPrimRetTlp'].write(str(self.aCeldasNumPrimerosRetornosTlp[nX, nY]) + ' ')
+                    if not self.aFiles['numPuntosPrimRetClaseNoSolape'] is None and self.aCeldasNumPrimerosRetornosNoSolape.shape[0] > 1:
+                        self.aFiles['numPuntosPrimRetClaseNoSolape'].write(str(self.aCeldasNumPrimerosRetornosNoSolape[nX, nY]) + ' ')
+                    if not self.aFiles['numPuntosPrimRetPsel'] is None and self.aCeldasNumPuntosRpriTlcPselOk.shape[0] > 1:
+                        self.aFiles['numPuntosPrimRetPsel'].write(str(self.aCeldasNumPuntosRpriTlcPselOk[nX, nY]) + ' ')
+
+                if GLO.GLBLgrabarNumPuntosRetornosSiguientes:
                     if not self.aFiles['RetornosSiguientesTodasLasPasadas'] is None and self.aCeldasNumSiguientesRetornosTlp.shape[0] > 1:
                         self.aFiles['RetornosSiguientesTodasLasPasadas'].write(str(self.aCeldasNumSiguientesRetornosTlp[nX, nY]) + ' ')
-                    if not self.aFiles['RetornosPrimerosPasadaSel'] is None and self.aCeldasNumPuntosRpriTlcPselOk.shape[0] > 1:
-                        self.aFiles['RetornosPrimerosPasadaSel'].write(str(self.aCeldasNumPuntosRpriTlcPselOk[nX, nY]) + ' ')
                     if not self.aFiles['RetornosSiguientesPasadaSel'] is None and self.aCeldasNumPuntosRsigTlcPselOk.shape[0] > 1:
                         self.aFiles['RetornosSiguientesPasadaSel'].write(str(self.aCeldasNumPuntosRsigTlcPselOk[nX, nY]) + ' ')
 
-                # Angulo medio de la pasada seleccionada
-                if GLO.GLBLgrabarAngulos:
-                    # print('aCeldasAngMedTlrTlcPorPasada:', self.aCeldasAngMedTlrTlcPorPasada, type(self.aCeldasAngMedTlrTlcPorPasada))
-                    # print('self.aCeldasAngMedTlrTlcPorPasada.shape:', self.aCeldasAngMedTlrTlcPorPasada.shape)
-                    if not self.aFiles['Ang'] is None and self.aCeldasAngMedTlrTlcPorPasada.shape[0] > 1:
-                        miCeldaAnguloMedio = int(clidnaux.leerEscalarEnNdarrayId(self.aCeldasAngMedTlrTlcPorPasada[nX, nY], self.IDselec[nX, nY]))
-                        self.aFiles['Ang'].write('%02i ' % miCeldaAnguloMedio)
-                    # for reCuentaPasadas in range(self.numTotalPasadas):
-                    #    ID_nPtos = self.aCeldasNumPuntosTlrTlcEcpOk[nX, nY][reCuentaPasadas]
-                    #    if ID_nPtos['Id'] == self.IDselec[nX, nY]:
-                    #        nPasadaSel = reCuentaPasadas
-                    #        break
-                    #    elif ID_nPtos['Id'] == GLO.GLBLnoData:
-                    #        print('ATENCION: Error al buscar la pasada seleccionada en la celda', nX, nY, 'Pasada', self.IDselec[nX, nY])
-                    #        nPasadaSel = 0
-                    #        break
-                    # miCeldaAnguloMedioBis = self.aCeldasAngMedTlrTlcPorPasada[nX, nY, nPasadaSel][1]
-                    # if miCeldaAnguloMedio != miCeldaAnguloMedioBis:
-                    #    print('miCeldaAnguloMedio != miCeldaAnguloMedioBis', miCeldaAnguloMedio, miCeldaAnguloMedioBis)
+                if GLO.GLBLgrabarNumPulsosSingleMultiReturns:
+                    if not self.aFiles['SingleReturnTodasLasPasadas'] is None and self.aCeldasNumPulsosSingleReturnTlp.shape[0] > 1:
+                        self.aFiles['SingleReturnTodasLasPasadas'].write(str(self.aCeldasNumPulsosSingleReturnTlp[nX, nY]) + ' ')
+                    if not self.aFiles['MultiReturnTodasLasPasadas'] is None and self.aCeldasNumPulsosMultiReturnTlp.shape[0] > 1:
+                        self.aFiles['MultiReturnTodasLasPasadas'].write(str(self.aCeldasNumPulsosMultiReturnTlp[nX, nY]) + ' ')
 
-                # Cotas medias
-                if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
-                    if (
-                        not self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'] is None
-                        and self.aCeldasCotaMediaTlrTlcPsel.shape[0] > 1
-                        and self.aCeldasCotaMediaTlrTlcPotr.shape[0] > 1
-                    ):
-                        if self.aCeldasCotaMediaTlrTlcPsel[nX, nY] != GLO.GLBLnoData and self.aCeldasCotaMediaTlrTlcPotr[nX, nY] != GLO.GLBLnoData:
-                            self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'].write(
-                                '%05.02f ' % (self.aCeldasCotaMediaTlrTlcPsel[nX, nY] - self.aCeldasCotaMediaTlrTlcPotr[nX, nY])
-                            )
-                        else:
-                            self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'].write(str(GLO.GLBLnoData) + ' ')
-                            if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
-                                mostrarCelda = clidnaux.celdaDeControl(nX, nY)
-                                if mostrarCelda:
-                                    print('cliddata-> ATENCION: Analizar si no se guarda la diferencia de cota entre pasadas simplemente porque en esta celda no hay dos pasadas.')
-                                    print('\t-> GLBLgrabarCotasDiferenciaEntrePasadas:', GLO.GLBLgrabarCotasDiferenciaEntrePasadas)
-                                    print('\t-> aFiles:', self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'])
-                                    print('\t-> aCeldasCotaMediaTlrTlcPsel.shape[0]:', self.aCeldasCotaMediaTlrTlcPsel.shape[0])
-                                    print('\t-> aCeldasCotaMediaTlrTlcPotr.shape[0]:', self.aCeldasCotaMediaTlrTlcPotr.shape[0])
-                                    print('\t->', nX, nY, 'self.aCeldasCotaMediaTlrTlcPotr[nX, nY]:', self.aCeldasCotaMediaTlrTlcPotr[nX, nY], 'self.aCeldasCotaMediaTlrTlcPsel[nX, nY]:', self.aCeldasCotaMediaTlrTlcPsel[nX, nY])
+                if GLO.GLBLgrabarNumPuntosAuxiliar:
+                    if not self.aFiles['numPuntosAlmacenablesSinOutliers'] is None and self.aCeldasNumPuntosTlrTlcTlpOk.shape[0] > 1:
+                        self.aFiles['numPuntosAlmacenablesSinOutliers'].write(str(self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]) + ' ')
+                    if not self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'] is None and self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos.shape[0] > 1:
+                        self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'].write(str(self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY]) + ' ')
+
+                if GLO.GLBLgrabarNumIdPasada:
+                    if not self.aFiles['numPasadas'] is None and self.aCeldasNumPasadasConPuntos.shape[0] > 1:
+                        self.aFiles['numPasadas'].write(str(self.aCeldasNumPasadasConPuntos[nX, nY]) + ' ')
+                    if not self.aFiles['idPasadaBasalSeleccionada'] is None and self.IDselec.shape[0] > 1:
+                        self.aFiles['idPasadaBasalSeleccionada'].write(str(self.IDselec[nX, nY]) + ' ')
+                    if not self.aFiles['idPasadaSueloSeleccionada'] is None and self.IDsuelo.shape[0] > 1:
+                        self.aFiles['idPasadaSueloSeleccionada'].write(str(self.IDsuelo[nX, nY]) + ' ')
 
                 if GLO.GLBLgrabarCotasMediasPorClase:
                     if not self.aFiles['zMediaPtsVegetPsel'] is None and self.aCeldasCotaMediaTlrVegPsel.shape[0] > 1:
@@ -5300,52 +5632,136 @@ class LasData(object):
                         self.aFiles['numPuntosSueloPsue'].write(str(self.aCeldasNumPuntosTlrSuePsueOk[nX, nY]) + ' ')
                     if not self.aFiles['numPuntosSueloPselOk'] is None and self.aCeldasNumPuntosTlrSuePselOk.shape[0] > 1:
                         self.aFiles['numPuntosSueloPselOk'].write(str(self.aCeldasNumPuntosTlrSuePselOk[nX, nY]) + ' ')
-                if GLO.GLBLgrabarNumPuntosTotales:
-                    if not self.aFiles['numPuntosTotalesDentroDeBloque'] is None and self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar.shape[0] > 1:
-                        self.aFiles['numPuntosTotalesDentroDeBloque'].write(str(self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY]) + ' ')
-                    if not self.aFiles['numPuntosPasadaSelecOk'] is None and self.aCeldasNumPuntosTlrTlcPselOk.shape[0] > 1:
-                        self.aFiles['numPuntosPasadaSelecOk'].write(str(self.aCeldasNumPuntosTlrTlcPselOk[nX, nY]) + ' ')
-                if GLO.GLBLgrabarPrimerosRetornosNoSolape:
-                    if not self.aFiles['numPuntosPrimRetSinSolape'] is None and self.aCeldasNumPrimerosRetornosNoSolape.shape[0] > 1:
-                        self.aFiles['numPuntosPrimRetSinSolape'].write(str(self.aCeldasNumPrimerosRetornosNoSolape[nX, nY]) + ' ')
-                if GLO.GLBLgrabarNumPuntosAuxiliar:
-                    if not self.aFiles['numPuntosAlmacenablesSinOutliers'] is None and self.aCeldasNumPuntosTlrTlcTlpOk.shape[0] > 1:
-                        self.aFiles['numPuntosAlmacenablesSinOutliers'].write(str(self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]) + ' ')
-                    if not self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'] is None and self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos.shape[0] > 1:
-                        self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'].write(str(self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY]) + ' ')
-                if GLO.GLBLgrabarNumIdPasada:
-                    if not self.aFiles['numPasadas'] is None and self.aCeldasNumPasadasConPuntos.shape[0] > 1:
-                        self.aFiles['numPasadas'].write(str(self.aCeldasNumPasadasConPuntos[nX, nY]) + ' ')
-                    if not self.aFiles['idPasadaBasalSeleccionada'] is None and self.IDselec.shape[0] > 1:
-                        self.aFiles['idPasadaBasalSeleccionada'].write(str(self.IDselec[nX, nY]) + ' ')
-                    if not self.aFiles['idPasadaSueloSeleccionada'] is None and self.IDsuelo.shape[0] > 1:
-                        self.aFiles['idPasadaSueloSeleccionada'].write(str(self.IDsuelo[nX, nY]) + ' ')
 
-                if self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY] > GLO.GLBLnMaxPtosCeldaTlrPas:
-                    self.nCeldasConDemasiadosPuntosTlrPas += 1
-                    if self.nCeldasConDemasiadosPuntosTlrPas < 10:
-                        print(
-                            'cliddata->', nX, nY,
-                            'Hay mas de %i puntos en una celda en la pasada seleccionada' % GLO.GLBLnMaxPtosCeldaTlrPas,
-                            '-> self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]', self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY],
-                        )
-                        print(
-                            '\t-> Celda (%i %i) con %i puntos totales y %i en la pasada sel (y mas de %i puntos en la pasada seleccionada)'
-                            % (nX, nY,
-                               self.aCeldasNumPuntosTlrTlcTlpTlvSinFiltrar[nX, nY],
-                               self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY],
-                               GLO.GLBLnMaxPtosCeldaTlrPas)
-                        )
-                    elif self.nCeldasConDemasiadosPuntosTlrPas == 10:
-                        print(
-                            'cliddata-> Revisar la seleccion de la pasada-> aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY]',
-                            self.aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY],
-                        )
-                    # input('Revisar aCeldasNumPuntosTlrTlcPselSinFiltrarSospechosos[nX, nY]')
+                if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
+                    if not myClassArray2 is None and isinstance(myClassArray2, np.ndarray) and (
+                        nX >= self.aCeldasCotaMediaTlrTlcPsel.shape[0]
+                        or nY >= self.aCeldasCotaMediaTlrTlcPsel.shape[1]
+                    ):
+                        continue
+                    if not myClassArray3 is None and isinstance(myClassArray3, np.ndarray) and (
+                        nX >= self.aCeldasCotaMediaTlrTlcPotr.shape[0]
+                        or nY >= self.aCeldasCotaMediaTlrTlcPotr.shape[1]
+                    ):
+                        continue
+                    if not myClassArray4 is None and isinstance(myClassArray4, np.ndarray) and (
+                        nX >= self.aCeldasCotaMediaTlrSuePotr.shape[0]
+                        or nY >= self.aCeldasCotaMediaTlrSuePotr.shape[1]
+                    ):
+                        continue
 
-            if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
-                if not self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'] is None:
-                    self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'].write('\n')
+                    if (
+                        not self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'] is None
+                        and self.aCeldasCotaMediaTlrTlcPsel.shape[0] > 1
+                        and self.aCeldasCotaMediaTlrTlcPotr.shape[0] > 1
+                    ):
+                        if self.aCeldasCotaMediaTlrTlcPsel[nX, nY] != GLO.GLBLnoData and self.aCeldasCotaMediaTlrTlcPotr[nX, nY] != GLO.GLBLnoData:
+                            self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'].write(
+                                '%05.02f ' % (self.aCeldasCotaMediaTlrTlcPsel[nX, nY] - self.aCeldasCotaMediaTlrTlcPotr[nX, nY])
+                            )
+                        else:
+                            # contadorCeldasSinDiferenciDeCotaENtrePasadas += 1
+                            self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'].write(str(GLO.GLBLnoData) + ' ')
+                            mostrarCelda = clidnaux.celdaDeControl(nX, nY)
+                            if mostrarCelda:
+                                if GLO.GLBLgrabarCotasDiferenciaEntrePasadas and self.aCeldasNumPasadasConPuntos[nX, nY] > 1:
+                                    print(f'cliddata-> AVISO: Analizar si la diferencia de cota entre pasadas es GLBLnoData simplemente porque en esta celda no hay dos pasadas:')
+                                    print(f'{TB}-> Celda: {nX} {nY}-> Numero pasadas con puntos en la celda: {self.aCeldasNumPasadasConPuntos[nX, nY]}')
+                                else:
+                                    print('cliddata-> No se guarda la diferencia de cota entre pasadas en esta celda:', nX, nY)
+                                print('\t-> GLBLgrabarCotasDiferenciaEntrePasadas:', GLO.GLBLgrabarCotasDiferenciaEntrePasadas)
+                                print('\t-> aFiles:', self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'])
+                                print('\t-> aCeldasCotaMediaTlrTlcPsel.shape[0]:', self.aCeldasCotaMediaTlrTlcPsel.shape[0])
+                                print('\t-> aCeldasCotaMediaTlrTlcPotr.shape[0]:', self.aCeldasCotaMediaTlrTlcPotr.shape[0])
+                                print('\t-> self.aCeldasCotaMediaTlrTlcPotr[nX, nY]:', self.aCeldasCotaMediaTlrTlcPotr[nX, nY])
+                                print('\t-> self.aCeldasCotaMediaTlrTlcPsel[nX, nY]:', self.aCeldasCotaMediaTlrTlcPsel[nX, nY])
+                    if (
+                        not self.aFiles['zMediaPtsSueloDiferenciaEntrePselPotr'] is None
+                        and self.aCeldasCotaMediaTlrSuePsel.shape[0] > 1
+                        and self.aCeldasCotaMediaTlrSuePotr.shape[0] > 1
+                    ):
+                        if self.aCeldasCotaMediaTlrSuePsel[nX, nY] != GLO.GLBLnoData and self.aCeldasCotaMediaTlrSuePotr[nX, nY] != GLO.GLBLnoData:
+                            self.aFiles['zMediaPtsSueloDiferenciaEntrePselPotr'].write(
+                                '%05.02f ' % (self.aCeldasCotaMediaTlrSuePsel[nX, nY] - self.aCeldasCotaMediaTlrSuePotr[nX, nY])
+                            )
+                        else:
+                            self.aFiles['zMediaPtsSueloDiferenciaEntrePselPotr'].write(str(GLO.GLBLnoData) + ' ')
+                            mostrarCelda = clidnaux.celdaDeControl(nX, nY)
+                            if mostrarCelda:
+                                if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
+                                    print('cliddata-> AVISO: Analizar si la diferencia de cota entre pasadas es GLBLnoData simplemente porque en esta celda no hay dos pasadas:', nX, nY)
+                                else:
+                                    print('cliddata-> No se guarda la diferencia de cota entre pasadas en esta celda:', nX, nY)
+                                print('\t-> GLBLgrabarCotasDiferenciaEntrePasadas:', GLO.GLBLgrabarCotasDiferenciaEntrePasadas)
+                                print('\t-> aFiles:', self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'])
+                                print('\t-> aCeldasCotaMediaTlrSuePsel.shape[0]:', self.aCeldasCotaMediaTlrSuePsel.shape[0])
+                                print('\t-> aCeldasCotaMediaTlrSuePotr.shape[0]:', self.aCeldasCotaMediaTlrSuePotr.shape[0])
+                                print('\t-> self.aCeldasCotaMediaTlrSuePotr[nX, nY]:', self.aCeldasCotaMediaTlrSuePotr[nX, nY])
+                                print('\t-> self.aCeldasCotaMediaTlrSuePsel[nX, nY]:', self.aCeldasCotaMediaTlrSuePsel[nX, nY])
+                    if (
+                        not self.aFiles['zMediaPtsSueloDiferenciaEntrePsuePotr'] is None
+                        and self.aCeldasCotaMediaTlrSuePsue.shape[0] > 1
+                        and self.aCeldasCotaMediaTlrSuePotr.shape[0] > 1
+                    ):
+                        if self.aCeldasCotaMediaTlrSuePsue[nX, nY] != GLO.GLBLnoData and self.aCeldasCotaMediaTlrSuePotr[nX, nY] != GLO.GLBLnoData:
+                            self.aFiles['zMediaPtsSueloDiferenciaEntrePsuePotr'].write(
+                                '%05.02f ' % (self.aCeldasCotaMediaTlrSuePsue[nX, nY] - self.aCeldasCotaMediaTlrSuePotr[nX, nY])
+                            )
+                        else:
+                            self.aFiles['zMediaPtsSueloDiferenciaEntrePsuePotr'].write(str(GLO.GLBLnoData) + ' ')
+                            mostrarCelda = clidnaux.celdaDeControl(nX, nY)
+                            if mostrarCelda:
+                                if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
+                                    print('cliddata-> AVISO: Analizar si la diferencia de cota entre pasadas es GLBLnoData simplemente porque en esta celda no hay dos pasadas:', nX, nY)
+                                else:
+                                    print('cliddata-> No se guarda la diferencia de cota entre pasadas en esta celda:', nX, nY)
+                                print('\t-> GLBLgrabarCotasDiferenciaEntrePasadas:', GLO.GLBLgrabarCotasDiferenciaEntrePasadas)
+                                print('\t-> aFiles:', self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'])
+                                print('\t-> aCeldasCotaMediaTlrSuePsue.shape[0]:', self.aCeldasCotaMediaTlrSuePsue.shape[0])
+                                print('\t-> aCeldasCotaMediaTlrSuePotr.shape[0]:', self.aCeldasCotaMediaTlrSuePotr.shape[0])
+                                print('\t-> self.aCeldasCotaMediaTlrSuePotr[nX, nY]:', self.aCeldasCotaMediaTlrSuePotr[nX, nY])
+                                print('\t-> self.aCeldasCotaMediaTlrSuePsue[nX, nY]:', self.aCeldasCotaMediaTlrSuePsue[nX, nY])
+
+            if GLO.GLBLgrabarNumPuntosTotales:
+                if not self.aFiles['numPuntosTotalesDentroDeBloque'] is None:
+                    self.aFiles['numPuntosTotalesDentroDeBloque'].write('\n')
+                if not self.aFiles['numPuntosPasadaSelecOk'] is None:
+                    self.aFiles['numPuntosPasadaSelecOk'].write('\n')
+
+            if GLO.GLBLgrabarNumPuntosPrimerosRetornos:
+                if not self.aFiles['numPuntosPrimRetTlp'] is None:
+                    self.aFiles['numPuntosPrimRetTlp'].write('\n')
+                if not self.aFiles['numPuntosPrimRetClaseNoSolape'] is None:
+                    self.aFiles['numPuntosPrimRetClaseNoSolape'].write('\n')
+                if not self.aFiles['numPuntosPrimRetPsel'] is None:
+                    self.aFiles['numPuntosPrimRetPsel'].write('\n')
+
+            if GLO.GLBLgrabarNumPuntosRetornosSiguientes:
+                if not self.aFiles['RetornosSiguientesTodasLasPasadas'] is None:
+                    self.aFiles['RetornosSiguientesTodasLasPasadas'].write('\n')
+                if not self.aFiles['RetornosSiguientesPasadaSel'] is None:
+                    self.aFiles['RetornosSiguientesPasadaSel'].write('\n')
+
+            if GLO.GLBLgrabarNumPulsosSingleMultiReturns:
+                if not self.aFiles['SingleReturnTodasLasPasadas'] is None:
+                    self.aFiles['SingleReturnTodasLasPasadas'].write('\n')
+                if not self.aFiles['MultiReturnTodasLasPasadas'] is None:
+                    self.aFiles['MultiReturnTodasLasPasadas'].write('\n')
+
+            if GLO.GLBLgrabarNumPuntosAuxiliar:
+                if not self.aFiles['numPuntosAlmacenablesSinOutliers'] is None:
+                    self.aFiles['numPuntosAlmacenablesSinOutliers'].write('\n')
+                if not self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'] is None:
+                    self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'].write('\n')
+
+            if GLO.GLBLgrabarNumIdPasada:
+                if not self.aFiles['numPasadas'] is None:
+                    self.aFiles['numPasadas'].write('\n')
+                if not self.aFiles['idPasadaBasalSeleccionada'] is None:
+                    self.aFiles['idPasadaBasalSeleccionada'].write('\n')
+                if not self.aFiles['idPasadaSueloSeleccionada'] is None:
+                    self.aFiles['idPasadaSueloSeleccionada'].write('\n')
+
             if GLO.GLBLgrabarCotasMediasPorClase:
                 if not self.aFiles['zMediaPtsVegetPsel'] is None:
                     self.aFiles['zMediaPtsVegetPsel'].write('\n')
@@ -5357,15 +5773,6 @@ class LasData(object):
                     if not self.aFiles['zMediaPtsSueloPsue'] is None:
                         self.aFiles['zMediaPtsSueloPsue'].write('\n')
 
-            if GLO.GLBLgrabarPropiedadTime:
-                if not self.aFiles['rawTime'] is None:
-                    self.aFiles['rawTime'].write('\n')
-            if GLO.GLBLleerGrabarCeldasEdge:
-                if not self.aFiles['scanEdge'] is None:
-                    self.aFiles['scanEdge'].write('\n')
-            if GLO.GLBLgrabarAngulos:
-                if not self.aFiles['Ang'] is None:
-                    self.aFiles['Ang'].write('\n')
             if GLO.GLBLgrabarCotaMinMaxCelda:
                 if not self.aFiles['CeldasCotaMinAbsTlp'] is None:
                     self.aFiles['CeldasCotaMinAbsTlp'].write('\n')
@@ -5378,20 +5785,6 @@ class LasData(object):
                     if not self.aFiles['ipoAltur'] is None:
                         self.aFiles[tipoAltura].write('\n')
 
-            if GLO.GLBLgrabarPrimerosVsSegundosRetornos:
-                if not self.aFiles['SingleReturnTodasLasPasadas'] is None:
-                    self.aFiles['SingleReturnTodasLasPasadas'].write('\n')
-                if not self.aFiles['MultiReturnTodasLasPasadas'] is None:
-                    self.aFiles['MultiReturnTodasLasPasadas'].write('\n')
-                if not self.aFiles['RetornosPrimerosTodasLasPasadas'] is None:
-                    self.aFiles['RetornosPrimerosTodasLasPasadas'].write('\n')
-                if not self.aFiles['RetornosSiguientesTodasLasPasadas'] is None:
-                    self.aFiles['RetornosSiguientesTodasLasPasadas'].write('\n')
-                if not self.aFiles['RetornosPrimerosPasadaSel'] is None:
-                    self.aFiles['RetornosPrimerosPasadaSel'].write('\n')
-                if not self.aFiles['RetornosSiguientesPasadaSel'] is None:
-                    self.aFiles['RetornosSiguientesPasadaSel'].write('\n')
-
             if GLO.GLBLcalcularMds and GLO.GLBLgrabarNumPuntosSuelo:
                 if not self.aFiles['numPuntosSueloTodasLasPasadas'] is None:
                     self.aFiles['numPuntosSueloTodasLasPasadas'].write('\n')
@@ -5400,30 +5793,52 @@ class LasData(object):
                 if not self.aFiles['numPuntosSueloPselOk'] is None:
                     self.aFiles['numPuntosSueloPselOk'].write('\n')
 
-            if GLO.GLBLgrabarNumPuntosTotales:
-                if not self.aFiles['numPuntosTotalesDentroDeBloque'] is None:
-                    self.aFiles['numPuntosTotalesDentroDeBloque'].write('\n')
-                if not self.aFiles['numPuntosPasadaSelecOk'] is None:
-                    self.aFiles['numPuntosPasadaSelecOk'].write('\n')
-            if GLO.GLBLgrabarPrimerosRetornosNoSolape:
-                if not self.aFiles['numPuntosPrimRetSinSolape'] is None:
-                    self.aFiles['numPuntosPrimRetSinSolape'].write('\n')
-            if GLO.GLBLgrabarNumPuntosAuxiliar:
-                if not self.aFiles['numPuntosAlmacenablesSinOutliers'] is None:
-                    self.aFiles['numPuntosAlmacenablesSinOutliers'].write('\n')
-                if not self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'] is None:
-                    self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'].write('\n')
-            if GLO.GLBLgrabarNumIdPasada:
-                if not self.aFiles['numPasadas'] is None:
-                    self.aFiles['numPasadas'].write('\n')
-                if not self.aFiles['idPasadaBasalSeleccionada'] is None:
-                    self.aFiles['idPasadaBasalSeleccionada'].write('\n')
-                if not self.aFiles['idPasadaSueloSeleccionada'] is None:
-                    self.aFiles['idPasadaSueloSeleccionada'].write('\n')
+            if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
+                if not self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'] is None:
+                    self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'].write('\n')
 
-        if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
-            if not self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'] is None:
-                self.aFiles['zMediaPtsTodosDiferenciaEntrePasadas'].close()
+
+
+        if GLO.GLBLgrabarNumPuntosTotales:
+            if not self.aFiles['numPuntosTotalesDentroDeBloque'] is None:
+                self.aFiles['numPuntosTotalesDentroDeBloque'].close()
+            if not self.aFiles['numPuntosPasadaSelecOk'] is None:
+                self.aFiles['numPuntosPasadaSelecOk'].close()
+
+        if GLO.GLBLgrabarNumPuntosPrimerosRetornos:
+            if not self.aFiles['numPuntosPrimRetTlp'] is None:
+                self.aFiles['numPuntosPrimRetTlp'].close()
+            if not self.aFiles['numPuntosPrimRetClaseNoSolape'] is None:
+                self.aFiles['numPuntosPrimRetClaseNoSolape'].close()
+            if not self.aFiles['numPuntosPrimRetPsel'] is None:
+                self.aFiles['numPuntosPrimRetPsel'].close()
+
+        if GLO.GLBLgrabarNumPuntosRetornosSiguientes:
+            if not self.aFiles['RetornosSiguientesTodasLasPasadas'] is None:
+                self.aFiles['RetornosSiguientesTodasLasPasadas'].close()
+            if not self.aFiles['RetornosSiguientesPasadaSel'] is None:
+                self.aFiles['RetornosSiguientesPasadaSel'].close()
+
+        if GLO.GLBLgrabarNumPulsosSingleMultiReturns:
+            if not self.aFiles['SingleReturnTodasLasPasadas'] is None:
+                self.aFiles['SingleReturnTodasLasPasadas'].close()
+            if not self.aFiles['MultiReturnTodasLasPasadas'] is None:
+                self.aFiles['MultiReturnTodasLasPasadas'].close()
+
+        if GLO.GLBLgrabarNumPuntosAuxiliar:
+            if not self.aFiles['numPuntosAlmacenablesSinOutliers'] is None:
+                self.aFiles['numPuntosAlmacenablesSinOutliers'].close()
+            if not self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'] is None:
+                self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'].close()
+
+        if GLO.GLBLgrabarNumIdPasada:
+            if not self.aFiles['numPasadas'] is None:
+                self.aFiles['numPasadas'].close()
+            if not self.aFiles['idPasadaBasalSeleccionada'] is None:
+                self.aFiles['idPasadaBasalSeleccionada'].close()
+            if not self.aFiles['idPasadaSueloSeleccionada'] is None:
+                self.aFiles['idPasadaSueloSeleccionada'].close()
+
         if GLO.GLBLgrabarCotasMediasPorClase:
             if not self.aFiles['zMediaPtsVegetPsel'] is None:
                 self.aFiles['zMediaPtsVegetPsel'].close()
@@ -5435,15 +5850,6 @@ class LasData(object):
                 if not self.aFiles['zMediaPtsSueloPsue'] is None:
                     self.aFiles['zMediaPtsSueloPsue'].close()
 
-        if GLO.GLBLgrabarPropiedadTime:
-            if not self.aFiles['rawTime'] is None:
-                self.aFiles['rawTime'].close()
-        if GLO.GLBLleerGrabarCeldasEdge:
-            if not self.aFiles['scanEdge'] is None:
-                self.aFiles['scanEdge'].close()
-        if GLO.GLBLgrabarAngulos:
-            if not self.aFiles['Ang'] is None:
-                self.aFiles['Ang'].close()
         if GLO.GLBLgrabarCotaMinMaxCelda:
             if not self.aFiles['CeldasCotaMinAbsTlp'] is None:
                 self.aFiles['CeldasCotaMinAbsTlp'].close()
@@ -5456,20 +5862,6 @@ class LasData(object):
                 if not self.aFiles['ipoAltur'] is None:
                     self.aFiles[tipoAltura].close()
 
-        if GLO.GLBLgrabarPrimerosVsSegundosRetornos:
-            if not self.aFiles['SingleReturnTodasLasPasadas'] is None:
-                self.aFiles['SingleReturnTodasLasPasadas'].close()
-            if not self.aFiles['MultiReturnTodasLasPasadas'] is None:
-                self.aFiles['MultiReturnTodasLasPasadas'].close()
-            if not self.aFiles['RetornosPrimerosTodasLasPasadas'] is None:
-                self.aFiles['RetornosPrimerosTodasLasPasadas'].close()
-            if not self.aFiles['RetornosSiguientesTodasLasPasadas'] is None:
-                self.aFiles['RetornosSiguientesTodasLasPasadas'].close()
-            if not self.aFiles['RetornosPrimerosPasadaSel'] is None:
-                self.aFiles['RetornosPrimerosPasadaSel'].close()
-            if not self.aFiles['RetornosSiguientesPasadaSel'] is None:
-                self.aFiles['RetornosSiguientesPasadaSel'].close()
-
         if GLO.GLBLcalcularMds and GLO.GLBLgrabarNumPuntosSuelo:
             if not self.aFiles['numPuntosSueloTodasLasPasadas'] is None:
                 self.aFiles['numPuntosSueloTodasLasPasadas'].close()
@@ -5478,33 +5870,17 @@ class LasData(object):
             if not self.aFiles['numPuntosSueloPselOk'] is None:
                 self.aFiles['numPuntosSueloPselOk'].close()
 
-        if GLO.GLBLgrabarNumPuntosTotales:
-            if not self.aFiles['numPuntosTotalesDentroDeBloque'] is None:
-                self.aFiles['numPuntosTotalesDentroDeBloque'].close()
-            if not self.aFiles['numPuntosPasadaSelecOk'] is None:
-                self.aFiles['numPuntosPasadaSelecOk'].close()
-        if GLO.GLBLgrabarPrimerosRetornosNoSolape:
-            if not self.aFiles['numPuntosPrimRetSinSolape'] is None:
-                self.aFiles['numPuntosPrimRetSinSolape'].close()
-        if GLO.GLBLgrabarNumPuntosAuxiliar:
-            if not self.aFiles['numPuntosAlmacenablesSinOutliers'] is None:
-                self.aFiles['numPuntosAlmacenablesSinOutliers'].close()
-            if not self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'] is None:
-                self.aFiles['numPuntosPasadaSelecSinFiltrarSospechosos'].close()
-        if GLO.GLBLgrabarNumIdPasada:
-            if not self.aFiles['numPasadas'] is None:
-                self.aFiles['numPasadas'].close()
-            if not self.aFiles['idPasadaBasalSeleccionada'] is None:
-                self.aFiles['idPasadaBasalSeleccionada'].close()
-            if not self.aFiles['idPasadaSueloSeleccionada'] is None:
-                self.aFiles['idPasadaSueloSeleccionada'].close()
+        if GLO.GLBLgrabarCotasDiferenciaEntrePasadas:
+            if not self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'] is None:
+                self.aFiles['zMediaPtsTodosDiferenciaEntrePselPotr'].close()
+
         # ======================================================================
 
         # ======================================================================
         if GLO.GLBLcalcularSubCeldas:
             # ==================================================================
             if GLO.GLBLgrabarCotaMinMaxSubCelda:
-                # CotaMinMax/02mCell/CotaMin
+                # CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMin
                 if not self.aFiles['SubCeldasCotaMin'] is None and self.aSubCeldasCotaMinAA.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasCotaMin')
                     for nY in reversed(range(self.aSubCeldasCotaMinAA.shape[1])):
@@ -5519,7 +5895,7 @@ class LasData(object):
                                 self.aFiles['SubCeldasCotaMin'].write('%07.01f ' % GLO.GLBLnoData)
                         self.aFiles['SubCeldasCotaMin'].write('\n')
                     self.aFiles['SubCeldasCotaMin'].close()
-                # CotaMinMax/02mCell/CotaMax
+                # CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMax
                 if not self.aFiles['SubCeldasCotaMax'] is None and self.aSubCeldasCotaMaxAA.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasCotaMax')
                     for nY in reversed(range(self.aSubCeldasCotaMaxAA.shape[1])):
@@ -5569,7 +5945,7 @@ class LasData(object):
 
 
     # ==========================================================================
-    # if GLBLcalcularSubCeldas and GLBLgrabarMdgAjusteSubCelda:  # Mde/02mCell/Global/
+    # if GLBLcalcularSubCeldas and GLBLgrabarMdgAjusteSubCelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Global/
     def guardarMdgSubCelda(self):
         myClassArray = getattr(self, 'aSubCeldasMdgAjuste', None)
         for nY in reversed(range(self.aSubCeldasMdgAjuste.shape[1])):
@@ -5631,25 +6007,25 @@ class LasData(object):
                 self.aFiles['SubCeldasMdgEcmr'].close()
 
     # ==========================================================================
-    # if GLO.GLBLgrabarIndicesVegetacionNDVIetAlSubCelda: #RGBI/02mCell/
+    # if GLO.GLBLgrabarIndicesVegetacionNDVIetAlSubCelda: #RGBI/{GLO.GLBLmetrosSubCelda}mCell/
     def guardarIndicesIRGBIrISubCelda(self):
         # Guardo los valores medios de intensity e indices RGBIr por subCelda
         print('\t\t\tcliddata-> guardando indices de subceldas')
-        if GLO.GLBLgrabarIndicesVegetacionIntSRet:  # RGBI/02mCellIntSRet/
+        if GLO.GLBLgrabarIndicesVegetacionIntSRet:  # RGBI/{GLO.GLBLmetrosSubCelda}mCellIntSRet/
             if not self.aFiles['SubCeldasIntSRetMed'] is None and self.aSubCeldasIntSRetMed.shape[0] > 1:
                 for nSubY in reversed(range(self.aSubCeldasIntSRetMed.shape[1])):
                     for nSubX in range(self.aSubCeldasIntSRetMed.shape[0]):
                         self.aFiles['SubCeldasIntSRetMed'].write('%05i ' % round(self.aSubCeldasIntSRetMed[nSubX, nSubY], 2))
                     self.aFiles['SubCeldasIntSRetMed'].write('\n')
                 self.aFiles['SubCeldasIntSRetMed'].close()
-        if GLO.GLBLgrabarIndicesVegetacionIntMRet:  # RGBI/02mCellIntMRet/
+        if GLO.GLBLgrabarIndicesVegetacionIntMRet:  # RGBI/{GLO.GLBLmetrosSubCelda}mCellIntMRet/
             if not self.aFiles['SubCeldasIntMRetMed'] is None and self.aSubCeldasIntMRetMed.shape[0] > 1:
                 for nSubY in reversed(range(self.aSubCeldasIntMRetMed.shape[1])):
                     for nSubX in range(self.aSubCeldasIntMRetMed.shape[0]):
                         self.aFiles['SubCeldasIntMRetMed'].write('%05i ' % round(self.aSubCeldasIntMRetMed[nSubX, nSubY], 2))
                     self.aFiles['SubCeldasIntMRetMed'].write('\n')
                 self.aFiles['SubCeldasIntMRetMed'].close()
-        if GLO.GLBLgrabarIndicesVegetacionEVI2:  # RGBI/02mCellEVI2/
+        if GLO.GLBLgrabarIndicesVegetacionEVI2:  # RGBI/{GLO.GLBLmetrosSubCelda}mCellEVI2/
             if not self.aFiles['SubCeldasEVI2'] is None and self.aSubCeldasEVI2Med.shape[0] > 1:
                 for nSubY in reversed(range(self.aSubCeldasEVI2Med.shape[1])):
                     for nSubX in range(self.aSubCeldasEVI2Med.shape[0]):
@@ -5659,7 +6035,7 @@ class LasData(object):
                             self.aFiles['SubCeldasEVI2'].write('{:05.2f} '.format(round(self.aSubCeldasEVI2Med[nSubX, nSubY], 2)))
                     self.aFiles['SubCeldasEVI2'].write('\n')
                 self.aFiles['SubCeldasEVI2'].close()
-        if GLO.GLBLgrabarIndicesVegetacionNDVI:  # RGBI/02mCellNDVI/
+        if GLO.GLBLgrabarIndicesVegetacionNDVI:  # RGBI/{GLO.GLBLmetrosSubCelda}mCellNDVI/
             if not self.aFiles['SubCeldasNDVI'] is None and self.aSubCeldasNDVIMed.shape[0] > 1:
                 for nSubY in reversed(range(self.aSubCeldasNDVIMed.shape[1])):
                     for nSubX in range(self.aSubCeldasNDVIMed.shape[0]):
@@ -5669,7 +6045,7 @@ class LasData(object):
                             self.aFiles['SubCeldasNDVI'].write('{:05.2f} '.format(round(self.aSubCeldasNDVIMed[nSubX, nSubY], 2)))
                     self.aFiles['SubCeldasNDVI'].write('\n')
                 self.aFiles['SubCeldasNDVI'].close()
-        if GLO.GLBLgrabarIndicesVegetacionNDWI:  # RGBI/02mCellNDWI/
+        if GLO.GLBLgrabarIndicesVegetacionNDWI:  # RGBI/{GLO.GLBLmetrosSubCelda}mCellNDWI/
             if not self.aFiles['SubCeldasNDWI'] is None and self.aSubCeldasNDWIMed.shape[0] > 1:
                 for nSubY in reversed(range(self.aSubCeldasNDWIMed.shape[1])):
                     for nSubX in range(self.aSubCeldasIntSRetMed.shape[0]):
@@ -5731,11 +6107,11 @@ class LasData(object):
     def guardarNumPuntosPorClasesCeldas(self, lasOrigRecl):
         # Numero de puntos por clase en cada celda (no necesito guardarlo para mas adelante)
         # PointClass/Orig/10mCell/NumPtos/
-        print('\t\t\tcliddata-> guardando numero de puntos por clase en Celdas (lasFile{})'.format(lasOrigRecl))
+        print('\t\t\tcliddata-> guardando numero de puntos por clase en Celdas (lasFile{lasOrigRecl})')
         for nY in reversed(range(self.aCeldasNumPtosPorClaseTlrTlp.shape[1])):
             for nX in reversed(range(self.aCeldasNumPtosPorClaseTlrTlp.shape[0])):
                 for lasClassNum in range(GLO.GLBLnumMaximoDeClases):
-                    fileNameSinRuta = 'Clase{:02}_TodasLasPasadasTodosLosRetornos_NumPuntos_{}'.format(lasClassNum, lasOrigRecl)
+                    fileNameSinRuta = 'Clase{lasClassNum:02}_TodasLasPasadasTodosLosRetornos_NumPuntos_{lasOrigRecl}'
                     if not self.aFiles[fileNameSinRuta] is None and self.aCeldasNumPtosPorClaseTlrTlp.shape[0] > 1:
                         self.aFiles[fileNameSinRuta].write(str(self.aCeldasNumPtosPorClaseTlrTlp[nX, nY][lasClassNum]) + ' ')
             for lasClassNum in range(GLO.GLBLnumMaximoDeClases):
@@ -5835,7 +6211,7 @@ class LasData(object):
     def guardarClasesSubCeldas(self, lasOrigRecl):
         # Guardo el numero de retornos por clase
         print('\t\t\tcliddata-> guardando clases SubCeldas (lasFile{})'.format(lasOrigRecl))
-        if GLO.GLBLgrabarSubCeldasClasesSueloVegetacion:  # PointClass/Orig/02mCell/Suelo/
+        if GLO.GLBLgrabarSubCeldasClasesSueloVegetacion:  # PointClass/Orig/{GLO.GLBLmetrosSubCelda}mCell/Suelo/
             for sCelY in reversed(range(self.aSubCeldasProp09TodosLosRetornosSuelo.shape[1])):
                 for sCelX in range(self.aSubCeldasProp09TodosLosRetornosSuelo.shape[0]):
 
@@ -5875,7 +6251,7 @@ class LasData(object):
                 if not self.aFiles['SubCeldasProp09PrimerosRetornosVeget_{}'.format(lasOrigRecl)] is None:
                     self.aFiles['SubCeldasProp09PrimerosRetornosVeget_{}'.format(lasOrigRecl)].close()
 
-        if GLO.GLBLgrabarSubCeldasClasesEdificio:  # PointClass/Orig/02mCell/Edificio/
+        if GLO.GLBLgrabarSubCeldasClasesEdificio:  # PointClass/Orig/{GLO.GLBLmetrosSubCelda}mCell/Edificio/
             for sCelY in reversed(range(self.aSubCeldasProp09TodosLosRetornosEdificio.shape[1])):
                 for sCelX in range(self.aSubCeldasProp09TodosLosRetornosEdificio.shape[0]):
                     if not self.aFiles['SubCeldasProp09TodosLosRetornosEdificio_{}'.format(lasOrigRecl)] is None and self.aSubCeldasProp09TodosLosRetornosEdificio.shape[0] > 1:
@@ -5898,7 +6274,7 @@ class LasData(object):
                 if not self.aFiles['SubCeldasProp09PrimerosRetornosEdificio_{}'.format(lasOrigRecl)] is None:
                     self.aFiles['SubCeldasProp09PrimerosRetornosEdificio_{}'.format(lasOrigRecl)].close()
 
-        if GLO.GLBLgrabarSubCeldasClasesOtros:  # PointClass/Orig/02mCell/Otros/
+        if GLO.GLBLgrabarSubCeldasClasesOtros:  # PointClass/Orig/{GLO.GLBLmetrosSubCelda}mCell/Otros/
             for sCelY in reversed(range(self.aSubCeldasProp09TodosLosRetornosOtros.shape[1])):
                 for sCelX in range(self.aSubCeldasProp09TodosLosRetornosOtros.shape[0]):
                     if not self.aFiles['SubCeldasProp09TodosLosRetornosOtros_{}'.format(lasOrigRecl)] is None and self.aSubCeldasProp09TodosLosRetornosOtros.shape[0] > 1:
@@ -6001,20 +6377,109 @@ class LasData(object):
 
     # ==========================================================================
     def guardarMiscelaneaVuelta0(self):
+        # Hay 2 anos bisiestos entre 1970 y 1979: 1972, 1976, 
+        # Calculo manual de los segundos desde 1/1/1970 hasta fechas concretas: 
+        # Hay 2 anos bisiestos entre 1970 y 1979: 1972, 1976, 
+        # segundosDesde19700101Hasta19800106 = (10 * 365 * 24 * 60 * 60) + (5 * 24 * 60 * 60) + (2 * 24 * 60 * 60) # 315964800 -> UTC time
+        # Calculo de python:
+        diasDesde19700101Hasta19800106 = datetime.datetime(1980, 1, 6) - datetime.datetime(1970, 1, 1) # datetime.timedelta(days=3657)
+        segundosDesde19700101Hasta19800106 = diasDesde19700101Hasta19800106.total_seconds() # 315964800.0
+        # Si uso mktime() -> Es distinto porque proporciona el DST (en verano le resta 3600), con lo que hay que sumar 3600
+        # segundosDesde19700101Hasta19800106 = 3600 + time.mktime(time.strptime('1980-01-06 00:00:00', '%Y-%m-%d %H:%M:%S')) # 3600 + 315961200.0 = 315964800.0 -> mktime() proporcona el DST time es 3600 menos que si o hago manuamente (1 hora)
+        # datetime.fromtimestamp(segundosDesde19700101Hasta19800106) -> datetime.datetime(1980, 1,6, 0, 0)
+
+        # Hay 10 anos bisiestos entre 1970 y 2010: 1972, 1976, 1980, 1984, 1988, 1992, 1996, 2000, 2004, 2008
+        # segundosDesde19700101Hasta20100101 = (40 * 365 * 24 * 60 * 60) + (10 * 24 * 60 * 60) # 1262304000
+        # Calculo de python:
+        diasDesde19700101Hasta20100101 = datetime.datetime(2010, 1, 1) - datetime.datetime(1970, 1, 1) # datetime.timedelta(days=14610)
+        segundosDesde19700101Hasta20100101 = diasDesde19700101Hasta20100101.total_seconds() # 1262304000.0
+
         for nY in reversed(range(self.nCeldasY)):
             for nX in range(self.nCeldasX):
-                # rawTime medio por celda
                 if GLO.GLBLgrabarPropiedadTime:
-                    if not self.aFiles['rawTime'] is None and self.aCeldasRawTime.shape[0] > 1:
+                    if not self.aFiles['segundosDesde19800106Menos1e9Med'] is None:
                         if self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY] != 0:
-                            self.aFiles['rawTime'].write(str(float(self.aCeldasRawTime[nX, nY]) / self.aCeldasNumPuntosTlrTlcTlpOk[nX, nY]) + ' ')
+                            # Para calcular el numero de segundos desde 1970 hasta 19800106 sumo 10 years -6 dias + 2 dias mas por los bisiestos (segundosDesde19700101Hasta19800106)
+                            # Para calcular el numero de segundos desde 2010 resto 40 years y 10 dias mas por los bisiestos (segundosDesde19700101Hasta20100101)
+                            if self.aCeldasRawTime[nX, nY, 0] == GLO.GLBLnoData or self.aCeldasNumPrimerosRetornosTlp[nX, nY] == 0:
+                                miCeldaRawTimeMed = GLO.GLBLnoData
+                                miCeldaDiasDesde20100101Med = GLO.GLBLnoData
+                            else:
+                                miCeldaRawTimeMed = self.aCeldasRawTime[nX, nY, 0] / self.aCeldasNumPrimerosRetornosTlp[nX, nY]
+                                miCeldaDiasDesde20100101Med = np.uint32((
+                                        miCeldaRawTimeMed + 1e9
+                                        + segundosDesde19700101Hasta19800106
+                                        - segundosDesde19700101Hasta20100101
+                                    ) / (24 * 60 * 60)
+                                )
+                            if self.aCeldasRawTime[nX, nY, 1] == GLO.GLBLnoData:
+                                miCeldaDiasDesde20100101Min = GLO.GLBLnoData
+                            else:
+                                miCeldaDiasDesde20100101Min = np.uint32((
+                                        self.aCeldasRawTime[nX, nY, 1] + 1e9
+                                        + segundosDesde19700101Hasta19800106
+                                        - segundosDesde19700101Hasta20100101
+                                    ) / (24 * 60 * 60)
+                                )
+                            if self.aCeldasRawTime[nX, nY, 2] == GLO.GLBLnoData:
+                                miCeldaDiasDesde20100101Max = GLO.GLBLnoData
+                            else:
+                                miCeldaDiasDesde20100101Max = np.uint32((
+                                        self.aCeldasRawTime[nX, nY, 2] + 1e9
+                                        + segundosDesde19700101Hasta19800106
+                                        - segundosDesde19700101Hasta20100101
+                                    ) / (24 * 60 * 60)
+                                )
+                            self.aFiles['segundosDesde19800106Menos1e9Med'].write(f'{miCeldaRawTimeMed} ')
+                            self.aFiles['segundosDesde19800106Menos1e9Min'].write(f'{self.aCeldasRawTime[nX, nY, 1]} ')
+                            self.aFiles['segundosDesde19800106Menos1e9Max'].write(f'{self.aCeldasRawTime[nX, nY, 2]} ')
+                            self.aFiles['diasDesde20100101Med'].write(f'{miCeldaDiasDesde20100101Med} ')
+                            self.aFiles['diasDesde20100101Min'].write(f'{miCeldaDiasDesde20100101Min} ')
+                            self.aFiles['diasDesde20100101Max'].write(f'{miCeldaDiasDesde20100101Max} ')
                         else:
-                            self.aFiles['rawTime'].write(str(0) + ' ')
-
+                            self.aFiles['segundosDesde19800106Menos1e9Med'].write(f'{0} ')
+                            self.aFiles['segundosDesde19800106Menos1e9Min'].write(f'{0} ')
+                            self.aFiles['segundosDesde19800106Menos1e9Max'].write(f'{0} ')
+                            self.aFiles['diasDesde20100101Med'].write(f'{0} ')
+                            self.aFiles['diasDesde20100101Min'].write(f'{0} ')
+                            self.aFiles['diasDesde20100101Max'].write(f'{0} ')
                 if GLO.GLBLleerGrabarCeldasEdge:
-                    # Hay algun punto de borde de escaneo (no necesito guardarlo para mas adelante)
-                    if not self.aCeldasEsCeldaEdge is None and not self.aFiles['scanEdge'] is None and self.aCeldasEsCeldaEdge.shape[0] > 1:
-                        self.aFiles['scanEdge'].write(str(self.aCeldasEsCeldaEdge[nX, nY]) + ' ')
+                    if not self.aFiles['scanEdge'] is None:
+                        self.aFiles['scanEdge'].write(f'{self.aCeldasEsCeldaEdge[nX, nY]} ')
+                if GLO.GLBLgrabarAngulos:
+                    if not self.aFiles['AnguloMed_PasadaSelec'] is None and self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape[0] > 1:
+                        miCeldaAnguloMedio = int(clidnaux.leerEscalarEnNdarrayId(self.aCeldasAngMedMinMaxTlrTlcPorPasada[nX, nY, 0], self.IDselec[nX, nY]))
+                        self.aFiles['AnguloMed_PasadaSelec'].write('%02i ' % miCeldaAnguloMedio)
+
+            if GLO.GLBLgrabarPropiedadTime:
+                if not self.aFiles['segundosDesde19800106Menos1e9Med'] is None:
+                    self.aFiles['segundosDesde19800106Menos1e9Med'].write('\n')
+                    self.aFiles['segundosDesde19800106Menos1e9Min'].write('\n')
+                    self.aFiles['segundosDesde19800106Menos1e9Max'].write('\n')
+                    self.aFiles['diasDesde20100101Med'].write('\n')
+                    self.aFiles['diasDesde20100101Min'].write('\n')
+                    self.aFiles['diasDesde20100101Max'].write('\n')
+            if GLO.GLBLleerGrabarCeldasEdge:
+                if not self.aFiles['scanEdge'] is None:
+                    self.aFiles['scanEdge'].write('\n')
+            if GLO.GLBLgrabarAngulos:
+                if not self.aFiles['AnguloMed_PasadaSelec'] is None:
+                    self.aFiles['AnguloMed_PasadaSelec'].write('\n')
+
+        if GLO.GLBLgrabarPropiedadTime:
+            if not self.aFiles['segundosDesde19800106Menos1e9Med'] is None:
+                self.aFiles['segundosDesde19800106Menos1e9Med'].close()
+                self.aFiles['segundosDesde19800106Menos1e9Min'].close()
+                self.aFiles['segundosDesde19800106Menos1e9Max'].close()
+                self.aFiles['diasDesde20100101Med'].close()
+                self.aFiles['diasDesde20100101Min'].close()
+                self.aFiles['diasDesde20100101Max'].close()
+        if GLO.GLBLleerGrabarCeldasEdge:
+            if not self.aFiles['scanEdge'] is None:
+                self.aFiles['scanEdge'].close()
+        if GLO.GLBLgrabarAngulos:
+            if not self.aFiles['AnguloMed_PasadaSelec'] is None:
+                self.aFiles['AnguloMed_PasadaSelec'].close()
 
 
     # ==========================================================================
@@ -6372,9 +6837,9 @@ class LasData(object):
                                 if miEcmr > GLO.GLBLerrorResidualMedioInicialElevado:
                                     # Incluye las celdas en las que no se ha conseguido ajustar un plano porque ni el A ni el B cumplen
                                     # No incluye las celdas con pocos puntos por pasada porque en ellas no se calcula el rangoPuntosBasales
-                                    self.aFiles['plano{}_EcmrInicial'.format(nombrePlano)].write('%05.02f ' % round(miEcmr, 2))
+                                    self.aFiles['plano{}_EcmrFinal'.format(nombrePlano)].write('%05.02f ' % round(miEcmr, 2))
                                 else:
-                                    self.aFiles['plano{}_EcmrInicial'.format(nombrePlano)].write('%05.02f ' % GLO.GLBLnoData)
+                                    self.aFiles['plano{}_EcmrFinal'.format(nombrePlano)].write('%05.02f ' % GLO.GLBLnoData)
                         else:
                             if (
                                 GLO.GLBLgrabarEcmr
@@ -6536,7 +7001,10 @@ class LasData(object):
 
 
     # ==========================================================================
-    # if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+    # if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+    #     GLO.GLBLcalcularMdkConClasificacionInferida
+    #     and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+    # ):
     def guardarMdkSubCeldaPreInterpol(self):
         # Guardo las cotas medias y minimas de los puntos clasificados 2, 9, 10, 11 en cada subcelda
         print('\t\t\tcliddata-> guardando Mdk preInterpol')
@@ -6555,7 +7023,10 @@ class LasData(object):
 
 
     # ==========================================================================
-    # if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+    # if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+    #     GLO.GLBLcalcularMdkConClasificacionInferida
+    #     and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+    # ):
     def guardarMdkSubCeldaPosInterpol(self):
         # Guardo las cotas medias y minimas de los puntos clasificados 2, 9, 10, 11 en cada subcelda
         print('\t\t\tcliddata-> guardando Mdk posInterpol')
@@ -6578,7 +7049,7 @@ class LasData(object):
             print('clindat-> ATENCION: revisar el argumento prePostInterpol:', prePostInterpol)
             return
 
-        # Mde/02mCell/Basal/
+        # Mde/{GLO.GLBLmetrosSubCelda}mCell/Basal/
         if hasattr(self, aSubCeldasMdbPrePostInterpol) and not self.aSubCeldasMdb is None:
             print('clindat-> Se va a guardar en asc el array SubCeldasMdb:', self.aFiles[SubCeldasMdbPrePostInterpol])
             if not self.aFiles[SubCeldasMdbPrePostInterpol] is None and self.aSubCeldasMdb.shape[0] > 1:
@@ -6604,7 +7075,7 @@ class LasData(object):
         # print('\t\taSubCeldasMdfCotaConvol', self.aSubCeldasMdfCotaConvol.shape)
         # print(self.aSubCeldasMdfCotaConvol)
         if GLO.GLBLcalcularSubCeldas:
-            if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/02mCell/Final/
+            if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                 if not self.aFiles['SubCeldasMdfCotaConvol'] is None and self.aSubCeldasMdfCotaConvol.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasMdfCotaConvol.shape[1])):
                         for nX in range(self.aSubCeldasMdfCotaConvol.shape[0]):
@@ -6623,7 +7094,7 @@ class LasData(object):
                     print('clindat-> Revisar esto-> SubCeldasMdfCotaConvol:', self.aFiles['SubCeldasMdfCotaConvol'])
                     print('\tEl fichero SubCeldasMdfCotaConvol ya existe. GLBLmantenerAscGuardadosPreviamenteSiMasDe1Kb'.format(GLO.GLBLmantenerAscGuardadosPreviamenteSiMasDe1Kb))
 
-            if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/02mCell/Final/
+            if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                 if not self.aFiles['SubCeldasMdfCotaTransitoriaConvol'] is None and self.aSubCeldasMdfCotaTransitoriaConvol.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasMdfCotaTransitoriaConvol.shape[1])):
                         for nX in range(self.aSubCeldasMdfCotaTransitoriaConvol.shape[0]):
@@ -6645,7 +7116,7 @@ class LasData(object):
         # print('\t\taSubCeldasMdfCotaConual', self.aSubCeldasMdfCotaConual.shape)
         # print(self.aSubCeldasMdfCotaConual)
         if GLO.GLBLcalcularSubCeldas:
-            if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/02mCell/Final/
+            if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                 if not self.aFiles['SubCeldasMdfCotaConual'] is None and self.aSubCeldasMdfCotaConual.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasMdfCotaConual.shape[1])):
                         for nX in range(self.aSubCeldasMdfCotaConual.shape[0]):
@@ -6661,7 +7132,7 @@ class LasData(object):
                         self.aFiles['SubCeldasMdfCotaConual'].write('\n')
                     self.aFiles['SubCeldasMdfCotaConual'].close()
 
-            if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/02mCell/Final/
+            if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                 if not self.aFiles['SubCeldasMdfCotaTransitoriaConual'] is None and self.aSubCeldasMdfCotaTransitoriaConual.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasMdfCotaTransitoriaConual.shape[1])):
                         for nX in range(self.aSubCeldasMdfCotaTransitoriaConual.shape[0]):
@@ -6680,7 +7151,7 @@ class LasData(object):
 
     # ==========================================================================
     def guardarAjustesMdpManual(self, usarModeloConvolucional=False):
-        if GLO.GLBLgrabarMdpAjusteCelda:  # Mde/02mCell/Pleno/
+        if GLO.GLBLgrabarMdpAjusteCelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Pleno/
             clidaux.printMsg('\t\t-> cliddata-> Guardando CeldasMdpCota, CeldasMdpPteX, CeldasMdpPteY, CeldasMdpEcmr, CeldasMdpOctn')
             myClassArray = getattr(self, 'aCeldasMdpAjuste', None)
             for nY in reversed(range(self.nCeldasY)):
@@ -6750,7 +7221,7 @@ class LasData(object):
 
     # ==========================================================================
     def guardarAjustesMdpExtras(self):
-        if GLO.GLBLgrabarMdpInfoAuxiliar:  # Mde/02mCell/Pleno/Auxiliar/
+        if GLO.GLBLgrabarMdpInfoAuxiliar:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Pleno/Auxiliar/
             clidaux.printMsg('\t\t-> cliddata-> Guardando CeldasMdpNumPtosMiniMacro, CeldasMdpNumPtosMiniMicro')
             if not self.aFiles['CeldasMdpNumPtosMiniMacro'] is None and self.aCeldasMdpNumPtosMiniMacro.shape[0] > 1:
                 for nY in reversed(range(self.aCeldasMdpNumPtosMiniMacro.shape[1])):
@@ -6771,7 +7242,7 @@ class LasData(object):
         if GLO.GLBLcalcularSubCeldas:
             # ==================================================================
             if GLO.GLBLgrabarCotaMinMaxSubCelda:
-                # CotaMinMax/02mCell/CotaMiniOk/
+                # CotaMinMax/{GLO.GLBLmetrosSubCelda}mCell/CotaMiniOk/
                 if not self.aFiles['SubCeldasCotaMiniMacroEsOk'] is None and self.aSubCeldasCotaMiniMacroEsOk.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasCotaMiniMacroEsOk')
                     for nY in reversed(range(self.aSubCeldasCotaMiniMacroEsOk.shape[1])):
@@ -6787,7 +7258,7 @@ class LasData(object):
                         self.aFiles['SubCeldasCotaMiniMicroEsOk'].write('\n')
                     self.aFiles['SubCeldasCotaMiniMicroEsOk'].close()
             # ==================================================================
-            if GLO.GLBLgrabarMdpCotaSubceldaMacroMicro:  # Mde/02mCell/Pleno/
+            if GLO.GLBLgrabarMdpCotaSubceldaMacroMicro:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Pleno/
                 if not self.aFiles['SubCeldasMdpCotaMacroManual'] is None and self.aSubCeldasMdpCotaMacroManual.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasMdpCotaMacroManual')
                     for nY in reversed(range(self.aSubCeldasMdpCotaMacroManual.shape[1])):
@@ -6818,7 +7289,7 @@ class LasData(object):
                     self.aFiles['SubCeldasMdpCotaMicroManual'].close()
             # ==================================================================
             if GLO.GLBLcalcularMdfConMiniSubCelValidadosConMetodoManualPuro:
-                if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/02mCell/Final/
+                if GLO.GLBLgrabarMdfCotaSubcelda:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasMdfCotaManual')
                     if not self.aFiles['SubCeldasMdfCotaManual'] is None and self.aSubCeldasMdfCotaManual.shape[0] > 1:
                         for nY in reversed(range(self.aSubCeldasMdfCotaManual.shape[1])):
@@ -6835,7 +7306,7 @@ class LasData(object):
                             self.aFiles['SubCeldasMdfCotaManual'].write('\n')
                         self.aFiles['SubCeldasMdfCotaManual'].close()
 
-                if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/02mCell/Final/
+                if GLO.GLBLgrabarMdfCotaSubceldaTransitoria:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Final/
                     if not self.aFiles['SubCeldasMdfCotaTransitoriaManual'] is None and self.aSubCeldasMdfCotaTransitoriaManual.shape[0] > 1:
                         clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasMdfCotaTransitoriaManual')
                         for nY in reversed(range(self.aSubCeldasMdfCotaTransitoriaManual.shape[1])):
@@ -6854,7 +7325,7 @@ class LasData(object):
             else:
                 clidaux.printMsg('\t\t-> cliddata-> No se guarda el SubCeldasMdfCotaManual propiamente dicho')
             # ==================================================================
-            if GLO.GLBLgrabarMdpInfoAuxiliar:  # Mde/02mCell/Pleno/Auxiliar/
+            if GLO.GLBLgrabarMdpInfoAuxiliar:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Pleno/Auxiliar/
                 if not self.aFiles['SubCeldasMdpTipoCotaMacroManual'] is None and self.aSubCeldasMdpTipoCotaMacroManual.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasMdpTipoCotaMacroManual')
                     for nY in reversed(range(self.aSubCeldasMdpTipoCotaMacroManual.shape[1])):
@@ -6875,7 +7346,7 @@ class LasData(object):
             # ==================================================================
             if GLO.GLBLguardarLateralidadInterSubCeldasMinMax and GLO.GLBLcalcularSubCeldas and GLO.GLBLcalcularSubCeldas:
                 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-                # RugoLateralidad/02mCell/LateralidadMinMax/
+                # RugoLateralidad/{GLO.GLBLmetrosSubCelda}mCell/LateralidadMinMax/
                 if not self.aFiles['SubCeldasLateralidadMinMaxMacro'] is None and self.aSubCeldasLateralidadMinMaxMacro.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasLateralidadMinMaxMacro')
                     for nY in reversed(range(self.aSubCeldasLateralidadMinMaxMacro.shape[1])):
@@ -6899,7 +7370,7 @@ class LasData(object):
                     self.aFiles['SubCeldasLateralidadMinMaxMicro'].close()
             # ==================================================================
             if GLO.GLBLguardarLateralidadInterSubCeldasMinMin and GLO.GLBLcalcularSubCeldas and GLO.GLBLcalcularSubCeldas:
-                # RugoLateralidad/02mCell/LateralidadMinMin/
+                # RugoLateralidad/{GLO.GLBLmetrosSubCelda}mCell/LateralidadMinMin/
                 if not self.aFiles['SubCeldasLateralidadMinMinMacro'] is None and self.aSubCeldasLateralidadMinMinMacro.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasLateralidadMinMinMacro')
                     for nY in reversed(range(self.aSubCeldasLateralidadMinMinMacro.shape[1])):
@@ -6923,7 +7394,7 @@ class LasData(object):
                     self.aFiles['SubCeldasLateralidadMinMinMicro'].close()
             # ==================================================================
             if GLO.GLBLguardarRugosidadInterSubCeldas and GLO.GLBLcalcularSubCeldas and GLO.GLBLcalcularSubCeldas:
-                # RugoLateralidad/02mCell/Rugosidad/
+                # RugoLateralidad/{GLO.GLBLmetrosSubCelda}mCell/Rugosidad/
                 if not self.aFiles['SubCeldasRugosidadMacroInterSubCeldas'] is None and self.aSubCeldasRugosidadMinMaxMacroInterSubCeldas.shape[0] > 1:
                     clidaux.printMsg('\t\t-> cliddata-> Guardando SubCeldasRugosidadMicroInterSubCeldas')
                     for nY in reversed(range(self.aSubCeldasRugosidadMinMaxMacroInterSubCeldas.shape[1])):
@@ -7038,7 +7509,7 @@ class LasData(object):
             self.aFiles['CeldasMdrGridCubic'].close()
 
 
-        if GLO.GLBLcalcularCotaDeSubceldasConGriddata:  # Mde/02mCell/Grid/
+        if GLO.GLBLcalcularCotaDeSubceldasConGriddata:  # Mde/{GLO.GLBLmetrosSubCelda}mCell/Grid/
             if not self.aFiles['SubCeldasMdrGridPtoMinor'] is None and self.aSubCeldasMdrCotaInterpolada.shape[0] > 1:
                 for nY in reversed(range(self.aSubCeldasMdrCotaInterpolada.shape[1])):
                     for nX in range(self.aSubCeldasMdrCotaInterpolada.shape[0]):
@@ -7091,7 +7562,7 @@ class LasData(object):
                     for nX in range(self.aCeldasRugosidadMacroInterCeldillas.shape[0]):
                         self.aFiles['CeldasRugosidadMacroInterCeldillas'].write(str('%02i ' % self.aCeldasRugosidadMacroInterCeldillas[nX, nY]))
                     self.aFiles['CeldasRugosidadMacroInterCeldillas'].write('\n')
-                self.aFiles['CeldasRugosidadMesosInterCeldillas'].close()
+                self.aFiles['CeldasRugosidadMacroInterCeldillas'].close()
             if not self.aFiles['CeldasRugosidadMesosInterCeldillas'] is None and self.aCeldasRugosidadMesosInterCeldillas.shape[0] > 1:
                 for nY in range(self.aCeldasRugosidadMesosInterCeldillas.shape[1] - 1, 0 - 1, -1):
                     for nX in range(self.aCeldasRugosidadMesosInterCeldillas.shape[0]):
@@ -7105,7 +7576,7 @@ class LasData(object):
                     self.aFiles['CeldasRugosidadMicroInterCeldillas'].write('\n')
                 self.aFiles['CeldasRugosidadMicroInterCeldillas'].close()
         # ======================================================================
-        if GLO.GLBLguardarCapaRugosidadInterCeldillasSubCeldas:  # HiperCubo/Rugosidad/02mCell/
+        if GLO.GLBLguardarCapaRugosidadInterCeldillasSubCeldas:  # HiperCubo/Rugosidad/{GLO.GLBLmetrosSubCelda}mCell/
             if not self.aFiles['SubCeldasRugosidadMacroInterCeldillas'] is None and self.aSubCeldasRugosidadMacroInterCeldillas.shape[0] > 1:
                 for nY in reversed(range(self.aSubCeldasRugosidadMacroInterCeldillas.shape[1])):
                     for nX in range(self.aSubCeldasRugosidadMacroInterCeldillas.shape[0]):
@@ -7161,7 +7632,7 @@ class LasData(object):
         # ======================================================================
         if GLO.GLBLidentificarPlanos and GLO.GLBLguardarPlanosTejadoCeldas:  # HiperCubo/Tejado/10mCell/
             if not self.aFiles['CeldasNumeroDePlanosTejado'] is None and self.aCeldasNumeroDePlanosTejado.shape[0] > 1:
-                for nY in range(self.aCeldasNumeroDePlanosTejado.shape[0] - 1, 0 - 1, -1):
+                for nY in range(self.aCeldasNumeroDePlanosTejado.shape[1] - 1, 0 - 1, -1):
                     for nX in range(self.aCeldasNumeroDePlanosTejado.shape[0]):
                         self.aFiles['CeldasNumeroDePlanosTejado'].write(str('%02i ' % self.aCeldasNumeroDePlanosTejado[nX, nY]))
                     self.aFiles['CeldasNumeroDePlanosTejado'].write('\n')
@@ -7173,7 +7644,7 @@ class LasData(object):
                     self.aFiles['CeldasPuntosEnPlanosTejado'].write('\n')
                 self.aFiles['CeldasPuntosEnPlanosTejado'].close()
         # ======================================================================
-        if GLO.GLBLidentificarPlanos and GLO.GLBLguardarPlanosTejadoSubCeldas:  # HiperCubo/Tejado/02mCell/
+        if GLO.GLBLidentificarPlanos and GLO.GLBLguardarPlanosTejadoSubCeldas:  # HiperCubo/Tejado/{GLO.GLBLmetrosSubCelda}mCell/
             if not self.aFiles['SubCeldasPlanoTejado'] is None and self.aSubCeldasPlanoTejado.shape[0] > 1:
                 for nY in reversed(range(self.aSubCeldasPlanoTejado.shape[1])):
                     for nX in range(self.aSubCeldasPlanoTejado.shape[0]):
@@ -7823,7 +8294,10 @@ class LasData(object):
                         self.aFiles[fileText].close()
                     ordenRango += 1
 
-        if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+        if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+            GLO.GLBLcalcularMdkConClasificacionInferida
+            and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+        ):
             # 1. Cobertura en porcentaje de primeros retornos que estan por encima de cada altura (para ordenRango = 0: 100%)
             if GLO.GLBLgrabarFccPorMayorDeAltConPrimerosRetRptoAmdk:
                 # FccRptoAmdk_MasDeXXXX_PrimerosRetornos
@@ -8022,6 +8496,18 @@ class LasData(object):
                                 self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY, 4])
                         self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
                     self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
+            if GLO.GLBLgrabarPercentilAdicional5:
+                if not self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional5)] is None and self.aCeldasAltXxSobreMds.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMds.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMds.shape[0]):
+                            if self.aCeldasAltXxSobreMds[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMds[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional5)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.02f ' % self.aCeldasAltXxSobreMds[nX, nY, 5])
+                        self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional5)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMds'.format(GLO.GLBLgrabarPercentilAdicional5)].close()
 
         if GLO.GLBLgrabarPercentilesRelativos and GLO.GLBLcalcularMdb:
             if not self.aFiles['CeldasAlt95SobreMdb'] is None and self.aCeldasAlt95SobreMdb.shape[0] > 1:
@@ -8088,7 +8574,7 @@ class LasData(object):
                                 self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 3])
                         self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].write('\n')
                     self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional3)].close()
-            if GLO.GLBLgrabarPercentilAdicional0:
+            if GLO.GLBLgrabarPercentilAdicional4:
                 if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
                     for nY in reversed(range(self.aCeldasAltXxSobreMdb.shape[1])):
                         for nX in range(self.aCeldasAltXxSobreMdb.shape[0]):
@@ -8101,6 +8587,19 @@ class LasData(object):
                                 self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 4])
                         self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
                     self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
+            if GLO.GLBLgrabarPercentilAdicional5:
+                if not self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional5)] is None and self.aCeldasAltXxSobreMdb.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdb.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdb.shape[0]):
+                        # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional5)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 5])
+                        self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional5)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdb'.format(GLO.GLBLgrabarPercentilAdicional5)].close()
 
         if GLO.GLBLgrabarPercentilesRelativos and GLO.GLBLcalcularMdp:
             if not self.aFiles['CeldasAlt95SobreMdf'] is None and self.aCeldasAlt95SobreMdf.shape[0] > 1:
@@ -8180,8 +8679,26 @@ class LasData(object):
                                 self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 4])
                         self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
                     self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
+            if GLO.GLBLgrabarPercentilAdicional5:
+                if not self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional5)] is None and self.aCeldasAltXxSobreMdf.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdf.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdf.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdb[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdb[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional5)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.02f ' % self.aCeldasAltXxSobreMdb[nX, nY, 5])
+                        self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional5)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdf'.format(GLO.GLBLgrabarPercentilAdicional5)].close()
 
-        if GLO.GLBLgrabarPercentilesRelativos and GLO.GLBLcalcularMdk2mConPuntosClasificados:
+        if GLO.GLBLgrabarPercentilesRelativos and (
+            GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+            )
+        ):
             if not self.aFiles['CeldasAlt95SobreMdk'] is None and self.aCeldasAlt95SobreMdk.shape[0] > 1:
                 for nY in reversed(range(self.aCeldasAlt95SobreMdk.shape[1])):
                     for nX in range(self.aCeldasAlt95SobreMdk.shape[0]):
@@ -8259,10 +8776,23 @@ class LasData(object):
                                 self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY, 4])
                         self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].write('\n')
                     self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional4)].close()
+            if GLO.GLBLgrabarPercentilAdicional5:
+                if not self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional5)] is None and self.aCeldasAltXxSobreMdk.shape[0] > 1:
+                    for nY in reversed(range(self.aCeldasAltXxSobreMdk.shape[1])):
+                        for nX in range(self.aCeldasAltXxSobreMdk.shape[0]):
+                            # AltSobreTerreno/10mCell/
+                            if self.aCeldasAltXxSobreMdk[nX, nY, 4] == GLO.GLBLnoData:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.0f ' % GLO.GLBLnoData)
+                            elif GLO.GLBLgrabarAlturasNegativasSobreTerrenoA0 and self.aCeldasAltXxSobreMdk[nX, nY, 4] < 0:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional5)].write('0.00 ')
+                            else:
+                                self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional5)].write('%0.02f ' % self.aCeldasAltXxSobreMdk[nX, nY, 5])
+                        self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional5)].write('\n')
+                    self.aFiles['CeldasAlt{:02}SobreMdk'.format(GLO.GLBLgrabarPercentilAdicional5)].close()
 
         if GLO.GLBLcalcularMdp:
             if GLO.GLBLgrabarPercentilesSubCeldas:
-                # AltSobreTerreno/02mCell95/
+                # AltSobreTerreno/{GLO.GLBLmetrosSubCelda}mCell95/
                 if not self.aFiles['SubCeldasAlt95SobreMdf'] is None and self.aSubCeldasAlt95SobreMdf.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasAlt95SobreMdf.shape[1])):
                         for nX in range(self.aSubCeldasAlt95SobreMdf.shape[0]):
@@ -8276,7 +8806,7 @@ class LasData(object):
                     self.aFiles['SubCeldasAlt95SobreMdf'].close()
 
             if GLO.GLBLgrabarSubCeldasAltMaxSobreMdf:
-                # AltSobreTerreno/02mCellMinMax/
+                # AltSobreTerreno/{GLO.GLBLmetrosSubCelda}mCellMinMax/
                 if not self.aFiles['SubCeldasAltMaxSobreMdf'] is None and self.aSubCeldasAltMaxSobreMdf.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasAltMaxSobreMdf.shape[1])):
                         for nX in range(self.aSubCeldasAltMaxSobreMdf.shape[0]):
@@ -8290,9 +8820,12 @@ class LasData(object):
                     self.aFiles['SubCeldasAltMaxSobreMdf'].close()
 
 
-        if GLO.GLBLcalcularMdk2mConPuntosClasificados:
+        if GLO.GLBLcalcularMdkConClasificacionOriginal or (
+                GLO.GLBLcalcularMdkConClasificacionInferida
+                and GLO.GLBLhacerInferenciaParaTodosLosPuntos
+        ):
             if GLO.GLBLgrabarPercentilesSubCeldas:
-                # AltSobreTerreno/02mCell95/
+                # AltSobreTerreno/{GLO.GLBLmetrosSubCelda}mCell95/
                 if not self.aFiles['SubCeldasAlt95SobreMdk'] is None and self.aSubCeldasAlt95SobreMdk.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasAlt95SobreMdk.shape[1])):
                         for nX in range(self.aSubCeldasAlt95SobreMdk.shape[0]):
@@ -8306,7 +8839,7 @@ class LasData(object):
                     self.aFiles['SubCeldasAlt95SobreMdk'].close()
 
             if GLO.GLBLgrabarSubCeldasAltMaxSobreMdk:
-                # AltSobreTerreno/02mCellMinMax/
+                # AltSobreTerreno/{GLO.GLBLmetrosSubCelda}mCellMinMax/
                 if not self.aFiles['SubCeldasAltMaxSobreMdk'] is None and self.aSubCeldasAltMaxSobreMdk.shape[0] > 1:
                     for nY in reversed(range(self.aSubCeldasAltMaxSobreMdk.shape[1])):
                         for nX in range(self.aSubCeldasAltMaxSobreMdk.shape[0]):
@@ -8318,6 +8851,70 @@ class LasData(object):
                                 self.aFiles['SubCeldasAltMaxSobreMdk'].write('%0.02f ' % round(self.aSubCeldasAltMaxSobreMdk[nX, nY], 2))
                         self.aFiles['SubCeldasAltMaxSobreMdk'].write('\n')
                     self.aFiles['SubCeldasAltMaxSobreMdk'].close()
+
+
+    # ==========================================================================
+    def guardarOutliersVuelta0(self):
+        clidaux.printMsg(f'cliddata-> Guardando el numero de outliers por celda en Vuelta0: {self.aFiles["CeldasConOutliersVuelta0"]}')
+        if not self.aFiles['CeldasConOutliersVuelta0'] is None:
+            clidaux.printMsg(f'{TB}-> Shape de aCeldasConOutliersEnVuelta0: {self.aCeldasConOutliersEnVuelta0.shape}')
+        if not self.aFiles['CeldasConOutliersVuelta0'] is None and self.aCeldasConOutliersEnVuelta0.shape[0] > 1:
+            for nY in reversed(range(self.aCeldasConOutliersEnVuelta0.shape[1])):
+                for nX in range(self.aCeldasConOutliersEnVuelta0.shape[0]):
+                    self.aFiles['CeldasConOutliersVuelta0'].write('%03i ' % self.aCeldasConOutliersEnVuelta0[nX, nY])
+                self.aFiles['CeldasConOutliersVuelta0'].write('\n')
+            self.aFiles['CeldasConOutliersVuelta0'].close()
+
+
+    # ==========================================================================
+    def guardarNumPrimerosRetornosEnCadaPasada(self):
+        clidaux.printMsg(f'cliddata-> Guardando el numero de pulsos por celda (primeros retornos) para cada pasada.')
+        for nOrdenPasada in range(self.numTotalPasadas):
+            pasadaID = self.listaPasadasBloque[nOrdenPasada]
+            fileText = f'NumPrimerosRetornos_Pasada{pasadaID}'
+            if not self.aFiles[fileText] is None:
+                clidaux.printMsg(f'{TB}-> Shape de aCeldasNumPrimerosRetornosEnCadaPasada: {self.aCeldasNumPrimerosRetornosEnCadaPasada.shape}')
+            if not self.aFiles[fileText] is None and self.aCeldasNumPrimerosRetornosEnCadaPasada.shape[0] > 1:
+                for nY in reversed(range(self.aCeldasNumPrimerosRetornosEnCadaPasada.shape[1])):
+                    for nX in range(self.aCeldasNumPrimerosRetornosEnCadaPasada.shape[0]):
+                        self.aFiles[fileText].write('%01i ' % self.aCeldasNumPrimerosRetornosEnCadaPasada[nX, nY, nOrdenPasada])
+                    self.aFiles[fileText].write('\n')
+                self.aFiles[fileText].close()
+
+
+    # ==========================================================================
+    def guardarAngulosParaCadaPasada(self):
+        if GLO.GLBLgrabarAngulos:
+            # print('aCeldasAngMedMinMaxTlrTlcPorPasada:', self.aCeldasAngMedMinMaxTlrTlcPorPasada, type(self.aCeldasAngMedMinMaxTlrTlcPorPasada))
+            # print('self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape:', self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape)
+            clidaux.printMsg(f'cliddata-> Guardando el angulo medio, minimo y maximo para cada pasada.')
+            for nOrdenPasada in range(self.numTotalPasadas):
+                pasadaID = self.listaPasadasBloque[nOrdenPasada]
+                misMedMinMax = [[0, 'Med'], [1, 'Min'], [2, 'Max']]
+                for medMinMax in misMedMinMax:
+                    fileText = f'Angulo{medMinMax[1]}_Pasada{pasadaID}'
+                    if not self.aFiles[fileText] is None:
+                        clidaux.printMsg(f'{TB}-> Shape de aCeldasAngMedMinMaxTlrTlcPorPasada: {self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape}')
+                    if not self.aFiles[fileText] is None and self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape[0] > 1:
+                        for nY in reversed(range(self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape[1])):
+                            for nX in range(self.aCeldasAngMedMinMaxTlrTlcPorPasada.shape[0]):
+                                miCeldaAnguloMedio = int(clidnaux.leerEscalarEnNdarrayId(self.aCeldasAngMedMinMaxTlrTlcPorPasada[nX, nY, medMinMax[0]], pasadaID))
+                                self.aFiles[fileText].write('%01i ' % miCeldaAnguloMedio)
+                            self.aFiles[fileText].write('\n')
+                        self.aFiles[fileText].close()
+
+
+    # ==========================================================================
+    def guardarOutliersVuelta1(self):
+        clidaux.printMsg(f'cliddata-> Guardando el numero de outliers por celda en Vuelta1.')
+        if not self.aFiles['CeldasConOutliersVuelta1'] is None:
+            clidaux.printMsg(f'{TB}-> Shape de aCeldasConOutliersEnVuelta1: {self.aCeldasConOutliersEnVuelta1.shape}')
+        if not self.aFiles['CeldasConOutliersVuelta1'] is None and self.aCeldasConOutliersEnVuelta1.shape[0] > 1:
+            for nY in reversed(range(self.aCeldasConOutliersEnVuelta1.shape[1])):
+                for nX in range(self.aCeldasConOutliersEnVuelta1.shape[0]):
+                    self.aFiles['CeldasConOutliersVuelta1'].write('%03i ' % self.aCeldasConOutliersEnVuelta1[nX, nY])
+                self.aFiles['CeldasConOutliersVuelta1'].write('\n')
+            self.aFiles['CeldasConOutliersVuelta1'].close()
 
 
     # ==========================================================================
@@ -8362,7 +8959,7 @@ class LasData(object):
                 elif escribirLote == 'guardarIndicesIRGBIrISubCelda':
                     if GLO.GLBLgrabarIndicesVegetacionNDVIetAlSubCelda:  # GBI/SubCelda***/
                         clidaux.printMsg('cliddata.&{}-> Se van a guardar en fichero ASC los indices de subCelda basados en RGB Ir e intensity en las capas correspondientes'.format(fileCoordYear))
-                        clidaux.printMsg('\t\t-> Ficheros RGBI/02mCell/***: SubCeldasIntSRetMed, SubCeldasIntMRetMed, subCeldasEVI2, subCeldasNDVI, subCeldasNDWI')
+                        clidaux.printMsg(f'\t\t-> Ficheros RGBI/{GLO.GLBLmetrosSubCelda}mCell/***: SubCeldasIntSRetMed, SubCeldasIntMRetMed, subCeldasEVI2, subCeldasNDVI, subCeldasNDWI')
                         tiempoPreGuardarIndicesIRGBIrI = time.time()
                         # ==============================================================
                         self.guardarIndicesIRGBIrISubCelda()
@@ -8404,7 +9001,7 @@ class LasData(object):
                 elif escribirLote == 'guardarNumPuntosPorClasesCeldas':
                     if GLO.GLBLgrabarNumeroPuntosPorClase:
                         clidaux.printMsg('\t-> cliddata.&{}-> Se van a guardar en fichero datos de numero de puntos por clase original por celda, tras la vuelta 0'.format(fileCoordYear))
-                        clidaux.printMsg('\t\t-> Ficheros PointClass/Orig/10mCell/Suelo/***, PointClass/Orig/10mCell/Edificio/***, PointClass/Orig/10mCell/Otros/***')
+                        clidaux.printMsg(f'\t\t-> Ficheros PointClass/Orig/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/***, PointClass/Orig/{int(GLO.GLBLmetrosCelda)}mCell/Edificio/***, PointClass/Orig/{int(GLO.GLBLmetrosCelda)}mCell/Otros/***')
                         tiempoPreGuardarNumPuntosPorClasesCeldas = time.time()
                         # ==============================================================
                         self.guardarNumPuntosPorClasesCeldas(lasOrigRecl)
@@ -8429,7 +9026,7 @@ class LasData(object):
                 elif escribirLote == 'guardarClasesCeldas':
                     if GLO.GLBLgrabarCeldasClasesSueloVegetacion or GLO.GLBLgrabarCeldasClasesEdificio or GLO.GLBLgrabarCeldasClasesOtros:
                         clidaux.printMsg('\t-> cliddata.&{}-> Se van a guardar en fichero datos de numero de puntos por clase original por celda, tras la vuelta 0'.format(fileCoordYear))
-                        clidaux.printMsg('\t\t-> Ficheros PointClass/Orig/10mCell/Suelo/***, PointClass/Orig/10mCell/Edificio/***, PointClass/Orig/10mCell/Otros/***')
+                        clidaux.printMsg(f'\t\t-> Ficheros PointClass/Orig/{int(GLO.GLBLmetrosCelda)}mCell/Suelo/***, PointClass/Orig/{int(GLO.GLBLmetrosCelda)}mCell/Edificio/***, PointClass/Orig/{int(GLO.GLBLmetrosCelda)}mCell/Otros/***')
                         tiempoPreGuardarClasesCeldas = time.time()
                         # ==============================================================
                         self.guardarClasesCeldas(lasOrigRecl)
@@ -8453,8 +9050,8 @@ class LasData(object):
                 # ==============================================================
                 elif escribirLote == 'guardarClasesSubCeldas':
                     if GLO.GLBLgrabarSubCeldasClasesSueloVegetacion or GLO.GLBLgrabarSubCeldasClasesEdificio or GLO.GLBLgrabarSubCeldasClasesOtros:
-                        clidaux.printMsg('\t-> cliddata.&{}-> Se van a guardar en fichero las clases en capas subCeldas en PointClass/Orig/SubCeldas/...'.format(fileCoordYear))
-                        clidaux.printMsg('\t\t-> Ficheros PointClass/Orig/02mCell/Suelo/***, PointClass/Orig/02mCell/Edificio/***, PointClass/Orig/02mCell/Otros/***')
+                        clidaux.printMsg(f'\t-> cliddata.&{fileCoordYear}-> Se van a guardar en fichero las clases en capas subCeldas en PointClass/Orig/SubCeldas/...')
+                        clidaux.printMsg(f'\t\t-> Ficheros PointClass/Orig/{GLO.GLBLmetrosSubCelda}mCell/Suelo/***, PointClass/Orig/{GLO.GLBLmetrosSubCelda}mCell/Edificio/***, PointClass/Orig/{GLO.GLBLmetrosSubCelda}mCell/Otros/***')
                         tiempoPreGuardarClasesSubCeldas = time.time()
                         # ==============================================================
                         self.guardarClasesSubCeldas(lasOrigRecl)
@@ -8654,8 +9251,24 @@ class LasData(object):
                     self.guardarMiscelaneaDasoLidar()
 
                 # ==============================================================
+                elif escribirLote == 'guardarOutliersVuelta0':
+                    self.guardarOutliersVuelta0()
+
+                # ==============================================================
+                elif escribirLote == 'guardarNumPrimerosRetornosEnCadaPasada':
+                    self.guardarNumPrimerosRetornosEnCadaPasada()
+
+                # ==============================================================
+                elif escribirLote == 'guardarOutliersVuelta1':
+                    self.guardarOutliersVuelta1()
+
+                # ==============================================================
+                elif escribirLote == 'guardarAngulosParaCadaPasada':
+                    self.guardarAngulosParaCadaPasada()
+
+                # ==============================================================
                 else:
-                    print('\ncliddata-> Revisar este escribirEnDisco no previsto-> escribirLote:', escribirLote)
+                    print('\ncliddata-> ATENCION: Revisar este escribirEnDisco no previsto-> escribirLote:', escribirLote)
                 # ==============================================================
 
                 break

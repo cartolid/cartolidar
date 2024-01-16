@@ -8,6 +8,12 @@
 cartolidar/qlidmerge.py
 cartolidar/clidbase.py
 cartolidar/clidflow.py
+cartolidar/clidtools.py
+cartolidar/clidclas.py
+cartolidar.cfg
+clidbase.cfg
+qlidtwins.cfg
+
 cartolidar/clidbase.xls
 cartolidar/reClasificador.csv
 cartolidar/listaBloquesSelec.cfg
@@ -35,7 +41,6 @@ cartolidar/clidio/LandCover.csv
 cartolidar/clidio/*.cfg
 
 cartolidar/clidml/__init__.py
-cartolidar/clidml/clidclas.py
 cartolidar/clidml/clidinferconvol.py
 cartolidar/clidml/clidmachine.py
 cartolidar/clidml/clidmanual.py
@@ -69,14 +74,22 @@ cartolidar/clidtools/*.cfg
 cartolidar/clidfr/__init__.py
 # include cartolidar/clidfr/clidhead.py
 cartolidar/clidfr/clidndat.py
+cartolidar/clidfr/clidfile.py
 cartolidar/clidfr/*.cfg
 
 tests/pruebas.py
+cartolidar/prueba*.py
 
 # Ficheros auxiliares que no incluyo en el repositorio
+data/
+data/cfg/*.*
 # cartolidar/data/*.*
+cartolidar/data/cfg/*.*
 cartolidar/data/asc/*.*
 # cartolidar/data/ext/*.*
+cartolidar/data/ext/io/VLRs*.geo
+cartolidar/data/ext/io/las*.geo
+cartolidar/data/ext/io/las*.wkt
 cartolidar/data/ext/cfg/*.*
 cartolidar/data/ext/invoVuelos/*.*
 # cartolidar/data/ext/io/*.*
@@ -84,6 +97,8 @@ cartolidar/data/log/*.*
 # cartolidar/data/mfe/*.*
 cartolidar/data/other/*.*
 # cartolidar/data/ref/*.*
+cartolidar/data/ext/io/listaBloquesSelec_IOFs.cfg
+cartolidar/data/ext/io/reCodificador.csv
 
 pruebas*.py
 Ayuda.txt
@@ -122,6 +137,9 @@ basura/
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Visual Studio Code
+.vscode/
 
 # Eclipse
 .settings/

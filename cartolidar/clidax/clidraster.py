@@ -57,11 +57,12 @@ except:
 if not gdalOk:
     try:
         import gdal, ogr, osr, gdalnumeric, gdalconst
-        sys.stdout.write('           gdal importado ok con "import gdal".\n')
+        print('           gdal importado ok con "import gdal".\n')
         gdalOk = True
     except:
         gdalOk = False
-        print('clidraster-> Error importando gdal.')
+        print('clidraster-> No se ha podido cargar gdal ni directamente ni desde osgeo')
+        print('clidraster-> Se cierra el programa')
         sys.exit(0)
 ogr.RegisterAll()
 # Enable GDAL/OGR exceptions
@@ -870,16 +871,16 @@ def crearRasterTiff(
         myLasHead = myClass()
         myLasHead.xSupIzda = nMinX_tif
         myLasHead.ySupIzda = nMaxY_tif
-        myLasHead.xmin = nMinX_tif
-        myLasHead.ymin = nMaxY_tif - (nCeldasY_Destino * LOCLmetrosCelda)
-        myLasHead.xmax = nMinX_tif + (nCeldasX_Destino * LOCLmetrosCelda)
-        myLasHead.ymax = nMaxY_tif
+        myLasHead.xminBloqueMalla = nMinX_tif
+        myLasHead.yminBloqueMalla = nMaxY_tif - (nCeldasY_Destino * LOCLmetrosCelda)
+        myLasHead.xmaxBloqueMalla = nMinX_tif + (nCeldasX_Destino * LOCLmetrosCelda)
+        myLasHead.ymaxBloqueMalla = nMaxY_tif
         # ATENCION: la conversion entre husos para dasoLidar esta pendiente
         if LOCLhusoUTM == 29:
-            myLasHead.xminBloqueH30 = myLasHead.xmin
-            myLasHead.yminBloqueH30 = myLasHead.ymin
-            myLasHead.xmaxBloqueH30 = myLasHead.xmax
-            myLasHead.ymaxBloqueH30 = myLasHead.ymax
+            myLasHead.xminBloqueH30 = myLasHead.xminBloqueMalla
+            myLasHead.yminBloqueH30 = myLasHead.yminBloqueMalla
+            myLasHead.xmaxBloqueH30 = myLasHead.xmaxBloqueMalla
+            myLasHead.ymaxBloqueH30 = myLasHead.ymaxBloqueMalla
     
         myLasData = myClass()
         myLasData.nCeldasX = nCeldasX_Destino
@@ -2053,10 +2054,10 @@ def leerMFE(
 
     myLog.debug('Buscando capa MFE para generar un raster con:')
     myLog.debug(f'{TB}{TV}-> xSupIzda:       {xSupIzda:10.2f}')
-    myLog.debug(f'{TB}{TV}-> myLasHead.xmin: {myLasHead.xmin:10.2f}')
+    myLog.debug(f'{TB}{TV}-> myLasHead.xminBloqueMalla: {myLasHead.xminBloqueMalla:10.2f}')
     myLog.debug(f'{TB}{TV}-> sHead.xSupIzda: {myLasHead.xSupIzda:10.2f}')
     myLog.debug(f'{TB}{TV}-> ySupIzda:       {ySupIzda:10.2f}')
-    myLog.debug(f'{TB}{TV}-> myLasHead.ymax: {myLasHead.ymax:10.2f}')
+    myLog.debug(f'{TB}{TV}-> myLasHead.ymaxBloqueMalla: {myLasHead.ymaxBloqueMalla:10.2f}')
     myLog.debug(f'{TB}{TV}-> sHead.ySupIzda: {myLasHead.ySupIzda:10.2f}')
     myLog.debug(f'{TB}{TV}-> nCeldasX:       {nCeldasX}')
     myLog.debug(f'{TB}{TV}-> nCeldasY:       {nCeldasY}')

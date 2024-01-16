@@ -38,29 +38,36 @@ import collections
 import numpy as np
 import numba
 import scipy
-from _ast import Or
+# from _ast import Or
 try:
     import psutil
-    psutilOk = True
+    psutilDisponible = True
 except:
-    psutilOk = False
+    print('clidconfig-> AVISO: error al importar psutil')
+    psutilDisponible = False
 # from scipy.spatial.distance import pdist
 
+# Para que funcione: GDAL en eclipse he hecho esto:
+# En Windows->Preferences->Pydev->Interpreters->Python interpreter->Pestaña environment -> INlcuir PATH = C:/OSGeo4W64/bin
 try:
+# if True:
     # print(os.environ['PATH'])
-    from osgeo import gdal, ogr, osr, gdalnumeric, gdalconst
+    from osgeo import gdal
     gdalOk = True
 except:
     print('clidaux-> No se puede importar gdal "from osgeo", se intenta directamente ("import gdal").')
     gdalOk = False
 if not gdalOk:
     try:
-        import gdal, ogr, osr, gdalnumeric, gdalconst
-        sys.stdout.write('           gdal importado ok con "import gdal".\n')
+        import gdal
+        print('           gdal importado ok con "import gdal".\n')
         gdalOk = True
     except:
         gdalOk = False
-        print('clidaux-> Error importando gdal.')
+        print('clidaux-> No se ha podido cargar gdal ni directamente ni desde osgeo')
+        print('          -> En windows: comprobar que las variables de entorno apuntan a la version de gdal del env conda activado (clid o pruebas)') 
+        print('             GDAL_DRIVER_PATH=C:/OSGeo4W/bin/gdalplugins') 
+        # print('\nclidaux-> Se cierra el programa')
         # sys.exit(0)
 
 # ==============================================================================
@@ -70,10 +77,12 @@ if __name__ == '__main__':
 # ==============================================================================
 if '--cargadoClidaux' in sys.argv:
     moduloPreviamenteCargado = True
-    print(f'\nclidaux->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    sys.stdout.write(f'\nclidaux-> moduloPreviamenteCargado: {moduloPreviamenteCargado}\n')
+    sys.stdout.write(f'          sys.argv: {sys.argv}\n')
 else:
     moduloPreviamenteCargado = False
-    print(f'\nclidaux->1> moduloPreviamenteCargado: {moduloPreviamenteCargado}; sys.argv: {sys.argv}')
+    sys.stdout.write(f'\nclidaux-> moduloPreviamenteCargado: {moduloPreviamenteCargado}\n')
+    sys.stdout.write(f'          sys.argv: {sys.argv}\n')
     sys.argv.append('--cargadoClidaux')
 # ==============================================================================
 if '--idProceso' in sys.argv and len(sys.argv) > sys.argv.index('--idProceso') + 1:
@@ -90,14 +99,14 @@ elif type(ARGS_idProceso) == str:
     try:
         MAIN_idProceso = int(ARGS_idProceso)
     except:
-        print(f'clidaux-> ATENCION: revisar asignacion de idProceso.')
-        print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
-        print(f'sys.argv: {sys.argv}')
+        sys.stdout.write(f'clidaux-> ATENCION: revisar asignacion de idProceso.\n')
+        sys.stdout.write(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}\n')
+        sys.stdout.write(f'sys.argv: {sys.argv}\n')
 else:
     MAIN_idProceso = 0
-    print(f'clidaux-> ATENCION: revisar codigo de idProceso.')
-    print(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}')
-    print(f'sys.argv: {sys.argv}')
+    sys.stdout.write(f'clidaux-> ATENCION: revisar codigo de idProceso.\n')
+    sys.stdout.write(f'ARGS_idProceso: {type(ARGS_idProceso)} {ARGS_idProceso}\n')
+    sys.stdout.write(f'sys.argv: {sys.argv}\n')
 # ==============================================================================
 # Verbose provisional para la version alpha
 if '-vvv' in sys.argv:
@@ -116,37 +125,39 @@ if '-q' in sys.argv:
 else:
     __quiet__ = 0
 # ==============================================================================
+CONFIGverbose = __verbose__ > 2
+# CONFIGverbose = True
+if CONFIGverbose:
+    sys.stdout.write(f'\nclidaux-> AVISO: CONFIGverbose: {CONFIGverbose} (asignado con codigo en funcion de __verbose__)\n')
+if __verbose__ > 1:
+    sys.stdout.write(f'\nclidaux-> INFO:  __verbose__:   {__verbose__} (leido en linea de comandos: -v)\n')
+    sys.stdout.write(f'clidaux-> sys.argv: {sys.argv}\n')
+# ==============================================================================
+# ==============================================================================
 
 # ==============================================================================
 # ============================ Variables GLOBALES ==============================
+# ==============================================================================
+
+# ==============================================================================
+# #variablesGlobalesBasicas
 # ==============================================================================
 # TB = '\t'
 TB = ' ' * 10
 TV = ' ' * 3
 TW = ' ' * 2
 # ==============================================================================
-# ATENCION: las2las no me funciona para descomprimir en memoria
-TRNSdescomprimirConlaszip = True
-TRNSdescomprimirConlas2las = False
+# No se importa nada con: from clidaux import *
+__all__ = []
 # ==============================================================================
 
 # ==============================================================================
-# ============================== Variables MAIN ================================
+# #variablesGlobalesMAINentorno
 # ==============================================================================
-# Directorios de la aplicacion:
-# Dir del modulo que se esta ejecutando (clidaux.py):
-MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))  # En calendula /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/cartolidar/cartolidar/clidax
-# Dir de clidbase.py:
-MAIN_BASE_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))
-# Dir de setup.py:
-MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_BASE_DIR, '..')) # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
-# Dir en el que esta el proyecto (D:/_clid o /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1):
-MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
-# Directorio desde el que se lanza la app (estos dos coinciden):
-MAIN_THIS_DIR = os.path.abspath('.')
-MAIN_WORK_DIR = os.getcwd()
 # Directorio que depende del entorno:
 MAIN_HOME_DIR = str(pathlib.Path.home())
+# Dir del modulo que se esta ejecutando (clidconfig.py):
+MAIN_FILE_DIR = os.path.dirname(os.path.abspath(__file__))  # En calendula /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/cartolidar/cartolidar/clidax
 # ==============================================================================
 # Unidad de disco si MAIN_ENTORNO = 'windows'
 MAIN_DRIVE = os.path.splitdrive(MAIN_FILE_DIR)[0]  # 'D:' o 'C:'
@@ -160,15 +171,51 @@ elif MAIN_FILE_DIR[:8] == '/content':
 else:
     MAIN_ENTORNO = 'windows'
     try:
-        if MAIN_DRIVE[0] == 'D':
+        if 'benmarjo' in MAIN_HOME_DIR:
+            MAIN_PC = 'JCyL'
+        elif 'joseb' in MAIN_HOME_DIR:
             MAIN_PC = 'Casa'
         else:
-            MAIN_PC = 'JCyL'
+            MAIN_PC = 'Otro'
     except:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
 # ==============================================================================
 
+# ==============================================================================
+# #variablesGlobalesMAINdirs
+# ==============================================================================
+# Directorios de la aplicacion:
+# Dir de clidbase.py:
+MAIN_BASE_DIR = os.path.abspath(os.path.join(MAIN_FILE_DIR, '..'))
+# Dir de setup.py:
+MAIN_PROJ_DIR = os.path.abspath(os.path.join(MAIN_BASE_DIR, '..')) # Equivale a MAIN_FILE_DIR = pathlib.Path(__file__).parent
+# Dir en el que esta el proyecto (D:/_clid o /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1):
+MAIN_RAIZ_DIR = os.path.abspath(os.path.join(MAIN_PROJ_DIR, '..'))
+# Directorio desde el que se lanza la app (estos dos coinciden):
+MAIN_THIS_DIR = os.path.abspath('.')
+MAIN_WORK_DIR = os.getcwd()
+# Directorio del ejecutable de python:
+MAIN_PYTHON_DIR = os.path.dirname(sys.executable)
+# ==============================================================================
+
+# ==============================================================================
+# Valores provisionales de MAINrutaRaizHome y MAINrutaRaizData que se modificaran 
+# despues de obtener GLO (tras leer el .cfg) si el fichero de configuracion
+# tiene algun valor en el parametro MAINrutaRaizManual
+# Estos parametros tb se asignan en clidbase.py y guardan en el cfg, pero
+# clidbase.py importa clidaux antes, x lo q pasa antes x aqui y tb lo hago aqui.
+if MAIN_ENTORNO == 'calendula':
+    # MAINrutaRaizHome = MAIN_RAIZ_DIR
+    MAINrutaRaizHome =  '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1'  # = MAIN_RAIZ_DIR
+    MAINrutaRaizData = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
+else:
+    MAINrutaRaizHome = MAIN_RAIZ_DIR
+    MAINrutaRaizData = MAIN_RAIZ_DIR
+# ==============================================================================
+
+# ==============================================================================
+# #variablesGlobalesVERSIONFILE
 # ==============================================================================
 # Ver https://peps.python.org/pep-0008/#module-level-dunder-names
 # Ver https://stackoverflow.com/questions/458550/standard-way-to-embed-version-into-python-package
@@ -234,11 +281,20 @@ else:
     __copyright__ = '@clid 2016-22'
 # ==============================================================================
 
+# ==============================================================================
+# ============================== Variables TRNS ================================
+# ==============================================================================
+# ================== TRNS: Variables globales transitorias =====================
+# ======= Si las quiero usar en todos los modulos, pasarlas a Globales =========
+# ATENCION: las2las no me funciona para descomprimir en memoria
+TRNSdescomprimirConlaszip = True
+TRNSdescomprimirConlas2las = False
+# ==============================================================================
 
 # ==============================================================================
 # Version original de la funcion
 def infoUsuario(verbose=False):
-    if psutilOk:
+    if psutilDisponible:
         try:
             esteUsuario = psutil.users()[0].name
             if verbose:
@@ -354,17 +410,11 @@ def foo0():
     pass
 
 # ==============================================================================
-CONFIGverbose = __verbose__ > 2
-if CONFIGverbose:
-    print(f'\nclidaux-> AVISO: CONFIGverbose True; __verbose__: {__verbose__}')
-# ==============================================================================
-
-# ==============================================================================
 myUser = infoUsuario()
 myModule = __name__.split('.')[-1]
 # ==============================================================================
 if not moduloPreviamenteCargado or True:
-    print('\nclidaux-> AVISO: creando myLog (ConsLog)')
+    print('\nclidaux-> Aviso: creando myLog (ConsLog)')
     myLog = iniciaConsLog(myModule=myModule, myVerbose=__verbose__)
     # print('myLog.getEffectiveLevel:', myLog.getEffectiveLevel())
     # print('myLog.Level:', myLog.level)
@@ -428,29 +478,19 @@ else:
 # ==============================================================================
 MAINusuario = infoUsuario(False)
 # ==============================================================================
-nuevosParametroConfiguracion = {}
-if CONFIGverbose:
-    print(f'\nclidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (sin nuevosParametroConfiguracion)')
-    print(f'{TB}para leer los parametros de configuracion del fichero cfg.')
-GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
-    nuevosParametroConfiguracion,
-    LCL_idProceso=MAIN_idProceso,
-    inspect_stack=inspect.stack(),
-    verbose=CONFIGverbose,
-)
-if CONFIGverbose:
-    print(f'clidaux-> B Cargando parametros de configuracion GLOBALconfigDict en GLO')
-GLO = clidconfig.VariablesGlobales(GLOBALconfigDict)
-if CONFIGverbose:
-    print(f'{TB}-> configFileNameCfg:       {GLO.configFileNameCfg}')
-    print(f'{"":=^80}')
-LCLverbose = max(GLO.GLBLverbose, __verbose__)
-
-# ==============================================================================
-if CONFIGverbose:
-    print(f'clidaux-> C ok. GLO.GLBLverbose: {GLO.GLBLverbose}; CONFIGverbose: {CONFIGverbose}; __verbose__: {__verbose__}')
-    print(f'clidaux-> C ok. GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
-# ==============================================================================
+# nuevosParametroConfiguracion = {}
+# if CONFIGverbose:
+#     print(f'\nclidaux-> A Llamo a clidconfig.leerCambiarVariablesGlobales<> (sin nuevosParametroConfiguracion)')
+#     print(f'{TB}para leer los parametros de configuracion del fichero cfg.')
+# GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
+#     nuevosParametroConfiguracion,
+#     LCL_idProceso=MAIN_idProceso,
+#     inspect_stack=inspect.stack(),
+#     verbose=CONFIGverbose,
+# )
+# if CONFIGverbose:
+#     print(f'clidaux-> B Cargando parametros de configuracion GLOBALconfigDict en GLO')
+# GLO = clidconfig.GLO_CLASS(GLOBALconfigDict)
 
 # ==============================================================================
 # if callingModuleInicial == 'generax' or os.getcwd().endswith('gens'):
@@ -468,36 +508,29 @@ if CONFIGverbose:
 # ==============================================================================
 
 # ==============================================================================
-# Estos parametros tb se asignan en clidbase.py y guardan en el cfg, pero
-# clidbase.py importa clidaux antes, x lo q pasa antes x aqui y tb lo hago aqui.
-if MAIN_ENTORNO == 'calendula':
-    # MAINrutaRaiz = MAIN_RAIZ_DIR
-    MAINrutaRaiz =  '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1'  # = MAIN_RAIZ_DIR
-    MAIN_RAIS_DIR = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
-elif (
-    'MAINrutaRaiz' in dir(GLO)
-    and not GLO.MAINrutaRaiz is None
-    and GLO.MAINrutaRaiz != 'None'
-    and GLO.MAINrutaRaiz != ''
-):
-    MAINrutaRaiz = GLO.MAINrutaRaiz
-    MAIN_RAIS_DIR = GLO.MAINrutaRaiz
-else:
-    MAINrutaRaiz = MAIN_RAIZ_DIR
-    MAIN_RAIS_DIR = MAIN_RAIZ_DIR
+# Esto se asigna en clidconfig.py, junto con GLBL_TRAIN_DIR:
+# if 'cartolidar' in MAINrutaRaizHome:
+#     MAIN_MDLS_DIR = os.path.abspath(os.path.join(
+#         MAINrutaRaizHome,
+#         '../data'
+#     ))
+# else:
+#     MAIN_MDLS_DIR = os.path.abspath(os.path.join(
+#         MAINrutaRaizHome,
+#         'data'
+#     ))
 # ==============================================================================
-if 'cartolidar' in MAINrutaRaiz:
-    MAIN_MDLS_DIR = os.path.abspath(os.path.join(
-        MAINrutaRaiz,
-        '../data'
-    ))
-else:
-    MAIN_MDLS_DIR = os.path.abspath(os.path.join(
-        MAINrutaRaiz,
-        'data'
-    ))
-# ==============================================================================
-# Estos parametros se asignan en clidbase.py y guardan en el cfg, pero lo reitero aqui para darle autonomia
+# Estos parametros tb se asignan en clidbase.py y guardan en el cfg, pero lo reitero aqui para darle autonomia
+if __verbose__:
+    print(f'\n{"":_^80}')
+    print(f'{" clidaux-> Asignando rutas MAIN 1 ":=^80}')
+    print(f'{" y guardandolas en el fichero de configuracion cfg ":=^80}')
+    print(f'{"":=^80}')
+    print(f'{TB}-> MAIN_copyright, MAIN_version, MAIN_idProceso, MAINusuario')
+    print(f'{TB}-> MAIN_ENTORNO, MAIN_PC, MAIN_DRIVE')
+    print(f'{TB}-> MAIN_HOME_DIR, MAIN_FILE_DIR, MAIN_PROJ_DIR, MAIN_THIS_DIR, MAIN_WORK_DIR')
+    print(f'{TB}-> MAIN_RAIZ_DIR, MAINrutaRaizHome, MAINrutaRaizData')
+    print(f'{"":=^80}')
 paramConfigAdicionalesMAIN = {}
 paramConfigAdicionalesMAIN['MAIN_copyright'] = [__copyright__, 'str', '', 'GrupoMAIN', __copyright__]
 paramConfigAdicionalesMAIN['MAIN_version'] = [__version__, 'str', '', 'GrupoMAIN', __version__]
@@ -510,17 +543,27 @@ paramConfigAdicionalesMAIN['MAIN_DRIVE'] = [MAIN_DRIVE, 'str', '', 'GrupoMAIN']
 paramConfigAdicionalesMAIN['MAIN_HOME_DIR'] = [MAIN_HOME_DIR, 'str', '', 'GrupoDirsFiles']
 paramConfigAdicionalesMAIN['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'str', '', 'GrupoDirsFiles']
 paramConfigAdicionalesMAIN['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles']
-paramConfigAdicionalesMAIN['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles']
-paramConfigAdicionalesMAIN['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles']
 paramConfigAdicionalesMAIN['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'str', '', 'GrupoDirsFiles']
 paramConfigAdicionalesMAIN['MAIN_WORK_DIR'] = [MAIN_WORK_DIR, 'str', '', 'GrupoDirsFiles']
 # ==============================================================================
-# En calendula, no uso la MAINrutaRaiz que haya en el fichero de configuracion.
-paramConfigAdicionalesMAIN['MAINrutaRaiz'] = [MAINrutaRaiz, 'str', '', 'GrupoDirsFiles', MAINrutaRaiz]
-# Creo el parametro MAIN_RAIS_DIR, que no esta en el fichero de configuracion y que depende del entorno
-paramConfigAdicionalesMAIN['MAIN_RAIS_DIR'] = [MAIN_RAIS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIS_DIR]
-# Creo el parametro MAIN_MDLS_DIR, que no esta en el fichero de configuracion y que depende del entorno
-paramConfigAdicionalesMAIN['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_MDLS_DIR]
+paramConfigAdicionalesMAIN['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles']
+# Valores provisionales de MAINrutaRaizHome y MAINrutaRaizData que se modificaran 
+# despues de obtener GLO (tras leer el .cfg) si el fichero de configuracion
+# tiene algun valor en el parametro MAINrutaRaizManual
+# En calendula, no uso la MAINrutaRaizHome que haya en el fichero de configuracion
+paramConfigAdicionalesMAIN['MAINrutaRaizHome'] = [
+    MAINrutaRaizHome, 'str', '', 'GrupoDirsFiles', MAINrutaRaizHome,
+    MAINrutaRaizHome, MAINrutaRaizHome, MAINrutaRaizHome,
+    MAINrutaRaizHome, MAINrutaRaizHome, MAINrutaRaizHome,
+]
+paramConfigAdicionalesMAIN['MAINrutaRaizData'] = [
+    MAINrutaRaizData, 'str', '', 'GrupoDirsFiles', MAINrutaRaizData,
+    MAINrutaRaizData, MAINrutaRaizData, MAINrutaRaizData,
+    MAINrutaRaizData, MAINrutaRaizData, MAINrutaRaizData,
+]
+# Esto se asigna en clidconfig.py, junto con GLBL_TRAIN_DIR:
+# # Creo el parametro MAIN_MDLS_DIR, que no esta en el fichero de configuracion y que depende del entorno
+# paramConfigAdicionalesMAIN['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_MDLS_DIR]
 # ==============================================================================
 if CONFIGverbose:
     print(f'\nclidaux-> D Llamo a clidconfig.leerCambiarVariablesGlobales<> (con paramConfigAdicionalesMAIN)')
@@ -533,34 +576,85 @@ GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
 )
 if CONFIGverbose:
     print(f'clidaux-> E Cargando parametros de configuracion GLOBALconfigDict en GLO')
-GLO = clidconfig.VariablesGlobales(GLOBALconfigDict)
+GLO = clidconfig.GLO_CLASS(GLOBALconfigDict)
+# ==============================================================================
 
-# Esto ya no hace falta porque recargo todas las GLO:
-# GLO.MAINrutaRaiz = MAINrutaRaiz
-# GLO.MAIN_RAIS_DIR = MAIN_RAIS_DIR
-# GLO.MAIN_MDLS_DIR = MAIN_MDLS_DIR
-# GLO.MAIN_idProceso = MAIN_idProceso
+# ==============================================================================
+if (
+    'MAINrutaRaizManual' in dir(GLO)
+    and not GLO.MAINrutaRaizManual is None
+    and GLO.MAINrutaRaizManual != 'None'
+    and GLO.MAINrutaRaizManual != ''
+):
+    if MAIN_ENTORNO == 'calendula':
+        # En calendula no hago caso del MAINrutaRaizManual que hay en el .cfg
+        MAINrutaRaizHome =  '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1'
+        MAINrutaRaizData = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
+    else:
+        MAINrutaRaizHome = GLO.MAINrutaRaizManual
+        MAINrutaRaizData = GLO.MAINrutaRaizManual
+    # Guardo los nuevos valores en el .cfg:
+    paramConfigAdicionalesMAIN = {}
+    # En calendula, no uso la MAINrutaRaizHome que haya en el fichero de configuracion.
+    paramConfigAdicionalesMAIN['MAINrutaRaizHome'] = [
+        MAINrutaRaizHome, 'str', '', 'GrupoDirsFiles', MAINrutaRaizHome,
+        MAINrutaRaizHome, MAINrutaRaizHome, MAINrutaRaizHome,
+        MAINrutaRaizHome, MAINrutaRaizHome, MAINrutaRaizHome,
+    ]
+    # Creo el parametro MAINrutaRaizData, que no esta en el fichero de configuracion y que depende del entorno
+    paramConfigAdicionalesMAIN['MAINrutaRaizData'] = [
+        MAINrutaRaizData, 'str', '', 'GrupoDirsFiles', MAINrutaRaizData,
+        MAINrutaRaizData, MAINrutaRaizData, MAINrutaRaizData,
+        MAINrutaRaizData, MAINrutaRaizData, MAINrutaRaizData,
+    ]
+    # Esto se asigna en clidconfig.py, junto con GLBL_TRAIN_DIR:
+    # # Creo el parametro MAIN_MDLS_DIR, que no esta en el fichero de configuracion y que depende del entorno
+    # paramConfigAdicionalesMAIN['MAIN_MDLS_DIR'] = [MAIN_MDLS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_MDLS_DIR]
+    GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
+        LCL_idProceso=MAIN_idProceso,
+        nuevosParametroConfiguracion=paramConfigAdicionalesMAIN,
+        inspect_stack=inspect.stack(),
+        verbose=False,
+    )
+    GLO.MAINrutaRaizHome = MAINrutaRaizHome
+    GLO.MAINrutaRaizData = MAINrutaRaizData
+# ==============================================================================
+
+# ==============================================================================
+if CONFIGverbose:
+    # configFileNameCfg se establece como parametro de configuracion y se guarda en el .cfg
+    # en clidconfig.initConfigDicts<>, que se ejecuta al importar clidconfig desde clidbase.py 
+    print(f'{TB}-> configFileNameCfg:       {GLO.configFileNameCfg}')
+    print(f'{"":=^80}')
+# ==============================================================================
+if CONFIGverbose:
+    print(f'clidaux-> C ok. GLO.GLBLverbose: {GLO.GLBLverbose}; CONFIGverbose: {CONFIGverbose}; __verbose__: {__verbose__}')
+    print(f'clidaux-> C ok. GLO.MAINrutaOutput: {GLO.MAINrutaOutput}')
+# ==============================================================================
 
 # ==============================================================================
 print(f'\n{"":_^80}')
 print(f'clidaux-> Al importar clidaux se asignan las variables globales con directorios MAIN_...')
 print(f'{TB}como propiedades de GLO y se guardan en el fichero de configuracion cfg.')
-print(f'{TB}-> Este modulo:     {__name__}')
-print(f'{TB}-> Importado desde: {callingModulePrevio}')
-print(f'{TB}-> Modulo inicial:  {callingModuleInicial}')
-print(f'{TB}-> MAIN_FILE_DIR: {MAIN_FILE_DIR}')
-print(f'{TB}-> MAIN_BASE_DIR: {MAIN_BASE_DIR}')
-print(f'{TB}-> MAIN_PROJ_DIR: {MAIN_PROJ_DIR}')
-print(f'{TB}-> MAIN_RAIZ_DIR: {MAIN_RAIZ_DIR}')
+print(f'{TB}-> Este modulo:      {__name__}')
+print(f'{TB}-> Importado desde:  {callingModulePrevio}')
+print(f'{TB}-> Modulo inicial:   {callingModuleInicial}')
 print(f'{TB}-> =============')
-print(f'{TB}-> MAIN_RAIS_DIR: {MAIN_RAIS_DIR}')
+print(f'{TB}-> MAIN_FILE_DIR:    {MAIN_FILE_DIR}')
+print(f'{TB}-> MAIN_BASE_DIR:    {MAIN_BASE_DIR}')
+print(f'{TB}-> MAIN_PROJ_DIR:    {MAIN_PROJ_DIR}')
+print(f'{TB}-> MAIN_RAIZ_DIR:    {MAIN_RAIZ_DIR}')
 print(f'{TB}-> =============')
-print(f'{TB}-> MAINrutaRaiz:  {MAINrutaRaiz}')
-print(f'{TB}-> MAIN_MDLS_DIR: {MAIN_MDLS_DIR}')
+print(f'{TB}-> MAINrutaRaizHome: {MAINrutaRaizHome}')
+print(f'{TB}-> MAINrutaRaizData: {MAINrutaRaizData}')
 print(f'{TB}-> =============')
-print(f'{TB}-> MAIN_THIS_DIR: {MAIN_THIS_DIR}')
-print(f'{TB}-> MAIN_WORK_DIR: {MAIN_WORK_DIR}')
-print(f'{TB}-> MAIN_HOME_DIR: {MAIN_HOME_DIR}')
+print(f'{TB}-> MAIN_THIS_DIR:    {MAIN_THIS_DIR}')
+print(f'{TB}-> MAIN_WORK_DIR:    {MAIN_WORK_DIR}')
+print(f'{TB}-> MAIN_HOME_DIR:    {MAIN_HOME_DIR}')
+# print(f'{TB}-> =============')
+# Esto se asigna en clidconfig.py, junto con GLBL_TRAIN_DIR:
+# print(f'{TB}-> MAIN_MDLS_DIR:  {MAIN_MDLS_DIR}')
+# print(f'{TB}-> =============')
 print(f'{"":=^80}')
 # ==============================================================================
 
@@ -569,8 +663,45 @@ if callingModuleInicial == 'clidflow':
     printMsgToFile = False
 else:
     printMsgToFile = True
-# ==============================================================================o
+contadorErroresEscrituraControlFileLas = 0
+# ==============================================================================
 def printMsg(mensaje='', outputFileLas=True, verbose=True, newLine=True, end=None):
+    global contadorErroresEscrituraControlFileLas
+    if printMsgToFile and outputFileLas:
+        try:
+            if 'controlFileLasObj' in dir(GLO) and GLO.controlFileLasObj:
+                try:
+                    if not end is None:
+                        GLO.controlFileLasObj.write(str(mensaje) + end + '\n' if newLine else ' ')
+                    else:
+                        GLO.controlFileLasObj.write(str(mensaje) + '\n' if newLine else ' ')
+                except:
+                    try:
+                        controlFileGralObj = open(GLO.GLBLficheroDeControlGral, mode='a+')
+                        controlFileGralObj.write(f'\nError (1) escribiendo en {GLO.controlFileLasObj}')
+                        controlFileGralObj.write(f'\nMensaje no escrito:\n')
+                        controlFileGralObj.write(str(mensaje))
+                        controlFileGralObj.close()
+                    except:
+                        contadorErroresEscrituraControlFileLas += 1
+                        if contadorErroresEscrituraControlFileLas < 10:
+                            print(f'clidaux-> printLog: no hay acceso a controlFileLasObj ni controlFileGralObj.')
+                        else:
+                            mensaje = f'!!! {mensaje}'
+            elif 'GLBLficheroDeControlGral' in dir(GLO) and GLO.GLBLficheroDeControlGral:
+                controlFileGralObj = open(GLO.GLBLficheroDeControlGral, mode='a+')
+                controlFileGralObj.write(f'\nNo hay acceso a controlFileLasObj: {GLO.controlFileLasObj}\n')
+                controlFileGralObj.write(str(mensaje))
+                controlFileGralObj.close()
+        except:
+            contadorErroresEscrituraControlFileLas += 1
+            if contadorErroresEscrituraControlFileLas < 5:
+                print(f'clidaux-> printLog: no hay acceso a controlFileLasObj o controlFileGralObj.')
+                if 'controlFileLasName' in dir(GLO):
+                    print(f'{TB}-> controlFileLasName:   {GLO.controlFileLasName}')
+                if 'GLBLficheroDeControlGral' in dir(GLO):
+                    print(f'{TB}-> ficheroDeControlGral: {GLO.GLBLficheroDeControlGral}')
+            mensaje = f'### {mensaje}'
     if verbose:
         if not end is None:
             print(mensaje, end=end)
@@ -578,25 +709,7 @@ def printMsg(mensaje='', outputFileLas=True, verbose=True, newLine=True, end=Non
             end=''
             print(mensaje, end=end)
         else:
-            end=''
             print(mensaje)
-    if printMsgToFile and outputFileLas:
-        try:
-            if 'controlFileLas' in dir(GLO) and GLO.controlFileLas:
-                try:
-                    GLO.controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
-                except:
-                    if GLO.controlFileGral:
-                        GLO.controlFileGral.write('Error writing control file (1).\n')
-            elif 'controlFileGral' in dir(GLO):
-                GLO.controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
-        except:
-            print(f'clidaux-> printMsg: no hay acceso a controlFileLas o controlFileGral.')
-            if 'controlFileLasName' in dir(GLO):
-                print(f'{TB}-> controlFileLasName:   {GLO.controlFileLasName}')
-            if 'GLBLficheroDeControlGral' in dir(GLO):
-                print(f'{TB}-> ficheroDeControlGral: {GLO.GLBLficheroDeControlGral}')
-
 
 # ==============================================================================
 # #Puedo usar esta funcion para mensajes individuales y globales
@@ -606,15 +719,15 @@ def printMsg(mensaje='', outputFileLas=True, verbose=True, newLine=True, end=Non
 #             print( mensaje )
 #         else:
 #             print( mensaje, )
-#     if outputFileLas and clidconfig.controlFileLas:
+#     if outputFileLas and GLO.controlFileLasObj:
 #         try:
-#             clidconfig.controlFileLas.write(str(mensaje) + '\n' if newLine else ' ')
+#             GLO.controlFileLasObj.write(str(mensaje) + '\n' if newLine else ' ')
 #         except:
-#             if clidconfig.controlFileGral:
-#                 clidconfig.controlFileGral.write('Error writing control file (1).\n')
+#             if GLO.controlFileGralObj:
+#                 GLO.controlFileGralObj.write('Error writing control file (1).\n')
 #     else:
 #         try:
-#             clidconfig.controlFileGral.write(str(mensaje) + '\n' if newLine else ' ')
+#             GLO.controlFileGralObj.write(str(mensaje) + '\n' if newLine else ' ')
 #         except:
 #             print( 'Error writing control file (2).' )
 
@@ -660,6 +773,21 @@ def mensajeError(program_name):
     # sys.stderr.write(traceback.format_exc())
     return (lineError, descError, typeError)
 
+
+# ==============================================================================o
+def mostrarTiempoConsumido(
+        tiempo0=time.time(),
+        tiempo1=time.time(),
+        mensaje='tarea indefinida',
+        modulo='cartolidar',
+        fileCoordYear=''
+    ):
+    segundosDuracion = round(tiempo1 - tiempo0, 1)
+    minutosDuracion = round(segundosDuracion / 60.0, 1)
+    printMsg(
+        f'clidaux-> {modulo}.{fileCoordYear}-> Tiempo para [{mensaje}]: '
+        f'{segundosDuracion:0.1f} segundos ({minutosDuracion:0.1f} minutos)'
+    )
 
 # ==============================================================================o
 def mostrarVersionesDePythonEnElRegistro(verbose):
@@ -736,18 +864,18 @@ def memoriaRam(marcador='-', verbose=True, swap=False, sangrado=''):
     if verbose:
         if marcador == '-':
             print(
-                '%sTotal RAM: %0.2f Gb; usada: %0.2f Gb; disponible: %0.2f Gb'
+                '%sclidaux-> Total RAM: %0.2f Gb; usada: %0.2f Gb; disponible: %0.2f Gb'
                 % (sangrado, ramMem.total / 1e9, ramMem.used / 1e9, ramMem.available / 1e9)
             )
         else:
             print(
-                '%sTotal RAM (%s): %0.2f Gb; usada: %0.2f Gb; disponible: %0.2f Gb'
+                '%sclidaux-> Total RAM (%s): %0.2f Gb; usada: %0.2f Gb; disponible: %0.2f Gb'
                 % (sangrado, str(marcador), ramMem.total / 1e9, ramMem.used / 1e9, ramMem.available / 1e9)
             )
     if swap:
         swapMem = psutil.swap_memory()
         if verbose:
-            print('Total SWAP memory: %0.2f Gb; usada: %0.2f Gb; disponible: %0.2f Gb' % (swapMem.total / 1e9, swapMem.used / 1e9, swapMem.free / 1e9))
+            print('clidaux-> Total SWAP memory: %0.2f Gb; usada: %0.2f Gb; disponible: %0.2f Gb' % (swapMem.total / 1e9, swapMem.used / 1e9, swapMem.free / 1e9))
     else:
         swapMem = None
     return ramMem, swapMem
@@ -889,7 +1017,7 @@ def mostrarEntornoDeTrabajo(verbosePlus=False):
 
 
 # ==============================================================================o
-def mostrar_directorios(verbosePlus=False):
+def mostrar_directorios():
     print(f'\n{"":_^80}')
     print('clidaux-> Modulos y directorios de la aplicacion:')
     print('\t-> Modulos de la aplicacion:')
@@ -1421,7 +1549,7 @@ def mostrarPropiedadesDeUnObjetoClase(
             variableShape = None
             variableLen = None
 
-        if nombrePropiedad == 'ficheroCompletoEnLaRAM':
+        if nombrePropiedad == 'pointsAllFromFile_xtypePFXX':
             printMsg(
                 '->memSize: {:08.1f} Kb {:>35} {:>10}->{:<30} --->No se muestra por incluir todo el fichero las. nElem: {}'.format(
                     sizePropiedadKb, nombrePropiedad, tipoPropiedad, str(type(valorPropiedad)), variableLen
@@ -1543,15 +1671,15 @@ def mostrarMemoriaOcupada(miLasClass):
 # ==============================================================================o
 def interrumpoPorFaltaDeRAM(contador, totalPoints, miLasClass):
     elMensaje = '\nATENCION:\t\tInterrumpo el preprocesado para evitar problemas de memoria RAM (lectura de fichero completo).\n'
-    clidconfig.controlFileGral.write(elMensaje)
+    GLO.controlFileGralObj.write(elMensaje)
     printMsg(elMensaje)
     if contador > totalPoints * 0.5:
         elMensaje = 'Puntos leidos:\t\t%i (<1/2). Continuo con los puntos ya procesados en primera vuelta.' % (contador)
-        clidconfig.controlFileGral.write(elMensaje)
+        GLO.controlFileGralObj.write(elMensaje)
         printMsg(elMensaje)
     else:
         elMensaje = 'Puntos leidos:\t\t%i (<1/2). Interrumpo el procesado y reintento con distinta configuracion.\n' % (contador)
-        clidconfig.controlFileGral.write(elMensaje)
+        GLO.controlFileGralObj.write(elMensaje)
         printMsg(elMensaje)
     printMsg(
         'Desactivar la opcion de cargar todos los puntos en array. Si tb falla: Lectura de registros individuales (en vez de leer el fichero completo cargandolo entero en la RAM).\n'
@@ -1561,10 +1689,10 @@ def interrumpoPorFaltaDeRAM(contador, totalPoints, miLasClass):
 
 # ==============================================================================o
 def coordenadasDeBloque(miHead, metrosBloque, metrosCelda):
-    xmin = miHead['xmin']
-    ymin = miHead['ymin']
-    xmax = miHead['xmax']
-    ymax = miHead['ymax']
+    xmin = miHead['xminBloqueMalla']
+    ymin = miHead['yminBloqueMalla']
+    xmax = miHead['xmaxBloqueMalla']
+    ymax = miHead['ymaxBloqueMalla']
     xInfIzda = float(xmin)
     yInfIzda = float(ymin)
     xSupIzda = xInfIzda
@@ -1597,120 +1725,39 @@ def coordenadasDeBloque(miHead, metrosBloque, metrosCelda):
 
 
 # ==============================================================================o
-def chequearHuso29(fileCoordYearFromName):
+def chequearHuso29(fileCoordYear):
     # Lo mejor es dejar GLO.MAINhuso == 0 y asigno el huso en funcion de las coordenadas
     # Mantengo el huso 30 en el caso de que incluya _H29_ en GLO.MAINprocedimiento
     #  Esto solo lo hago cuando tengo los lasFiles en una carpeta especial (por ejemplo IRC_H29 en vez de IRC)
-    if GLO.MAINhuso == 0:
-        if int(fileCoordYearFromName[:3]) >= 650: # or '_H29_' in GLO.MAINprocedimiento:
-            TRNShuso29 = True
+    # En coordenadas de H30, la recta que separa el uso 29 del 30 es: Y = 28.71*X - 2569980; X = 0.034831 * Y + 89515
+    #   Usando coordenadas H30: Si X > 0,034831 * Y + 89515 -> H30
+    # En coordenadas de H29, la recta que separa el uso 29 del 30 es: Y = -28.6153*X + 26069477.35; X = -0.03494637 * Y + 911033
+    #   Usando coordenadas H29: Si X > 0,034831 * Y + 89515 -> H30
+    # Si esta en CyL y la coordenada X es superior a 610000, esta expresada en H29
+
+    if fileCoordYear[:8] == '000_0000':
+        if GLO.MAINhuso == 29:
+            TRNShuso29_coord, TRNShuso29_ubica = True, True
         else:
-            TRNShuso29 = False
-    elif GLO.MAINhuso == 29:
-        TRNShuso29 = True
+            TRNShuso29_coord, TRNShuso29_ubica = False, False
     else:
-        TRNShuso29 = False
-    return TRNShuso29
+        if GLO.MAINhuso == 29 or (GLO.MAINhuso == 0 and int(fileCoordYear[:3]) >= 610): # or '_H29_' in GLO.MAINprocedimiento:
+            TRNShuso29_coord = True
+            if int(fileCoordYear[:3]) * 1000 > -0.03494637 * (int(fileCoordYear[4:8]) * 1000) + 911033:
+                TRNShuso29_ubica = True
+            else:
+                TRNShuso29_ubica = False
+        else:
+            TRNShuso29_coord = False
+            # Si la coordenada esta referida a H30 y X es inferior a 0,034831 * Y + 89515 -> En realidad es H29
+            if int(fileCoordYear[:3]) * 1000 < 0.034831 * (int(fileCoordYear[4:8]) * 1000) + 89515:
+                TRNShuso29_ubica = True
+            else:
+                TRNShuso29_ubica = False
+    return TRNShuso29_coord, TRNShuso29_ubica
 
 
-# ==============================================================================o
-def renombraFicheros(
-        rutaLazCompleta,
-        infileSinRuta,
-        fileCoordYear='',
-        listaFicheros=None,
-    ):
-    infileConRuta = os.path.join(rutaLazCompleta, infileSinRuta)
-    # Convierte los nombres de los ficheros al formato XXX_YYYY_AAAA.las
-    # AAAA es la GLO.MAINanualidad y es opcional
-    if len(infileSinRuta) == 17 and infileSinRuta[4] =='_' and infileSinRuta[9] =='_':
-        # Nombre de fichero de xxx_yyyy_AAAA.las
-        nuevoInfile = infileSinRuta
-        if not listaFicheros is None:
-            listaFicheros.write(nuevoInfile + '\t<-\t' + infileSinRuta + '\n')
-        return
-    elif len(infileSinRuta) == 12 and infileSinRuta[4] =='_' and infileSinRuta[9] =='_' and GLO.MAINanualidad != '0000':
-        # Nombre de fichero de tipo xxx_yyyy.las
-        nuevoInfile = infileSinRuta[:8] + '_' + GLO.MAINanualidad + infileSinRuta[-4:]
-    elif fileCoordYear:
-        nuevoInfile = fileCoordYear + infileSinRuta[-4:]
-        nuevoInfileConRuta = os.path.join(rutaLazCompleta, nuevoInfile)
-    else:
-        return
-    try:
-        os.rename(infileConRuta, nuevoInfileConRuta)
-    except:
-        print('Error en %s -> %s' % (infileSinRuta, nuevoInfile))
-        sys.exit()
-    if not listaFicheros is None:
-        listaFicheros.write(nuevoInfile + '\t<-\t' + infileSinRuta + '\n')
-    return
-
-
-def creaDirectorio(rutaDirectorio):
-    # Parecido a os.makedirs(), pero que este no crea todo el arbol de directorios,
-    # sino solo intenta crear el directorio y su padre.
-    if not os.path.exists(rutaDirectorio):
-        try:
-            os.mkdir(rutaDirectorio)
-        except:
-            rutaPadre = os.path.abspath(os.path.join(rutaDirectorio, '..'))
-            try:
-                os.mkdir(rutaPadre)
-                os.mkdir(rutaDirectorio)
-                print('clidaux-> Se ha creado el directorio %s despues de crear su dir padre: %s' % (rutaDirectorio, rutaPadre))
-            except:
-                print('clidaux-> No se ha podido crear el directorio %s ni su dir padre %s' % (rutaDirectorio, rutaPadre))
-            sys.exit(0)
-
-
-def creaRutaDeFichero(rutaFichero):
-    rutaDirectorio = os.path.dirname(os.path.realpath(rutaFichero))
-    miFileNameSinPath = os.path.basename(os.path.realpath(rutaFichero))
-    if not os.path.exists(rutaDirectorio):
-        print(f'clidaux-> Creando ruta {rutaDirectorio} para {miFileNameSinPath}')
-        try:
-            os.makedirs(rutaDirectorio)
-        except:
-            print(f'\nclidaux-> ATENCION: No se ha podido crear el directorio {rutaDirectorio}')
-            sys.exit()
-
-
-def creaDirectorios(GLOBAL_rutaResultados, listaSubdirectorios=[]):
-    if not os.path.exists(GLOBAL_rutaResultados):
-        print('No existe el directorio %s -->> Se crea automaticamente...' % (GLOBAL_rutaResultados))
-    listaDirectorios = [
-        GLOBAL_rutaResultados,
-        GLOBAL_rutaResultados + 'Ajustes/',
-        GLOBAL_rutaResultados + 'Ajustes/Basal/',
-        GLOBAL_rutaResultados + 'Ajustes/Suelo/',
-        GLOBAL_rutaResultados + 'Alt/',
-        GLOBAL_rutaResultados + 'AltClases/',
-        GLOBAL_rutaResultados + 'Clasificacion/',
-        GLOBAL_rutaResultados + 'CobClases/',
-        GLOBAL_rutaResultados + 'Fcc/',
-        GLOBAL_rutaResultados + 'Fcc/RptoAzMin_MasDe/',
-        GLOBAL_rutaResultados + 'Fcc/RptoAsuelo_MasDe/',
-        GLOBAL_rutaResultados + 'Fcc/RptoAmds_MasDe/',
-        GLOBAL_rutaResultados + 'Fcc/RptoAmds/',
-        GLOBAL_rutaResultados + 'Fcc/RptoAmdb/',
-        GLOBAL_rutaResultados + 'FormasUsos/',
-        GLOBAL_rutaResultados + 'NumPtosPasadas/',
-        GLOBAL_rutaResultados + 'NumPtosPasadas/PorRetornos/',
-        GLOBAL_rutaResultados + 'NumPtosPasadas/PorClases/',
-        GLOBAL_rutaResultados + 'OrientPte/',
-        GLOBAL_rutaResultados + 'Varios/',
-        GLOBAL_rutaResultados + 'z/',
-    ]
-    for directorio in listaDirectorios:
-        if not os.path.exists(directorio):
-            try:
-                os.makedirs(directorio)
-            except:
-                print('No se ha podido crear el directorio %s' % (directorio))
-                sys.exit()
-
-
+# ==============================================================================
 def mostrarCabecera(header):
     if GLO.GLBLusarLiblas:
         # print( 'Propiedades y metodos de miHead:', dir(header) )
@@ -2018,24 +2065,24 @@ def comprimeLaz(
         LCLverbose=False,
         sobreEscribirOutFile=False,
     ):
-    if LCLverbose:
-        printMsg(f'\n{"":_^80}')
 
     if not os.path.exists(infileConRuta):
-        printMsg(f'clidaux-> Fichero no disponible para comprimir: {infileConRuta}')
+        printMsg(f'{TB}-> clidaux-> Fichero no disponible para comprimir: {infileConRuta}')
         return False
 
     infile = os.path.basename(infileConRuta)
     rutaLazCompleta = os.path.dirname(infileConRuta)
     if 'RGBI' in rutaLazCompleta:
         rutaLazCompleta = rutaLazCompleta.replace('RGBI', 'RGBI_laz')
-    else:
+    elif 'RGB' in rutaLazCompleta:
         rutaLazCompleta = rutaLazCompleta.replace('RGB', 'RGB_laz')
+    else:
+        rutaLazCompleta = f'{rutaLazCompleta}_laz'
     if not os.path.isdir(rutaLazCompleta):
         try:
             os.makedirs(rutaLazCompleta)
         except:
-            print(f'clidaux-> AVISO: no se ha podido crear la ruta: {rutaLazCompleta} -> No se genera lazFile.')
+            print(f'{TB}-> clidaux-> AVISO: no se ha podido crear la ruta: {rutaLazCompleta} -> No se genera lazFile.')
             return False
 
     if MAIN_ENTORNO == 'calendula':
@@ -2048,7 +2095,7 @@ def comprimeLaz(
         (laszip_binary, laszip_binary_encontrado) = buscarLaszip(LCLverbose=LCLverbose)
 
         if not laszip_binary_encontrado:
-            print('\nclidaux-> AVISO: no se ha encontrado un binario para comprimir (no se genera lazFile).')
+            print(f'{TB}-> clidaux-> AVISO: no se ha encontrado un binario para comprimir (no se genera lazFile).')
             return False
 
         outfileLaz = (infile.replace('.las', '.laz')).replace('.LAS', '.laz')
@@ -2058,17 +2105,36 @@ def comprimeLaz(
         # print('\t-> outfileLazConRuta:', outfileLazConRuta)
         # print('\t\t%s -i %s -o %s' % (laszip_binary, infileConRuta, outfileLasConRuta))
     if os.path.exists(outfileLazConRuta) and not sobreEscribirOutFile:
-        print('\t-> clidaux-> No se genera el fichero comprimido porque sobreEscribirOutFile={} y ya existe: {}'.format(sobreEscribirOutFile, outfileLazConRuta))
+        print(f'{TB}-> clidaux-> No se genera el fichero comprimido porque sobreEscribirOutFile={sobreEscribirOutFile} y ya existe: {outfileLazConRuta}')
         return False
 
-    if LCLverbose:
-        print('\t-> clidaux-> Se comprime el fichero para generar: {}'.format(outfileLazConRuta))
-        print('\t-> clidaux-> Compresor:', laszip_binary)
+    if LCLverbose or True:
+        print(f'{TB}-> clidaux-> Se comprime:  {infileConRuta}')
+        print(f'{TB}-> {TB}Para generar: {outfileLazConRuta}')
+        print(f'{TB}-> {TB}-> Compresor:', laszip_binary)
     subprocess.call([laszip_binary, '-i', infileConRuta, '-o', outfileLazConRuta])
 
-    if eliminarLasFile and os.path.exists(infileConRuta):
-        print('\tEliminando el fichero las despues de comprimir a laz:', infileConRuta)
-        os.remove(infileConRuta)
+    if os.path.exists(outfileLazConRuta) and os.path.exists(infileConRuta):
+        # eliminarLasFile = True
+        try:
+            outfileLazSizeKB = os.stat(outfileLazConRuta).st_size / 1000
+            infileLasSizeKB = os.stat(infileConRuta).st_size / 1000
+            if outfileLazSizeKB < infileLasSizeKB / 100: # size en KB
+                print(f'{TB}-> clidaux-> AVISO: el laz generado ocupa menos de lo esperado:   {outfileLazSizeKB:10.1f} KB -> {outfileLazConRuta}')
+                print(f'{TB}{TV} en comparacion con el las que se quiere comprimir:           {infileLasSizeKB:10.1f} KB -> {infileConRuta}')
+                print(f'{TB}-> No se elimina el fichero sin comprimir: {infileConRuta}')
+                eliminarLasFile = False
+        except:
+            print(f'{TB}-> clidaux-> Aviso: No se ha podido calcular cuantos bytes tienen los ficheros {infileConRuta} y {outfileLazConRuta}')
+        if eliminarLasFile and os.path.exists(infileConRuta):
+            print(f'{TB}{TV}-> Eliminando el fichero las despues de comprimir a laz: {infileConRuta}')
+            try:
+                os.remove(infileConRuta)
+            except:
+                print(f'{TB}-> clidaux-> Aviso: revisar si el fichero {infileConRuta} esta bloqueado por otra aplicacion (error al intentar borrarlo)')
+    else:
+        print(f'{TB}-> clidaux-> AVISO: no se ha podido generar el laz:  {outfileLazConRuta}')
+        print(f'{TB}{TV}-> No se elimina el fichero sin comprimir: {infileConRuta}')
 
     return True
 
@@ -2332,1426 +2398,6 @@ See also:
         iris-pca .py .png
 
 """
-
-
-# ==============================================================================
-def completarVariablesGlobales(
-        GLO,
-        LCLobjetivoSiReglado='GENERAL',
-        LCLprocedimiento='',
-        LCLcuadrante='',
-        ARGSnInputsModeloNln=0,
-        ARGScodModeloNln='',
-        rutaLazCompleta=''
-    ):
-    # Si hay ARGScodCuadrante, prevalece sobre el que figure en el fichero de configuracion xls (y se incorpora a la configuracion)
-
-    # ==========================================================================
-    MAINusuario = infoUsuario(False)
-    # ==========================================================================
-
-    # global GLO
-    # En esta funcion se establecen algunas variables globales (si es necesario modificarlas):
-    #    MAINrutaCarto      -> Se adapta para que cuelgue de MAIN_RAIZ_DIR o se adapta segun MAINprocedimiento
-    #    MAINrutaOutput     -> Se vincula a MAIN_RAIZ_DIR (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento
-    #    MAINrutaLaz        -> Se vincula a MAIN_RAIZ_DIR (windows) o se establece especificamente (calendula) y se adapta segun MAINprocedimiento 
-    #    MAINprocedimiento  -> Se retoca si el procedimiento menciona calendula pero lo ejecuto en Windows
-    #    GLBLshapeNumPoints, GLBLtipoLectura, GLBLshapeFilter, GLBLprocesarComprimidosLaz, etc.
-    # Y se devuelven variables (sin utilidad para determinados procedimiento)
-    #    listaDirsLaz, listaSubDirsLaz, coordenadasDeMarcos
-    coordenadasDeMarcos = {}
-    # ==========================================================================
-
-    # print('{:_^80}'.format(' El Entorno y el cuadrante condicionan MAINrutaLaz y MAINrutaOutput'))
-    # print(f'{"":_^80}')
-
-    # Esto lo hago antes en clidbase y clidflow y queda guardado en el cfg
-    '''
-    # ==========================================================================
-    # Ruta raiz del proyecto:    MAIN_RAIZ_DIR
-    #  En windows:
-    #    Si cartolid NO esta instalado -> D:/_clid (depende de donde este clidbase.py)
-    #    Si cartolid SI esta instalado -> C:\conda\py37\envs\clid\lib (depende de donde este site-packages)
-    #  En calendula:
-    #    /LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1
-    GLO.MAIN_RAIZ_DIR = MAIN_RAIZ_DIR
-    # Ruta raiz para resultados: MAIN_RAIS_DIR
-    #    -> Esta variable solo se usa desde clidaux.py, para
-    #  En windows: normalmente sera D:/_clid (o lo que diga clidbase.xlsx)
-    #    Tiro de GLO.MAINrutaRaiz (de clidbase.xlsx), que lo he creado para 
-    #    cuando se ejecuta el cartolidar de site-packages, ya que no
-    #    quiero que los log, cfg, y resultados vayan a site-packages  
-    #  En calendula:
-    #    /scratch/jcyl_spi_1/jcyl_spi_1_1
-    if MAIN_ENTORNO == 'calendula':
-        GLO.MAIN_RAIS_DIR = '/scratch/jcyl_spi_1/jcyl_spi_1_1'
-    elif 'MAINrutaRaiz' in dir(GLO):
-        GLO.MAIN_RAIS_DIR = GLO.MAINrutaRaiz
-    else:
-        GLO.MAIN_RAIS_DIR = MAIN_RAIZ_DIR
-    GLO.MAINmiRutaProyecto = MAIN_PROJ_DIR
-    # ==========================================================================
-    '''
-    # ==========================================================================
-    # =========================== MAINrutaLaz ==================================
-    # ==========================================================================
-    # Sitio por defecto para MAINrutaLaz
-    # No se recorren subcarpetas de MAINrutaLaz salvo que lo establezca el MAINprocedimiento
-    if __verbose__:
-        print(f'\n{"":_^80}')
-        print(f'clidaux-> Identificando la ruta de los ficheros laz con completarVariablesGlobales<>')
-        print(f'{TB}-> Valor de inicial de rutaLazCompleta: <{rutaLazCompleta}>')
-        print(f'{TB}-> Valor de inicial de GLO.MAINrutaLaz: <{GLO.MAINrutaLaz}>')
-    if rutaLazCompleta != '':
-        # Solo cuando se inicia con clidflow
-        GLO.MAINrutaLaz = os.path.abspath(rutaLazCompleta)
-        if __verbose__:
-            print(f'{TB}Se adopta el valor de rutaLazCompleta: {GLO.MAINrutaLaz}')
-    else:
-        if (not GLO.MAINrutaLaz is None
-            and GLO.MAINrutaLaz != 'None'
-            and  GLO.MAINrutaLaz != ''
-        ):
-            if MAIN_ENTORNO == 'calendula':
-                if ':' in GLO.MAINrutaLaz:
-                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, 'laz2')
-                else:
-                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, GLO.MAINrutaLaz)
-            else:
-                if ':' in GLO.MAINrutaLaz:
-                    # GLO.MAINrutaLaz = 'E:/incendioZamora'
-                    # GLO.MAINrutaLaz = GLO.MAINrutaLaz
-                    pass
-                    if __verbose__:
-                        print(f'{TB}MAINrutaLaz-> Se usa directamente GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
-                elif 'MAINrutaRaiz' in dir(GLO):
-                    GLO.MAINrutaLaz = os.path.join(GLO.MAINrutaRaiz, GLO.MAINrutaLaz)
-                    if __verbose__:
-                        print(f'{TB}MAINrutaLaz-> Se integra MAINrutaRaiz y GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
-                else:
-                    GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIZ_DIR, GLO.MAINrutaLaz)
-                    if __verbose__:
-                        print(f'{TB}MAINrutaLaz-> Se integra MAIN_RAIZ_DIR y GLO.MAINrutaLaz: {GLO.MAINrutaLaz}')
-        else:
-            if MAIN_ENTORNO == 'calendula':
-                GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIS_DIR, 'laz')
-            elif 'MAINrutaRaiz' in dir(GLO):
-                GLO.MAINrutaLaz = os.path.join(GLO.MAINrutaRaiz, 'laz')
-            else:
-                GLO.MAINrutaLaz = os.path.join(GLO.MAIN_RAIZ_DIR, 'laz')
-            if __verbose__:
-                print(f'{TB}Valor por defecto basado en rutaRaiz: {GLO.MAINrutaLaz}')
-
-    if __verbose__:
-        print(f'{"":=^80}')
-    # ==========================================================================
-    if __verbose__:
-        print(f'\n{"":_^80}')
-        print(f'clidaux-> Se lanza casosEspecialesParaMAINrutaLaz<>')
-    GLO.MAINrutaLaz, listaDirsLaz, listaSubDirsLaz = casosEspecialesParaMAINrutaLaz(
-        GLO.MAINprocedimiento,
-        GLO.MAINrutaLaz,
-        LCLcuadrante
-    )
-    if __verbose__:
-        print('clidaux-> GLO.MAINrutaLaz:', GLO.MAINrutaLaz)
-        print(f'{"":=^80}')
-    # ==========================================================================
-
-    # ==========================================================================
-    # ========================== MAINrutaCarto =================================
-    # ==========================================================================
-    print(f'clidaux-> Antes GLO.MAINrutaCarto: {GLO.MAINrutaCarto}')
-    if (
-        not GLO.MAINrutaCarto is None
-        and GLO.MAINrutaCarto != 'None'
-        and GLO.MAINrutaCarto != ''
-    ):
-        print(f'clidaux-> Antes GLO.MAINrutaCarto no es nulo: {type(GLO.MAINrutaCarto)}')
-        GLO.MAINrutaCarto = os.path.abspath(GLO.MAINrutaCarto)
-    else:
-        GLO.MAINrutaCarto = asignarMAINrutaCarto()
-    print(f'clidaux-> Desp  GLO.MAINrutaRaiz:  {GLO.MAINrutaRaiz}')
-    print(f'clidaux-> Desp  GLO.MAINrutaCarto: {GLO.MAINrutaCarto}')
-    # ==========================================================================
-
-    # ==========================================================================
-    # ========================== MAINrutaOutput ================================
-    # ==========================================================================
-    if (
-        not GLO.MAINrutaOutput is None
-        and GLO.MAINrutaOutput != 'None'
-        and GLO.MAINrutaOutput != ''
-    ):
-        print(f'clidaux-> MAINrutaOutput (a1): {GLO.MAINrutaOutput}')
-        GLO.MAINrutaOutput = os.path.abspath(GLO.MAINrutaOutput)
-        print(f'clidaux-> MAINrutaOutput (a2): {GLO.MAINrutaOutput}')
-    else:
-        print(f'clidaux-> MAINrutaOutput (b1): {GLO.MAINrutaOutput}')
-        GLO.MAINrutaOutput = asignarMAINrutaOutput(
-            GLO.MAINprocedimiento,
-            GLO.MAINrutaOutput,
-            GLO.MAIN_RAIS_DIR,
-            LCLobjetivoSiReglado,
-            LCLcuadrante,
-        )
-        print(f'clidaux-> MAINrutaOutput (b2): {GLO.MAINrutaOutput}')
-    # ==========================================================================
-
-    # ==========================================================================
-    if GLO.MAINrutaOutput is None:
-        print(f'clidaux-> ATENCION: no se ha asignado correctamente MAINrutaOutput: {GLO.MAINrutaOutput}')
-        print(f'{TB}-> Revisar codigo')
-        sys.exit(0)
-    elif not os.path.exists(GLO.MAINrutaOutput):
-        print(f'clidaux-> No existe el directorio {GLO.MAINrutaOutput} -> Se crea automaticamente')
-        try:
-            os.makedirs(GLO.MAINrutaOutput)
-        except:
-            print(f'{TB}-> No se ha podido crear el directorio {GLO.MAINrutaOutput}. Revisar MAINprocedimiento')
-            sys.exit(0)
-    # ==========================================================================
-
-    # ==========================================================================
-    if (
-        GLO.GLBLcrearTilesTargetDeCartoRefSoloSiHaySingUseSuficientes
-        or GLO.GLBLcrearTilesTargetMiniSubCelSoloSiHayNoSueloSuficientes
-    ):
-        subDirTrain = 'trainSel'
-    else:
-        subDirTrain = 'trainAll'
-    # ==========================================================================
-    if MAIN_ENTORNO == 'calendula':
-        GLO.MAIN_MDLS_DIR = '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/data'
-#         GLO.MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, 'cartolidar/cartolidar/data'))
-        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-    elif MAIN_ENTORNO == 'colab':
-        GLO.MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
-        GLO.GLBL_TRAIN_DIR = os.path.join(MAIN_RAIZ_DIR, 'data/datasets/cartolid/trainImg')
-    elif 'MAINrutaRaiz' in dir(GLO):
-        GLO.MAIN_MDLS_DIR = os.path.abspath(os.path.join(
-            GLO.MAINrutaRaiz,
-            'data'
-        ))
-        GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-        # GLO.GLBL_TRAIN_DIR = os.path.abspath(os.path.join(
-        #     GLO.MAINrutaRaiz,
-        #     'data/datasets/cartolid/trainImg'
-        # ))
-    else:
-        if 'cartolidar' in MAIN_RAIZ_DIR:
-            GLO.MAIN_MDLS_DIR = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '../data'))
-        else:
-            GLO.MAIN_MDLS_DIR = os.path.join(MAIN_RAIZ_DIR, 'data')
-        if MAIN_PC == 'JCyL':
-            # Imagenes de entrenamiento en disco externo
-            # GLO.GLBL_TRAIN_DIR = 'D:/trainImg'
-            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'cartolidout/train')
-            # GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-            # Imagenes de entrenamiento en disco duro
-            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/datasets/cartolid/trainImg')
-            # GLO.GLBL_TRAIN_DIR = 'C:/_ws/cartolidout/train'
-            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-        else:
-            # En casa
-            # GLO.GLBL_TRAIN_DIR = os.path.join(RAIZ_DIR, 'data/trainImg')
-            GLO.GLBL_TRAIN_DIR = os.path.join(GLO.MAINrutaOutput, subDirTrain)
-    # ==========================================================================
-
-
-    # ==========================================================================
-    # ======================== Procesados especiales ===========================
-    # ================ RENOMBRAR_FICHEROS, MERGEAR, GEOINTEGRAR ================
-    # ==================== COMPRIMIR_LAS, DESCOMPRIMIR_LAZ ===================== 
-    # ==== CREAR_SHAPE, CREAR_CAPA_CON_UNA_PROPIEDAD_DE_LOS_FICHEROS_LIDAR =====
-    # ==========================================================================
-
-
-    # ==========================================================================
-    MOSTRAR_CONFIGURACION = __verbose__ >= 1
-    if MOSTRAR_CONFIGURACION:
-        print(f'{"":_^80}')
-        print(f'{" clidaux-> Configuracion final ":_^80}')
-        print(f'{"":_^80}')
-        print(f'{TB}{"MAINobjetivoEjecucion":.<21}: {GLO.MAINobjetivoEjecucion}')
-        print(f'{TB}{"MAINobjetivoSiReglado":.<21}: {LCLobjetivoSiReglado}')
-        print(f'{TB}{"MAINprocedimiento":.<21}: {GLO.MAINprocedimiento}')
-        print(f'{TB}{"MAINrutaRaiz":.<21}: {GLO.MAINrutaRaiz}')
-        print(f'{TB}{"MAINmiRutaProyecto":.<21}: {GLO.MAINmiRutaProyecto}')
-        print(f'{TB}{"MAINrutaCarto":.<21}: {GLO.MAINrutaCarto}')
-        print(f'{TB}{"MAINrutaLaz":.<21}: {GLO.MAINrutaLaz}')
-        print(f'{TB}{"MAINrutaOutput":.<21}: {GLO.MAINrutaOutput}')
-        print(f'{TB}{"MAINcuadrante":.<21}: {GLO.MAINcuadrante}')
-        if 'MAIN_RAIZ_DIR' in dir(GLO):
-            print(f'{TB}{"MAIN_RAIZ_DIR":.<21}: {GLO.MAIN_RAIZ_DIR}')
-        else:
-            print(f'{TB}{"MAIN_RAIZ_DIR":.<21}: {"no en clidbase.xls"}')
-        if 'MAIN_RAIS_DIR' in dir(GLO):
-            print(f'{TB}{"MAIN_RAIS_DIR":.<21}: {GLO.MAIN_RAIS_DIR}')
-        else:
-            print(f'{TB}{"MAIN_RAIS_DIR":.<21}: {"no en clidbase.xls"}')
-        if 'MAIN_MDLS_DIR' in dir(GLO):
-            print(f'{TB}{"MAIN_MDLS_DIR":.<21}: {GLO.MAIN_MDLS_DIR}')
-        else:
-            print(f'{TB}{"MAIN_MDLS_DIR":.<21}: {"no en clidbase.xls"}')
-        if 'GLBL_TRAIN_DIR' in dir(GLO):
-            print(f'{TB}{"GLBL_TRAIN_DIR":.<21}: {GLO.GLBL_TRAIN_DIR}')
-        else:
-            print(f'{TB}{"GLBL_TRAIN_DIR":.<21}: {"no en clidbase.xls"}')
-        print(f'{"":=^80}')
-    # ==========================================================================
-
-    #print('clidaux: Creando directorio: {}'.format(GLO.MAINrutaOutput))
-    # try:
-    #     creaDirectorio(GLO.MAINrutaOutput)
-    # except:
-    #     time.sleep(10)
-    #     creaDirectorio(GLO.MAINrutaOutput)
-
-
-    # ==========================================================================
-    GLO.GLBLficheroDeControlGral = os.path.join(
-        GLO.MAINrutaOutput,
-        'GlobalControl_{}.txt'.format(MAINusuario)
-    )
-    # ==========================================================================
-    creaRutaDeFichero(GLO.GLBLficheroDeControlGral)
-    # ==========================================================================
-
-    # ==========================================================================
-    # Nombres de los modelos convolucionales
-    if GLO.GLBLpredecirCubiertasSingularesConvolucional or GLO.GLBLpredecirClasificaMiniSubCelConvolucional:
-        if (
-            not GLO.GLBLmodeloCartolidMiniSubCelEntrenado is None
-            and GLO.GLBLmodeloCartolidMiniSubCelEntrenado != ''
-        ):
-            idCuadranteActual = '_{}'.format((LCLcuadrante)[:2].upper())
-            indexCuadranteModelo = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('_Png') - 4
-            if indexCuadranteModelo > 0:
-                idCuadranteModelo = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[indexCuadranteModelo: indexCuadranteModelo + 3]
-                GLO.GLBLmodeloCartolidMiniSubCelEntrenado = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.replace(
-                    idCuadranteModelo,
-                    idCuadranteActual
-                )
-        if (
-            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoA is None
-            and GLO.GLBLmodeloCartolidCartoSinguEntrenadoA != ''
-        ):
-            idCuadranteActual = '_{}'.format((LCLcuadrante)[:2].upper())
-            indexCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('_Png') - 4
-            if indexCuadranteModelo > 0:
-                idCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[indexCuadranteModelo: indexCuadranteModelo + 3]
-                GLO.GLBLmodeloCartolidCartoSinguEntrenadoA = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.replace(
-                    idCuadranteModelo,
-                    idCuadranteActual
-                )
-        if (
-            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoB is None
-            and GLO.GLBLmodeloCartolidCartoSinguEntrenadoB != ''
-        ):
-            idCuadranteActual = '_{}'.format((LCLcuadrante)[:2].upper())
-            indexCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('_Png') - 4
-            if indexCuadranteModelo > 0:
-                idCuadranteModelo = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[indexCuadranteModelo: indexCuadranteModelo + 3]
-                GLO.GLBLmodeloCartolidCartoSinguEntrenadoB = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.replace(
-                    idCuadranteModelo,
-                    idCuadranteActual
-                )
-
-        # Nombre del modelo acumulativo
-        if LCLcuadrante != '' and ARGSnInputsModeloNln != 0 and ARGScodModeloNln != '':
-            # Si se incluyen estos argumentos en linea de comandos, prevalecen sobre el nombre del fichero xls de configuracion
-            nInputVars = ARGSnInputsModeloNln
-            if ARGScodModeloNln == '64+32+16_resBatchN':
-                GLO.GLBLnombreFicheroConModeloParaInferencia = 'NNCaleLote{}_i{:03}_h64_h32_h16_o10_dropoutPriUlt_normHL_RNN'.format(
-                    LCLcuadrante.upper(),
-                    nInputVars
-                )
-            else:
-                print('clidclas-> ATENCION: codigo de modelo en linea de comandos no implementado: {}'.format(ARGScodModeloNln))
-                sys.exit(0)
-            print('clidclas-> Nombre del modelo: {}'.format(GLO.GLBLnombreFicheroConModeloParaInferencia))
-        elif (
-            not GLO.GLBLnombreFicheroConModeloParaInferencia is None
-            and GLO.GLBLnombreFicheroConModeloParaInferencia != ''
-        ):
-            idCuadranteActual = 'Lote{}'.format((LCLcuadrante)[:2].upper())
-            indexCuadranteModelo = GLO.GLBLnombreFicheroConModeloParaInferencia.find('_i') - 6
-            if indexCuadranteModelo > 0:
-                idCuadranteModelo = GLO.GLBLnombreFicheroConModeloParaInferencia[indexCuadranteModelo: indexCuadranteModelo + 6]
-                GLO.GLBLnombreFicheroConModeloParaInferencia = GLO.GLBLnombreFicheroConModeloParaInferencia.replace(
-                    idCuadranteModelo,
-                    idCuadranteActual
-                )
-
-        # GLO.GLBLmodeloCartolidMiniSubCelEntrenado = 'clidGen_cale_LasClass_2_345_6_reDepurada_Png6_012345_20210605v0.h5'
-        if GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
-            iniDataset = 13
-            if '__Png' in GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
-                finDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('__Png')
-            elif '_Png' in GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
-                finDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('_Png')
-            else:
-                finDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('.h5')
-            txtDataset = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[iniDataset: finDataset]
-            if '_Png' in GLO.GLBLmodeloCartolidMiniSubCelEntrenado: # Incluye '__Png'
-                iniNumPngs = GLO.GLBLmodeloCartolidMiniSubCelEntrenado.find('_Png') + 1
-                finNumPngs = iniNumPngs + 4
-                txtNumPngs = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[iniNumPngs: finNumPngs]
-                intNumPngs = int(txtNumPngs[-1])
-                iniLstPngs = finNumPngs + 1
-                finLstPngs = iniLstPngs + intNumPngs
-                txtLstPngs = GLO.GLBLmodeloCartolidMiniSubCelEntrenado[iniLstPngs: finLstPngs]
-            else:
-                print('clidaux-> ATENCION: revisar el nombre del modelo entrenado (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidMiniSubCelEntrenado))
-                intNumPngs = 0
-                txtLstPngs = ''
-
-            MAIN_COD_18_16N_04_MODELOENTRENADO_MINI = 'cartolidMiniSubCel{}{}'.format(txtDataset, txtNumPngs)
-            MAIN_LISTA_PNGS_MODELOENTRENADO_MINI = 'X{}'.format(txtLstPngs)
-            # print('clidaux-> MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:', MAIN_COD_18_16N_04_MODELOENTRENADO_MINI)
-            # print('txtDataset:', txtDataset)
-            # print('txtNumPngs:', txtNumPngs)
-            # print('txtLstPngs:', txtLstPngs)
-
-        # GLO.GLBLmodeloCartolidCartoSinguEntrenadoA = 'clidGen_cale_UsosDisp12_45678_Png6_012345_20210612v0.h5.h5'
-        # GLO.GLBLmodeloCartolidCartoSinguEntrenadoA = 'clidGen_cale_UsosDisp_2_45678_Png6_012345_20210202.h5.h5'
-        if GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
-            if '__Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
-                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('__Png')
-            elif '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
-                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('_Png')
-            else:
-                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('.h5')
-            txtDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[iniDataset: finDataset] # Puede ser: UsosDisp12_45678, UsosDisp_2_45678
-            if '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
-                iniNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA.find('_Png') + 1
-                finNumPngs = iniNumPngs + 4
-                txtNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[iniNumPngs: finNumPngs]
-                intNumPngs = int(txtNumPngs[-1])
-                iniLstPngs = finNumPngs + 1
-                finLstPngs = iniLstPngs + intNumPngs
-                txtLstPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoA[iniLstPngs: finLstPngs]
-            else:
-                print('clidaux-> ATENCION: revisar el nombre del modelo entrenadoA (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
-                intNumPngs = 0
-                txtLstPngs = ''
-            MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
-            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
-            MAIN_LISTA_PNGS_MODELOENTRENADO_CART_ = 'X{}'.format(txtLstPngs)
-            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA = 'X{}'.format(txtLstPngs)
-        else:
-            MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ = 'cartolidCartoSingu_'
-            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA = 'cartolidCartoSingu_'
-            MAIN_LISTA_PNGS_MODELOENTRENADO_CART_ = 'X123456'
-            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA = 'X123456'
-        # print('clidaux-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA)
-        # print('txtDataset:', txtDataset)
-        # print('txtNumPngs:', txtNumPngs)
-        # print('txtLstPngs:', txtLstPngs)
-    
-        # GLO.GLBLmodeloCartolidCartoSinguEntrenadoB = 'clidGen_cale_UsosDisp___45678_Png6_012345_20210202.h5.h5'
-        if GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
-            if '__Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
-                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('__Png')
-            elif '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
-                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('_Png')
-            else:
-                finDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('.h5')
-            txtDataset = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[iniDataset: finDataset] # Puede ser: UsosDisp12_45678, UsosDisp_2_45678
-            if '_Png' in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
-                iniNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB.find('_Png') + 1
-                finNumPngs = iniNumPngs + 4
-                txtNumPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[iniNumPngs: finNumPngs]
-                intNumPngs = int(txtNumPngs[-1])
-                iniLstPngs = finNumPngs + 1
-                finLstPngs = iniLstPngs + intNumPngs
-                txtLstPngs = GLO.GLBLmodeloCartolidCartoSinguEntrenadoB[iniLstPngs: finLstPngs]
-            else:
-                print('clidaux-> ATENCION: revisar el nombre del modelo entrenadoB (no incluye _PngX): {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
-                intNumPngs = 0
-                txtLstPngs = ''
-            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = 'cartolidCartoSingu{}{}'.format(txtDataset, txtNumPngs)
-            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB = 'X{}'.format(txtLstPngs)
-        else:
-            MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = 'cartolidCartoSingu_'
-            MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB = 'X123456'
-        # print('clidaux-> MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB:', MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB)
-        # print('txtDataset:', txtDataset)
-        # print('txtNumPngs:', txtNumPngs)
-        # print('txtLstPngs:', txtLstPngs)
-    
-        # GLO.GLBLmodeloCartolid128PixelesEntrenado = 'modeloPix2PixGeneratEntrenado_calendula_Pn6_012345_20201224.h5'
-        txtDataset = 'SingUse128pixel'
-        txtNumPngs = 'Png6'
-        txtLstPngs = '012345'
-        MAIN_COD_18_16N_04_MODELOENTRENADO_128P = 'cartolid128Pixeles{}{}'.format(txtDataset, txtNumPngs)
-        MAIN_LISTA_PNGS_MODELOENTRENADO_128P = 'X{}'.format(txtLstPngs)
-    else:
-        MAIN_COD_18_16N_04_MODELOENTRENADO_MINI = ''
-        MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ = ''
-        MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA = ''
-        MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB = ''
-        MAIN_COD_18_16N_04_MODELOENTRENADO_128P = ''
-    
-        MAIN_LISTA_PNGS_MODELOENTRENADO_MINI = ''
-        MAIN_LISTA_PNGS_MODELOENTRENADO_CART_ = ''
-        MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA = ''
-        MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB = ''
-        MAIN_LISTA_PNGS_MODELOENTRENADO_128P = ''
-    # ==========================================================================
-
-    if (
-        (
-            not GLO.GLBLmodeloCartolidMiniSubCelEntrenado is None
-            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidMiniSubCelEntrenado
-        )
-        or (
-            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoA is None
-            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA
-        )
-        or (
-            not GLO.GLBLmodeloCartolidCartoSinguEntrenadoB is None
-            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB
-        )
-        or (
-            not GLO.GLBLnombreFicheroConModeloParaInferencia is None
-            and not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLnombreFicheroConModeloParaInferencia
-        )
-
-        or (
-            not MAIN_COD_18_16N_04_MODELOENTRENADO_MINI is None
-            and not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_MINI
-        )
-        or (
-            not MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ is None
-            and not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_CART_
-        )
-    ):
-        print(f'\n{"":_^80}')
-        print('clidaux-> Verificando modelos entrenados disponibles para el cuadrante {} (identificador completo: {}):'.format((LCLcuadrante[:2]).upper(), LCLcuadrante))
-        print('\t-> GLBLmodeloCartolidMiniSubCelEntrenado:    {}'.format(GLO.GLBLmodeloCartolidMiniSubCelEntrenado))
-        print('\t-> GLBLmodeloCartolidCartoSinguEntrenadoA:   {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoA))
-        print('\t-> GLBLmodeloCartolidCartoSinguEntrenadoB:   {}'.format(GLO.GLBLmodeloCartolidCartoSinguEntrenadoB))
-        print('\t-> GLBLnombreFicheroConModeloParaInferencia: {}'.format(GLO.GLBLnombreFicheroConModeloParaInferencia))
-        print('\t-> MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:  {}'.format(MAIN_COD_18_16N_04_MODELOENTRENADO_MINI))
-        print('\t-> MAIN_COD_18_16N_04_MODELOENTRENADO_CART_: {}'.format(MAIN_COD_18_16N_04_MODELOENTRENADO_CART_))
-        print('\t-> cuadrante: {}_'.format((LCLcuadrante[:2]).upper()), '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidMiniSubCelEntrenado)
-        if not GLO.GLBLmodeloCartolidMiniSubCelEntrenado is None:
-            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidMiniSubCelEntrenado:
-                print(
-                    'clidaux-> ATENCION 1: el modelo <{}> no esta disponible para el cuadrante {}'.format(
-                        GLO.GLBLmodeloCartolidMiniSubCelEntrenado,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-            else:
-                print(
-                    '\tModelo1 <{}> entrenado OK para el cuadrante {}'.format(
-                        GLO.GLBLmodeloCartolidMiniSubCelEntrenado,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-        if not GLO.GLBLmodeloCartolidCartoSinguEntrenadoA is None:
-            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoA:
-                print(
-                    'clidaux-> ATENCION 2: el modelo <{}> no esta disponible para el cuadrante {}'.format(
-                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoA,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-            else:
-                print(
-                    '\tModelo2 <{}> entrenado OK para el cuadrante {}'.format(
-                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoA,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-        if not GLO.GLBLmodeloCartolidCartoSinguEntrenadoB is None:
-            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLmodeloCartolidCartoSinguEntrenadoB:
-                print(
-                    'Modelo3: el modelo <{}> no esta disponible para el cuadrante {} (no esencial)'.format(
-                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoB,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-            else:
-                print(
-                    '\tModelo3 <{}> entrenado OK para el cuadrante {}'.format(
-                        GLO.GLBLmodeloCartolidCartoSinguEntrenadoB,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-        else:
-            print(
-                '\tModelo3 <{}> no se usa para el cuadrante {}'.format(
-                    GLO.GLBLmodeloCartolidCartoSinguEntrenadoB,
-                    '{}_'.format((LCLcuadrante[:2]).upper()),
-                )
-            )
-
-        if (
-            GLO.MAINobjetivoEjecucion == 'CREAR_LAZ'
-            and not GLO.GLBLnombreFicheroConModeloParaInferencia is None
-        ):
-            if not '{}_'.format((LCLcuadrante[:2]).upper()) in GLO.GLBLnombreFicheroConModeloParaInferencia:
-                # Solo necesito el modelo para inferencia si voy a CREAR_LAZ
-                print(
-                    'clidaux-> ATENCION 4: el modelo <{}> no esta disponible para el cuadrante {}'.format(
-                        GLO.GLBLnombreFicheroConModeloParaInferencia,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-            else:
-                print(
-                    '\tModelo4 <{}> entrenado OK para el cuadrante {}'.format(
-                        GLO.GLBLnombreFicheroConModeloParaInferencia,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-        if not MAIN_COD_18_16N_04_MODELOENTRENADO_MINI is None:
-            if not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_MINI:
-                print(
-                    '\tModelo5 <{}> no disponible para el cuadrante {} (no esencial)'.format(
-                        MAIN_COD_18_16N_04_MODELOENTRENADO_MINI,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-            else:
-                print(
-                    '\tModelo5 <{}> entrenado OK para el cuadrante {}'.format(
-                        MAIN_COD_18_16N_04_MODELOENTRENADO_MINI,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-
-        if not MAIN_COD_18_16N_04_MODELOENTRENADO_CART_ is None:
-            if not '{}_'.format((LCLcuadrante[:2]).upper()) in MAIN_COD_18_16N_04_MODELOENTRENADO_CART_:
-                print(
-                    '\tModelo6 <{}> no disponible para el cuadrante {} (no esencial)'.format(
-                        MAIN_COD_18_16N_04_MODELOENTRENADO_CART_,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-            else:
-                print(
-                    '\tModelo6 <{}> entrenado OK para el cuadrante {}'.format(
-                        MAIN_COD_18_16N_04_MODELOENTRENADO_CART_,
-                        '{}_'.format((LCLcuadrante[:2]).upper()),
-                    )
-                )
-        print(f'{"":=^80}')
-
-    # ==========================================================================
-    paramConfigAdicionalesGLBL = {}
-    paramConfigAdicionalesGLBL['MAINusuario'] = [MAINusuario, 'str', '', 'GrupoMAIN', MAINusuario]
-    paramConfigAdicionalesGLBL['MAIN_ENTORNO'] = [MAIN_ENTORNO, 'str', '', 'GrupoMAIN', MAIN_ENTORNO]
-    paramConfigAdicionalesGLBL['MAIN_PC'] = [MAIN_PC, 'str', '', 'GrupoMAIN', MAIN_PC]
-
-    paramConfigAdicionalesGLBL['MAIN_DRIVE'] = [MAIN_DRIVE, 'str', '', 'GrupoDirsFiles', MAIN_DRIVE]
-    paramConfigAdicionalesGLBL['MAIN_HOME_DIR'] = [MAIN_HOME_DIR, 'str', '', 'GrupoDirsFiles', MAIN_HOME_DIR]
-    paramConfigAdicionalesGLBL['MAIN_FILE_DIR'] = [MAIN_FILE_DIR, 'str', '', 'GrupoDirsFiles', MAIN_FILE_DIR]
-    paramConfigAdicionalesGLBL['MAIN_PROJ_DIR'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
-    paramConfigAdicionalesGLBL['MAIN_RAIZ_DIR'] = [MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
-    paramConfigAdicionalesGLBL['MAIN_THIS_DIR'] = [MAIN_THIS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_THIS_DIR]
-    paramConfigAdicionalesGLBL['MAIN_WORK_DIR'] = [MAIN_WORK_DIR, 'str', '', 'GrupoDirsFiles', MAIN_WORK_DIR]
-    paramConfigAdicionalesGLBL['MAIN_RAIZ_DIR'] = [GLO.MAIN_RAIZ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
-    paramConfigAdicionalesGLBL['MAIN_RAIS_DIR'] = [GLO.MAIN_RAIS_DIR, 'str', '', 'GrupoDirsFiles', MAIN_RAIZ_DIR]
-
-    paramConfigAdicionalesGLBL['MAINmiRutaProyecto'] = [MAIN_PROJ_DIR, 'str', '', 'GrupoDirsFiles', MAIN_PROJ_DIR]
-    paramConfigAdicionalesGLBL['MAINrutaLaz'] = [GLO.MAINrutaLaz, 'str', '', 'GrupoDirsFiles']
-    # paramConfigAdicionalesGLBL['MAINrutaLazFinal'] = [
-    #     GLO.MAINrutaLaz,
-    #     'str',
-    #     'Ruta en la que estan los ficheros laz o las (la usada finalmente, que puede ser distinta del establecido en cartolid.xml)',
-    #     'GrupoDirsFiles',
-    #     ]
-    paramConfigAdicionalesGLBL['MAINrutaOutput'] = [GLO.MAINrutaOutput, 'str', '', 'GrupoDirsFiles']
-    paramConfigAdicionalesGLBL['MAINrutaCarto'] = [GLO.MAINrutaCarto, 'str', '', 'GrupoDirsFiles']
-
-    paramConfigAdicionalesGLBL['MAIN_MDLS_DIR'] = [GLO.MAIN_MDLS_DIR, 'str', '', 'GrupoDirsFiles', GLO.MAIN_MDLS_DIR]
-    paramConfigAdicionalesGLBL['GLBL_TRAIN_DIR'] = [GLO.GLBL_TRAIN_DIR, 'str', '', 'GrupoDirsFiles', GLO.GLBL_TRAIN_DIR]
-
-    paramConfigAdicionalesGLBL['GLBLficheroDeControlGral'] = [GLO.GLBLficheroDeControlGral, 'str', '', 'GrupoDirsFiles']
-    paramConfigAdicionalesGLBL['GLBL_TRAIN_DIR'] = [GLO.GLBL_TRAIN_DIR, 'str', '', 'GrupoDirsFiles']
-
-    paramConfigAdicionalesGLBL['GLBLmodeloCartolidMiniSubCelEntrenado'] = [GLO.GLBLmodeloCartolidMiniSubCelEntrenado, 'str', '', 'GrupoPredConvolucional']
-    paramConfigAdicionalesGLBL['GLBLmodeloCartolidCartoSinguEntrenadoA'] = [GLO.GLBLmodeloCartolidCartoSinguEntrenadoA, 'str', '', 'GrupoPredConvolucional']
-    paramConfigAdicionalesGLBL['GLBLmodeloCartolidCartoSinguEntrenadoB'] = [GLO.GLBLmodeloCartolidCartoSinguEntrenadoB, 'str', '', 'GrupoPredConvolucional']
-    paramConfigAdicionalesGLBL['GLBLnombreFicheroConModeloParaInferencia'] = [GLO.GLBLnombreFicheroConModeloParaInferencia, 'str', '', 'GrupoPredConvolucional']
-
-    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_MINI'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_MINI, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_CART_'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_CART_, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_CARTA, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_CARTB, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_COD_18_16N_04_MODELOENTRENADO_128P'] = [MAIN_COD_18_16N_04_MODELOENTRENADO_128P, 'str', '', 'GrupoModeloEntrenado']
-
-    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_MINI'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_MINI, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_CART_'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_CART_, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_CARTA, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_CARTB, 'str', '', 'GrupoModeloEntrenado']
-    paramConfigAdicionalesGLBL['MAIN_LISTA_PNGS_MODELOENTRENADO_128P'] = [MAIN_LISTA_PNGS_MODELOENTRENADO_128P, 'str', '', 'GrupoModeloEntrenado']
-
-    paramConfigAdicionalesGLBL['MAINprocedimiento'] = [GLO.MAINprocedimiento, 'str', '', 'GrupoMAIN']
-
-    paramConfigAdicionalesGLBL['GLBLsoloCuadradoDeEjemplo'] = [GLO.GLBLsoloCuadradoDeEjemplo, 'bool', '', 'GrupoGestionDeFicheros']
-    paramConfigAdicionalesGLBL['GLBLreprocesarFallidosUsandoMenosRAM'] = [GLO.GLBLreprocesarFallidosUsandoMenosRAM, 'bool', '', 'GrupoGestionDeFicheros']
-    paramConfigAdicionalesGLBL['GLBLficheroLasTemporal'] = [GLO.GLBLficheroLasTemporal, 'bool', '', 'GrupoGestionDeFicheros']
-    paramConfigAdicionalesGLBL['GLBLprocesarComprimidosLaz'] = [GLO.GLBLprocesarComprimidosLaz, 'bool', '', 'GrupoGestionDeFicheros']
-
-    paramConfigAdicionalesGLBL['GLBLshapeNumPoints'] = [GLO.GLBLshapeNumPoints, 'int', '', 'GrupoShape']
-    paramConfigAdicionalesGLBL['GLBLshapeFilter'] = [GLO.GLBLshapeFilter, 'str', '', 'GrupoShape']
-
-    paramConfigAdicionalesGLBL['GLBLtipoLectura'] = [GLO.GLBLtipoLectura, 'str', '', 'GrupoManejoMemoria']
-    paramConfigAdicionalesGLBL['GLBLusoDeRAM'] = [GLO.GLBLusoDeRAM, 'str', '', 'GrupoManejoMemoria']
-
-    paramConfigAdicionalesGLBL['GLBLnumeroDePuntosAleer'] = [GLO.GLBLnumeroDePuntosAleer, 'int', '', 'GrupoLecturaPuntosPasadas']
-    paramConfigAdicionalesGLBL['GLBLgrabarPercentilesRelativos'] = [GLO.GLBLgrabarPercentilesRelativos, 'bool', '', 'GrupoDasoLidar']
-    paramConfigAdicionalesGLBL['GLBLmetrosCelda'] = [GLO.GLBLmetrosCelda, 'float', '', 'GrupoDimensionCeldasBloques']
-
-    paramConfigAdicionalesGLBL['MAINprocedimientoFinal'] = [
-        GLO.MAINprocedimiento,
-        'str',
-        'Procedimiento finalmente ejecutado (puede ser distinto del establecido en cartolid.xml)',
-        'GrupoMAIN',
-    ]
-
-    if LCLverbose:
-        print('clidaux-> paramConfigAdicionalesGLBL:')
-        for nuevoParametro in paramConfigAdicionalesGLBL.keys():
-            print('\t{:>40}: {}'.format(nuevoParametro, paramConfigAdicionalesGLBL[nuevoParametro]))
-
-    _ = clidconfig.leerCambiarVariablesGlobales(
-        nuevosParametroConfiguracion=paramConfigAdicionalesGLBL,
-        LCL_idProceso=MAIN_idProceso,
-        inspect_stack=inspect.stack(),
-        verbose=False
-    )
-    return listaDirsLaz, listaSubDirsLaz, coordenadasDeMarcos
-
-
-# ==============================================================================
-def casosEspecialesParaMAINrutaLaz(
-        LCLprocedimiento,
-        LCLrutaLaz,
-        LCLcuadrante,
-    ):
-
-    listaDirsLaz = ['']
-    listaSubDirsLaz = ['']
-
-    # ==========================================================================
-    # ============== Casos especiales para MAINrutaLaz =========================
-    # ==========================================================================
-    if (
-        LCLprocedimiento.startswith('DESCOMPRIMIR_LAZ')
-        or LCLprocedimiento.startswith('COMPRIMIR_LAS')
-    ):
-        # Rutas ad-hoc
-        listaDirsLaz = ['lasfile-nw']
-        listaSubDirsLaz = ['RGBI_laz_H29']
-    elif MAIN_ENTORNO == 'calendula':
-        # Solo los laz se ubican en scratch, el resto en home
-        # GLO.MAINrutaCarto = '/scratch/jcyl_spi_1/jcyl_spi_1_1/data/carto'
-        # GLO.MAINrutaCarto = '/LUSTRE/HOME/jcyl_spi_1/jcyl_spi_1_1/data/carto'
-        # MAIN_RAIZ_DIR = '/scratch/jcyl_spi_1/jcyl_spi_1_1/'
-
-        # Se recorren estos subdirectorios de laz:
-        listaDirsLaz = ['']
-        listaDirsLaz = ['', 'lasfile-se', 'lasfile-ce']
-        listaDirsLaz = ['roquedos']
-
-        if (LCLcuadrante)[:2].upper() == 'CE':
-            listaDirsLaz = ['lasfile-ce']
-        elif (LCLcuadrante)[:2].upper() == 'NW':
-            listaDirsLaz = ['lasfile-nw']
-        elif (LCLcuadrante)[:2].upper() == 'NE':
-            listaDirsLaz = ['lasfile-ne']
-        elif (LCLcuadrante)[:2].upper() == 'SE':
-            listaDirsLaz = ['lasfile-se']
-        elif (LCLcuadrante)[:2].upper() == 'SW':
-            listaDirsLaz = ['lasfile-sw']
-        elif (LCLcuadrante)[:2].upper() == 'XX':
-            listaDirsLaz = ['lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw']
-            listaDirsLaz = ['lasfile-yy']
-            listaDirsLaz = ['lasfiles']
-        else:
-            listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
-
-        if (
-            LCLprocedimiento.startswith('COMPRIMIR_LAS')
-            or LCLprocedimiento.startswith('DESCOMPRIMIR_LAZ')
-        ):
-            if 'RGBI_cartolid' in LCLprocedimiento:
-                listaSubDirsLaz = ['RGBI_cartolid']
-            elif 'RGB_cartolid' in LCLprocedimiento:
-                listaSubDirsLaz = ['RGB_cartolid']
-            elif 'IRG_cartolid' in LCLprocedimiento:
-                listaSubDirsLaz = ['IRC_cartolid']
-            elif 'IRG_cartolid' in LCLprocedimiento:
-                listaSubDirsLaz = ['IRG_cartolid']
-            else:
-                listaSubDirsLaz = ['RGBI']
-        elif (
-            LCLprocedimiento.endswith('UNIFICAR_RGBI')
-            or LCLprocedimiento.endswith('COLOREAR_RGBI')
-        ):
-            listaSubDirsLaz = ['IRC']
-            # listaSubDirsLaz = ['IRC/_corregidos_versionOk_preORT_preCOLOR'] # Lo traslado temporalmente a SW y lo proceso ahi
-        else:
-            if GLO.MAINobjetivoEjecucion == 'CREAR_PUNTOS_TRAIN_ACUMULATIVO_NPZ':
-                # listaSubDirsLaz = ['lazNew']
-                listaSubDirsLaz = ['lazNewCLR']
-            else:
-                if LCLcuadrante[:2].upper() == 'SE':
-                    if 'SELECT' in LCLprocedimiento:
-                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-                    else:
-                        listaSubDirsLaz = ['RGBI_laz_cartolid_20220316']
-                elif LCLcuadrante[:2].upper() == 'NE':
-                        listaSubDirsLaz = ['', '000_laz1']  # , '000_laz2
-                elif LCLcuadrante[:2].upper() == 'NW':
-                    if 'SELECT' in LCLprocedimiento:
-                        primeraVersionDeLasFiles = False
-                        if primeraVersionDeLasFiles:
-                            # La primera vez proceso una muestra (SELECT) de bloques sin clasicacion
-                            # para tener una primera version de lasFiles clasificados provisionalmente en lasNew
-                            # Los lasFiles clasificados los muevo a lazNewCLR para trabajar preferencialmente con ellos en lo sucesivo
-                            # La segunda vez trabajo sobre esos lasFiles clasificados para mejorarlos
-                            rutaLazCompleta = os.path.join(GLO.MAINrutaLaz, listaDirsLaz[0], 'lazNewCLR')
-                            if len(listaDirsLaz) == 1 and os.path.isdir(rutaLazCompleta):
-                                print('clidaux-> Aviso: Uso lazNewCLR para usar lasFiles provisionalmente clasificados y disponer de clase del miniSubCel')
-                                listaSubDirsLaz = ['lazNewCLR']
-                            else:
-                                print('clidaux-> Aviso: No se ha encontrado la ruta de lasFiles pro-clasificados: {}'.format(rutaLazCompleta))
-                                print('\t-> listaDirsLaz: {}'.format(listaDirsLaz))
-                                # listaSubDirsLaz = ['RGBI_H29']
-                                # listaSubDirsLaz = ['RGBI_laz_H29', 'RGBI_laz']
-                                # listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
-                                listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-                        else:
-                            listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-                    else:
-                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
-                        listaSubDirsLaz = ['lazNewCompletoAll_RGBI']
-                        listaSubDirsLaz = ['lazNewCompleto_RGBI_laz_20220302']
-                        listaSubDirsLaz = ['lazNewCompleto_RGBI_laz_20220316']
-
-                elif LCLcuadrante[:2].upper() == 'CE':
-                    if 'SELECT' in LCLprocedimiento:
-                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-                    else:
-                        listaSubDirsLaz = ['RGBI_laz_cartolid_20220316']
-                elif LCLcuadrante[:2].upper() == 'SE':
-                    if 'SELECT' in LCLprocedimiento:
-                        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-                    else:
-                        listaSubDirsLaz = ['RGBI_laz_cartolid_20220316']
-
-                elif LCLcuadrante[:2].upper() == 'SW':
-                    # listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-                    # listaSubDirsLaz = ['RGBI_H29']
-                    listaSubDirsLaz = ['RGBI_laz_H29', 'RGBI_laz']
-                    # listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI']
-                elif LCLcuadrante[:2].upper() == 'XX':
-                    listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI_H30']
-                else:
-                    # listaSubDirsLaz = ['RGBI_laz']
-                    listaSubDirsLaz = ['RGBI']
-
-        if '_H29_' in GLO.MAINprocedimiento:
-            # Por el momento, esto solo lo uso para AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI
-            for nSubDir, subDirLaz in enumerate(listaSubDirsLaz):
-                if '_H29' in subDirLaz.upper():
-                    print(f'\nclidaux-> ATENCION: revisar este codigo para adaptarlo a la lista de directorios que quiero recorrer:')
-                    print(f'\t-> GLO.MAINprocedimiento: {GLO.MAINprocedimiento}')
-                    print(f'\t-> listaSubDirsLaz:       {listaSubDirsLaz}')
-                    sys.exit(0)
-                listaSubDirsLaz[nSubDir] = subDirLaz + '_H29'
-
-    elif LCLprocedimiento.startswith('LAS_INFO_ASK_LASDIR'):
-        LCLrutaLaz = preguntarRutaLaz(GLO.MAINrutaLaz)
-    elif LCLprocedimiento == 'LAS_INFO_BASE_LASDIR':
-        LCLrutaLaz = GLO.MAINrutaLaz
-    elif (
-        LCLprocedimiento.startswith('AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA')
-        or LCLprocedimiento.startswith('AUTOMATICO_EN_CALENDULA')
-        or LCLprocedimiento.startswith('LAS_INFO')
-    ):
-        # Se usan los valores establecidos por defecto
-        if (LCLcuadrante)[:2].upper() == 'CE':
-            listaDirsLaz = ['lasfile-ce']
-        elif (LCLcuadrante)[:2].upper() == 'NE':
-            listaDirsLaz = ['lasfile-ne']
-        elif (LCLcuadrante)[:2].upper() == 'NW':
-            listaDirsLaz = ['lasfile-nw']
-        elif (LCLcuadrante)[:2].upper() == 'SE':
-            listaDirsLaz = ['lasfile-se']
-        elif (LCLcuadrante)[:2].upper() == 'SW':
-            listaDirsLaz = ['lasfile-sw']
-        elif (LCLcuadrante)[:2].upper() == 'XX':
-            listaDirsLaz = ['lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw']
-            listaDirsLaz = ['lasfile-yy']
-        else:
-            listaDirsLaz = ['', 'lasfile-ce', 'lasfile-nw', 'lasfile-ne', 'lasfile-se', 'lasfile-sw', 'roquedos']
-        listaSubDirsLaz = ['', 'RGBI_H29', 'RGBI', 'RGBI_laz_H29', 'RGBI_laz']
-        print(f'\n{"":_^80}')
-        print(f'clidaux-> ATENCION: ASIGNACION PROVISIONAL DE listaDirsLaz Y listaSubDirsLaz EN FUNCION DE LCLcuadrante:')
-        print(f'{TB}cuando el procedimiento es AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA, AUTOMATICO_EN_CALENDULA o LAS_INFO')
-        print(f'{TB}Lista de directorios y subdirectorios de {GLO.MAINrutaLaz} que se exploran:')
-        print(f'{TB}-> listaDirsLaz:    {listaDirsLaz}')
-        print(f'{TB}-> listaSubDirsLaz: {listaSubDirsLaz}')
-        print(f'{"":=^80}')
-    elif LCLprocedimiento == 'PRECONFIGURADO_SINRUTA':
-        bloqueElegido = 0
-        if not LCLrutaLaz:
-            LCLrutaLaz = preguntarRutaLaz(r'../laz/')
-    elif (LCLprocedimiento).startswith('AUTOMATICO_DISCOEXTERNO'):
-        # Incluye 'AUTOMATICO_DISCOEXTERNO_UNIFICAR_RGBI_E'
-        unidadLaz = LCLprocedimiento[-1:]
-        # LCLrutaLaz = unidadLaz + ':/laz1/'
-        # LCLrutaLaz = unidadLaz + ':/CE/CIR/LAS/Huso_30/'
-        LCLrutaLaz = unidadLaz + ':/lidardata_2017_2021/lasfile_SE/IRC/'
-    elif (LCLprocedimiento).startswith('AUTOMATICO_SIGMENA'):
-        rutaSigmenaIntercam = LCLprocedimiento[19:]
-        LCLrutaLaz = os.path.join('O:Sigmena/intercam/', rutaSigmenaIntercam)
-    elif LCLprocedimiento[:20] == 'AUTOMATICO_CUADRANTE':
-        bloqueElegido = 0
-        miCuadrante = LCLprocedimiento[21:23]
-        miMarco = LCLprocedimiento[-8:]
-        miUbicacionLaz = LCLprocedimiento[24:31]
-        if LCLrutaLaz is None or LCLrutaLaz == '':
-            if miUbicacionLaz == 'SIGMENA':
-                LCLrutaLaz = 'O:/Sigmena/Intercam/laz/'
-            else:
-                input('ATENCION: nombre de procedimiento incorrecto: si empieza con AUTOMATIZADO_CUADRANTE solo admite SIGMENA en las posiciones 24:31')
-                sys.exit(0)
-        print('  MAINrutaLaz     ', LCLrutaLaz)
-
-        if miCuadrante == 'XX':
-            listaDirsLaz = ['2010_NW', '2010_NE', '2014_SW', '2010_SE']
-        elif miCuadrante in ['NW', 'NE', 'SW', 'SE']:
-            listaDirsLaz = ['2010_%s' % miCuadrante]
-        else:
-            input('ATENCION: nombre de procedimiento incorrecto: si empieza con AUTOMATIZADO_CUADRANTE solo admite cuadrantes NW, NE, SW o SE')
-            sys.exit(0)
-        if miMarco == 'SINMARCO':
-            GLO.GLBLsoloCuadradoDeEjemplo = False
-        elif miMarco == 'CONMARCO':
-            GLO.GLBLsoloCuadradoDeEjemplo = True
-        else:
-            input('ATENCION: nombre de procedimiento incorrecto: si empieza con AUTOMATIZADO_CUADRANTE debe terminar con SINMARCO o CONMARCO')
-            sys.exit(0)
-
-    elif (
-        LCLprocedimiento == 'PRECONFIGURADO_CONRUTA_4CUADRANTES_SIGMENA_CONOSINMARCO'
-        or LCLprocedimiento == 'PRECONFIGURADO_CONRUTA_4CUADRANTES_DISCOEXTERNO_CONOSINMARCO'
-    ):
-        if LCLprocedimiento == 'PRECONFIGURADO_CONRUTA_4CUADRANTES_DISCOEXTERNO_CONOSINMARCO':
-            selec = input('Para trabajar en disco externo (x:/LAZ/) pulsa la letra de unidad (C)')
-            try:
-                LCLrutaLaz = selec[:1] + ':/LAZ/'
-            except:
-                print('Entrada incorrecta')
-                LCLrutaLaz = 'C:/LAZ/'
-        else:
-            #LCLrutaLaz = 'O:/Sigmena/Intercam/laz/'
-            pass
-
-        listaDirsLaz = elegirSubcarpetas(LCLrutaLaz)
-        bloqueElegido = 0
-
-        selec = input('\nProcesar solo determinados cuadrados de cada cuadrante? (n/s)')
-        GLO.GLBLsoloCuadradoDeEjemplo = True if selec.upper() == 'S' else False
-
-        if GLO.GLBLsoloCuadradoDeEjemplo:
-            xMin_NW, yMin_NW, ladoMarco_NW = 200000, 4700000, 40000  # Zona generica
-            xMin_NE, yMin_NE, ladoMarco_NE = 450000, 4650000, 20000  # Zona generica
-            xMin_NE, yMin_NE, ladoMarco_NE = 458000, 4672000, 20000  # Cuadricula de ensayo Burgos
-            xMin_NE, yMin_NE, ladoMarco_NE = 436000, 4760000, 20000  # Soncillo - Machorras
-            xMin_SW, yMin_SW, ladoMarco_SW = 240000, 4584000, 22000  # Cuadricula de ensayo Zamora
-            xMin_SE, yMin_SE, ladoMarco_SE = 490000, 4600000, 20000  # Zona generica
-            coordenadasDeMarcos = {
-                'NW': [xMin_NW, yMin_NW, ladoMarco_NW],
-                'NE': [xMin_NE, yMin_NE, ladoMarco_NE],
-                'SW': [xMin_SW, yMin_SW, ladoMarco_SW],
-                'SE': [xMin_SE, yMin_SE, ladoMarco_SE],
-            }
-            listaValores = ['x min (inclusive)', 'y Min (inclusive)', 'lado del marco']
-            listaCuadrantes = ['NW', 'NE', 'SW', 'SE']
-            selec = input('\nEditar coordenadas para cada cuadrante? (n/s)')
-            if selec.upper() == 'S':
-                for cuadrante in listaCuadrantes:
-                    selec = input('\nEditar coordenadas para el cuadrante %s? (n/s/x) (x: no procesarlo)' % cuadrante)
-                    if selec.upper() == 'X':
-                        coordenadasDeMarcos[cuadrante] = [0, 0, 0]
-                    elif selec.upper() == 'S':
-                        nuevosValores = []
-                        for nValor, nombreValor in enumerate(listaValores):
-                            strNuevoValor = input('Cuadrante %s -> %s (%i):' % (cuadrante, nombreValor, coordenadasDeMarcos[cuadrante][nValor]))
-                            if strNuevoValor == '':
-                                nuevosValores.append(coordenadasDeMarcos[cuadrante][nValor])
-                            else:
-                                nuevosValores.append(int(strNuevoValor))
-                        coordenadasDeMarcos[cuadrante] = nuevosValores
-        else:
-            coordenadasDeMarcos = {}
-
-    elif LCLprocedimiento == 'MANUAL':
-        selec = input('Nombre de este PC (%s) -> ' % (GLO.MAINusuario))
-        if selec != '':
-            GLO.MAINusuario = selec
-        print('Los ficheros de control empiezan con una linea %s\n' % (GLO.MAINusuario))
-
-        selec = input('Ancho del pixel: (10 m)')
-        try:
-            GLO.GLBLmetrosCelda = float(selec)
-        except:
-            GLO.GLBLmetrosCelda = 10.0
-        print('Ancho del pixel: %i m\n' % (GLO.GLBLmetrosCelda))
-
-        LCLrutaLaz = preguntarRutaLaz(r'../laz/')
-
-        selec = input('\nProcesar solo los que quedaron incompletos en anteriores sesiones? (n/s)')
-        GLO.GLBLprocesarSoloIncompletos = True if selec.upper() == 'S' else False
-        print(
-            'Procesado normal'
-            if GLO.GLBLprocesarSoloIncompletos
-            else 'Se procesan los que quedaron incompletos en la primera vuelta (por falta de RAM disponible)'
-        )
-        GLO.GLBLreprocesarFallidosUsandoMenosRAM = False
-
-        print('1. Uso de RAM standard')
-        print('2. Uso de RAM alternativo')
-        selec = input('Selecciona opcion 1-2 (1):')
-
-        try:
-            if int(selec) == 1:
-                GLO.GLBLusoDeRAM = 'standard'
-            elif int(selec) == 2:
-                GLO.GLBLusoDeRAM = 'alternativo'
-            else:
-                sys.exit()
-        except:
-            GLO.GLBLusoDeRAM = 'standard'
-        print('Opcion elegida: %s' % (GLO.GLBLusoDeRAM))
-
-        selec = input('\nNumero de registros a procesar: (por defecto: todos -> Escribir 0 o [enter] directamente)')
-        try:
-            GLO.GLBLnumeroDePuntosAleer = int(selec)
-        except:
-            GLO.GLBLnumeroDePuntosAleer = 0
-        print('Numero de puntos: %s' % (str(GLO.GLBLnumeroDePuntosAleer) if GLO.GLBLnumeroDePuntosAleer != 0 else 'todos'))
-
-        selec = input('\nCalcular percentiles de valores absolutos (altitud o cota absoluta): (s/n)')
-        GLO.GLBLgrabarPercentilesAbsolutos = False if selec.upper() == 'N' else True
-        print('Calcular percentiles absolutos:', GLO.GLBLgrabarPercentilesAbsolutos)
-
-        selec = input('\nCalcular percentiles de valores relativos (altura sobre el plano-suelo o plano-basal): (s/n)')
-        GLO.GLBLgrabarPercentilesRelativos = False if selec.upper() == 'N' else True
-        print('Calcular percentiles relativos:', GLO.GLBLgrabarPercentilesRelativos)
-        # ==========================================================================
-
-        exploraDirectorios = False
-        # selec = input('Explorar directorios de '+LCLrutaLaz+ ' (n/s)')
-        # exploraDirectorios = True if selec.upper() == 'S' else False
-
-        if exploraDirectorios:
-            listaDirsLaz = []
-            for (_, dirnames, _) in os.walk(LCLrutaLaz):
-                listaDirsLaz.extend(dirnames)
-                # files.extend(filenames)
-                break
-            print(
-                'Directorios en %s:' % (LCLrutaLaz),
-            )
-            print(listaDirsLaz)
-            if len(listaDirsLaz) == 0:
-                print('No se rastrean los directorios')
-                listaDirsLaz = ['']
-            # bloqueElegido = 5
-        else:
-            print('\n0. Procesar ficheros de %s' % (LCLrutaLaz))
-            print('1. Procesar los ficheros laz de 2010_NW (%s)' % (LCLrutaLaz + '2010_NW/'))
-            print('2. Procesar los ficheros laz de 2010_NW (%s)' % (LCLrutaLaz + '2010_NW_las/'))
-            print('3. Procesar los ficheros las de 2010_NE (%s)' % (LCLrutaLaz + '2010_NE/'))
-            print('4. Procesar los ficheros laz de 2010_NE (%s)' % (LCLrutaLaz + '2010_NE_las/'))
-            print('5. Procesar los ficheros laz de 2014_SW (%s)' % (LCLrutaLaz + '2014_SW/'))
-            print('6. Procesar los ficheros las de 2014_SW (%s)' % (LCLrutaLaz + '2014_SW_las/'))
-            print('7. Procesar los ficheros laz de 2010_SE (%s)' % (LCLrutaLaz + '2010_SE/'))
-            print('8. Procesar los ficheros las de 2010_SE (%s)' % (LCLrutaLaz + '2010_SE_las/'))
-            try:
-                bloqueElegido = int(input('Selecciona opcion 1-9 (0):'))
-            except:
-                bloqueElegido = 0
-            if bloqueElegido == 1:
-                listaDirsLaz = ['2010_NW/']
-            elif bloqueElegido == 2:
-                listaDirsLaz = ['2010_NW_las/']
-            elif bloqueElegido == 3:
-                listaDirsLaz = ['2010_NE/']
-            elif bloqueElegido == 4:
-                listaDirsLaz = ['2010_NE_las/']
-            elif bloqueElegido == 5:
-                listaDirsLaz = ['2014_SW/']
-            elif bloqueElegido == 6:
-                listaDirsLaz = ['2014_SW_las/']
-            elif bloqueElegido == 7:
-                listaDirsLaz = ['2010_SE/']
-            elif bloqueElegido == 8:
-                listaDirsLaz = ['2010_SE_las/']
-            else:
-                listaDirsLaz = ['']
-
-        selec = input('Crear ficheros las de forma permanente (no se borran una vez procesados) (S/n)')
-        GLO.GLBLficheroLasTemporal = True if selec.upper() == 'N' else False
-        if GLO.GLBLficheroLasTemporal:
-            print('Los ficheros las creados son temporales (se borran tras procesarlos)\n')
-        else:
-            print('Los ficheros las creados son permanentes\n')
-    elif LCLprocedimiento.startswith('CREAR_CAPA_CON_UNA_PROPIEDAD_DE_LOS_FICHEROS_LIDAR'):
-        # Rutas por defecto, o bien:
-        if not LCLrutaLaz:
-            # LCLrutaLaz = 'E:/lidardata_2017_2021/lasfile_SE/IRC'
-            LCLrutaLaz = 'E:/lidardata_2017_2021/lasfile_CE/IRC'
-        pass
-    elif LCLprocedimiento == 'CREAR_SHAPE':
-        listaDirsLaz = ['']
-        bloqueElegido = 0
-        LCLrutaLaz = preguntarRutaLaz(r'../laz/')
-        selec = input('\nNumero de puntos del shape: (1000 por defecto; indicar 0 para todos)')
-        try:
-            GLO.GLBLshapeNumPoints = int(selec)
-        except:
-            GLO.GLBLshapeNumPoints = 1000
-        print('\nNumero de puntos: %s' % (str(GLO.GLBLshapeNumPoints) if GLO.GLBLshapeNumPoints != 0 else 'todos'))
-        if GLO.GLBLshapeNumPoints != 0:
-            GLO.GLBLtipoLectura = 'registrosPorLotes'
-        else:
-            GLO.GLBLtipoLectura = 'registrosIndividuales'
-
-        print('\n1. Todas las clases')
-        print('2. Todas las clases menos la 12 (relleno)')
-        print('3. Solo puntos de borde de escaneo')
-        selec = input('Selecciona opcion (1):')
-        try:
-            if int(selec) == 2:
-                GLO.GLBLshapeFilter = 'sinClase12'
-            elif int(selec) == 3:
-                GLO.GLBLshapeFilter = 'soloEdge'
-            else:
-                GLO.GLBLshapeFilter = 'noFilter'
-        except:
-            GLO.GLBLshapeFilter = 'noFilter'
-        print('Tipo de filtro: %s\n' % (GLO.GLBLshapeFilter))
-    elif LCLprocedimiento == 'RENOMBRAR_FICHEROS':
-        LCLrutaLaz = 'O:/Sigmena/Intercam/laz/'
-
-        listaDirsLaz = ['2010_NW', '2010_NE', '2014_SW', '2010_SE']
-        listaDirsLaz = ['2010_NW_Huso_29', '2010_NW_las']
-        GLO.GLBLprocesarComprimidosLaz = True
-        bloqueElegido = 0
-
-    elif LCLprocedimiento == 'MERGEAR':
-        input('Lo desarrollo en raster2vector de clidgis.py (rescatado de copiaSeg/2017/lidasMerge.py)')
-        sys.exit()
-
-    elif LCLprocedimiento == 'GEOINTEGRAR':
-        input('Lo desarrollo en raster2vector de clidcluster.py (antes GIS/cluster.py, renombrado a cluster_old_VerCartolid_clidax.py')
-        sys.exit()
-
-    else:
-        print('\nRevisar el nombre del procedimiento en cartolid.xlm. MAINprocedimiento:', LCLprocedimiento)
-        sys.exit()
-
-    # print('clidaux-> 3b LCLrutaLaz:', LCLrutaLaz)
-
-    return LCLrutaLaz, listaDirsLaz, listaSubDirsLaz
-
-
-# ==============================================================================
-def asignarMAINrutaCarto(
-    ):
-    if MAIN_ENTORNO == 'calendula':
-#         MAINrutaRaizCarto =  LCLmiRutaRais
-        MAINrutaRaizCarto =  GLO.MAINrutaRaiz
-        print(f'clidaux-> GLO.MAINrutaCarto en calendula es GLO.MAINrutaRaiz: {GLO.MAINrutaRaiz}')
-    elif 'MAINrutaRaiz' in dir(GLO):
-        MAINrutaRaizCarto =  GLO.MAINrutaRaiz
-    else:
-        if 'cartolidar' in MAIN_RAIZ_DIR:
-            MAINrutaRaizCarto = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '..'))
-        else:
-            MAINrutaRaizCarto = os.path.abspath(MAIN_RAIZ_DIR)
-    print(f'clidaux-> MAINrutaRaizCarto: {MAINrutaRaizCarto}')
-    print(f'{TB}-> GLO.MAINrutaRaiz: {GLO.MAINrutaRaiz}')
-
-    # Primera opcion:
-    MAINrutaCarto1 = os.path.abspath(
-        os.path.join(
-            MAINrutaRaizCarto,
-            'data/carto/'
-        )
-    )
-    if os.path.isdir(MAINrutaCarto1):
-        LCLrutaCarto = MAINrutaCarto1
-    else:
-        # Segunda opcion:
-        MAINrutaCarto2 = os.path.abspath(
-            os.path.join(
-                MAINrutaRaizCarto,
-                '../data/carto/'
-            )
-        )
-        if os.path.isdir(MAINrutaCarto2):
-            LCLrutaCarto = MAINrutaCarto2
-        else:
-            myLog.warning(f'{"":+^80}')
-            myLog.warning(f'clidaux-> ATENCION: No se ha localizado el directorio data/carto con informacion cartografica de apoyo.')
-            myLog.warning(f'{TB}Directorios buscados:')
-            myLog.warning(f'{TB}{TV}{MAINrutaCarto1}')
-            myLog.warning(f'{TB}{TV}{MAINrutaCarto2}')
-            myLog.warning(f'{"":+^80}')
-            LCLrutaCarto = ''
-
-    return LCLrutaCarto
-
-
-# ==============================================================================
-def asignarMAINrutaOutput(
-        LCLprocedimiento,
-        LCLrutaOutput,
-        LCLmiRutaRais,
-        LCLobjetivoSiReglado,
-        LCLcuadrante,
-    ):
-
-    if MAIN_ENTORNO == 'calendula':
-        MAINrutaRaizOutput =  LCLmiRutaRais
-    elif 'MAINrutaRaiz' in dir(GLO):
-        MAINrutaRaizOutput =  GLO.MAINrutaRaiz
-    else:
-        if 'cartolidar' in MAIN_RAIZ_DIR:
-            MAINrutaRaizOutput = os.path.abspath(os.path.join(MAIN_RAIZ_DIR, '..'))
-        else:
-            MAINrutaRaizOutput = os.path.abspath(MAIN_RAIZ_DIR)
-
-    print(f'clidaux-> MAINrutaRaizOutput (b): {MAINrutaRaizOutput}')
-    # ==========================================================================
-    # Ruta por defecto
-    GLO.MAINrutaOutput = os.path.abspath(os.path.join(
-        MAINrutaRaizOutput,
-        'cartolidout'
-    ))
-    print(f'clidaux-> MAINrutaOutput por defecto: {GLO.MAINrutaOutput}')
-    # ==========================================================================
-    # Casos especiales
-    if (
-        LCLobjetivoSiReglado == 'GENERAL'
-        or LCLobjetivoSiReglado == 'CREAR_TILES_TRAIN'
-        or LCLobjetivoSiReglado == 'PREPROCESADO_EN_CALENDULA'
-        or LCLobjetivoSiReglado == 'CREAR_PUNTOS_TRAIN_ACUMULATIVO_NPZ'
-        or LCLobjetivoSiReglado == 'CREAR_PUNTOS_TRAIN_ROQUEDOS'
-        or LCLobjetivoSiReglado == 'CREAR_LAZ'
-        or LCLobjetivoSiReglado == 'EXTRA2'
-        or LCLobjetivoSiReglado == 'EXTRA3'
-    ):
-        if (
-            LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH'
-        ):
-            LCLrutaOutput = os.path.abspath(os.path.join(
-                MAINrutaRaizOutput,
-                # '..',
-                'cartolidout_{}_{}_{}'.format(
-                    (LCLcuadrante)[:2].upper(),
-                    LCLobjetivoSiReglado,
-                    'completo'
-                )
-            ))
-        elif (
-            LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SELECT'
-            or LCLprocedimiento == 'AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA'
-            or LCLprocedimiento == 'AUTOMATICO_CON_RUTA_LAZ_PREDETERMINADA_SELECT'
-        ):
-            LCLrutaOutput = os.path.abspath(os.path.join(
-                MAINrutaRaizOutput,
-                # '..',
-                'cartolidout_{}_{}'.format(
-                    (LCLcuadrante)[:2].upper(),
-                    LCLobjetivoSiReglado,
-                )
-            ))
-        elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_COLOREAR_RGBI':
-            LCLrutaOutput = os.path.abspath(os.path.join(
-                MAINrutaRaizOutput,
-                # '..',
-                'cartolidout_{}_{}_{}'.format(
-                    (LCLcuadrante)[:2].upper(),
-                    'COLOREAR_RGBI',
-                    'completo'
-                )
-            ))
-        elif LCLprocedimiento == 'AUTOMATICO_EN_CALENDULA_SCRATCH_H29_COLOREAR_RGBI':
-            LCLrutaOutput = os.path.abspath(os.path.join(
-                MAINrutaRaizOutput,
-                # '..',
-                'cartolidout_{}_{}_{}'.format(
-                    (LCLcuadrante)[:2].upper(),
-                    'COLOREAR_RGBI_H29',
-                    'completo'
-                )
-            ))
-        elif not GLO.MAINrutaOutput is None:
-            LCLrutaOutput = GLO.MAINrutaOutput
-            print(f'clidaux-> 6 Asignando LCLrutaOutput: {LCLrutaOutput}')
-        elif not LCLcuadrante is None:
-            LCLrutaOutput = os.path.abspath(os.path.join(
-                MAINrutaRaizOutput,
-                # '..',
-                'cartolidout_{}_{}'.format(
-                    (LCLcuadrante)[:2].upper(),
-                    LCLobjetivoSiReglado
-                )
-            ))
-            print(f'clidaux-> 7 Asignando LCLrutaOutput: {LCLrutaOutput}')
-        elif LCLobjetivoSiReglado == 'GENERAL':
-            LCLrutaOutput = os.path.abspath(os.path.join(
-                MAINrutaRaizOutput,
-                # '..',
-                'cartolidout'
-            ))
-            print(f'clidaux-> 8 Asignando LCLrutaOutput: {LCLrutaOutput}')
-        else:
-            LCLrutaOutput = GLO.MAINrutaOutput
-            print(f'clidaux-> 9 Asignando LCLrutaOutput: {LCLrutaOutput}')
-        if not LCLcuadrante is None:
-            LCLrutaOutput = (LCLrutaOutput).replace('_XX', '_{}'.format((LCLcuadrante)[:2].upper()))
-        # print('\t{:.<25}: {}'.format('MAINrutaOutput (adaptado)', LCLrutaOutput))
-    elif (
-        LCLrutaOutput is None
-        or LCLrutaOutput == 'None'
-        or LCLrutaOutput == ''
-    ):
-        LCLrutaOutput = os.path.abspath(os.path.join(
-            MAINrutaRaizOutput,
-            # '..',
-            'cartolidout_{}'.format(
-                (LCLcuadrante)[:2].upper()
-            )
-        ))
-        LCLrutaOutput = (LCLrutaOutput).replace('_XX', '_{}'.format((LCLcuadrante)[:2].upper()))
-        print('\t{:.<25}: {}'.format('MAINrutaOutput (adaptado)', LCLrutaOutput))
-    else:
-        print('\t{:.<25}: {}'.format('MAINrutaOutput (original)', LCLrutaOutput))
-
-
-
-    if (LCLprocedimiento).startswith('AUTOMATICO_DISCOEXTERNO'):
-        # Incluye 'AUTOMATICO_DISCOEXTERNO_UNIFICAR_RGBI_E'
-        unidadLaz = LCLprocedimiento[-1:]
-        # LCLrutaOutput = unidadLaz + ':/CE/cartolidout/'
-        LCLrutaOutput = unidadLaz + ':/lidardata_2017_2021/Result/SE/cartolidout/'
-    elif LCLprocedimiento[:20] == 'AUTOMATICO_CUADRANTE':
-        # Guardo los resultados en una ruta que cuelga de la ruta de los laz (no de la ruta de cartolid)
-        bloqueElegido = 0
-        miCuadrante = LCLprocedimiento[21:23]
-        miMarco = LCLprocedimiento[-8:]
-        if LCLrutaOutput == '':
-            LCLrutaOutput = os.path.join(GLO.MAIN_RAIZ_DIR, 'cartolidout_%s_%s' % (miCuadrante, miMarco))
-        else:
-            # LCLrutaOutput = quitarContrabarrasAgregarBarraFinal(LCLrutaOutput)
-            LCLrutaOutput = (LCLrutaOutput).replace(os.sep, '/')
-
-    if LCLrutaOutput == '' or LCLrutaOutput == None:
-        miCarpetaResultadosInicial = 'cartolidout'
-        print(f'\n{"":_^80}')
-        print('Escribir ruta en la que se guardan los resultados:')
-        print('Se interpreta como ruta completa si empieza por "/" o por letra de unidad ("C:", "D:", etc.).')
-        print('y como subdirectorio de "%s" en el resto de los casos' % GLO.MAIN_RAIZ_DIR)
-        selec = input('Introduce un valor (pulsa [enter] para valor por defecto: %s): ' %
-                      os.path.join(GLO.MAIN_RAIZ_DIR, miCarpetaResultadosInicial))
-        if selec[1:2] == ':' or selec[:1] == '/':
-            # Es una ruta completa en vez de un subdirectorio
-            LCLrutaOutput = selec
-        elif selec != '':
-            LCLrutaOutput = os.path.join(GLO.MAIN_RAIZ_DIR, selec)
-        else:
-            LCLrutaOutput = os.path.join(GLO.MAIN_RAIZ_DIR, miCarpetaResultadosInicial)
-        print('{:^80}'.format(''))
-
-    return LCLrutaOutput
-
-
-
-
-# ==============================================================================
-def preguntarRutaLaz(rutaInicial):
-    rutaNormalizada = os.path.abspath(rutaInicial)
-    # rutaNormalizada = os.path.normpath(rutaInicial)
-    # rutaNormalizada = quitarContrabarrasAgregarBarraFinal(rutaNormalizada)
-    rutaNormalizada = rutaNormalizada.replace(os.sep, '/')
-
-    print('\nSe solicitan datos:')
-    selec = input('\nEscribir la ruta base de los ficheros lidar (.laz o las; p. ej. C:/laz/): (por defecto: %s)' % rutaNormalizada)
-    if selec == '':
-        rutaFinal = rutaNormalizada
-    else:
-        # rutaFinal = quitarContrabarrasAgregarBarraFinal(selec)
-        rutaFinal = selec.replace(os.sep, '/')
-    print('Ruta elegida: %s' % (rutaFinal))
-    return rutaFinal
-
-
-# ==============================================================================
-def preguntarRutaCarto(rutaInicial):
-    rutaNormalizada = os.path.abspath(rutaInicial)
-    # rutaNormalizada = os.path.normpath(rutaInicial)
-    # rutaNormalizada = quitarContrabarrasAgregarBarraFinal(rutaNormalizada)
-    rutaNormalizada = rutaNormalizada.replace(os.sep, '/')
-    selec = input('\nEscribir la ruta base de los ficheros cartograficos (shp, tif, etc; p. ej. C:/data/carto/): (por defecto: %s) ' % rutaNormalizada)
-    if selec == '':
-        rutaFinal = rutaNormalizada
-    else:
-        # rutaFinal = quitarContrabarrasAgregarBarraFinal(selec)
-        rutaFinal = selec.replace(os.sep, '/')
-    print('Ruta elegida: %s' % (rutaFinal))
-    return rutaFinal
-
-
-# ==============================================================================
-def elegirSubcarpetas(USERmiRutaRaiz):
-    print('\nElegir directorios:')
-    print('        (0) Solo los ficheros que cuelgan directamente de %s' % USERmiRutaRaiz)
-    print('        (1) Las subcarpetas "2010_NW", "2010_NE", "2014_SW" y "2010_SE"')
-    print('        (2) Las subcarpetas "2010_NW_las", "2010_NE_las", "2014_SW_las" y "2010_SE_las"')
-    print('        (3) Solo la subcarpeta "2014_SW"')
-    print('        (4) Solo la subcarpeta "2010_SE"')
-    print('        (6) Ficheros de subcarpetas Zona1 y Zona2, que cuelgan de %s2009' % USERmiRutaRaiz)
-    print('        (7) Ficheros de subcarpetas Zona1 y Zona2, que cuelgan de %s2017' % USERmiRutaRaiz)
-    print('        (8) Ficheros de subcarpetas Zona1 y Zona2, que cuelgan de %s2009 y %s2017' % (USERmiRutaRaiz, USERmiRutaRaiz))
-    print('        (9) Todos los ficheros de todas las subcarpetas que cuelgan de %s (sin implementar)' % USERmiRutaRaiz)
-    print('(1) y (3) tienen todos los ficheros y (2) solo ficheros ya descomprimidos.')
-    selec = input('\nSelecciona las subcarpetas a procesar (0)')
-    if selec.upper() == '1':
-        listaDirsLaz = ['2010_NW', '2010_NE', '2014_SW', '2010_SE']
-    elif selec.upper() == '2':
-        GLO.GLBLdescomprimirLaz = False
-        listaDirsLaz = ['2010_NW_las', '2010_NE_las', '2014_SW_las', '2010_SE_las']
-    elif selec.upper() == '3':
-        listaDirsLaz = ['2014_SW']
-    elif selec.upper() == '4':
-        listaDirsLaz = ['2010_SE']
-    elif selec.upper() == '6':
-        listaDirsLaz = ['2009/Zona1', '2009/Zona2']
-    elif selec.upper() == '7':
-        listaDirsLaz = ['2017/Zona1', '2017/Zona2']
-    elif selec.upper() == '8':
-        listaDirsLaz = ['2009/Zona1', '2009/Zona2', '2017/Zona1', '2017/Zona2']
-    elif selec.upper() == '9':
-        listaDirsLaz = ['']
-    else:
-        listaDirsLaz = ['']
-    return listaDirsLaz
 
 
 # ==============================================================================

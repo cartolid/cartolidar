@@ -40,6 +40,7 @@ import struct
 # Paquetes de terceros
 import numpy as np
 import psutil
+from _ast import If
 
 
 # ==============================================================================
@@ -131,10 +132,12 @@ elif MAIN_FILE_DIR[:8] == '/content':
 else:
     MAIN_ENTORNO = 'windows'
     try:
-        if MAIN_DRIVE[0] == 'D':
+        if 'benmarjo' in MAIN_HOME_DIR:
+            MAIN_PC = 'JCyL'
+        elif 'joseb' in MAIN_HOME_DIR:
             MAIN_PC = 'Casa'
         else:
-            MAIN_PC = 'JCyL'
+            MAIN_PC = 'Otro'
     except:
         MAIN_ENTORNO = 'calendula'
         MAIN_PC = 'calendula'
@@ -358,8 +361,9 @@ if CONFIGverbose:
     myLog.debug(f'{"":=^80}')
 # ==============================================================================
 
+print(f'clidhead-> callingModuleInicial: {callingModuleInicial}')
 # ==============================================================================
-if callingModuleInicial == 'clidtools' or callingModuleInicial == 'clidclas':
+if callingModuleInicial == 'clidclas': #  or callingModuleInicial == 'clidtools'
     # No se usa el fichero de configuracion clidbase.slx cuando el modulo inicial es:
     #   clidtools: modulos auxiliares de cartolidar, que pueden ejecutarse de forma autonoma
     #   clidclas: modulo para lanzar el entrenamiento de forma autonoma
@@ -369,8 +373,13 @@ if callingModuleInicial == 'clidtools' or callingModuleInicial == 'clidclas':
     GLO.GLBLverbose = False
     GLO.GLBLcoordMinMaxAcordesConBloque = True
     GLO.MAIN_copyright = 'Bengoa 2016-22'
-    MAIN_controlFileLas = None
-    MAIN_controlFileGral = None
+    GLO.MAINrutaDataExt = '../data/ext'
+    GLO.GLBLforzarExtensionDeBloqueAvalorNominal = False
+    GLO.GLBLadapatarMetrosBloque = False
+    GLO.GLBLincluirYearEnFileCoordYear = True
+    # GLO.GLBLincluirYearEnControlFile = False
+    GLO.GLBLnumeroMaximoDeRetornosPorPulso = 15
+    GLO.MAINprocedimiento = ''
 else:
     spec = importlib.util.find_spec('cartolidar')
     if spec is None or MAIN_ENTORNO == 'calendula':
@@ -392,9 +401,7 @@ else:
     configVarsDict = clidconfig.leerCambiarVariablesGlobales(
         LCL_idProceso=MAIN_idProceso
     )
-    GLO = clidconfig.VariablesGlobales(configVarsDict)
-    MAIN_controlFileLas = clidconfig.controlFileLas
-    MAIN_controlFileGral = clidconfig.controlFileGral
+    GLO = clidconfig.GLO_CLASS(configVarsDict)
 
 GLO.MAIN_idProceso = MAIN_idProceso
 
@@ -419,10 +426,11 @@ if not hasattr(GLO, 'GLBLmetrosBloque'):
     GLO.GLBLmetrosBloque = 2000
 if not hasattr(GLO, 'GLBLmetrosCelda'):
     GLO.GLBLmetrosCelda = 10
+if not hasattr(GLO, 'GLBLmetrosSubCelda'):
+    GLO.GLBLmetrosSubCelda = 2
 # ==============================================================================
 
 
-# Funcion copiada de clidaux.py, pera no tener que importar ese modulo
 # ==============================================================================o
 def printMsg(mensaje, outputFileLas=True, verbose=True, newLine=True, end=None):
     if verbose:
@@ -434,17 +442,6 @@ def printMsg(mensaje, outputFileLas=True, verbose=True, newLine=True, end=None):
         else:
             end=''
             print(mensaje)
-    try:
-        if outputFileLas and MAIN_controlFileLas:
-            try:
-                MAIN_controlFileLas.write(str(mensaje) + end + '\n' if newLine else ' ')
-            except:
-                if MAIN_controlFileGral:
-                    MAIN_controlFileGral.write('Error writing control file (1).\n')
-        else:
-            MAIN_controlFileGral.write(str(mensaje) + end + '\n' if newLine else ' ')
-    except:
-        pass
 
 
 # Funcion copiada de clidaux.py, pera no tener que importar ese modulo
@@ -577,8 +574,8 @@ def buscarDirectorioDataExt():
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 class LasHeadClass(object):
     """
-    Object with properties of las file head
-    and with methods to write a new LASF head
+    Clase/objeto con las propiedades de la cabecera del lasFile
+    y con metodos para escribir una nueva cabecera
     """
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -586,49 +583,63 @@ class LasHeadClass(object):
             self,
             infileConRuta,
             lasDataMem=None,
-            metersBlock=2000,
-            metersCell=10,
-            # fileCoordYear='', # No utilizo fileCoordYear como propiedad de esta clase sino que uso
-                                # el valor obtenido en clidbase.py que tiene en cuenta el nombre y
-                                # las coordenadas de la cabecera xSupIzda ySupIzda
+            metersBlock=GLO.GLBLmetrosBloque,
+            metersCell=GLO.GLBLmetrosSubCelda,
             LCLordenColoresInput=None,
             TRNShuso29=False,
+            TRNShuso29_coord=False,
+            TRNShuso29_ubica=False,
             coordenadasTransformadasDe29a30=False,
+            fileCoordYearDelNombre='',
+            controlFileLasNameConRuta='',
             verbose=False,
+            checkLas=False,
+            LCLforzarExtensionDeBloqueAvalorNominal=GLO.GLBLforzarExtensionDeBloqueAvalorNominal,
         ):
         """
-        Class with info about lasFile
-        Mandatory args for the class: infileConRuta
-        Optional args: metersBlock=0, metersCell=10, verbose=False
+        Clase/objeto con las propiedades de la cabecera del lasFile
+        Argumentos obligatrios de clase: infileConRuta
+        Argumentos opcionales: metersBlock=0, metersCell=10, verbose=False
             metersBlock only for checking coherence with lasFile head info
             metersCell for adjust corner coordinates to multiple of metersCell
                 if metersCell=0 -> no adjust
-        Properties asigned to the created object:
+        Propiedades que se asignan al instanciar la clase:
             headDict
             infileConRuta metersBlock metersCell  verbose
             lasVersion  pointformat nBytesPorPunto  numptrecords
-            fileCoordYear   xSupIzdaDelNombre   ySupIzdaDelNombre   fileYear
+            fileCoordYearDelNombre   xSupIzdaDelNombre   ySupIzdaDelNombre   fileYear
             xmin    xmax    ymin    ymax
             xSupIzda    ySupIzda    xInfDcha    yInfDcha
             xmin        xmax        ymin        ymax
             lasPointFieldPropertiesList lasPointFieldPropertiesDict lasPointFieldOrdenDict
             npArrayPropPto  bytearrayPropPtoNombre  arrayPropPtoNombre
             arrayPropPtoRangoBytes  arrayPropPtoTipoDato
-        LasFile head fields are readed from cartolidar/data/ext/io/lasHeadFields.cfg
-        LasFile point fields are readed from cartolidar/data/ext/io/lasPointFields.cfg
+        La lista de campos de la cabecera de un LasFile se leen de cartolidar/data/ext/io/lasHeadFields.cfg
+        La lista de propiedades de cada punto de un LasFile se leen de cartolidar/data/ext/io/lasPointFields.cfg
         """
 
         # ======================================================================
+        if not os.path.exists(infileConRuta):
+            self.readOk = False
+            print(f'clidhead-> Atencion: no se encuentra el fichero {infileConRuta}')
+            return
         self.readOk = True
         self.infileConRuta = infileConRuta
         self.lasDataMem = lasDataMem
+        self.controlFileLasNameConRuta = controlFileLasNameConRuta
         self.metersBlock = metersBlock
         self.metersCell = metersCell
         self.verbose = verbose
-        self.TRNShuso29 = TRNShuso29
+        # Transitorio hasta que elimine el TRNShuso29
+        if TRNShuso29_coord:
+            self.TRNShuso29 = TRNShuso29_coord
+        else:
+            self.TRNShuso29 = TRNShuso29
+        self.TRNShuso29_coord = TRNShuso29_coord
+        self.TRNShuso29_ubica = TRNShuso29_ubica
         self.coordenadasTransformadasDe29a30 = coordenadasTransformadasDe29a30
         # En realidad creo que no uso esta variable como propiedad de esta clase
-        # self.fileCoordYear = fileCoordYear # Lo obtengo mas adelante, con checkLasfile<>
+        self.fileCoordYeahDelNombre = fileCoordYearDelNombre
         if LCLordenColoresInput is None:
             if 'rgbi' in infileConRuta.lower():
                 self.LCLordenColoresInput = 'RGBI'
@@ -641,21 +652,24 @@ class LasHeadClass(object):
         else:
             self.LCLordenColoresInput = LCLordenColoresInput
 
+        self.LCLforzarExtensionDeBloqueAvalorNominal = LCLforzarExtensionDeBloqueAvalorNominal
         # En principio la extension indica si esta comprimido.
         # De todas formas se puede verificar leyendo la cabecera, que no requiere descomprimir porque no esta comprimida.
+        if self.verbose:
+            printMsg(f'\n{"":_^80}')
         if not self.lasDataMem is None:
             self.lazfile = False
             if self.verbose:
-                print('clidhead-> Leyendo cabecera de fichero descomprimido en memoria (lasDataMem).')
+                print('clidhead-> LasHeadClass-> Leyendo cabecera de fichero en memoria (lasDataMem).')
         else:
             if infileConRuta[-4:].lower() == '.laz':
                 self.lazfile = True
                 if self.verbose:
-                    print('clidhead-> Leyendo cabecera de fichero laz comprimido (sin descomprimir por el momento).')
+                    print('clidhead-> LasHeadClass-> Leyendo cabecera de fichero laz comprimido (sin descomprimir por el momento).')
             else:
                 self.lazfile = False
                 if self.verbose:
-                    print('clidhead-> Leyendo cabecera de fichero las sin comprimir (o ya descomprimido en fichero).')
+                    print('clidhead-> LasHeadClass-> Leyendo cabecera de fichero las sin comprimir (o ya descomprimido en fichero).')
         # ======================================================================
 
         # ======================================================================
@@ -667,19 +681,79 @@ class LasHeadClass(object):
         # ======================================================================
 
         # ======================================================================
+        # ======================================================================
         # Reading head of las file:
         #    Create self.headDict[]
         self.readLasHead()
         if not self.readOk:
             return
-
         self.readVariableLengthRecords(tipoVLR='normal')
         if self.lasVersion == 'LasFormat_1_4':
             self.readVariableLengthRecords(tipoVLR='extended')
+        # ======================================================================
+        # ======================================================================
+        self.projection_type = self.headDict['projection_type']
+        self.projection_value = self.headDict['projection_value']
+        self.VLRhuso = self.headDict['VLRhuso']
+        self.OGCprojectionVLR = self.headDict['OGCprojectionVLR']
+        self.GeoKeyDirectoryTagVLR = self.headDict['GeoKeyDirectoryTagVLR']
+        self.GeoDoubleParamsTagVLR = self.headDict['GeoDoubleParamsTagVLR']
+        # ======================================================================
 
         if self.lasDataMem is None:
             # print('------------------------clidhead--------------> self.lasDataMem is None')
             self.ficheroLas.close()
+
+        self.pointformat = self.headDict['pointformat']
+        self.pointformatOriginal = self.headDict['pointformat']
+        self.pointformatNuevo = self.headDict['pointformat']
+        # ======================================================================
+        print(f'\nclidhead-> Se va a calcular extraBytesPorRegistro para pointformat: {self.pointformat}')
+        print(f'{TB}-> GLBLdarPrioridadAPointFormatFrenteAReclen: {GLO.GLBLdarPrioridadAPointFormatFrenteAReclen}')
+        self.headDict['extraBytesPorRegistro'] = 0
+        listaPointRecLens = [20, 28, 64, 34, 57, 63, 30, 36, 38, 59, 67]
+        if self.headDict['pointformat'] < len(listaPointRecLens):
+            pointRecLenTeorico = listaPointRecLens[self.headDict['pointformat']]
+            if self.headDict['pointreclen'] != pointRecLenTeorico:
+                print(f'clidhead-> ATENCION: la cabecera indica pointformat {self.headDict["pointformat"]} y pointreclen {self.headDict["pointreclen"]}')
+                print(f'{TB}-> A ese pointformat le corresponde un pointreclen de {pointRecLenTeorico}')
+                if (
+                    GLO.GLBLdarPrioridadAPointFormatFrenteAReclen
+                    or not self.headDict['pointreclen'] in listaPointRecLens
+                ):
+                    if self.headDict['pointreclen'] > pointRecLenTeorico:
+                        self.headDict['extraBytesPorRegistro'] = self.headDict['pointreclen'] - pointRecLenTeorico
+                    else:
+                        print(f'{TB}-> Se da credibilidad a pointreclen pero no hay ningun pointformat con ese pointreclen')
+                        print(f'{TB}-> No se cambia pointformat, por lo que es previsible que la lectura del lasFile sea erronea')
+                else:
+                    pointRecLenPrevisible = listaPointRecLens.index(self.headDict['pointreclen'])
+                    self.pointformatNuevo = pointRecLenPrevisible
+                    print(f'{TB}-> Se da credibilidad a pointreclen e interpreta como error de pointformat, que puede ser {pointRecLenPrevisible}.')
+                    print(f'{TB}-> Se cambia a este valor')
+        else:
+            print(f'clidhead-> ATENCION: la cabecera indica pointformat {self.headDict["pointformat"]} pero ese valor no esta implementado en cartolidar')
+            print(f'{TB}-> Se pasa al siguiente fichero')
+            self.readOk = False
+            return
+        self.headDict['pointformat'] = self.pointformatNuevo
+        self.pointformat = self.headDict['pointformat']
+        self.extraBytesPorRegistro = self.headDict['extraBytesPorRegistro']
+        print(f'{TB}-> extraBytesPorRegistro: {self.extraBytesPorRegistro}')
+
+        # if self.headDict['pointformat'] == 1 and self.headDict['pointreclen'] == 34:
+        #     print(f'clidhead-> ATENCION: la cabecera indica pointformat 1 y pointreclen 34')
+        #     print(f'{TB}-> Se da credibilidad a pointreclen e interpreta como error de pointformat, que puede ser 3. Se cambia a este valor')
+        #     self.headDict['pointformat'] = 3
+        # elif self.headDict['pointformat'] == 1 and self.headDict['pointreclen'] == 30:
+        #     print(f'clidhead-> ATENCION: la cabecera indica pointformat 1 y pointreclen 30')
+        #     print(f'{TB}-> Se da credibilidad a pointreclen e interpreta como error de pointformat, que puede ser 6. Se cambia a este valor')
+        #     self.headDict['pointformat'] = 6
+        # elif self.headDict['pointformat'] == 1 and self.headDict['pointreclen'] != 28:
+        #     print(f'clidhead-> ATENCION: la cabecera indica pointformat {self.headDict["pointformat"]} y pointreclen {self.headDict["pointreclen"]}')
+        #     print(f'{TB}-> Se da credibilidad a pointreclen e interpreta como error de pointformat, que puede ser 6. Se cambia a este valor')
+        # ======================================================================
+
 
         if self.verbose and self.sumaBytesCabecera != self.headDict['offset']:
             printMsg(
@@ -709,9 +783,9 @@ class LasHeadClass(object):
         crearFicheroConSoloLaCabecera = False
         if crearFicheroConSoloLaCabecera and not infileConRuta is None:
             outFileLasConRuta = self.infileConRuta.replace('.las', '_Cabecera.las')
-            print('\nclidhead-> nCreando copia del LASF con solo cabecera (sin puntos): %s' % outFileLasConRuta)
-            print('clidhead-> Escribiendo cabecera original de prueba en', outFileLasConRuta, 'con', len(self.headBin), 'bytes')
-            print('clidhead-> self.headBin', self.headBin)
+            print('\nclidhead-> LasHeadClass-> nCreando copia del LASF con solo cabecera (sin puntos): %s' % outFileLasConRuta)
+            print('clidhead-> LasHeadClass-> Escribiendo cabecera original de prueba en', outFileLasConRuta, 'con', len(self.headBin), 'bytes')
+            print('clidhead-> LasHeadClass-> self.headBin', self.headBin)
             self.newLax = open(outFileLasConRuta, mode='wb')
             self.newLax.write(self.headBin)
 
@@ -726,7 +800,6 @@ class LasHeadClass(object):
             self.headDict['GPSTimeType'] = 1
         self.GPSTimeType = self.headDict['GPSTimeType']
 
-
         if self.lasVersion == 'LasFormat_1_2':
             # las format 1.2 solo admite CRS en forma GeoTiff.
             # Este las format requiere obligatoriamente un Variable Length Record, GeoKeyDirectoryTag).
@@ -737,7 +810,7 @@ class LasHeadClass(object):
             self.waveformDataPacketsInternal = 0
         elif self.lasVersion == 'LasFormat_1_3':
             # las format 1.3 solo admite CRS en forma GeoTiff.
-            print('\nclidhead-> Version de LASF (1.3) implementada solo parcialmente')
+            print('\nclidhead-> LasHeadClass-> Version de LASF (1.3) implementada solo parcialmente')
             WKT = 0
             self.formatoSRS = 'GeoTIFF'
             self.returnNumbersSyntheticallyGenerated = (self.headDict['globalencoding'] >> 3) & 1
@@ -761,7 +834,7 @@ class LasHeadClass(object):
             self.waveformDataPacketsExternal = (self.headDict['globalencoding'] >> 2) & 1
             self.waveformDataPacketsInternal = (self.headDict['globalencoding'] >> 1) & 1
         else:
-            print('\nclidhead-> Version de LASF (%s) no implementada' % self.lasVersion)
+            print('\nclidhead-> LasHeadClass-> Version de LASF (%s) no implementada' % self.lasVersion)
             quit()
         self.headDict['formatoSRS'] = self.formatoSRS
         self.headDict['returnNumbersSyntheticallyGenerated'] = self.returnNumbersSyntheticallyGenerated
@@ -771,12 +844,79 @@ class LasHeadClass(object):
         # ======================================================================
         # Variantes ortograficas a extinguir
         self.nBytesPorPunto = self.headDict['pointreclen']
-        self.xSupIzda = self.headDict['xmin']
-        self.ySupIzda = self.headDict['ymax']
-        self.xmin = self.headDict['xmin']
-        self.xmax = self.headDict['xmax']
-        self.ymin = self.headDict['ymin']
-        self.ymax = self.headDict['ymax']
+        self.pointreclen = self.headDict['pointreclen']
+
+        self.fileYear = self.headDict['fileyear']
+
+        # Coordenadas de la esquina superior izquierda deducidas del nombre del fichero (and year)
+        (
+            self.fileCoordYeahDelNombre,
+            self.xSupIzdaDelNombre,
+            self.ySupIzdaDelNombre,
+            self.fileYearDelNombre
+        ) = getFileCoordFromName(
+            self.infileConRuta
+        )
+        # No utilizo el valor self.fileCoordYeahDelNombre como propiedad de esta clase
+        # porque doy prioridad al valor obtenido en clidbase.py que tiene en cuenta
+        # el nombre y las coordenadas de la cabecera xSupIzda ySupIzda
+        # Ademas en ese modulo se chequea la coherencia coordenadas de nombre y cabecera
+
+        if GLO.GLBLforzarExtensionDeBloqueAvalorNominal and self.LCLforzarExtensionDeBloqueAvalorNominal:
+            self.xminBloqueMalla = self.xSupIzdaDelNombre
+            self.ymaxBloqueMalla = self.ySupIzdaDelNombre
+            self.xmaxBloqueMalla = self.xminBloqueMalla + GLO.GLBLmetrosBloque
+            self.yminBloqueMalla = self.ymaxBloqueMalla - GLO.GLBLmetrosBloque
+            self.xminBloqueIni = self.xminBloqueMalla
+            self.xmaxBloqueIni = self.xmaxBloqueMalla
+            self.yminBloqueIni = self.yminBloqueMalla
+            self.ymaxBloqueIni = self.ymaxBloqueMalla
+        else:
+            # Se asigna xmin, xmax, ymin, ymax a partir de headDict[]
+            # Si los rangos xmax-xmin y ymax-ymin redondeados al metro
+            # se corresponde con GLBLmetrosBloque, se aplica ese redondeo.
+            # En caso conrtario se mantienen tal cual.
+            # Los valores de headDict['xminBloqueMalla'], etc. no se tocan
+            self.xminBloqueIni = self.headDict['xminBloqueMalla']
+            self.xmaxBloqueIni = self.headDict['xmaxBloqueMalla']
+            self.yminBloqueIni = self.headDict['yminBloqueMalla']
+            self.ymaxBloqueIni = self.headDict['ymaxBloqueMalla']
+
+            if (
+                'LAS_INFO' in GLO.MAINprocedimiento
+                or 'LAS_EDIT' in GLO.MAINprocedimiento
+                or 'PASADAS' in GLO.MAINprocedimiento
+            ):
+                print(f'\nclidhead-> No se hace redondeo de coordenadas marco de bloque por estar ejecutando el procedimiento: {GLO.MAINprocedimiento}')
+                self.xminBloqueMalla = self.headDict['xminBloqueMalla']
+                self.xmaxBloqueMalla = self.headDict['xmaxBloqueMalla']
+                self.yminBloqueMalla = self.headDict['yminBloqueMalla']
+                self.ymaxBloqueMalla = self.headDict['ymaxBloqueMalla']
+            else:
+                self.calculaRedondeaCoordenadasBloqueDeLaCabecera()
+
+        self.zminBloqueIni = self.headDict['zmin']
+        self.zmaxBloqueIni = self.headDict['zmax']
+
+        self.xSupIzda = self.xminBloqueMalla
+        self.ySupIzda = self.ymaxBloqueMalla
+        self.xInfDcha = self.xmaxBloqueMalla
+        self.yInfDcha = self.yminBloqueMalla
+
+        if self.verbose or __verbose__:
+            if GLO.GLBLforzarExtensionDeBloqueAvalorNominal and self.LCLforzarExtensionDeBloqueAvalorNominal:
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> Coordenadas del lasfile segun fileName (GLBLforzarExtensionDeBloqueAvalorNominal es True):')
+                printMsg(f'{TB}-> myLasName.xminBloqueMalla: {self.xminBloqueMalla}')
+                printMsg(f'{TB}-> myLasName.xmaxBloqueMalla: {self.xmaxBloqueMalla}')
+                printMsg(f'{TB}-> myLasName.yminBloqueMalla: {self.yminBloqueMalla}')
+                printMsg(f'{TB}-> myLasName.ymaxBloqueMalla: {self.ymaxBloqueMalla}')
+            else:
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> LasHeadClass-> Coordenadas del lasfile segun cabecera (redondeadas al metro, si procede):')
+                printMsg(f'{TB}-> myLasHead.xminBloqueMalla: {self.xminBloqueMalla}')
+                printMsg(f'{TB}-> myLasHead.xmaxBloqueMalla: {self.xmaxBloqueMalla}')
+                printMsg(f'{TB}-> myLasHead.yminBloqueMalla: {self.yminBloqueMalla}')
+                printMsg(f'{TB}-> myLasHead.ymaxBloqueMalla: {self.ymaxBloqueMalla}')
+
 
         self.guid1 = self.headDict['guid1']
         self.guid2 = self.headDict['guid2']
@@ -785,20 +925,25 @@ class LasHeadClass(object):
 
         if self.lasVersion == 'LasFormat_1_2' or self.lasVersion == 'LasFormat_1_3':
             self.numptrecords = self.headDict['numptrecords']
-            self.numptbyreturn = self.headDict['numptbyreturn']
+            self.pointrecords = self.numptrecords
+            self.numptbyreturn = np.array(self.headDict['numptbyreturn'], dtype=np.int64)
+            self.pointsbyreturn = self.numptbyreturn
         elif self.lasVersion == 'LasFormat_1_4':
             # LASF format 1.4 mantiene el campo original con un maximo de 2^32 puntos y el nuevo con maximo de 2^64 puntos
             # Si el numero de puntos es menor de 2^32, ambos coicdein, en caso contrario el priero el 0 y solo vale el segundo
-            self.numptrecords = self.headDict['pointrecords']
-            # Asigno al capo legacy el nuevo valor mas completo
+            self.pointrecords = self.headDict['pointrecords']
+            if self.pointrecords < 2**32 - 1: #  ~ 4e9
+                self.numptrecords = self.pointrecords
+            else: #  Esto no ocurre nunca, porque ningun fichero tiene mas de 4.000 millones de puntos
+                self.numptrecords = 2**32 - 1
+            # Asigno al campo legacy el nuevo valor mas completo
             self.headDict['numptrecords'] = self.numptrecords
             # Numero de puntos por retorno
-            self.numptbyreturn = self.headDict['pointsbyreturn']
-            # Asigno al capo legacy el nuevo valor mas completo
-            self.headDict['numptbyreturn'] = self.headDict['pointsbyreturn']
-            self.numptbyreturn = self.headDict['pointsbyreturn']
+            self.pointsbyreturn = np.array(self.headDict['pointsbyreturn'], dtype=np.int64)
+            self.numptbyreturn = self.pointsbyreturn
+            # Asigno al campo legacy el nuevo valor (truncado a 5 retornos por pulso)
+            self.headDict['numptbyreturn'] = self.headDict['pointsbyreturn'][:5]
         # ======================================================================
-
 
         # ======================================================================
         # No se puede pasar un np.dtype() como self.formatoDtypeIdValNotacionNpDtype como argumento a una funcion Numba
@@ -819,15 +964,19 @@ class LasHeadClass(object):
         # Leo las propiedades del punto de mi las file de lasPointFields.cfg
         # ======================================================================
         miPointformat = self.pointformat
-        # print('clidhead-> miPointformat:', miPointformat)
+        # print('clidhead-> LasHeadClass-> miPointformat:', miPointformat)
         # print('\t->', self.headDict['pointformat'])
-        # print('clidhead-> (x) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (x) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesList,
             self.lasPointFieldPropertiesDict,
             self.lasPointFieldOrdenDictPtoMini,
             self.lasPointFieldOrdenDictPtoComp,
-        ) = lasPointProperties(miPointformat, self.verbose)
+        ) = lasPointProperties(
+            miPointformat,
+            extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPto,
             self.bytearrayPropPtoNombre,
@@ -843,13 +992,17 @@ class LasHeadClass(object):
         # Es un juego completo adicional para el formato de punto que abarca a todos (~8)
         # ======================================================================
         miPointformat = 99
-        # print('clidhead-> (99) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (99) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat99,
             self.lasPointFieldPropertiesDictPointFormat99,
             self.lasPointFieldOrdenDictPtoMiniPointFormat99,
             self.lasPointFieldOrdenDictPtoCompPointFormat99,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat99,
             self.bytearrayPropPtoNombrePointFormat99,
@@ -865,13 +1018,17 @@ class LasHeadClass(object):
         # ======================================================================
 
         miPointformat = 0
-        # print('clidhead-> (0) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (0) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat00,
             self.lasPointFieldPropertiesDictPointFormat00,
             self.lasPointFieldOrdenDictPtoMiniPointFormat00,
             self.lasPointFieldOrdenDictPtoCompPointFormat00,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat00,
             self.bytearrayPropPtoNombrePointFormat00,
@@ -881,13 +1038,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat00)
 
         miPointformat = 1
-        # print('clidhead-> (1) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (1) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat01,
             self.lasPointFieldPropertiesDictPointFormat01,
             self.lasPointFieldOrdenDictPtoMiniPointFormat01,
             self.lasPointFieldOrdenDictPtoCompPointFormat01,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat01,
             self.bytearrayPropPtoNombrePointFormat01,
@@ -897,13 +1058,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat01)
 
         miPointformat = 2
-        # print('clidhead-> (2) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (2) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat02,
             self.lasPointFieldPropertiesDictPointFormat02,
             self.lasPointFieldOrdenDictPtoMiniPointFormat02,
             self.lasPointFieldOrdenDictPtoCompPointFormat02,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat02,
             self.bytearrayPropPtoNombrePointFormat02,
@@ -913,13 +1078,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat02)
 
         miPointformat = 3
-        # print('clidhead-> (3) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (3) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat03,
             self.lasPointFieldPropertiesDictPointFormat03,
             self.lasPointFieldOrdenDictPtoMiniPointFormat03,
             self.lasPointFieldOrdenDictPtoCompPointFormat03,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat03,
             self.bytearrayPropPtoNombrePointFormat03,
@@ -929,13 +1098,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat03)
 
         miPointformat = 4
-        # print('clidhead-> (4) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (4) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat04,
             self.lasPointFieldPropertiesDictPointFormat04,
             self.lasPointFieldOrdenDictPtoMiniPointFormat04,
             self.lasPointFieldOrdenDictPtoCompPointFormat04,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat04,
             self.bytearrayPropPtoNombrePointFormat04,
@@ -945,13 +1118,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat04)
 
         miPointformat = 5
-        # print('clidhead-> (5) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (5) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat05,
             self.lasPointFieldPropertiesDictPointFormat05,
             self.lasPointFieldOrdenDictPtoMiniPointFormat05,
             self.lasPointFieldOrdenDictPtoCompPointFormat05,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat05,
             self.bytearrayPropPtoNombrePointFormat05,
@@ -961,13 +1138,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat05)
 
         miPointformat = 6
-        # print('clidhead-> (6) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (6) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat06,
             self.lasPointFieldPropertiesDictPointFormat06,
             self.lasPointFieldOrdenDictPtoMiniPointFormat06,
             self.lasPointFieldOrdenDictPtoCompPointFormat06,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat06,
             self.bytearrayPropPtoNombrePointFormat06,
@@ -977,13 +1158,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat06)
 
         miPointformat = 7
-        # print('clidhead-> (7) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (7) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat07,
             self.lasPointFieldPropertiesDictPointFormat07,
             self.lasPointFieldOrdenDictPtoMiniPointFormat07,
             self.lasPointFieldOrdenDictPtoCompPointFormat07,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat07,
             self.bytearrayPropPtoNombrePointFormat07,
@@ -993,13 +1178,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat07)
 
         miPointformat = 8
-        # print('clidhead-> (8) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (8) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat08,
             self.lasPointFieldPropertiesDictPointFormat08,
             self.lasPointFieldOrdenDictPtoMiniPointFormat08,
             self.lasPointFieldOrdenDictPtoCompPointFormat08,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat08,
             self.bytearrayPropPtoNombrePointFormat08,
@@ -1009,13 +1198,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat08)
 
         miPointformat = 9
-        # print('clidhead-> (9) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (9) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat09,
             self.lasPointFieldPropertiesDictPointFormat09,
             self.lasPointFieldOrdenDictPtoMiniPointFormat09,
             self.lasPointFieldOrdenDictPtoCompPointFormat09,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat09,
             self.bytearrayPropPtoNombrePointFormat09,
@@ -1025,13 +1218,17 @@ class LasHeadClass(object):
         ) = crearArraysPropPto(miPointformat, self.lasPointFieldPropertiesListPointFormat09)
 
         miPointformat = 10
-        # print('clidhead-> (10) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (10) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointFormat10,
             self.lasPointFieldPropertiesDictPointFormat10,
             self.lasPointFieldOrdenDictPtoMiniPointFormat10,
             self.lasPointFieldOrdenDictPtoCompPointFormat10,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointFormat10,
             self.bytearrayPropPtoNombrePointFormat10,
@@ -1066,17 +1263,30 @@ class LasHeadClass(object):
         # https://numpy.org/doc/stable/reference/arrays.dtypes.html
         # ======================================================================
 
+        # ======================================================================
         self.formatoDtypePointFormatXXNotacionOneChar = []
         for pr in self.lasPointFieldPropertiesList:
             if pr[3] == 1:
                 self.formatoDtypePointFormatXXNotacionOneChar.append((pr[0], pr[2]))
             else:
                 self.formatoDtypePointFormatXXNotacionOneChar.append((pr[0], pr[2], (pr[3],)))
-        # print( 'clidhead-> lasPointFieldPropertiesList', self.lasPointFieldPropertiesList)
-        # print( 'clidhead->', [(pr[0], pr[2], pr[3]) for pr in self.lasPointFieldPropertiesList])
+        # print( 'clidhead-> LasHeadClass-> lasPointFieldPropertiesList', self.lasPointFieldPropertiesList)
+        # print( 'clidhead-> LasHeadClass->', [(pr[0], pr[2], pr[3]) for pr in self.lasPointFieldPropertiesList])
         self.formatoDtypePointFormatXXNotacionNpDtype = np.dtype(self.formatoDtypePointFormatXXNotacionOneChar)
-        # print('clidhead-> pfX self.formatoDtypePointFormatXXNotacionOneChar:', self.formatoDtypePointFormatXXNotacionOneChar)
-        # print('clidhead-> pfX self.formatoDtypePointFormatXXNotacionNpDtype:', self.formatoDtypePointFormatXXNotacionNpDtype)
+        # print('clidhead-> LasHeadClass-> pfX self.formatoDtypePointFormatXXNotacionOneChar:', self.formatoDtypePointFormatXXNotacionOneChar)
+        # print('clidhead-> LasHeadClass-> pfX self.formatoDtypePointFormatXXNotacionNpDtype:', self.formatoDtypePointFormatXXNotacionNpDtype)
+
+        if GLO.GLBLdarPrioridadAPointFormatFrenteAReclen:
+            print(f'{TB}-> Se da prioridad al pointFormat frente al reclen')
+            print(f'{TB}{TV}con lo que el point format se mantiene en {self.pointformatOriginal}')
+            print(f'{TB}{TV}y se usa el extraBytesPorRegistro de {self.extraBytesPorRegistro} bytes para generar el dtype:')
+            print(f'{TB}{TV}-> formatoDtypePointFormatXXNotacionNpDtype: {self.formatoDtypePointFormatXXNotacionNpDtype}')
+        else:
+            print(f'{TB}-> Se da prioridad al reclen frente al pointFormat')
+            print(f'{TB}{TV}con lo que el point format se ha cambiado de {self.pointformatOriginal} a {self.pointformatNuevo}')
+            print(f'{TB}{TV}el extraBytesPorRegistro es nulo y el dtype es el propio del pointFormat {self.pointformatNuevo}:')
+            print(f'{TB}{TV}-> formatoDtypePointFormatXXNotacionNpDtype: {self.formatoDtypePointFormatXXNotacionNpDtype}')
+        # ======================================================================
 
         # Creo el juego adicional para el formato de punto completo, engloba al 3 y al 8 
         self.formatoDtypePointFormat99NotacionOneChar = []
@@ -1178,14 +1388,14 @@ class LasHeadClass(object):
         # ======================================================================
 
         # if GLO.GLBLverbose:
-        #     print(f'clidhead-> Descripcion del formato formatoDtype:')
+        #     print(f'clidhead-> LasHeadClass-> Descripcion del formato formatoDtype:')
         #     print(f'{TB}-> pf8 self.formatoDtypePointFormat99NotacionOneChar: {self.formatoDtypePointFormat99NotacionOneChar}')
         #     # [('x', '=I'), ('y', '=I'), ('z', '=I'), ('intensity', 'H'), ('return_grp', 'B'), ('extra_grp', 'B'), ('classification', 'B'),
         #     # ('user_data', 'b'), ('scan_angle_rank', 'h'), ('point_source_ID', 'H'), ('raw_time', 'd'), ('red', 'H'), ('green', 'H'), ('blue', 'H'), ('nir', 'H'),
         #     # ('lasClassAsignadaASPRS19', 'B'), ('lasClassAsignadaTRKTS99', 'B'), ('lasClassPredichaMiniSubCel', 'B'), ('lasClassPredichaConvolucion', 'B'),
         #     # ('lasClassPredichaTreeASPRS19', 'B'), ('lasClassPredichaTreeTRKTS99', 'B'), ('lasClassPredichaNlnASPRS19', 'B'), ('usoSingular', 'B'),
         #     # ('nucleoUrbano', 'B'), ('landCover', 'B'), ('geoTipo', 'B'), ('cartoExtra', 'B'), ('distanciaEnDmHastaEdificio', 'B'), ('usoSingularPredicho', 'B'),
-        #     # ('usoSingularPredichoA', 'B'), ('usoSingularPredichoB', 'B'), ('cotaCmSobreMdb', 'h'), ('cotaCmMdf', '=I'), ('cotaCmSobreMdfConvol16bits', 'h'),
+        #     # ('usoSingularPredichoA', 'B'), ('usoSingularPredichoB', 'B'), ('cotaCmSobreMdt', 'h'), ('cotaCmMdf', '=I'), ('cotaCmSobreMdfConvol16bits', 'h'),
         #     # ('cotaCmSobreMdfConual16bits', 'h'), ('cotaCmSobreMdfManual16bits', 'h'), ('esMiniMaxiSubCel', 'B'), ('esMiniMaxiCel', 'B'), ('esApice', 'B'), ('xH30', '=I'), ('yH30', '=I')]
         #     print(f'{TB}-> pf8 self.formatoDtypePointFormat99NotacionNpDtype: {self.formatoDtypePointFormat99NotacionNpDtype}')
         #     # [('x', '<u4'), ('y', '<u4'), ('z', '<u4'), ('intensity', '<u2'), ('return_grp', 'u1'), ('extra_grp', 'u1'), ('classification', 'u1'),
@@ -1193,7 +1403,7 @@ class LasHeadClass(object):
         #     # ('lasClassAsignadaASPRS19', 'u1'), ('lasClassAsignadaTRKTS99', 'u1'), ('lasClassPredichaMiniSubCel', 'u1'), ('lasClassPredichaConvolucion', 'u1'),
         #     # ('lasClassPredichaTreeASPRS19', 'u1'), ('lasClassPredichaTreeTRKTS99', 'u1'), ('lasClassPredichaNlnASPRS19', 'u1'), ('usoSingular', 'u1'),
         #     # ('nucleoUrbano', 'u1'), ('landCover', 'u1'), ('geoTipo', 'u1'), ('cartoExtra', 'u1'), ('distanciaEnDmHastaEdificio', 'u1'), ('usoSingularPredicho', 'u1'),
-        #     # ('usoSingularPredichoA', 'u1'), ('usoSingularPredichoB', 'u1'), ('cotaCmSobreMdb', '<i2'), ('cotaCmMdf', '<u4'), ('cotaCmSobreMdfConvol16bits', '<i2'), 
+        #     # ('usoSingularPredichoA', 'u1'), ('usoSingularPredichoB', 'u1'), ('cotaCmSobreMdt', '<i2'), ('cotaCmMdf', '<u4'), ('cotaCmSobreMdfConvol16bits', '<i2'), 
         #     # ('cotaCmSobreMdfConual16bits', '<i2'), ('cotaCmSobreMdfManual16bits', '<i2'), ('esMiniMaxiSubCel', 'u1'), ('esMiniMaxiCel', 'u1'), ('esApice', 'u1'), ('xH30', '<u4'), ('yH30', '<u4')]
 
         self.miPtoNpArrayRecord = np.zeros(1 * 1 * 1, dtype=np.dtype(self.formatoDtypePointFormatXXNotacionNpDtype)).reshape(1, 1, 1)
@@ -1208,13 +1418,17 @@ class LasHeadClass(object):
         # Leo las propiedades del punto customizado ([lo uso] en clidnv2x y clidnv6) (le llamo pointFormat=100) de lasPointFields.cfg
         # ======================================================================
         miPointformat = 100
-        # print('clidhead-> (100) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (100) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.lasPointFieldPropertiesListPointCustomizado,
             self.lasPointFieldPropertiesDictPointCustomizado,
             self.lasPointFieldOrdenDictPtoMiniPointCustomizado,
             self.lasPointFieldOrdenDictPtoCompPointCustomizado,
-        ) = lasPointProperties(miPointformat, False)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         (
             self.npArrayPropPtoPointCustomizado,
             self.bytearrayPropPtoNombrePointCustomizado,
@@ -1236,9 +1450,9 @@ class LasHeadClass(object):
 
         # if GLO.GLBLverbose:
         #     print(f'{TB}-> pf8 self.formatoDtypePointCustomizadoNotacionOneChar: {self.formatoDtypePointCustomizadoNotacionOneChar}')
-        #     # [('x', 'd'), ('y', 'd'), ('z', 'd'), ('clase', 'B'), ('retN', 'B'), ('cotaMds', 'f'), ('cotaMdb', 'f'), ('cotaMdf', 'f'), ('lasClassAsignada', 'B'), ('lasClassInferida', 'B')]
+        #     # [('x', 'd'), ('y', 'd'), ('z', 'd'), ('clase', 'B'), ('retN', 'B'), ('cotaMds', 'f'), ('cotaMdb', 'f'), ('cotaMdf', 'f'), ('lasClassAsignada', 'B'), ('lasClassPredicha', 'B')]
         #     print(f'{TB}-> pf8 self.formatoDtypePointCustomizadoNotacionNpDtype: {self.formatoDtypePointCustomizadoNotacionNpDtype}')
-        #     # [('x', '<f8'), ('y', '<f8'), ('z', '<f8'), ('clase', 'u1'), ('retN', 'u1'), ('cotaMds', '<f4'), ('cotaMdb', '<f4'), ('cotaMdf', '<f4'), ('lasClassAsignada', 'u1'), ('lasClassInferida', 'u1')]
+        #     # [('x', '<f8'), ('y', '<f8'), ('z', '<f8'), ('clase', 'u1'), ('retN', 'u1'), ('cotaMds', '<f4'), ('cotaMdb', '<f4'), ('cotaMdf', '<f4'), ('lasClassAsignada', 'u1'), ('lasClassPredicha', 'u1')]
 
         # ======================================================================
         # ================= Formato dtype de las extraVariables ================
@@ -1246,13 +1460,17 @@ class LasHeadClass(object):
         # Leo las propiedades del punto de mis extraVariables (le llamo pointFormat=101) de lasPointFields.cfg
         # ======================================================================
         miPointformat = 101
-        # print('clidhead-> (101) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (101) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.extraVariablesPropertiesList,
             self.extraVariablesPropertiesDict,
             self.extraVariablesOrdenDictPtoMini,
             self.extraVariablesOrdenDictPtoComp,
-        ) = lasPointProperties(miPointformat, self.verbose)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         # Esto otro para facilitar el acceso a las propiedades desde funciones numba
         (
             self.npArrayextraVar,
@@ -1279,13 +1497,17 @@ class LasHeadClass(object):
         # Leo las propiedades del punto de mis maxiMiniSubCel (le llamo pointFormat=102) de lasPointFields.cfg
         # ======================================================================
         miPointformat = 102
-        # print('clidhead-> (102) Llamando a lasPointProperties con {}'.format(miPointformat))
+        # print('clidhead-> LasHeadClass-> (102) Llamando a lasPointProperties con {}'.format(miPointformat))
         (
             self.maxiMiniSubCelPropertiesList,
             self.maxiMiniSubCelPropertiesDict,
             self.maxiMiniSubCelOrdenDictPtoMini,
             self.maxiMiniSubCelOrdenDictPtoComp,
-        ) = lasPointProperties(miPointformat, self.verbose)
+        ) = lasPointProperties(
+            miPointformat,
+            # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+            verbose=self.verbose,
+        )
         # Esto otro para facilitar el acceso a las propiedades desde funciones numba
         (
             self.npArrayextraVar,
@@ -1363,22 +1585,44 @@ class LasHeadClass(object):
         # tipoDatoPuntoString = '|S%i' % self.myLasHead.nBytesPorPunto
         # ======================================================================
 
+        if self.verbose:
+            sys.stdout.write('\nclidhead-> Control AA\n')
+            sys.stdout.flush()
+            sys.stderr.flush()
+
         # Basic checking of las file, nCeldas and coordinates from fileName:
         if self.verbose or __verbose__:
-            printMsg(f'clidhead-> Coordenadas del lasfile segun cabecera antes de checkLasfile:')
-            printMsg(f'{TB}-> myLasHead.xmin: {self.xmin}')
-            printMsg(f'{TB}-> myLasHead.ymin: {self.ymin}')
-            printMsg(f'{TB}-> myLasHead.xmax: {self.xmax}')
-            printMsg(f'{TB}-> myLasHead.ymax: {self.ymax}')
-        self.checkLasfile()
-        # print('------------------>clidhead-> infile***ConRutaLazZ:', self.infileConRuta)
+            if GLO.GLBLforzarExtensionDeBloqueAvalorNominal and self.LCLforzarExtensionDeBloqueAvalorNominal:
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> LasHeadClass-> Info: Se parte de las coordenadas de bloque deducidas del nombre del fichero-> GLBLforzarExtensionDeBloqueAvalorNominal: {GLO.GLBLforzarExtensionDeBloqueAvalorNominal}')
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> LasHeadClass-> Coordenadas del lasfile segun fileName antes de checkLasfile:')
+            else:
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> LasHeadClass-> Coordenadas del lasfile segun cabecera antes de checkLasfile:')
+            printMsg(f'{TB}-> myLasHead.xminBloqueMalla: {self.xminBloqueMalla}')
+            printMsg(f'{TB}-> myLasHead.xmaxBloqueMalla: {self.xmaxBloqueMalla}')
+            printMsg(f'{TB}-> myLasHead.yminBloqueMalla: {self.yminBloqueMalla}')
+            printMsg(f'{TB}-> myLasHead.ymaxBloqueMalla: {self.ymaxBloqueMalla}')
+
+        self.metersBlockX = self.headDict['xmaxBloqueMalla'] - self.headDict['xminBloqueMalla']
+        self.metersBlockY = self.headDict['ymaxBloqueMalla'] - self.headDict['yminBloqueMalla']
+
+        self.checkLasfile(LCLverbose=verbose)
+        # print('------------------>clidhead-> LasHeadClass-> infile***ConRutaLazZ:', self.infileConRuta)
         if self.verbose or __verbose__:
-            printMsg(f'clidhead-> Coordenadas del lasfile segun cabecera despues de checkLasfile:')
-            printMsg(f'{TB}-> myLasHead.xmin: {self.xmin}')
-            printMsg(f'{TB}-> myLasHead.ymin: {self.ymin}')
-            printMsg(f'{TB}-> myLasHead.xmax: {self.xmax}')
-            printMsg(f'{TB}-> myLasHead.ymax: {self.ymax}')
+            if GLO.GLBLforzarExtensionDeBloqueAvalorNominal and self.LCLforzarExtensionDeBloqueAvalorNominal:
+                printMsg(f'\nclidhead.{self.fileCoordYeahDelNombre}-> LasHeadClass-> Info: Se parte de las coordenadas de bloque deducidas del nombre del fichero-> GLBLforzarExtensionDeBloqueAvalorNominal: {GLO.GLBLforzarExtensionDeBloqueAvalorNominal}')
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> LasHeadClass-> Coordenadas del lasfile segun fileName despues de checkLasfile:')
+            else:
+                printMsg(f'\nclidhead.{self.fileCoordYeahDelNombre}-> LasHeadClass-> Coordenadas del lasfile segun cabecera despues de checkLasfile:')
+            printMsg(f'{TB}-> myLasHead.xminBloqueMalla: {self.xminBloqueMalla}')
+            printMsg(f'{TB}-> myLasHead.xmaxBloqueMalla: {self.xmaxBloqueMalla}')
+            printMsg(f'{TB}-> myLasHead.yminBloqueMalla: {self.yminBloqueMalla}')
+            printMsg(f'{TB}-> myLasHead.ymaxBloqueMalla: {self.ymaxBloqueMalla}')
             printMsg(f'{"":=^80}')
+
+        if self.verbose:
+            sys.stdout.write('\nclidhead-> Control AB\n')
+            sys.stdout.flush()
+            sys.stderr.flush()
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -1397,7 +1641,7 @@ class LasHeadClass(object):
             self.lasHeaderFieldPropertiesList
         ) = lasHeadProperties()
         if self.verbose:
-            printMsg('clidhead-> Reading head fields properties from cartolidar/data/ext/io/lasHeadFields.cfg:')
+            printMsg('clidhead-> LasHeadClass-> Leyendo propiedades de los campos de cabecera de cartolidar/data/ext/io/lasHeadFields.cfg:')
             # printMsg('\tlasHeaderFieldListVersionsDict-> ' + str(self.lasHeaderFieldListVersionsDict))
             # printMsg('\tlasHeaderFieldPropertiesDict>    ' + str(self.lasHeaderFieldPropertiesDict))
             # printMsg('\tlasHeaderFieldPropertiesList->   ' + str(self.lasHeaderFieldPropertiesList))
@@ -1425,31 +1669,31 @@ class LasHeadClass(object):
         else:
             try:
                 if GLO.GLBLverbose or self.verbose:
-                    print('clidhead-> Se va a abrir el fichero: {}'.format(self.infileConRuta))
+                    print('clidhead-> LasHeadClass-> Se va a abrir el fichero: {}'.format(self.infileConRuta))
                 self.ficheroLas = open(self.infileConRuta, "rb")
                 if GLO.GLBLverbose or self.verbose:
-                    print('\tLeyendo el fichero abierto. Se lee el byte 104'.format(self.infileConRuta))
+                    print(f'{TB}-> Leyendo el fichero abierto. Se lee el byte 104'.format(self.infileConRuta))
                 self.ficheroLas.seek(104)
                 byteLeido = self.ficheroLas.read(1)
                 if GLO.GLBLverbose or self.verbose:
-                    print('\tByte leido:', byteLeido, 'Numero de bytes:', len(byteLeido))
+                    print(f'{TB}-> Byte leido:', byteLeido, 'Numero de bytes:', len(byteLeido))
                 fmt = int(struct.unpack("<B", byteLeido)[0])
                 if GLO.GLBLverbose or self.verbose:
-                    print('\tByte unpack (fmt):', fmt)
+                    print(f'{TB}-> Byte unpack (fmt):', fmt)
                 compression_bit_7 = (fmt & 0x80) >> 7
                 compression_bit_6 = (fmt & 0x40) >> 6
                 if (not compression_bit_6 and compression_bit_7):
                     if GLO.GLBLverbose or self.verbose:
-                        print('\t\t-> Fichero SI comprimido')
+                        print(f'{TB}{TV}-> Fichero SI comprimido')
                     esComprimido = True
                 else:
                     if GLO.GLBLverbose or self.verbose:
-                        print('\t\t-> Fichero NO comprimido')
+                        print(f'{TB}{TV}-> Fichero NO comprimido')
                     esComprimido = False
                 self.ficheroLas.close()
             except Exception as err:
                 printMsg('clidhead.{:006}-> System error al leer el compression bit: {}'.format(GLO.MAIN_idProceso, err))
-                print('\tinfileConRuta:', self.infileConRuta)
+                print(f'{TB}-> infileConRuta:', self.infileConRuta)
                 fmt = '-'
                 if self.infileConRuta[-4:].lower() == '.laz':
                     esComprimido = True
@@ -1460,40 +1704,40 @@ class LasHeadClass(object):
             # Prevalece el contenido del fichero sobre la extension
             if self.lazfile and not esComprimido and self.lasDataMem is None:
                 print('clidhead.{:006}-> ATENCION: fichero laz que no es realmente un laszip (no esta comprimido)'.format(GLO.MAIN_idProceso))
-                print('\t-> self.lasDataMem is None:',  self.lasDataMem is None)
-                print('\t-> pointformat: {}'.format(fmt))
+                print(f'{TB}-> self.lasDataMem is None:',  self.lasDataMem is None)
+                print(f'{TB}-> pointformat: {fmt}')
                 self.lazfile = False
             elif not self.lazfile and esComprimido:
                 print('clidhead.{:006}-> ATENCION: fichero las que en realidad es un un laszip (esta comprimido)'.format(GLO.MAIN_idProceso))
-                print('\t-> self.lasDataMem is None:',  self.lasDataMem is None)
-                print('\t-> pointformat: {}'.format(fmt))
+                print(f'{TB}-> self.lasDataMem is None:',  self.lasDataMem is None)
+                print(f'{TB}-> pointformat: {fmt}')
                 self.lazfile = True
 
         if not self.lasDataMem is None:
             if self.verbose:
-                printMsg('clidhead-> Lectura de los datos desde el objeto de tipo <memoryview> generado a partir del objeto <bytes> creado al descomprimir el laz')
-                printMsg('\t-> type(self.lasDataMem)-> {}'.format(type(self.lasDataMem)))
-                printMsg('\t-> len(self.lasDataMem)->  {}'.format(len(self.lasDataMem)))
+                printMsg(f'clidhead-> LasHeadClass-> Lectura de los datos desde el objeto de tipo <memoryview> generado a partir del objeto <bytes> creado al descomprimir el laz')
+                printMsg(f'{TB}-> type(self.lasDataMem)-> {type(self.lasDataMem)}')
+                printMsg(f'{TB}-> len(self.lasDataMem)->  {len(self.lasDataMem)}')
                 # https://www.devdungeon.com/content/working-binary-data-python
-                printMsg('clidhead-> convirtiendo bytes a memoryview')
+                printMsg('clidhead-> LasHeadClass-> convirtiendo bytes a memoryview')
             # ==================================================================
             self.ficheroLas = memoryview(self.lasDataMem)
             # ==================================================================
             #self.ficheroLas = self.lasDataMem # 'bytes' object has no attribute 'tell'
             if self.verbose:
-                printMsg('\tclidhead-> Ok memoryview, len(ficheroLas): {}'.format(len(self.ficheroLas)))
+                printMsg(f'{TB}-> LasHeadClass-> Ok memoryview, len(ficheroLas): {len(self.ficheroLas)}')
             if len(self.ficheroLas) == 0:
                 printMsg('nclidhead.{:006}-> ATENCION: no se ha leido bien el fichero laz descomprimiendo en memoria. esComprimido: {}'.format(
                     GLO.MAIN_idProceso, esComprimido))
         else:
             if self.verbose:
-                printMsg('clidhead-> Lectura de los datos desde el objeto de tipo <class "_io.BufferedReader"> generado con open()')
-                printMsg('\t-> type(self.lasDataMem)-> {}'.format(type(self.lasDataMem)))
+                printMsg('clidhead-> LasHeadClass-> Lectura de los datos desde el objeto de tipo <class "_io.BufferedReader"> generado con open()')
+                printMsg(f'{TB}-> type(self.lasDataMem)-> {type(self.lasDataMem)}')
             try:
             # ==================================================================
                 self.ficheroLas = open(self.infileConRuta, 'rb')
                 if self.verbose:
-                    printMsg('\t-> type(self.ficheroLas)-> {}'.format(type(self.ficheroLas)))
+                    printMsg(f'{TB}-> type(self.ficheroLas)-> {type(self.ficheroLas)}')
             # ==================================================================
             except SystemError as err:  # Raised for operating systemrelated errors.
                 printMsg('clidhead.%06i-> System error when opening lasFile %s (for head reading)' % (GLO.MAIN_idProceso, self.infileConRuta))
@@ -1529,16 +1773,16 @@ class LasHeadClass(object):
             printMsg('\tATENCION: este fichero no parece un las file (bytes 1-4 != LASF)')
             printMsg('\tBytes 1-4: ->{}<-. Num de bytes: {}'.format(self.signature.decode('ascii'), len(self.signature)))
             printMsg('\tinfileConRuta: {}'.format(self.infileConRuta))
-            # print('------------------>clidhead-> infile***ConRutaLazE:', self.infileConRuta)
+            # print('------------------>clidhead-> LasHeadClass-> infile***ConRutaLazE:', self.infileConRuta)
             self.readOk = False
             return
 #             sys.exit(0)
 
         if self.verbose:
-            printMsg('clidhead-> Fields at header of las file:')
+            printMsg('clidhead-> LasHeadClass-> Campos en el header del lasFile:')
 
         lasVersionIni = 'LasFormat_1_2'
-        for myField in self.lasHeaderFieldListVersionsDict[lasVersionIni][1:]:
+        for nField, myField in enumerate(self.lasHeaderFieldListVersionsDict[lasVersionIni][1:]):
             fieldProperties = self.lasHeaderFieldPropertiesDict[lasVersionIni + '_' + myField]
             readBytes = self.readLasBytes(fieldProperties[0], warningId='w1c')
             self.headBin += readBytes
@@ -1562,7 +1806,7 @@ class LasHeadClass(object):
                         print('fieldProperties[1]', fieldProperties[1])
                         print('fieldProperties[0]', fieldProperties[0], len(readBytes))
                         print('readBytes <', readBytes, '>')
-                        print('clidhead-> Revisar esto')
+                        print('clidhead-> LasHeadClass-> Revisar esto')
                         sys.exit(0)
                 else:
                     # Others: save fist item in tuple
@@ -1581,7 +1825,7 @@ class LasHeadClass(object):
                 if myField == 'pointformat' and self.lazfile:
                     value = value - 128
             except:
-                printMsg('clidhead-> WARNING w2')
+                printMsg('clidhead-> LasHeadClass-> WARNING w2')
                 printMsg('Error reading Field {} at las head'.format(myField))
                 value = readBytes
 
@@ -1591,29 +1835,23 @@ class LasHeadClass(object):
                 else:
                     postPosicion = self.ficheroLas.tell()
                 printMsg(
-                    '\t1-> Bytes:'
-                    + '\t'
-                    + str(postPosicion - int(fieldProperties[0]) + 1)
-                    + '-'
-                    + str(postPosicion)
-                    + '\t'
-                    + str(myField)
-                    + '\t'
-                    + str(value)
+                    f'{TB}LASF1.2-{nField:>2}-> Bytes:'
+                    + f'\t{postPosicion - int(fieldProperties[0]) + 1:>3}-{postPosicion}'
+                    + f'\t{myField:>14}\t{value}'
                 )
             self.headDict[myField] = value
             setattr(self, myField, value)
 
         if self.headDict['vermajor'] > 1:
-            print('clidhead-> LASF version %i.%i, no implementada. Se interrumpe el programa' % (self.headDict['vermajor'], self.headDict['verminor']))
-            print('clidhead->           Esta aplicacion solo esta prearada para formatos LASF 1.2, [1.3] y 1.4')
+            print('clidhead-> LasHeadClass-> LASF version %i.%i, no implementada. Se interrumpe el programa' % (self.headDict['vermajor'], self.headDict['verminor']))
+            print('clidhead-> LasHeadClass->           Esta aplicacion solo esta prearada para formatos LASF 1.2, [1.3] y 1.4')
             quit()
 
         self.lasVersion = 'LasFormat_%i_%i' % (self.headDict['vermajor'], self.headDict['verminor'])
 
         if (self.headDict['vermajor'] == 1 and self.headDict['verminor'] == 3) or (self.headDict['vermajor'] == 1 and self.headDict['verminor'] == 4):
             if self.headDict['vermajor'] == 1 and self.headDict['verminor'] == 3:
-                printMsg('clidhead-> Las format 1.3 only provisional (TODO)')
+                printMsg('clidhead-> LasHeadClass-> Las format 1.3 only provisional (TODO)')
             lasVersion = 'LasFormat_1_3'
             for myField in self.lasHeaderFieldListVersionsDict[lasVersion]:
                 fieldProperties = self.lasHeaderFieldPropertiesDict[lasVersion + '_' + myField]
@@ -1632,7 +1870,7 @@ class LasHeadClass(object):
                         # Numero binario: guardar el primer elemento de la tupla
                         value = struct.unpack(fieldProperties[1].strip(), readBytes)[0]
                 except:
-                    printMsg('clidhead-> WARNING w3a')
+                    printMsg('clidhead-> LasHeadClass-> WARNING w3a')
                     printMsg('Field:', myField)
                     value = readBytes
 
@@ -1642,15 +1880,9 @@ class LasHeadClass(object):
                     else:
                         postPosicion = self.ficheroLas.tell()
                     printMsg(
-                        '\t2-> Bytes:'
-                        + '\t'
-                        + str(postPosicion - int(fieldProperties[0]) + 1)
-                        + '-'
-                        + str(postPosicion)
-                        + '\t'
-                        + str(myField)
-                        + '\t'
-                        + str(value)
+                        f'{TB}LASF1.3-{nField:>2}-> Bytes:'
+                        + f'\t{postPosicion - int(fieldProperties[0]) + 1:>3}-{postPosicion}'
+                        + f'\t{myField:>14}\t{value}'
                     )
                 self.headDict[myField] = value
                 setattr(self, myField, value)
@@ -1676,7 +1908,7 @@ class LasHeadClass(object):
                         # Numero binario: guardar el primer elemento de la tupla
                         value = struct.unpack(fieldProperties[1].strip(), readBytes)[0]
                 except:
-                    printMsg('clidhead-> WARNING w3b')
+                    printMsg('clidhead-> LasHeadClass-> WARNING w3b')
                     printMsg('Field:', myField)
                     value = readBytes
 
@@ -1686,15 +1918,9 @@ class LasHeadClass(object):
                     else:
                         postPosicion = self.ficheroLas.tell()
                     printMsg(
-                        '\t3-> Bytes:'
-                        + '\t'
-                        + str(postPosicion - int(fieldProperties[0]) + 1)
-                        + '-'
-                        + str(postPosicion)
-                        + '\t'
-                        + str(myField)
-                        + '\t'
-                        + str(value)
+                        f'{TB}LASF1.4-{nField:>2}-> Bytes:'
+                        + f'\t{postPosicion - int(fieldProperties[0]) + 1:>3}-{postPosicion}'
+                        + f'\t{myField:>14}\t{value}'
                     )
                 self.headDict[myField] = value
                 setattr(self, myField, value)
@@ -1706,6 +1932,12 @@ class LasHeadClass(object):
             propiedadNumVLR = 'numvlrecords'
             grupoLasHeadFields = self.lasVersion + '_vlrecord'
             idTipoVLR = ''
+            self.headDict['projection_type'] = ''
+            self.headDict['projection_value'] = ''
+            self.headDict['VLRhuso'] = 0
+            self.headDict['OGCprojectionVLR'] = False
+            self.headDict['GeoKeyDirectoryTagVLR'] = False
+            self.headDict['GeoDoubleParamsTagVLR'] = False
         elif tipoVLR == 'extended':
             propiedadNumVLR = 'extendedVLRnValues'
             grupoLasHeadFields = self.lasVersion + '_evlrecord'
@@ -1733,29 +1965,36 @@ class LasHeadClass(object):
 
         if self.verbose:
             if self.lasDataMem is None:
-                printMsg('clidhead-> Modalidad de lectura del fichero laz/las: lectura de fichero con read()')
+                printMsg(f'{TB}-> LasHeadClass-> Modalidad de lectura del fichero laz/las: lectura de fichero con read()')
             else:
-                printMsg('clidhead-> Modalidad de lectura del fichero laz/las: lectura de lasDataMem con acceso por puntero')
-                printMsg(f'{TB}-> lasDataMem es un <bytes> generado al descomprimir el laz y luego convertido a <memoryview> (self.ficheroLas)')
-                printMsg(f'{TB}-> La lectura se hace accediendo al <memoryview> (self.ficheroLas) y agegando el trozo leido (readMemView) a un <bytes> (self.headBin)')
+                printMsg(f'{TB}-> LasHeadClass-> Modalidad de lectura del fichero laz/las: lectura de lasDataMem con acceso por puntero')
+                printMsg(f'{TB}{TV}-> lasDataMem es un <bytes> generado al descomprimir el laz y luego convertido a <memoryview> (self.ficheroLas)')
+                printMsg(f'{TB}{TV}-> La lectura se hace accediendo al <memoryview> (self.ficheroLas) y agegando el trozo leido (readMemView) a un <bytes> (self.headBin)')
                 # self.lasDataMem: <class 'bytes'>
                 # self.ficheroLas: <class 'memoryview'>
                 # readMemView: <class 'memoryview'>
                 # self.headBin: <class 'bytes'>
-                printMsg(f'{TB}-> type(self.lasDataMem): {type(self.lasDataMem)}, type(self.ficheroLas): {type(self.ficheroLas)}')
-                printMsg(f'{TB}-> type(self.headBin): {type(self.headBin)}, len(self.headBin): {len(self.headBin)}')
+                printMsg(f'{TB}{TV}-> type(self.lasDataMem): {type(self.lasDataMem)}, type(self.ficheroLas): {type(self.ficheroLas)}')
+                printMsg(f'{TB}{TV}-> type(self.headBin): {type(self.headBin)}, len(self.headBin): {len(self.headBin)}')
 
         self.sumaBytesVLR = 0
         if self.headDict[propiedadNumVLR] > 0:
             if self.verbose:
-                printMsg(f'\nclidhead-> Numero de variable lenght records: {self.headDict[propiedadNumVLR]}')
-                # print('clidhead-> self.lasHeaderFieldListVersionsDict.keys():', self.lasHeaderFieldListVersionsDict.keys())
+                printMsg(f'\nclidhead-> LasHeadClass-> Numero de variable lenght records de tipo {tipoVLR}: {self.headDict[propiedadNumVLR]}')
+                # print('clidhead-> LasHeadClass-> self.lasHeaderFieldListVersionsDict.keys():', self.lasHeaderFieldListVersionsDict.keys())
                 printMsg(f'{TB}-> Campos de LasFormat_1_2_vlrecord: {self.lasHeaderFieldListVersionsDict[grupoLasHeadFields]}')
 
             for nVlrecord in range(self.headDict[propiedadNumVLR]):
+                if self.verbose:
+                    printMsg(f'{TB}-> Leyendo vlrecord {nVlrecord}:')
+
+                LASFprojectionVLR = False
+                OGCprojectionVLR = False
+                GeoKeyDirectoryTagVLR = False
+                GeoDoubleParamsTagVLR = False
                 if True:
-#                 try:
-                    for myField in self.lasHeaderFieldListVersionsDict[grupoLasHeadFields]:
+                # try:
+                    for nField, myField in enumerate(self.lasHeaderFieldListVersionsDict[grupoLasHeadFields]):
                         # Reserved = 2, H, 1
                         # UserID = 16, c, 16
                         # RecordID = 2, H, 1
@@ -1779,13 +2018,13 @@ class LasHeadClass(object):
                             postPosicion = self.ficheroLas.tell()
 
                         if True:
-#                         try:
+                        # try:
                             if fieldProperties[1].strip() == 'c':
                                 # String
                                 # value = readBytes.rstrip(b'\x00')
-#                                 if not self.lasDataMem is None:
-#                                     value = readBytes.decode('latin-1')
-#                                 else:
+                                # if not self.lasDataMem is None:
+                                #     value = readBytes.decode('latin-1')
+                                # else:
                                 value = readBytes.rstrip(b'\x00').decode('latin-1')
                             elif int(fieldProperties[2]) > 1:
                                 # Array -> desempaquetar a una tupla
@@ -1793,30 +2032,51 @@ class LasHeadClass(object):
                             else:
                                 # Numero binario: guardar el primer elemento de la tupla
                                 value = struct.unpack(fieldProperties[1].strip(), readBytes)[0]
-#                         except:
-#                             printMsg('clidhead-> WARNING w4a')
-#                             printMsg('Field: {}'.format(myField))
-#                             value = readBytes
+                        # except:
+                        #     printMsg('clidhead-> LasHeadClass-> WARNING w4a')
+                        #     printMsg('Field: {}'.format(myField))
+                        #     value = readBytes
 
                         if self.verbose:
                             printMsg(
-                                f'{TB}{TV}4-> Bytes: {str(prePosicion)}-{str(postPosicion)}; TipoVLR: {tipoVLR}; NumVLR: {str(nVlrecord)}; NombreVLR: {myField}; Valor: {str(value)}'
+                                f'{TB}{TV}VLR{nVlrecord}-{nField:>2}-> Bytes:'
+                                + f'\t{prePosicion:>3}-{postPosicion};'
+                                + f'\tTipoVLR: {tipoVLR};'
+                                + f'\tNombreVLR: {myField:<24}\tValor: {value}'
                             )
                         self.headDict['%s%s_%i' % (idTipoVLR, myField, nVlrecord)] = value
                         setattr(self, '%s%s_%i' % (idTipoVLR, myField, nVlrecord), value)
                         # self.headDict['textoVRL_%i' % nVlrecord] = value
+
+                        if myField == 'UserID' and value == 'LASF_Projection':
+                            LASFprojectionVLR = True
+                        if LASFprojectionVLR and myField == 'Description':
+                            if (
+                                value == 'OGC Transformation Record'
+                                or value == 'OGC COORDINATE SYSTEM WKT'
+                                or 'OGC' in value
+                            ):
+                                OGCprojectionVLR = True
+                            elif (
+                                'GeoKeyDirectoryTag' in value
+                            ):
+                                GeoKeyDirectoryTagVLR = True
+                            elif (
+                                'GeoDoubleParamsTag' in value
+                            ):
+                                GeoDoubleParamsTagVLR = True
                     if self.verbose:
-                        print(f'clidhead-> Variable lenght record num: {nVlrecord} leido ok')
-#                 except:
-#                     printMsg('clidhead-> WARNING w4b')
-#                     printMsg('Ha habido un problema al leer el vlrecord {}'.format(nVlrecord))
-#                     if not self.lasDataMem is None:
-#                         postPosicion = len(self.headBin)
-#                     else:
-#                         postPosicion = self.ficheroLas.tell()
-#                     printMsg('Position:' + '\t' + str(postPosicion))
-#                     printMsg('Se cierra la aplicacion')
-#                     sys.exit()
+                        print(f'{TB}{TV}-> LasHeadClass-> Variable lenght record num: {nVlrecord} leido ok')
+                # except:
+                #     printMsg('clidhead-> LasHeadClass-> WARNING w4b')
+                #     printMsg('Ha habido un problema al leer el vlrecord {}'.format(nVlrecord))
+                #     if not self.lasDataMem is None:
+                #         postPosicion = len(self.headBin)
+                #     else:
+                #         postPosicion = self.ficheroLas.tell()
+                #     printMsg('Position:' + '\t' + str(postPosicion))
+                #     printMsg('Se cierra la aplicacion')
+                #     sys.exit()
                 lengthAfterHeader = int(self.headDict['%s_%i' % ('RecordLengthAfterHeader', nVlrecord)])
                 if not self.lasDataMem is None:
                     prePosicion = len(self.headBin)
@@ -1831,7 +2091,29 @@ class LasHeadClass(object):
                 setattr(self, '%sVRL_%i' % (idTipoVLR, nVlrecord), value)
 
                 if self.verbose:
-                    printMsg(f'{TB}-> Parte variable (contenido) del vlrecord {nVlrecord}: {readBytes}')
+                    printMsg(f'{TB}{TV}-> Parte variable (contenido) del vlrecord {nVlrecord}: {readBytes}')
+
+                if LASFprojectionVLR:
+                    if OGCprojectionVLR:
+                        self.headDict['OGCprojectionVLR'] = True
+                        self.headDict['projection_type'] = 'OGC Transformation Record'
+                        self.headDict['projection_value'] = readBytes
+                        if '["EPSG","25830"]' in str(readBytes):
+                            self.headDict['VLRhuso'] = 30
+                            # self.VLRhuso = 30
+                        elif '["EPSG","25829"]' in str(readBytes):
+                            self.headDict['VLRhuso'] = 29
+                        else:
+                            self.headDict['VLRhuso'] = 0
+                            # self.VLRhuso = 29
+                    elif GeoKeyDirectoryTagVLR and not OGCprojectionVLR:
+                        self.headDict['GeoKeyDirectoryTagVLR'] = True
+                        print('clidhead-> Aviso: el sistema de referencia es de tipo GeoKeyDirectoryTag y por el momento no ha salido uno del tipo OGC WKT.')
+                    elif GeoDoubleParamsTagVLR and not OGCprojectionVLR:
+                        self.headDict['GeoDoubleParamsTagVLR'] = True
+                        print('clidhead-> Aviso: el sistema de referencia es de tipo GeoDoubleParamsTag y por el momento no ha salido uno del tipo OGC WKT.')
+                    else:
+                        print('clidhead-> Aviso: VLR con projection type no implementada.')
         else:
             self.headDict['Reserved'] = 0
             self.headDict['UserID'] = ''
@@ -1848,7 +2130,7 @@ class LasHeadClass(object):
             self.headDict['VRL_0'] = b'No VRL'
             # self.headDict['textoVRL_0'] = 'No VRL'
             if self.verbose:
-                printMsg('clidhead-> No hay vlrecords')
+                printMsg(f'clidhead-> LasHeadClass-> No hay vlrecords de tipo {tipoVLR}')
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -1862,147 +2144,72 @@ class LasHeadClass(object):
 #         try:
 #             readBytes = self.ficheroLas.read(int(nBytes))
 #         except:
-#             print('clidhead-> WARNING %s' % warningId)
-#             print('clidhead-> There has been a problem reading las file header')
+#             print('clidhead-> LasHeadClass-> WARNING %s' % warningId)
+#             print('clidhead-> LasHeadClass-> There has been a problem reading las file header')
 #             if not self.lasDataMem is None:
 #                 postPosicion = len(self.headBin)
 #             else:
 #                 postPosicion = self.ficheroLas.tell()
-#             print('clidhead-> Position:', postPosicion)
+#             print('clidhead-> LasHeadClass-> Position:', postPosicion)
 #             self.ficheroLas.close()
 #             sys.exit()
         return readBytes
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-    def adjustCornersCoordinates(self, sizeToAdjust, envolvente=False, margenAdmisible=0):
-        if sizeToAdjust > 0 and self.xmin % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Xmin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print(f'{TB}Before: {self.xmin:0.2f}', end=' ')
-            if self.xmin % sizeToAdjust <= margenAdmisible or self.xmin % sizeToAdjust >= sizeToAdjust - margenAdmisible:
-                self.xmin = float(sizeToAdjust * round(self.xmin / sizeToAdjust, 0))
-            else:
-                if envolvente:
-                    self.xmin = float(sizeToAdjust * math.floor(self.xmin / sizeToAdjust))
-                else:
-                    self.xmin = float(sizeToAdjust * math.ceil(self.xmin / sizeToAdjust))
-            if self.verbose:
-                print(f'{TB}After: {self.xmin:0.2f}')
-        if sizeToAdjust > 0 and self.ymin % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Ymin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print(f'{TB}Before: {self.ymin:0.2f}', end=' ')
-            if self.ymin % sizeToAdjust <= margenAdmisible or self.ymin % sizeToAdjust >= sizeToAdjust - margenAdmisible:
-                self.ymin = float(sizeToAdjust * round(self.ymin / sizeToAdjust, 0))
-            else:
-                if envolvente:
-                    self.ymin = float(sizeToAdjust * math.floor(self.ymin / sizeToAdjust))
-                else:
-                    self.ymin = float(sizeToAdjust * math.ceil(self.ymin / sizeToAdjust))
-            if self.verbose:
-                print(f'{TB}After: {self.ymin:0.2f}')
-        if sizeToAdjust > 0 and self.ymax % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Ymax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print(f'{TB}Before: {self.ymax:0.2f}', end=' ')
-            if self.ymax % sizeToAdjust <= margenAdmisible or self.ymax % sizeToAdjust >= sizeToAdjust - margenAdmisible:
-                self.ymax = float(sizeToAdjust * round(self.ymax / sizeToAdjust, 0))
-            else:
-                if envolvente:
-                    self.ymax = float(sizeToAdjust * math.ceil(self.ymax / sizeToAdjust))
-                else:
-                    self.ymax = float(sizeToAdjust * math.floor(self.ymax / sizeToAdjust))
-            if self.verbose:
-                print(f'{TB}After: {self.ymax:0.2f}')
-        if sizeToAdjust > 0 and self.xmax % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Xmax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print(f'{TB}Before: {self.xmax:0.2f}', end=' ')
-            if self.xmax % sizeToAdjust <= margenAdmisible or self.xmax % sizeToAdjust >= sizeToAdjust - margenAdmisible:
-                self.xmax = float(sizeToAdjust * round(self.xmax / sizeToAdjust, 0))
-            else:
-                if envolvente:
-                    self.xmax = float(sizeToAdjust * math.ceil(self.xmax / sizeToAdjust))
-                else:
-                    self.xmax = float(sizeToAdjust * math.floor(self.xmax / sizeToAdjust))
-            if self.verbose:
-                print(f'{TB}After: {self.xmax:0.2f}')
-        self.xSupIzda = self.xmin
-        self.ySupIzda = self.ymax
-        self.xInfDcha = self.xmax
-        self.yInfDcha = self.ymin
+    def calculaRedondeaCoordenadasBloqueDeLaCabecera(self):
+        """
+        Se leen las coordenadas de la cabecera (guardadas en float)
+        """
+        self.xminBloqueMalla = self.headDict['xminBloqueMalla']
+        self.xmaxBloqueMalla = self.headDict['xmaxBloqueMalla']
+        self.yminBloqueMalla = self.headDict['yminBloqueMalla']
+        self.ymaxBloqueMalla = self.headDict['ymaxBloqueMalla']
+        # Si las coordenadas redondeadas al metro se corresponden
+        # con las dimensiones del bloque completo, se ajusta a esas dimensiones
+        if self.verbose or (
+            (
+                round(self.xminBloqueMalla, 0) == round(self.xmaxBloqueMalla - GLO.GLBLmetrosBloque, 0) and (
+                    self.xminBloqueMalla != round(self.xminBloqueMalla, 0) or self.xmaxBloqueMalla != self.xminBloqueMalla + GLO.GLBLmetrosBloque
+                )
+            ) or (
+                round(self.yminBloqueMalla, 0) == round(self.ymaxBloqueMalla - GLO.GLBLmetrosBloque, 0) and (
+                    self.ymaxBloqueMalla != round(self.ymaxBloqueMalla, 0) or self.yminBloqueMalla != self.ymaxBloqueMalla - GLO.GLBLmetrosBloque
+                )
+            )
+        ):
+            print(f'\nclidhead-> Revisando si es necesario redondear los valores xmin, xmax, ymin, ymax de la cabecera')
+            print(f'{TB}para que se correspondan con la dimension nominal del bloque ({GLO.GLBLmetrosBloque}):')
+        seHanCorregidoRedondeadoEsquinas = False
+        if round(self.xminBloqueMalla, 0) == round(self.xmaxBloqueMalla - GLO.GLBLmetrosBloque, 0):
+            if self.xminBloqueMalla != round(self.xminBloqueMalla, 0):
+                print(f'{TB}-> Aviso: se corrige el valor de xmin de la cabecera de {self.xminBloqueMalla:0.2f} a {round(self.xminBloqueMalla, 0):0.2f} (round(xmin, 0))')
+                self.xminBloqueMalla = round(self.xminBloqueMalla, 0)
+                seHanCorregidoRedondeadoEsquinas = True
+            if self.xmaxBloqueMalla != self.xminBloqueMalla + GLO.GLBLmetrosBloque:
+                print(f'{TB}-> Aviso: se corrige el valor de xmax de la cabecera de {self.xmaxBloqueMalla:0.2f} a {self.xminBloqueMalla + GLO.GLBLmetrosBloque:0.2f} (xmin + GLBLmetrosBloque)')
+                self.xmaxBloqueMalla = self.xminBloqueMalla + GLO.GLBLmetrosBloque
+                # self.headDict['xmaxBloqueMalla'] = self.xmaxBloqueMalla
+                seHanCorregidoRedondeadoEsquinas = True
+        if round(self.yminBloqueMalla, 0) == round(self.ymaxBloqueMalla - GLO.GLBLmetrosBloque, 0):
+            if self.ymaxBloqueMalla != round(self.ymaxBloqueMalla, 0):
+                print(f'{TB}-> Aviso: se corrige el valor de ymax de la cabecera de {self.ymaxBloqueMalla:0.2f} a {round(self.ymaxBloqueMalla, 0):0.2f} (round(ymax, 0))')
+                self.ymaxBloqueMalla = round(self.ymaxBloqueMalla, 0)
+                seHanCorregidoRedondeadoEsquinas = True
+            if self.yminBloqueMalla != self.ymaxBloqueMalla - GLO.GLBLmetrosBloque:
+                print(f'{TB}-> Aviso: se corrige el valor de ymin de la cabecera de {self.yminBloqueMalla:0.2f} a {self.ymaxBloqueMalla - GLO.GLBLmetrosBloque:0.2f} (ymax - GLBLmetrosBloque)')
+                self.yminBloqueMalla = self.ymaxBloqueMalla - GLO.GLBLmetrosBloque
+                # self.headDict['yminBloqueMalla'] = self.yminBloqueMalla
+                seHanCorregidoRedondeadoEsquinas = True
 
-
-#     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-#     def adjustCornersCoordinates(self, sizeToAdjust, envolvente=False):
-#         if sizeToAdjust > 0 and self.xmin % sizeToAdjust != 0:
-#             if self.verbose:
-#                 print('clidhead-> Ajustando xmin a la dimension', sizeToAdjust, 'm. Envolvente:', envolvente)
-#                 print('\tAntes: %0.2f' % self.xmin, end=' ')
-#             if envolvente:
-#                 self.xmin = float(sizeToAdjust * int(self.xmin / sizeToAdjust))
-#             else:
-#                 self.xmin = float(sizeToAdjust * round((self.xmin / sizeToAdjust), 0))
-#             if self.verbose:
-#                 print('\tDespues: %0.2f' % self.xmin)
-#         if sizeToAdjust > 0 and self.ymin % sizeToAdjust != 0:
-#             if self.verbose:
-#                 print('clidhead-> Ajustando ymin a la dimension', sizeToAdjust, 'm. Envolvente:', envolvente)
-#                 print('\tAntes: %0.2f' % self.ymin, end=' ')
-#             if envolvente:
-#                 self.ymin = float(sizeToAdjust * int(self.ymin / sizeToAdjust))
-#             else:
-#                 self.ymin = float(sizeToAdjust * round((self.ymin / sizeToAdjust), 0))
-#             if self.verbose:
-#                 print('\tDespues: %0.2f' % self.ymin)
-#         if sizeToAdjust > 0 and self.ymax % sizeToAdjust != 0:
-#             if self.verbose:
-#                 print('clidhead-> Ajustando ymax con la dimension de la celda.')
-#                 print('\tAntes: %0.2f' % self.ymax, end=' ')
-#             if envolvente:
-#                 self.ymax = float(sizeToAdjust * math.ceil((self.ymax / sizeToAdjust)))
-#             else:
-#                 self.ymax = float(sizeToAdjust * round((self.ymax / sizeToAdjust), 0))
-#             if self.verbose:
-#                 print('\tDespues: %0.2f' % self.ymax)
-#         if sizeToAdjust > 0 and self.xmax % sizeToAdjust != 0:
-#             if self.verbose:
-#                 print('clidhead-> Ajustando xmax con la dimension de la celda.')
-#                 print('\tAntes: %0.2f' % self.xmax, end=' ')
-#             if envolvente:
-#                 self.xmax = float(sizeToAdjust * math.ceil((self.xmax / sizeToAdjust)))
-#             else:
-#                 self.xmax = float(sizeToAdjust * round((self.xmax / sizeToAdjust), 0))
-#             if self.verbose:
-#                 print('\tDespues: %0.2f' % self.xmax)
-#         self.xSupIzda = self.xmin
-#         self.ySupIzda = self.ymax
-#         self.xInfDcha = self.xmax
-#         self.yInfDcha = self.ymin
+        if self.verbose:
+            if not seHanCorregidoRedondeadoEsquinas:
+                print(f'{TB}-> No es necesario corregir: xmin, xmax, ymin, ymax cuadran con la dimension nominal del bloque.')
+            print(f'clidhead-> Posteriormente se chequea si los limites cuadran con la malla satelital de referencia (checkLasfile<>).')
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-    def calculateCornersFromHeader(self):
-        """
-        Reads coordinates of the corners from header (stored in float)
-        """
-        self.xmin = float(self.headDict['xmin'])
-        self.xmax = float(self.headDict['xmax'])
-        self.ymin = float(self.headDict['ymin'])
-        self.ymax = float(self.headDict['ymax'])
-        self.xSupIzda = self.xmin
-        self.ySupIzda = self.ymax
-        self.xInfDcha = self.xmax
-        self.yInfDcha = self.ymin
-        self.xmin = self.headDict['xmin']
-        self.xmax = self.headDict['xmax']
-        self.ymin = self.headDict['ymin']
-        self.ymax = self.headDict['ymax']
-
-
-    # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-    def checkLasfile(self):
+    def checkLasfile(self, LCLverbose=False):
 
         # ======================================================================
         if self.pointreclen == 0:
@@ -2012,296 +2219,809 @@ class LasHeadClass(object):
             self.pointreclen = nBytesAcum
         # ======================================================================
 
+        # # ======================================================================
+        # if self.pointformat == 1 and self.pointreclen == 34:
+        #     print(f'clidhead-> ATENCION: la cabecera indica pointformat 1 y pointreclen 34')
+        #     print(f'{TB}-> Se da credibilidad a pointreclen e interpreta como error de pointformat, que puede ser 3. Se cambia a este valor')
+        #     self.pointformat = 3
+        # # ======================================================================
+
         # ======================================================================
-        self.calculateCornersFromHeader()
         if self.metersBlock > 0:
-            if (
-                (self.xmax - self.xmin - (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)) > self.metersBlock
-                or (self.ymax - self.ymin - (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)) > self.metersBlock
+            if not 'PASADAS' in GLO.MAINprocedimiento and (
+                (self.xmaxBloqueMalla - self.xminBloqueMalla) > self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
+                or (self.ymaxBloqueMalla - self.yminBloqueMalla) > self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
             ):
                 # if self.coordenadasTransformadasDe29a30:
-                print('{:_^80}'.format(''))
-                if self.TRNShuso29:
-                    print('\nclidhead-> Rango de coordenadas del fichero lidar superior a la dimension del bloque debido a la transformacion de coordenadas de h29 a h30')
-                else:
-                    print('\nclidhead-> ATENCION: el rango de coordenadas del fichero lidar es superior a la dimension del bloque')
-                    print('clidhead-> Cambiar la variable de configuracion GLBLmetrosBloque en clidbase.xml o usar otro fichero las')
-                print(
-                    '\t->', round((self.xmax - self.xmin), 2),
-                    '>', self.metersBlock,
-                    'y/o', round((self.ymax - self.ymin), 2),
-                    '>', self.metersBlock
-                )
-                print('\tself.xmin: {}'.format(round(self.xmin, 2)))
-                print('\tself.ymin: {}'.format(round(self.ymin, 2)))
-                print('\tself.xmax: {}'.format(round(self.xmax, 2)))
-                print('\tself.ymax: {}'.format(round(self.ymax, 2)))
-                # if not self.coordenadasTransformadasDe29a30:
-                if not self.TRNShuso29:
-                    print('clidhead-> Se recomienda cambiar GLBLmetrosBloque a', math.ceil(max(self.ymax - self.ymin, self.xmax - self.xmin)), 'metros')
-                    print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en clidbase.xml')
-                    print('{:o^80}'.format(' Fin - revisar errores '))
-                    sys.exit(0)
-                print('{:=^80}'.format(''))
-        # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-
-        # GLBLcoordMinMaxAcordesConBloque
-
-        # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-        if self.TRNShuso29:
-            LCLmetrosBloqueX = self.metersBlock
-            LCLmetrosBloqueY = self.metersBlock
-        else:
-            if (
-                (self.xmax - self.xmin) >= self.metersBlock - (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
-                or (self.ymax - self.ymin) >= self.metersBlock - (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
-            ) and (
-                (self.xmax - self.xmin) < self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
-                or (self.ymax - self.ymin) < self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
-            ) or GLO.GLBLcoordMinMaxAcordesConBloque:
-                # El lasFile se ajusta +- a la dimension prevista por GLBLmetrosBloque
-                if (self.xmax - self.xmin) >= self.metersBlock + 1 or (self.ymax - self.ymin) >= self.metersBlock + 1:
-                    envolvente = True
-                    self.adjustCornersCoordinates(self.metersBlock, envolvente=True, margenAdmisible=1)
-                else:
-                    envolvente = False
-                    self.adjustCornersCoordinates(self.metersBlock, envolvente=False, margenAdmisible=1)
-                LCLmetrosBloqueX = GLO.GLBLmetrosBloque
-                LCLmetrosBloqueY = GLO.GLBLmetrosBloque
-                if self.verbose:
-                    print('\nclidhead-> 1 Adjusting corners with block size:', self.metersBlock, 'm')
-                    print('clidhead->   xmin, xmax, ymin, ymax:', self.xmin, self.xmax, self.ymin, self.ymax)
-                    print(f'clidhead->   envolvente: {envolvente}')
-            elif (
-                (self.xmax - self.xmin) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
-                or (self.ymax - self.ymin) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
-            ):
-                print('clidhead-> Alguna dimension del lasFile es superior al GLBLmetrosBloque (establecido en clidbase.xml)')
-                print('\t-> Valor actual de GLBLmetrosBloque:', GLO.GLBLmetrosBloque, 'm.')
-                print('\t-> Rango de coord x:', (self.xmax - self.xmin), 'Rango de coord y:', (self.ymax - self.ymin))
-                if GLO.MAIN_ENTORNO == 'windows':
-                    selec = input('Seguir adelante con el valor actual de GLBLmetrosBloque (S/n)')
-                    rptaMantener = False if selec.upper() == 'N' else True
-                    if not rptaMantener:
-                        print('clidhead-> Se finaliza la aplicacion')
-                        print('\t-> Se cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en clidbase.xml')
-                        print('{:=^80}'.format(' Fin - revisar errores '))
-                        sys.exit(0)
-            else:
-                if self.verbose:
-                    print('{:!^80}'.format(''))
-                    print('clidhead-> ATENCION: el rango de coordenadas del lasFile es inferior a la dimension del bloque (dimension -lado- estandar de fichero lidar):')
-                    print('\t-> Si ocurre con todos los ficheros, cambiar la variable de configuracion GLBLmetrosBloque en clidbase.xml o usar otro fichero las')
-                    print('{:!^80}'.format(''))
-                    print('\tself.xmin: {:0.2f}'.format(self.xmin))
-                    print('\tself.xmax: {:0.2f}'.format(self.xmax))
-                    print('\t\tRango X: {:0.2f}'.format(self.xmax - self.xmin, 'metros'))
-                    print('\tself.ymin: {:0.2f}'.format(self.ymin))
-                    print('\tself.ymax: {:0.2f}'.format(self.ymax))
-                    print('\t\tRango Y: {:0.2f}'.format(self.ymax - self.ymin, 'metros'))
-                    print(
-                        'clidhead-> La aplicacion esta configurada para procesar ficheros lidar (las) de',
-                        self.metersBlock,
-                        'x',
-                        self.metersBlock,
-                        'metros (variables de configuracion en clidbase.xml)',
-                    )
-                if min(self.xmax - self.xmin, self.ymax - self.ymin) < 500:
-                    if self.verbose:
-                        print('\tSe recomienda usar ficheros lidar de mas de 500 x 500 metros')
-                    if False:
-                        selec = input(
-                            'Continuar cambiando para esta ejecucion el parametro GLBLmetrosBloque al nuevo valor %i ? (s/n)'
-                            % round(min(self.xmax - self.xmin, self.ymax - self.ymin), 0)
-                        )
-                        rptaCambiar = False if selec.upper() == 'N' else True
-                        if not rptaCambiar:
-                            print('clidhead-> Se finaliza la aplicacion')
-                            print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en clidbase.xml')
-                            print('{:o^80}'.format(' Fin - revisar errores '))
-                            sys.exit(0)
-                    rptaCambiar = True
-                else:
-                    rptaCambiar = True
-    
-                if rptaCambiar:
-                    if GLO.GLBLadapatarMetrosBloque:
-                        GLBNmetrosBloque = int(GLO.GLBLmetrosCelda * math.ceil(min(self.xmax - self.xmin, self.ymax - self.ymin) / GLO.GLBLmetrosCelda))
-                        if self.verbose:
-                            print('clidhead-> Se recomienda cambiar la variable de configuracion GLBLmetrosBloque en clidbase.xml')
-                            print('\tSe modifica para esta ejecucion el parametro GLBLmetrosBloque')
-                            print('\tSe cambia el parametro GLBLmetrosBloque para esta ejecucion. Nuevo valor:', GLBNmetrosBloque, 'metros.')
+                if LCLverbose:
+                    print('{:_^80}'.format(''))
+                    print(f'clidhead.{self.fileCoordYeahDelNombre}:')
+                    if (
+                        (self.xmaxBloqueMalla - self.xminBloqueMalla) > self.metersBlock * 2
+                        or (self.ymaxBloqueMalla - self.yminBloqueMalla) > self.metersBlock * 2
+                    ):
+                        if 'LAS_INFO' in GLO.MAINprocedimiento:
+                            tipoAdvertencia = 'AVISO'
                         else:
-                            printMsg('\nclidhead-> ATENCION: se cambia el parametro GLBLmetrosBloque para esta ejecucion. Nuevo valor: {} metros'.format(GLBNmetrosBloque))
-                        nuevosParametroConfiguracion = {}
-                        nuevosParametroConfiguracion['GLBLmetrosBloque'] = [GLBNmetrosBloque, 'GrupoDimensionCeldasBloques', '', 'int']
-                        clidconfig.configVarsDict = clidconfig.leerCambiarVariablesGlobales(nuevosParametroConfiguracion)
-                        # input('Pulsa una tecla')
-                        LCLmetrosBloqueX = int(GLO.GLBLmetrosCelda * math.ceil((self.xmax - self.xmin) / GLO.GLBLmetrosCelda))
-                        LCLmetrosBloqueY = int(GLO.GLBLmetrosCelda * math.ceil((self.ymax - self.ymin) / GLO.GLBLmetrosCelda))
+                            tipoAdvertencia = 'ATENCION'
+                        print(f'{TB}-> checkLasfile-> {tipoAdvertencia}: el rango de coordenadas del fichero lidar es superior al doble de la dimension del bloque.')
+                        if not 'LAS_INFO' in GLO.MAINprocedimiento:
+                            print(f'{TB}-> Revisar si el fichero es correcto y/o cambiar la variable de configuracion GLBLmetrosBloque.')
                     else:
-                        print('clidhead-> No se modifica el parametro GLBLmetrosBloque porque GLBLadapatarMetrosBloque es {}'.format(GLO.GLBLadapatarMetrosBloque))
-                        LCLmetrosBloqueX = self.metersBlock
-                        LCLmetrosBloqueY = self.metersBlock
-                else:
-                    LCLmetrosBloqueX = self.metersBlock
-                    LCLmetrosBloqueY = self.metersBlock
-                if self.verbose:
-                    print('{:!^80}\n'.format(''))
+                        if 'LAS_INFO' in GLO.MAINprocedimiento:
+                            tipoAdvertencia = 'Aviso'
+                        else:
+                            tipoAdvertencia = 'Atencion'
+                        if self.TRNShuso29_coord:
+                            print(f'{TB}-> checkLasfile-> {tipoAdvertencia}: Rango de coordenadas del fichero lidar superior a la dimension del bloque debido a la transformacion de coordenadas de h29 a h30')
+                        else:
+                            print(f'{TB}-> checkLasfile-> {tipoAdvertencia}: el rango de coordenadas del fichero lidar es superior a la dimension del bloque + 2 veces el margenParaAdmitirPuntos pero no llega al doble de la dimension del bloque.')
+                            if not 'LAS_INFO' in GLO.MAINprocedimiento:
+                                print(f'{TB}-> Revisar si el fichero es correcto y/o cambiar la variable de configuracion GLBLmetrosBloque.')
+                    print(
+                        f'{TB}{TV}->', round((self.xmaxBloqueMalla - self.xminBloqueMalla), 2),
+                        '>', self.metersBlock, '+ 4 *', GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque,
+                        'y/o', round((self.ymaxBloqueMalla - self.yminBloqueMalla), 2),
+                        '>', self.metersBlock, '+ 4 *', GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque,
+                    )
+                    print(f'{TB}{TV}{TV}-> self.xminBloqueMalla: {round(self.xminBloqueMalla, 2)}')
+                    print(f'{TB}{TV}{TV}-> self.yminBloqueMalla: {round(self.yminBloqueMalla, 2)}')
+                    print(f'{TB}{TV}{TV}-> self.xmaxBloqueMalla: {round(self.xmaxBloqueMalla, 2)}')
+                    print(f'{TB}{TV}{TV}-> self.ymaxBloqueMalla: {round(self.ymaxBloqueMalla, 2)}')
+                # if not self.coordenadasTransformadasDe29a30:
+                if not self.TRNShuso29_coord:
+                    if LCLverbose:
+                        print('clidhead-> checkLasfile-> Se puede cambiar GLBLmetrosBloque a', math.ceil(max(self.ymaxBloqueMalla - self.yminBloqueMalla, self.xmaxBloqueMalla - self.xminBloqueMalla)), 'metros')
+                    if not GLO.GLBLadmitirBloquesMayoresQueMetrosBloque:
+                        print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en el fichero de configuracion')
+                        sys.exit(0)
+                if LCLverbose:
+                    print('{:=^80}'.format(''))
         # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
+        # Se ajustan, si procede, self.xminBloqueMalla, self.xmaxBloqueMalla, self.ymaxBloqueMalla, self.yminBloqueMalla
+        if (
+            'LAS_INFO' in GLO.MAINprocedimiento
+            or 'LAS_EDIT' in GLO.MAINprocedimiento
+            or 'PASADAS' in GLO.MAINprocedimiento
+        ):
+            self.LCLmetrosBloqueX = self.metersBlock
+            self.LCLmetrosBloqueY = self.metersBlock
+        else:
+            if GLO.GLBLcoordMinMaxAcordesConBloque:
+                # Redondear los valores de las coordenadas de las esquinas del bloque 
+                # a un multiplo de la dimension del bloque siempre que el desvio sea inferior a 20 m y el huso se H30.
+                # Este ajuste solo se mantiene si la malla satelital cuadra con las esquinas del bloque.
+                # En caso contrario, el ajuste que prevalece es el de adjustCornersCoordinatesCelda<>
+                self.adjustCornersCoordinatesBloque(
+                    self.metersBlock,
+                    margenAdmisible=self.metersBlock * 0.01
+                )
+
         # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-        self.metersBlockX = self.headDict['xmax'] - self.headDict['xmin']
-        self.metersBlockY = self.headDict['ymax'] - self.headDict['ymin']
         if self.metersBlock == 0:
             if round(self.metersBlockX, 2) != round(self.metersBlockY, 2):
-                print('clidhead-> Warning: not square block. x: %0.2f; y: %0.2f' % (self.metersBlockX, self.metersBlockY))
+                print('clidhead-> checkLasfile-> AVISO: bloque no cuadrado. x: %0.2f; y: %0.2f' % (self.metersBlockX, self.metersBlockY))
         if self.metersCell > 0 and self.metersBlock % self.metersCell != 0:
-            print('clidhead-> WARNING: block size is not multiple of cell size: block size: %0.2f; cell size: %0.2f' % (self.metersBlock, self.metersCell))
+            print('clidhead-> checkLasfile-> AVISO: la dimension del bloque no es multiplo de la de la celda. Bloque: %0.2f m; Celda: %0.2f m.' % (self.metersBlock, self.metersCell))
         # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
-        # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-        if (
-            (self.xmin % self.metersCell < 0.9 and self.xmin % self.metersCell > 0)
-            or self.xmax % self.metersCell >= 0.1
-            or (self.ymin % self.metersCell < 0.9 and self.ymin % self.metersCell > 0)
-            or self.ymax % self.metersCell >= 0.1
-        ):
-            envolvente = True
-            self.adjustCornersCoordinates(self.metersCell, envolvente=True, margenAdmisible=0.1)
+        if self.TRNShuso29:
+            LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH29X
+            LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH29Y
         else:
-            envolvente = False
-            self.adjustCornersCoordinates(self.metersCell, envolvente=False, margenAdmisible=0.1)
+            LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH30X
+            LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH30Y
+
+        # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+        # Se ajustan, si procede, self.xminBloqueMalla, self.xmaxBloqueMalla, self.ymaxBloqueMalla, self.yminBloqueMalla
+        # y se asigna a self.xSupIzda, self.xInfDcha, self.ySupIzda, self.yInfDcha
+        # if (
+        #     (self.xminBloqueMalla % self.metersCell < 0.9 and self.xminBloqueMalla % self.metersCell > 0)
+        #     or self.xmaxBloqueMalla % self.metersCell >= 0.1
+        #     or (self.yminBloqueMalla % self.metersCell < 0.9 and self.yminBloqueMalla % self.metersCell > 0)
+        #     or self.ymaxBloqueMalla % self.metersCell >= 0.1
+        # ):
+        #     envolvente = True
+        # else:
+        #     envolvente = False
+        # Para ajustar de la malla de celdas a la del satelite uso GLBLforzarExtensionDeCeldasDentroDelBloque
+        # De todas formas mantengo los parametros TRNSpermitirQueLaMallaExcedaElBloque por si acaso
+        TRNSpermitirQueLaMallaExcedaElBloqueX = True
+        TRNSpermitirQueLaMallaExcedaElBloqueY = True
+        if (
+            'LAS_INFO' in GLO.MAINprocedimiento
+            or 'LAS_EDIT' in GLO.MAINprocedimiento
+            or 'PASADAS' in GLO.MAINprocedimiento
+        ):
+            self.xSupIzda = self.xminBloqueMalla
+            self.xInfDcha = self.xmaxBloqueMalla
+            self.yInfDcha = self.yminBloqueMalla
+            self.ySupIzda = self.ymaxBloqueMalla
+        else:
+            self.adjustCornersCoordinatesCelda(
+                self.metersCell,
+                TRNSpermitirQueLaMallaExcedaElBloqueX=TRNSpermitirQueLaMallaExcedaElBloqueX,
+                TRNSpermitirQueLaMallaExcedaElBloqueY=TRNSpermitirQueLaMallaExcedaElBloqueY,
+                margenAdmisible=self.metersCell * 0.1,
+                LCLorigenDeCoordenadasX=LCLorigenDeCoordenadasX,
+                LCLorigenDeCoordenadasY=LCLorigenDeCoordenadasX,
+            )
+
+        self.LCLmetrosBloqueX = self.xmaxBloqueMalla - self.xminBloqueMalla
+        self.LCLmetrosBloqueY = self.ymaxBloqueMalla - self.yminBloqueMalla
+        self.nCeldasX = math.ceil(self.LCLmetrosBloqueX / GLO.GLBLmetrosCelda) #  type int
+        self.nCeldasY = math.ceil(self.LCLmetrosBloqueY / GLO.GLBLmetrosCelda) #  type int
+        if (
+            not 'LAS_INFO' in GLO.MAINprocedimiento
+            and not 'LAS_EDIT' in GLO.MAINprocedimiento
+            and not 'PASADAS' in GLO.MAINprocedimiento
+        ):
+            if self.LCLmetrosBloqueX % GLO.GLBLmetrosCelda != 0:
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> ATENCION-> No se ha hecho bien el ajuste de las celdas a la malla satelital en X:')
+                printMsg(f'{TB} rango X: {self.xminBloqueMalla} - {self.xmaxBloqueMalla} -> {self.LCLmetrosBloqueX}; malla: {GLO.GLBLmetrosCelda}; resto: {self.LCLmetrosBloqueX % GLO.GLBLmetrosCelda}')
+                printMsg(f'{TB} Se adopta un numero de celdas redondeado al alza para incluir todos los puntos-> nCeldasX: {self.nCeldasX}')
+            if self.LCLmetrosBloqueX % GLO.GLBLmetrosCelda != 0:
+                printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> ATENCION-> No se ha hecho bien el ajuste de las celdas a la malla satelital en Y:')
+                printMsg(f'{TB} rango Y: {self.yminBloqueMalla} - {self.ymaxBloqueMalla} -> {self.LCLmetrosBloqueY}; malla: {GLO.GLBLmetrosCelda}; resto: {self.LCLmetrosBloqueY % GLO.GLBLmetrosCelda}')
+                printMsg(f'{TB} Se adopta un numero de celdas redondeado al alza para incluir todos los puntos-> nCeldasY: {self.nCeldasY}')
+
+            if self.verbose:
+                if GLO.GLBLforzarExtensionDeBloqueAvalorNominal and self.LCLforzarExtensionDeBloqueAvalorNominal:
+                    printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> checkLasfile-> Coordenadas del lasfile segun fileName despues de adjustCornersCoordinates a celda (=malla satelital):')
+                    printMsg(f'{TB}-> myLasName.xminBloqueMalla: {self.xminBloqueMalla}')
+                    printMsg(f'{TB}-> myLasName.xmaxBloqueMalla: {self.xmaxBloqueMalla}')
+                    printMsg(f'{TB}-> myLasName.yminBloqueMalla: {self.yminBloqueMalla}')
+                    printMsg(f'{TB}-> myLasName.ymaxBloqueMalla: {self.ymaxBloqueMalla}')
+                else:
+                    printMsg(f'clidhead.{self.fileCoordYeahDelNombre}-> checkLasfile-> Coordenadas del lasfile segun cabecera despues de adjustCornersCoordinates a celda (=malla satelital):')
+                    printMsg(f'{TB}-> myLasHead.xminBloqueMalla: {self.xminBloqueMalla}')
+                    printMsg(f'{TB}-> myLasHead.xmaxBloqueMalla: {self.xmaxBloqueMalla}')
+                    printMsg(f'{TB}-> myLasHead.yminBloqueMalla: {self.yminBloqueMalla}')
+                    printMsg(f'{TB}-> myLasHead.ymaxBloqueMalla: {self.ymaxBloqueMalla}')
+                printMsg(f'{TB}-> GLBLforzarExtensionDeCeldasDentroDelBloque: {GLO.GLBLforzarExtensionDeCeldasDentroDelBloque}')
+                printMsg(f'{TB}-> TRNSpermitirQueLaMallaExcedaElBloqueXY:     {TRNSpermitirQueLaMallaExcedaElBloqueX} {TRNSpermitirQueLaMallaExcedaElBloqueY}')
+
+            if self.verbose:
+                print(f'clidhead-> checkLasfile-> Numero de celdas ajustado a la malla (GLBLmetrosCelda: {GLO.GLBLmetrosCelda} m): {self.nCeldasX} x {self.nCeldasY} celdas.')
+            
+        self.metrosBloqueX = self.nCeldasX * GLO.GLBLmetrosCelda
+        self.metrosBloqueY = self.nCeldasY * GLO.GLBLmetrosCelda
         if self.verbose:
-            print('\nclidhead-> Ajustando esquinas a {} m (bis)'.format(self.metersCell))
-            print('\txmin, xmax, ymin, ymax:', self.xmin, self.xmax, self.ymin, self.ymax)
-            print(f'\t-> envolvente: {envolvente}')
-        self.nCeldasX = int(math.ceil(float(LCLmetrosBloqueX) / GLO.GLBLmetrosCelda))
-        self.nCeldasY = int(math.ceil(float(LCLmetrosBloqueY) / GLO.GLBLmetrosCelda))
-        self.metrosBloqueX = int(math.ceil(self.xmax - self.xmin))
-        self.metrosBloqueY = int(math.ceil(self.ymax - self.ymin))
-        if self.verbose:
-            print('clidhead-> Coordenadas min y max ajustadas a dimensiones de bloque y celdas:')
-            print('\txmin: %07.1f; xmax: %07.1f; ymin: %07.1f; ymax: %07.1f' % (self.xmin, self.xmax, self.ymin, self.ymax))
-            print('clidhead-> Dimesion del bloque ajustado: %i x %i metros' % (self.metrosBloqueX, self.metrosBloqueY))
-            print('clidhead-> Numero de celdas previsto de acuerdo al nuevo valor de GLBLmetrosBloque: %i x %i' % (self.nCeldasX, self.nCeldasY))
+            print(f'clidhead-> checkLasfile-> Dimension del bloque ajustado: {self.metrosBloqueX} x {self.metrosBloqueY} metros')
+
+        if GLO.GLBLforzarExtensionDeBloqueAvalorNominal and self.LCLforzarExtensionDeBloqueAvalorNominal:
+            self.xmaxBloqueMalla = self.xminBloqueMalla + self.metrosBloqueX
+            self.yminBloqueMalla = self.ymaxBloqueMalla - self.metrosBloqueY
         # ======================================================================
-
-        # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-        # Asigned coordinates of up left corner after the lasFile name (and year)
-        (
-            self.fileCoordYear,
-            self.xSupIzdaDelNombre,
-            self.ySupIzdaDelNombre,
-            self.fileYear
-        ) = getFileCoordFromName(
-            self.infileConRuta
-        )
-        # No utilizo fileCoordYear como propiedad de esta clase sino que uso
-        # el valor obtenido en clidbase.py que tiene en cuenta el nombre y
-        # las coordenadas de la cabecera xSupIzda ySupIzda
-        # Ademas en ese modulo se chequea la coherencia coordenadas de nombre y cabecera
-        if False:
-            if self.fileCoordYear:
-                print(
-                    'clidhead-> Coordinates from las name: fileCoordYear:',
-                    self.fileCoordYear,
-                    'xSupIzdaDelNombre, ySupIzdaDelNombre:',
-                    self.xSupIzdaDelNombre,
-                    self.ySupIzdaDelNombre,
-                    'fileYear:',
-                    self.fileYear,
-                )
-            else:
-                # print( 'clidhead-> Cannot obtain coordinates from las name')
-                print('\tclidhead-> Cannot obtain coordinates from las name: %s' % (self.infileConRuta))
-
-            # Check if coordinates match (lasFile name and lasFile head)
-            if (
-                self.xSupIzdaDelNombre != 0
-                and self.ySupIzdaDelNombre != 0
-                and (round(self.xSupIzda, 0) != round(self.xSupIzdaDelNombre, 0) or round(self.ySupIzda, 0) != round(self.ySupIzdaDelNombre, 0))
-            ):
-                printMsg('clidhead-> Warning: coordinates obtained from lasFile head do not match coordinates readed at lasFile name')
-                printMsg('\tUpLeft corner accoding to lasFile name: xUpLeft: %0.1f; yUpLeft: %0.1f' % (self.xSupIzdaDelNombre, self.ySupIzdaDelNombre))
-                printMsg('\tUpLeft corner accoding to lasFile head: xUpLeft: %0.1f; yUpLeft: %0.1f' % (self.xSupIzda, self.ySupIzda))
-        # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
         # ======================================================================
         nBytesPorPuntoCheck = sum(int(pointField[1]) for pointField in self.lasPointFieldPropertiesList)
         if nBytesPorPuntoCheck != self.pointreclen:
-            print('clidhead-> WARNING: error in nBytesPorPunto: {} {}'.format(nBytesPorPuntoCheck, self.pointreclen))
-            print('clidhead-> ATENCION: Revisar esto')
+            print(
+                'clidhead-> checkLasfile-> ATENCION: revisar nBytesPorPunto: El valor normal para P.F. {} es {} bytes pero la cabecera dice {} bytes'.format(
+                    self.pointformat,
+                    nBytesPorPuntoCheck,
+                    self.pointreclen
+                )
+            )
+            print(
+                f'{TB}-> Se usa el valor indicado en la cabecera ({self.pointreclen}),'
+                f' pero no se interpretan los bytes de cada punto despues del byte ({nBytesPorPuntoCheck})'
+            )
+            self.pointreclenASPRS = nBytesPorPuntoCheck
         # ======================================================================
 
         # inputfile_las_baseName = os.path.splitext(os.path.basename(inputfile_las))[0] #Nombre sin extension
-        # printMsg('clidhead-> Procesando sin liblas: %s' % (inputfile_las_baseName))
+        # printMsg('clidhead-> checkLasfile-> Procesando sin liblas: %s' % (inputfile_las_baseName))
 
         if self.verbose:
             if self.headDict['numvlrecords'] == 0:
-                print('\nclidhead-> La informacion del srs en el fichero las esta en formato compatible con: %s' % self.formatoSRS)
+                print('\nclidhead-> checkLasfile-> La informacion del srs en el fichero las debe estar en formato compatible con: %s' % self.formatoSRS)
             else:
-                print('\nclidhead-> La informacion del srs en el fichero las esta en formato compatible con: %s' % self.formatoSRS)
+                print('\nclidhead-> checkLasfile-> La informacion del srs en el fichero las debe estar en formato compatible con: %s' % self.formatoSRS)
                 if 'Description_0' in self.headDict.keys() and self.headDict['Description_0'].rstrip('\x00') == 'No Variable Lenght Records (VRL)':
-                    print(self.headDict['Description_0'])
+                    print(f'{TB}{self.headDict["Description_0"]}')
                 else:
-                    printMsg('\tCampos de LasFormat_1_2_vlrecord:' + str(self.lasHeaderFieldListVersionsDict[self.lasVersion + '_vlrecord']))
+                    printMsg(
+                        f'{TB}Campos de LasFormat_1_2_vlrecord:',
+                        str(self.lasHeaderFieldListVersionsDict[self.lasVersion + "_vlrecord"])
+                    )
                     for nVlrecord in range(self.headDict['numvlrecords']):
-                        print('\tInfo de Variable Lenght Records (VRL)', nVlrecord)
+                        print(f'{TB}{TV}Info de Variable Lenght Records (VRL) {nVlrecord}')
                         for myField in self.lasHeaderFieldListVersionsDict[self.lasVersion + '_vlrecord']:
                             fieldname = '%s_%i' % (myField, nVlrecord)
                             value = str(self.headDict[fieldname])
                             # value = self.headDict['textoVRL_%i' % nVlrecord]
-                            print('\t------>', fieldname.rjust(25), '->', value)
-            print('clidhead-> Las file created with software: %s' % str(self.headDict['gensoftware']))
+                            print(f'{TB}{TV}{TV}------> {fieldname.rjust(25)} -> {value}')
+            print('clidhead-> checkLasfile-> Las file creado con el software: %s' % str(self.headDict['gensoftware']))
+
+
+    # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+    def adjustCornersCoordinatesBloque(
+            self,
+            sizeToAdjust,
+            margenAdmisible=1,
+        ):
+        # oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+        if self.TRNShuso29_coord:
+            self.LCLmetrosBloqueX = self.metersBlock
+            self.LCLmetrosBloqueY = self.metersBlock
+        else:
+            if (
+                (self.xmaxBloqueMalla - self.xminBloqueMalla) >= self.metersBlock - margenAdmisible
+                and (self.ymaxBloqueMalla - self.yminBloqueMalla) >= self.metersBlock - margenAdmisible
+                and (self.xmaxBloqueMalla - self.xminBloqueMalla) < self.metersBlock + margenAdmisible
+                and (self.ymaxBloqueMalla - self.yminBloqueMalla) < self.metersBlock + margenAdmisible
+            ):
+                # dimensionDeBloqueOk = True
+                self.xminBloqueMalla = float(sizeToAdjust * round((self.xminBloqueMalla) / sizeToAdjust, 0))
+                self.xmaxBloqueMalla = float(sizeToAdjust * round((self.xmaxBloqueMalla) / sizeToAdjust, 0))
+                self.yminBloqueMalla = float(sizeToAdjust * round((self.yminBloqueMalla) / sizeToAdjust, 0))
+                self.ymaxBloqueMalla = float(sizeToAdjust * round((self.ymaxBloqueMalla) / sizeToAdjust, 0))
+                self.LCLmetrosBloqueX = GLO.GLBLmetrosBloque
+                self.LCLmetrosBloqueY = GLO.GLBLmetrosBloque
+
+            # if GLO.GLBLcoordMinMaxAcordesConBloque:
+            #     # El lasFile se ajusta +- a la dimension prevista por GLBLmetrosBloque
+            #     if (self.xmaxBloqueMalla - self.xminBloqueMalla) > self.metersBlock:
+            #         TRNSpermitirQueLaMallaExcedaElBloqueX = False
+            #     else:
+            #         TRNSpermitirQueLaMallaExcedaElBloqueX = True
+            #     if (self.ymaxBloqueMalla - self.yminBloqueMalla) > self.metersBlock:
+            #         TRNSpermitirQueLaMallaExcedaElBloqueY = False
+            #     else:
+            #         TRNSpermitirQueLaMallaExcedaElBloqueY = True
+            #     self.adjustCornersCoordinates(
+            #         self.metersBlock,
+            #         TRNSpermitirQueLaMallaExcedaElBloqueX=TRNSpermitirQueLaMallaExcedaElBloqueX,
+            #         TRNSpermitirQueLaMallaExcedaElBloqueY=TRNSpermitirQueLaMallaExcedaElBloqueY,
+            #         margenAdmisible=self.metersBlock * 0.01
+            #         LCLorigenDeCoordenadasX=0,
+            #         LCLorigenDeCoordenadasY=0,
+            #     )
+            #     self.LCLmetrosBloqueX = GLO.GLBLmetrosBloque
+            #     self.LCLmetrosBloqueY = GLO.GLBLmetrosBloque
+            #     if self.verbose:
+            #         print('\nclidhead-> LasHeadClass-> 1 Adjusting corners with block size:', self.metersBlock, 'm')
+            #         print('clidhead-> LasHeadClass->   xmin, xmax, ymin, ymax:', self.xminBloqueMalla, self.xmaxBloqueMalla, self.yminBloqueMalla, self.ymaxBloqueMalla)
+            #         print(f'clidhead-> LasHeadClass->   TRNSpermitirQueLaMallaExcedaElBloqueX: {TRNSpermitirQueLaMallaExcedaElBloqueX}; TRNSpermitirQueLaMallaExcedaElBloqueY: {TRNSpermitirQueLaMallaExcedaElBloqueY}')
+            # elif (
+            #     (self.xmaxBloqueMalla - self.xminBloqueMalla) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
+            #     or (self.ymaxBloqueMalla - self.yminBloqueMalla) >= self.metersBlock + (2 * GLO.GLBLmargenParaAdmitirPuntosFueraDeBloque)
+            # ):
+            #     if LCLverbose:
+            #         print('clidhead-> LasHeadClass-> Alguna dimension del lasFile es superior al GLBLmetrosBloque (establecido en el fichero de configuracion)')
+            #         print(f'{TB}-> Valor actual de GLBLmetrosBloque:', GLO.GLBLmetrosBloque, 'm.')
+            #         print(f'{TB}-> Rango de coord x:', (self.xmaxBloqueMalla - self.xminBloqueMalla), 'Rango de coord y:', (self.ymaxBloqueMalla - self.yminBloqueMalla))
+            #         if GLO.MAIN_ENTORNO == 'windows':
+            #             selec = input('Seguir adelante con el valor actual de GLBLmetrosBloque (S/n)')
+            #             rptaMantener = False if selec.upper() == 'N' else True
+            #             if not rptaMantener:
+            #                 print('clidhead-> Se cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en el fichero de configuracion')
+            #                 print('{:=^80}'.format(' Fin - revisar errores '))
+            #                 sys.exit(0)
+            else:
+                # dimensionDeBloqueOk = False
+                if self.verbose:
+                    print('{:!^80}'.format(''))
+                    print('clidhead-> LasHeadClass-> Aviso: el rango de coordenadas del lasFile es inferior a la dimension del bloque (dimension -lado- estandar de fichero lidar):')
+                    print(f'{TB}-> Si ocurre con todos los ficheros, cambiar la variable de configuracion GLBLmetrosBloque en el fichero de configuracion o usar otro fichero las')
+                    print('{:!^80}'.format(''))
+                    print('\tself.xminBloqueMalla: {:0.2f}'.format(self.xminBloqueMalla))
+                    print('\tself.xmaxBloqueMalla: {:0.2f}'.format(self.xmaxBloqueMalla))
+                    print('\t\tRango X: {:0.2f}'.format(self.xmaxBloqueMalla - self.xminBloqueMalla, 'metros'))
+                    print('\tself.yminBloqueMalla: {:0.2f}'.format(self.yminBloqueMalla))
+                    print('\tself.ymaxBloqueMalla: {:0.2f}'.format(self.ymaxBloqueMalla))
+                    print('\t\tRango Y: {:0.2f}'.format(self.ymaxBloqueMalla - self.yminBloqueMalla, 'metros'))
+                    print(
+                        'clidhead-> LasHeadClass-> La aplicacion esta configurada para procesar ficheros lidar (las) de',
+                        self.metersBlock,
+                        'x',
+                        self.metersBlock,
+                        'metros (variables de configuracion en el fichero de configuracion)',
+                    )
+                if min(self.xmaxBloqueMalla - self.xminBloqueMalla, self.ymaxBloqueMalla - self.yminBloqueMalla) < 500:
+                    rptaCambiar = True
+                    print(f'clidhead-> LasHeadClass-> Bloque con menos de 500 m en alguna dimension:')
+                    print('\tSe recomienda usar ficheros lidar de mas de 500 x 500 metros')
+                    if False:
+                        selec = input(
+                            'Continuar cambiando para esta ejecucion el parametro GLBLmetrosBloque al nuevo valor %i ? (s/n)'
+                            % round(min(self.xmaxBloqueMalla - self.xminBloqueMalla, self.ymaxBloqueMalla - self.yminBloqueMalla), 0)
+                        )
+                        rptaCambiar = False if selec.upper() == 'N' else True
+                        if not rptaCambiar:
+                            print('clidhead-> LasHeadClass-> Se finaliza la aplicacion')
+                            print('\tSe cierra la aplicacion para cambiar manualmente GLBLmetrosBloque en el fichero de configuracion')
+                            print('{:o^80}'.format(' Fin - revisar errores '))
+                            sys.exit(0)
+                else:
+                    print(f'clidhead-> LasHeadClass-> Bloque con menos de {GLO.GLBLmetrosBloque} m en alguna dimension pero mas de 500 m:')
+                    rptaCambiar = True
+                print(f'                          Rango X: {(self.xmaxBloqueMalla - self.xminBloqueMalla)}')
+                print(f'                          Rango Y: {(self.ymaxBloqueMalla - self.yminBloqueMalla)}')
+
+                if rptaCambiar:
+                    if GLO.GLBLadapatarMetrosBloque: # False
+                        GLBNmetrosBloque = int(GLO.GLBLmetrosCelda * math.ceil(min(self.xmaxBloqueMalla - self.xminBloqueMalla, self.ymaxBloqueMalla - self.yminBloqueMalla) / GLO.GLBLmetrosCelda))
+                        if self.verbose:
+                            print('clidhead-> LasHeadClass-> Se recomienda cambiar la variable de configuracion GLBLmetrosBloque en el fichero de configuracion')
+                            print('\tSe modifica para esta ejecucion el parametro GLBLmetrosBloque')
+                            print('\tSe cambia el parametro GLBLmetrosBloque para esta ejecucion. Nuevo valor:', GLBNmetrosBloque, 'metros.')
+                        else:
+                            printMsg('\nclidhead-> LasHeadClass-> ATENCION: se cambia el parametro GLBLmetrosBloque para esta ejecucion. Nuevo valor: {} metros'.format(GLBNmetrosBloque))
+                        nuevosParametroConfiguracion = {}
+                        nuevosParametroConfiguracion['GLBLmetrosBloque'] = [GLBNmetrosBloque, 'GrupoDimensionCeldasBloques', '', 'int']
+                        clidconfig.configVarsDict = clidconfig.leerCambiarVariablesGlobales(nuevosParametroConfiguracion)
+                        # input('Pulsa una tecla')
+                        self.LCLmetrosBloqueX = int(GLO.GLBLmetrosCelda * math.ceil((self.xmaxBloqueMalla - self.xminBloqueMalla) / GLO.GLBLmetrosCelda))
+                        self.LCLmetrosBloqueY = int(GLO.GLBLmetrosCelda * math.ceil((self.ymaxBloqueMalla - self.yminBloqueMalla) / GLO.GLBLmetrosCelda))
+                    else:
+                        print(f'                       -> No se modifica el parametro GLBLmetrosBloque porque GLBLadapatarMetrosBloque es {GLO.GLBLadapatarMetrosBloque}')
+                        self.LCLmetrosBloqueX = self.metersBlock
+                        self.LCLmetrosBloqueY = self.metersBlock
+                else:
+                    self.LCLmetrosBloqueX = self.metersBlock
+                    self.LCLmetrosBloqueY = self.metersBlock
+                if self.verbose:
+                    print('{:!^80}\n'.format(''))
+
+
+    # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+    def adjustCornersCoordinatesCelda(
+            self,
+            sizeToAdjust,
+            TRNSpermitirQueLaMallaExcedaElBloqueX=True,
+            TRNSpermitirQueLaMallaExcedaElBloqueY=True,
+            margenAdmisible=0,
+            LCLorigenDeCoordenadasX=0,
+            LCLorigenDeCoordenadasY=0,
+        ):
+        if self.verbose:
+            print('clidhead-> HeadClass-> Se ajusta el rango de X e Y del bloque para que haya alineamiento de la malla de celdas con los pixeles satelitales.')
+            print(f'{TB}-> Coordenadas de referencia-> X: {LCLorigenDeCoordenadasX} Y: {LCLorigenDeCoordenadasY}')
+        if sizeToAdjust > 0:
+            # Reviso si hay desfase en X entre la esquina infIzda del bloque y los pixeles del satelite de referencia
+            desfaseIzdaX = (self.xminBloqueMalla - LCLorigenDeCoordenadasX) % sizeToAdjust
+            desfaseDchaX = (sizeToAdjust - desfaseIzdaX) % sizeToAdjust
+            if desfaseIzdaX != 0:
+                # Hay desfase en X entre la esquina infIzda del bloque y los pixeles del satelite de referencia
+                # Fuerzo a que la malla de celdas quede alineada con los pixeles del satelite de referencia
+                if GLO.GLBLforzarExtensionDeCeldasDentroDelBloque or not TRNSpermitirQueLaMallaExcedaElBloqueX:
+                    # La malla de celdas queda dentro de las dimensiones del bloque por la izda
+                    # self.xminBloqueMalla = self.xminBloqueMalla + desfaseDchaX
+                    self.xminBloqueMalla = (
+                        LCLorigenDeCoordenadasX
+                        + float(sizeToAdjust * math.ceil(
+                            (self.xminBloqueMalla - LCLorigenDeCoordenadasX) / sizeToAdjust)
+                        )
+                    )
+                else:
+                    # Como me lo permite, eligo el movimiento que menos se aleja de los limites del bloque 
+                    if desfaseIzdaX < desfaseDchaX:
+                        # La malla de celdas se sale de las dimensiones del bloque por la izda
+                        # self.xminBloqueMalla = self.xminBloqueMalla - desfaseIzdaX
+                        self.xminBloqueMalla = (
+                            LCLorigenDeCoordenadasX
+                            + float(sizeToAdjust * math.floor(
+                                (self.xminBloqueMalla - LCLorigenDeCoordenadasX + margenAdmisible) / sizeToAdjust)
+                            )
+                        )
+                    else:
+                        # La malla de celdas queda dentro de las dimensiones del bloque por la izda
+                        # self.xminBloqueMalla = self.xminBloqueMalla + desfaseDchaX
+                        self.xminBloqueMalla = (
+                            LCLorigenDeCoordenadasX
+                            + float(sizeToAdjust * math.ceil(
+                                (self.xminBloqueMalla - LCLorigenDeCoordenadasX) / sizeToAdjust)
+                            )
+                        )
+                if self.verbose:
+                    print(f'{TB}clidhead-> HeadClass-> Ajustando xmin a la dimension de la celda y malla satelital de {sizeToAdjust} m.')
+                    print(f'{TB}{TB}Antes (pre-redondeo):     {self.xminBloqueIni:0.2f}')
+                    print(f'{TB}{TB}Ahora (ajustado a malla): {self.xminBloqueMalla:0.2f}')
+            # Reviso si hay desfase en X entre la esquina supDcha del bloque y los pixeles del satelite de referencia
+            desfaseIzdaX = (self.xmaxBloqueMalla - LCLorigenDeCoordenadasX) % sizeToAdjust
+            desfaseDchaX = (sizeToAdjust - desfaseIzdaX) % sizeToAdjust
+            if desfaseIzdaX != 0:
+                # Hay desfase en X entre la esquina supDcha del bloque y los pixeles del satelite de referencia
+                # Fuerzo a que la malla de celdas quede alineada con los pixeles del satelite de referencia
+                if GLO.GLBLforzarExtensionDeCeldasDentroDelBloque or not TRNSpermitirQueLaMallaExcedaElBloqueX:
+                    # La malla de celdas queda dentro de las dimensiones del bloque por la dcha
+                    # self.xmaxBloqueMalla = self.xmaxBloqueMalla - desfaseIzdaX
+                    self.xmaxBloqueMalla = (
+                        LCLorigenDeCoordenadasX
+                        + float(sizeToAdjust * math.floor(
+                            (self.xmaxBloqueMalla - LCLorigenDeCoordenadasX + margenAdmisible) / sizeToAdjust)
+                        )
+                    )
+                else:
+                    # Como me lo permite, eligo el movimiento que menos se aleja de los limites del bloque 
+                    if desfaseIzdaX >= desfaseDchaX:
+                        # La malla de celdas se sale de las dimensiones del bloque por la dcha
+                        # self.xmaxBloqueMalla = self.xmaxBloqueMalla + desfaseDchaX
+                        self.xmaxBloqueMalla = (
+                            LCLorigenDeCoordenadasX
+                            + float(sizeToAdjust * math.ceil(
+                                (self.xmaxBloqueMalla - LCLorigenDeCoordenadasX) / sizeToAdjust)
+                            )
+                        )
+                    else:
+                        # La malla de celdas queda dentro de las dimensiones del bloque por la dcha
+                        # self.xmaxBloqueMalla = self.xmaxBloqueMalla - desfaseIzdaX
+                        self.xmaxBloqueMalla = (
+                            LCLorigenDeCoordenadasX
+                            + float(sizeToAdjust * math.floor(
+                                (self.xmaxBloqueMalla - LCLorigenDeCoordenadasX + margenAdmisible) / sizeToAdjust)
+                            )
+                        )
+                if self.verbose:
+                    print(f'{TB}clidhead-> LasHeadClass-> Ajustando xmax a la dimension de la celda y malla satelital de {sizeToAdjust} m.')
+                    print(f'{TB}{TB}Antes (pre-redondeo):     {self.xmaxBloqueIni:0.2f}')
+                    print(f'{TB}{TB}Ahora (ajustado a malla): {self.xmaxBloqueMalla:0.2f}')
+
+            # Reviso si hay desfase en Y entre la esquina infIzda del bloque y los pixeles del satelite de referencia
+            desfaseAbjoY = (self.yminBloqueMalla - LCLorigenDeCoordenadasY) % sizeToAdjust
+            desfaseArrbY = (sizeToAdjust - desfaseAbjoY) % sizeToAdjust
+            if desfaseAbjoY != 0:
+                # Hay desfase en Y entre la esquina infIzda del bloque y los pixeles del satelite de referencia
+                # Fuerzo a que la malla de celdas quede alineada con los pixeles del satelite de referencia
+                if GLO.GLBLforzarExtensionDeCeldasDentroDelBloque or not TRNSpermitirQueLaMallaExcedaElBloqueY:
+                    # La malla de celdas queda dentro de las dimensiones del bloque por la abajo
+                    # self.yminBloqueMalla = self.yminBloqueMalla + desfaseArrbY
+                    self.yminBloqueMalla = (
+                        LCLorigenDeCoordenadasY
+                        + float(sizeToAdjust * math.ceil(
+                            (self.yminBloqueMalla - LCLorigenDeCoordenadasY) / sizeToAdjust)
+                        )
+                    )
+                else:
+                    if desfaseAbjoY < desfaseArrbY:
+                        # La malla de celdas se sale de las dimensiones del bloque por la abajo
+                        # self.yminBloqueMalla = self.yminBloqueMalla - desfaseAbjoY
+                        self.yminBloqueMalla = (
+                            LCLorigenDeCoordenadasY
+                            + float(sizeToAdjust * math.floor(
+                                (self.yminBloqueMalla - LCLorigenDeCoordenadasY + margenAdmisible) / sizeToAdjust)
+                            )
+                        )
+                    else:
+                        # La malla de celdas queda dentro de las dimensiones del bloque por la abajo
+                        # self.yminBloqueMalla = self.yminBloqueMalla + desfaseArrbY
+                        self.yminBloqueMalla = (
+                            LCLorigenDeCoordenadasY
+                            + float(sizeToAdjust * math.ceil(
+                                (self.yminBloqueMalla - LCLorigenDeCoordenadasY) / sizeToAdjust)
+                            )
+                        )
+                if self.verbose:
+                    print(f'{TB}clidhead-> HeadClass-> Ajustando ymin a la dimension de la celda y malla satelital de {sizeToAdjust} m.')
+                    print(f'{TB}{TB}Antes (pre-redondeo):     {self.yminBloqueIni:0.2f}')
+                    print(f'{TB}{TB}Ahora (ajustado a malla): {self.yminBloqueMalla:0.2f}')
+            # Reviso si hay desfase en Y entre la esquina supDcha del bloque y los pixeles del satelite de referencia
+            desfaseAbjoY = (self.ymaxBloqueMalla - LCLorigenDeCoordenadasY) % sizeToAdjust
+            desfaseArrbY = (sizeToAdjust - desfaseAbjoY) % sizeToAdjust
+            if desfaseAbjoY != 0:
+                # Hay desfase en Y entre la esquina supDcha del bloque y los pixeles del satelite de referencia
+                # Fuerzo a que la malla de celdas quede alineada con los pixeles del satelite de referencia
+                if GLO.GLBLforzarExtensionDeCeldasDentroDelBloque or not TRNSpermitirQueLaMallaExcedaElBloqueY:
+                    # La malla de celdas queda dentro de las dimensiones del bloque por la arriba
+                    # self.ymaxBloqueMalla = self.ymaxBloqueMalla - desfaseAbjoY
+                    self.ymaxBloqueMalla = (
+                        LCLorigenDeCoordenadasY
+                        + float(sizeToAdjust * math.floor(
+                            (self.ymaxBloqueMalla - LCLorigenDeCoordenadasY + margenAdmisible) / sizeToAdjust)
+                        )
+                    )
+                else:
+                    if desfaseAbjoY >= desfaseArrbY:
+                        # La malla de celdas se sale de las dimensiones del bloque por la arriba
+                        # self.ymaxBloqueMalla = self.ymaxBloqueMalla + desfaseArrbY
+                        self.ymaxBloqueMalla = (
+                            LCLorigenDeCoordenadasY
+                            + float(sizeToAdjust * math.ceil(
+                                (self.ymaxBloqueMalla - LCLorigenDeCoordenadasY) / sizeToAdjust)
+                            )
+                        )
+                    else:
+                        # La malla de celdas queda dentro de las dimensiones del bloque por la arriba
+                        # self.ymaxBloqueMalla = self.ymaxBloqueMalla - desfaseAbjoY
+                        self.ymaxBloqueMalla = (
+                            LCLorigenDeCoordenadasY
+                            + float(sizeToAdjust * math.floor(
+                                (self.ymaxBloqueMalla - LCLorigenDeCoordenadasY + margenAdmisible) / sizeToAdjust)
+                            )
+                        )
+                if self.verbose:
+                    print(f'{TB}clidhead-> HeadClass-> Ajustando ymax a la dimension de la celda y malla satelital de {sizeToAdjust} m.')
+                    print(f'{TB}{TB}Antes (pre-redondeo):     {self.ymaxBloqueIni:0.2f}')
+                    print(f'{TB}{TB}Ahora (ajustado a malla): {self.ymaxBloqueMalla:0.2f}')
+
+        else:
+            print('clidhead-> HeadClass-> AVISO: No se puede ajustar coordenadas a una malla de dimension nula.')
+
+        # if sizeToAdjust > 0:
+        #     if self.xminBloqueMalla % sizeToAdjust != 0 or self.xmaxBloqueMalla % sizeToAdjust != 0:
+        #         if self.verbose:
+        #             print('clidhead-> LasHeadClass-> Ajustando Xmin a la dimension de la celda y malla satelital de {} m.'.format(sizeToAdjust))
+        #
+        #     if self.xminBloqueMalla % sizeToAdjust != 0:
+        #         if self.verbose:
+        #             print(f'{TB}Before: {self.xminBloqueMalla:0.2f}')
+        #     if self.xmaxBloqueMalla % sizeToAdjust != 0:
+        #         if self.verbose:
+        #             print(f'{TB}Before: {self.xmaxBloqueMalla:0.2f}')
+        #
+        #
+        #         roundXmin = float(sizeToAdjust * round(self.xminBloqueMalla / sizeToAdjust, 0))
+        #         roundXmax = float(sizeToAdjust * round(self.xmaxBloqueMalla / sizeToAdjust, 0))
+        #         step0Xmin = float(sizeToAdjust * math.floor(self.xminBloqueMalla / sizeToAdjust))
+        #         step1Xmin = float(sizeToAdjust * math.ceil(self.xminBloqueMalla / sizeToAdjust))
+        #         step0Xmax = float(sizeToAdjust * math.floor(self.xmaxBloqueMalla / sizeToAdjust))
+        #         step1Xmax = float(sizeToAdjust * math.ceil(self.xmaxBloqueMalla / sizeToAdjust))
+        #         if abs(self.xminBloqueMalla - roundXmin) < margenAdmisible:
+        #             if abs(self.xmaxBloqueMalla - roundXmax) < margenAdmisible:
+        #                 if roundXmax > roundXmin:
+        #                     self.xminBloqueMalla = roundXmin
+        #                     self.xmaxBloqueMalla = roundXmax
+        #                 else:
+        #                     if abs(self.xminBloqueMalla - roundXmin) < abs(self.xmaxBloqueMalla - roundXmax):
+        #                         self.xminBloqueMalla = roundXmin
+        #                         self.xmaxBloqueMalla = roundXmin + sizeToAdjust
+        #                     else:
+        #                         self.xminBloqueMalla = roundXmax - sizeToAdjust
+        #                         self.xmaxBloqueMalla = roundXmax
+        #             else:
+        #                 self.xminBloqueMalla = roundXmin
+        #                 if step1Xmax == self.xminBloqueMalla + sizeToAdjust:
+        #                     self.xmaxBloqueMalla = step1Xmax
+        #                 else:
+        #                     self.xmaxBloqueMalla = step0Xmax
+        #         else:
+        #             if abs(self.xmaxBloqueMalla - roundXmax) < margenAdmisible:
+        #                 self.xmaxBloqueMalla = roundXmax
+        #                 if step0Xmin == self.xmaxBloqueMalla - sizeToAdjust:
+        #                     self.xminBloqueMalla = step0Xmin
+        #                 elif step1Xmin == self.xmaxBloqueMalla - sizeToAdjust:
+        #                     self.xminBloqueMalla = step1Xmin
+        #                 else:
+        #                     if sizeToAdjust == GLO.GLBLmetrosBloque:
+        #                         print(f'clidhead-> ATENCION: las coordenadas de los puntos no se corresponden con bloques de {sizeToAdjust} m')
+        #                     self.xminBloqueMalla = self.xmaxBloqueMalla - sizeToAdjust
+        #             else:
+        #                 # Ninguno de los limites de coordX esta cerca de los posibles limites de bloque
+        #                 if step1Xmax == step0Xmin + sizeToAdjust:
+        #                     # Los puntos entran dentro del bloque
+        #                     self.xminBloqueMalla = step0Xmin
+        #                     self.xmaxBloqueMalla = step1Xmax
+        #                 elif step0Xmax == step1Xmin + sizeToAdjust:
+        #                     # Los puntos exceden el bloque por ambos lados
+        #                     self.xminBloqueMalla = step1Xmin
+        #                     self.xmaxBloqueMalla = step0Xmax
+        #                 elif (
+        #                     step1Xmax == step1Xmin + sizeToAdjust
+        #                     and step0Xmax == step0Xmin + sizeToAdjust
+        #                 ):
+        #                     # Los puntos estan a caballo de dos bloques
+        #                     if abs(self.xmaxBloqueMalla - step1Xmax) < abs(self.xminBloqueMalla - step0Xmin):
+        #                         self.xminBloqueMalla = step1Xmin
+        #                         self.xmaxBloqueMalla = step1Xmax
+        #                     else:
+        #                         self.xminBloqueMalla = step0Xmin
+        #                         self.xmaxBloqueMalla = step0Xmax
+        #                 else:
+        #                     # Creo que esto es imposible (uso la envolvente exterior)
+        #                     if sizeToAdjust == GLO.GLBLmetrosBloque:
+        #                         print(f'clidhead-> ATENCION: las coordenadas de los puntos no se corresponden con bloques de {sizeToAdjust} m')
+        #                     self.xminBloqueMalla = step0Xmin
+        #                     self.xmaxBloqueMalla = step1Xmax
+        #         if self.verbose:
+        #             print(f'{TB}After:  {self.xminBloqueMalla:0.2f}')
+        #             print(f'{TB}After:  {self.xmaxBloqueMalla:0.2f}')
+        #
+        #     if self.yminBloqueMalla % sizeToAdjust != 0 or self.ymaxBloqueMalla % sizeToAdjust != 0:
+        #         if self.verbose:
+        #             print('\nclidhead-> LasHeadClass-> Ajustando Ymin a la dimension de la celda y malla satelital de {} m.'.format(sizeToAdjust))
+        #             print(f'{TB}Before: {self.yminBloqueMalla:0.2f}')
+        #
+        #         roundYmin = float(sizeToAdjust * round(self.yminBloqueMalla / sizeToAdjust, 0))
+        #         roundYmax = float(sizeToAdjust * round(self.ymaxBloqueMalla / sizeToAdjust, 0))
+        #         step0Ymin = float(sizeToAdjust * math.floor(self.yminBloqueMalla / sizeToAdjust))
+        #         step1Ymin = float(sizeToAdjust * math.ceil(self.yminBloqueMalla / sizeToAdjust))
+        #         step0Ymax = float(sizeToAdjust * math.floor(self.ymaxBloqueMalla / sizeToAdjust))
+        #         step1Ymax = float(sizeToAdjust * math.ceil(self.ymaxBloqueMalla / sizeToAdjust))
+        #         if abs(self.yminBloqueMalla - roundYmin) < margenAdmisible:
+        #             if abs(self.ymaxBloqueMalla - roundYmax) < margenAdmisible:
+        #                 if roundYmax > roundYmin:
+        #                     self.yminBloqueMalla = roundYmin
+        #                     self.ymaxBloqueMalla = roundYmax
+        #                 else:
+        #                     if abs(self.yminBloqueMalla - roundYmin) < abs(self.ymaxBloqueMalla - roundYmax):
+        #                         self.yminBloqueMalla = roundYmin
+        #                         self.ymaxBloqueMalla = roundYmin + sizeToAdjust
+        #                     else:
+        #                         self.yminBloqueMalla = roundYmax - sizeToAdjust
+        #                         self.ymaxBloqueMalla = roundYmax
+        #             else:
+        #                 self.yminBloqueMalla = roundYmin
+        #                 if step1Ymax == self.yminBloqueMalla + sizeToAdjust:
+        #                     self.ymaxBloqueMalla = step1Ymax
+        #                 else:
+        #                     self.ymaxBloqueMalla = step0Ymax
+        #         else:
+        #             if abs(self.ymaxBloqueMalla - roundYmax) < margenAdmisible:
+        #                 self.ymaxBloqueMalla = roundYmax
+        #                 if step0Ymin == self.ymaxBloqueMalla - sizeToAdjust:
+        #                     self.yminBloqueMalla = step0Ymin
+        #                 elif step1Ymin == self.ymaxBloqueMalla - sizeToAdjust:
+        #                     self.yminBloqueMalla = step1Ymin
+        #                 else:
+        #                     if sizeToAdjust == GLO.GLBLmetrosBloque:
+        #                         print(f'clidhead-> ATENCION: las coordenadas de los puntos no se corresponden con bloques de {sizeToAdjust} m')
+        #                     self.yminBloqueMalla = self.ymaxBloqueMalla - sizeToAdjust
+        #             else:
+        #                 # Ninguno de los limites de coordX esta cerca de los posibles limites de bloque
+        #                 if step1Ymax == step0Ymin + sizeToAdjust:
+        #                     # Los puntos entran dentro del bloque
+        #                     self.yminBloqueMalla = step0Ymin
+        #                     self.ymaxBloqueMalla = step1Ymax
+        #                 elif step0Ymax == step1Ymin + sizeToAdjust:
+        #                     # Los puntos exceden el bloque por ambos lados
+        #                     self.yminBloqueMalla = step1Ymin
+        #                     self.ymaxBloqueMalla = step0Ymax
+        #                 elif (
+        #                     step1Ymax == step1Ymin + sizeToAdjust
+        #                     and step0Ymax == step0Ymin + sizeToAdjust
+        #                 ):
+        #                     # Los puntos estan a caballo de dos bloques
+        #                     if abs(self.ymaxBloqueMalla - step1Ymax) < abs(self.yminBloqueMalla - step0Ymin):
+        #                         self.yminBloqueMalla = step1Ymin
+        #                         self.ymaxBloqueMalla = step1Ymax
+        #                     else:
+        #                         self.yminBloqueMalla = step0Ymin
+        #                         self.ymaxBloqueMalla = step0Ymax
+        #                 else:
+        #                     # Creo que esto es imposible (uso la envolvente exterior)
+        #                     if sizeToAdjust == GLO.GLBLmetrosBloque:
+        #                         print(f'clidhead-> ATENCION: las coordenadas de los puntos no se corresponden con bloques de {sizeToAdjust} m')
+        #                     self.yminBloqueMalla = step0Ymin
+        #                     self.ymaxBloqueMalla = step1Ymax
+        #
+        #     # if self.xminBloqueMalla % sizeToAdjust != 0:
+        #     #             self.xminBloqueMalla = step0
+        #     #     elif abs(self.xmaxBloqueMalla - step1) < margenAdmisible:
+        #     #         self.xminBloqueMalla = step1
+        #     #
+        #     #     if (
+        #     #         (self.xmaxBloqueMalla - self.xminBloqueMalla) >= sizeToAdjust - margenAdmisible
+        #     #
+        #     #     if (
+        #     #         self.xmaxBloqueMalla - self.xminBloqueMalla < sizeToAdjust
+        #     #         or self.xminBloqueMalla % sizeToAdjust <= margenAdmisible
+        #     #         or self.xminBloqueMalla % sizeToAdjust >= sizeToAdjust - margenAdmisible
+        #     #     ):
+        #     #         self.xminBloqueMalla = float(sizeToAdjust * math.floor(self.xminBloqueMalla / sizeToAdjust))
+        #     #     else:
+        #     #         if envolvente:
+        #     #             self.xminBloqueMalla = float(sizeToAdjust * math.floor(self.xminBloqueMalla / sizeToAdjust))
+        #     #         else:
+        #     #             self.xminBloqueMalla = float(sizeToAdjust * math.ceil(self.xminBloqueMalla / sizeToAdjust))
+        #     #     if self.verbose:
+        #     #         print(f'{TB}After: {self.xminBloqueMalla:0.2f}')
+        #     # if self.xmaxBloqueMalla % sizeToAdjust != 0:
+        #     #     if self.verbose:
+        #     #         print('clidhead-> LasHeadClass-> Ajustando Xmax a la dimension de la celda y malla satelital de {} m.'.format(sizeToAdjust))
+        #     #         print(f'{TB}Before: {self.xmaxBloqueMalla:0.2f}')
+        #     #     if (
+        #     #         self.xmaxBloqueMalla - self.xminBloqueMalla < sizeToAdjust
+        #     #         or self.xmaxBloqueMalla % sizeToAdjust <= margenAdmisible
+        #     #         or self.xmaxBloqueMalla % sizeToAdjust >= sizeToAdjust - margenAdmisible
+        #     #     ):
+        #     #         self.xmaxBloqueMalla = float(sizeToAdjust * math.ceil(self.xmaxBloqueMalla / sizeToAdjust))
+        #     #     else:
+        #     #         if envolvente:
+        #     #             self.xmaxBloqueMalla = float(sizeToAdjust * math.ceil(self.xmaxBloqueMalla / sizeToAdjust))
+        #     #         else:
+        #     #             self.xmaxBloqueMalla = float(sizeToAdjust * math.floor(self.xmaxBloqueMalla / sizeToAdjust))
+        #     #     if self.verbose:
+        #     #         print(f'{TB}After: {self.xmaxBloqueMalla:0.2f}')
+        #     # if self.yminBloqueMalla % sizeToAdjust != 0:
+        #     #     if self.verbose:
+        #     #         print('clidhead-> LasHeadClass-> Ajustando Ymin a la dimension de la celda y malla satelital de {} m.'.format(sizeToAdjust))
+        #     #         print(f'{TB}Before: {self.yminBloqueMalla:0.2f}')
+        #     #     if (
+        #     #         self.ymaxBloqueMalla - self.yminBloqueMalla < sizeToAdjust
+        #     #         or self.yminBloqueMalla % sizeToAdjust <= margenAdmisible
+        #     #         or self.yminBloqueMalla % sizeToAdjust >= sizeToAdjust - margenAdmisible
+        #     #     ):
+        #     #         # self.yminBloqueMalla = float(sizeToAdjust * round(self.yminBloqueMalla / sizeToAdjust, 0))
+        #     #         self.yminBloqueMalla = float(sizeToAdjust * math.floor(self.yminBloqueMalla / sizeToAdjust))
+        #     #     else:
+        #     #         if envolvente:
+        #     #             self.yminBloqueMalla = float(sizeToAdjust * math.floor(self.yminBloqueMalla / sizeToAdjust))
+        #     #         else:
+        #     #             self.yminBloqueMalla = float(sizeToAdjust * math.ceil(self.yminBloqueMalla / sizeToAdjust))
+        #     #     if self.verbose:
+        #     #         print(f'{TB}After: {self.yminBloqueMalla:0.2f}')
+        #     # if self.ymaxBloqueMalla % sizeToAdjust != 0:
+        #     #     if self.verbose:
+        #     #         print('clidhead-> LasHeadClass-> Ajustando Ymax a la dimension de la celda y malla satelital de {} m.'.format(sizeToAdjust))
+        #     #         print(f'{TB}Before: {self.ymaxBloqueMalla:0.2f}')
+        #     #     if (
+        #     #         self.ymaxBloqueMalla - self.yminBloqueMalla < sizeToAdjust
+        #     #         or self.ymaxBloqueMalla % sizeToAdjust <= margenAdmisible
+        #     #         or self.ymaxBloqueMalla % sizeToAdjust >= sizeToAdjust - margenAdmisible
+        #     #     ):
+        #     #         # self.ymaxBloqueMalla = float(sizeToAdjust * round(self.ymaxBloqueMalla / sizeToAdjust, 0))
+        #     #         self.ymaxBloqueMalla = float(sizeToAdjust * math.ceil(self.ymaxBloqueMalla / sizeToAdjust))
+        #     #     else:
+        #     #         if envolvente:
+        #     #             self.ymaxBloqueMalla = float(sizeToAdjust * math.ceil(self.ymaxBloqueMalla / sizeToAdjust))
+        #     #         else:
+        #     #             self.ymaxBloqueMalla = float(sizeToAdjust * math.floor(self.ymaxBloqueMalla / sizeToAdjust))
+        #     #     if self.verbose:
+        #     #         print(f'{TB}After: {self.ymaxBloqueMalla:0.2f}')
+        # else:
+        #     print('clidhead-> LasHeadClass-> AVISO: Ajustando coordenadas a una dimension nula')
+        self.xSupIzda = self.xminBloqueMalla
+        self.ySupIzda = self.ymaxBloqueMalla
+        self.xInfDcha = self.xmaxBloqueMalla
+        self.yInfDcha = self.yminBloqueMalla
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def showAlllasFileVersions(self):
-        print('\nclidhead-> Cheking lasFile versions:')
+        print('\nclidhead-> LasHeadClass-> Cheking lasFile versions:')
         (
             self.lasHeaderFieldListVersionsDict,
             self.lasHeaderFieldPropertiesDict,
             self.lasHeaderFieldPropertiesList
         ) = lasHeadProperties()
         for lasFileVersion in sorted(self.lasHeaderFieldListVersionsDict.keys()):
-            print('\nclidhead-> LasFile version: %s' % lasFileVersion)
-            print('\tclidhead-> list of fields:', self.lasHeaderFieldListVersionsDict[lasFileVersion])
-            print('\tclidhead-> Properties of fields:')
+            print('\nclidhead-> LasHeadClass-> LasFile version: %s' % lasFileVersion)
+            print('\tclidhead-> LasHeadClass-> list of fields:', self.lasHeaderFieldListVersionsDict[lasFileVersion])
+            print('\tclidhead-> LasHeadClass-> Properties of fields:')
             for lasHeadField in self.lasHeaderFieldListVersionsDict[lasFileVersion]:
-                print('\tclidhead-> \t', lasFileVersion + '_' + lasHeadField, self.lasHeaderFieldPropertiesDict[lasFileVersion + '_' + lasHeadField])
+                print('\tclidhead-> LasHeadClass-> \t', lasFileVersion + '_' + lasHeadField, self.lasHeaderFieldPropertiesDict[lasFileVersion + '_' + lasHeadField])
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def showAllPointFormats(self):
-        print('\nclidhead-> Cheking las point formats:')
+        print('\nclidhead-> LasHeadClass-> Cheking las point formats:')
         # No incluyo el format 101 y 102 que incluye las extraVariables y la maxiMiniSubCel
         for nPointFormat in range(1, 11):
             try:
-                print('\tclidhead-> Point format: %i' % nPointFormat)
-                # print('clidhead-> (y) Llamando a lasPointProperties con {}'.format(nPointFormat))
+                print('\tclidhead-> LasHeadClass-> Point format: %i' % nPointFormat)
+                # print('clidhead-> LasHeadClass-> (y) Llamando a lasPointProperties con {}'.format(nPointFormat))
                 (
                     self.lasPointFieldPropertiesList,
                     self.lasPointFieldPropertiesDict,
                     self.lasPointFieldOrdenDictPtoMini,
                     self.lasPointFieldOrdenDictPtoComp,
-                ) = lasPointProperties(nPointFormat, self.verbose)
+                ) = lasPointProperties(
+                    nPointFormat,
+                    # extraBytesPorRegistro=self.headDict['extraBytesPorRegistro'],
+                    verbose=self.verbose,
+                )
+
                 nBytesPorPuntoCheck = sum(int(pointField[1]) for pointField in self.lasPointFieldPropertiesList)
-                print('\tclidhead-> \t', nBytesPorPuntoCheck, self.lasPointFieldPropertiesList)
+                print('\tclidhead-> LasHeadClass-> \t', nBytesPorPuntoCheck, self.lasPointFieldPropertiesList)
             except:
-                print('\tclidhead-> \tPoint format %i not implemented\n' % nPointFormat)
+                print('\tclidhead-> LasHeadClass-> \tPoint format %i not implemented\n' % nPointFormat)
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def showInfoLas(self, mostrarPropiedadesDeLaClase=False):
-        printMsg('clidhead->   lasVersion:     %s' % self.lasVersion)
-        printMsg('  pointformat:               %i' % self.pointformat)
+        printMsg(f'\n{"":_^80}')
+        printMsg('clidhead-> LasHeadClass-> showInfoLas<>:')
+        printMsg('  lasVersion:  %s' % self.lasVersion)
+        printMsg('  pointformat: %i' % self.pointformat)
         strPuntosTotal = "{:,}".format(self.numptrecords)
         printMsg('  Number of returns (total): %s' % (strPuntosTotal))
-        printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+        printMsg(f'{"":=^80}')
 
-        printMsg('\noooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
-        printMsg('clidhead->   Header Summary (sin "\x00" en sysid y gensoftware)')
+        printMsg('clidhead-> LasHeadClass-> showInfoLas<>-> Header Summary (sin "\x00" en sysid y gensoftware):')
         printMsg('  Source ID:                   %i' % self.filesourceid)
         printMsg('  globalencoding:              %s' % self.globalencoding)
         printMsg(
@@ -2325,7 +3045,6 @@ class LasHeadClass(object):
         printMsg('  Number of Point Records:     %i' % self.numptrecords)
         # self.compressed = False
         # printMsg('  Compressed:                  %s' % self.compressed)
-
         try:
             primerNulo = np.where(np.array(self.numptbyreturn) == 0)[0][0]
         except:
@@ -2333,41 +3052,22 @@ class LasHeadClass(object):
         printMsg('  Number of Points by Return:  %s' % str(self.numptbyreturn[: primerNulo + 1]))
         printMsg('  Scale Factor X Y Z:          %0.11f / %0.11f / %0.11f' % (self.xscale, self.yscale, self.zscale))
         printMsg('  Offset X Y Z:                %f / %f / %f' % (self.xoffset, self.yoffset, self.zoffset))
-        printMsg('  Min X Y Z:                   %f / %f / %f' % (self.xmin, self.ymin, self.zmin))
-        printMsg('  Max X Y Z:                   %f / %f / %f' % (self.xmax, self.ymax, self.zmax))
-        printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+        printMsg('  Min X Y Z:                   %f / %f / %f' % (self.xminBloqueMalla, self.yminBloqueMalla, self.zmin))
+        printMsg('  Max X Y Z:                   %f / %f / %f' % (self.xmaxBloqueMalla, self.ymaxBloqueMalla, self.zmax))
+        printMsg(f'{"":=^80}')
 
         #         printMsg('\noooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
         #         printMsg('  nBytesPorPunto:              %i' % self.pointreclen, self.verbose)
         #         printMsg('  xoffset: %f, yoffset: %f' % (self.headDict['xoffset'], self.headDict['yoffset']), self.verbose)
         #         printMsg('  Coords (round)  -> xmin: %i, xmax: %i, ymin: %i, ymax: %i:' %\
-        #                         (round(self.xmin, 0), round(self.xmax, 0), round(self.ymin, 0), round(self.ymax, 0)), self.verbose)
+        #                         (round(self.xminBloqueMalla, 0), round(self.xmaxBloqueMalla, 0), round(self.yminBloqueMalla, 0), round(self.ymaxBloqueMalla, 0)), self.verbose)
         #         printMsg('  Coords (float)-> xmin: %f, xmax: %f, ymin: %f, ymax: %f:' %\
-        #                         (self.xmin, self.xmax, self.ymin, self.ymax), self.verbose)
+        #                         (self.xminBloqueMalla, self.xmaxBloqueMalla, self.yminBloqueMalla, self.ymaxBloqueMalla), self.verbose)
         #         printMsg('  self.listaTuplasPropPtoTodas: %s' % str(self.lasPointFieldPropertiesList), self.verbose)
-        #         printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+        #         printMsg(f'{"":=^80}')
+        printMsg(f'{"":=^80}')
 
-        printMsg('\noooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
-        printMsg('clidhead->')
-        if self.lasVersion == 'LasFormat_1_3' or self.lasVersion == 'LasFormat_1_4':
-            printMsg('\tStart of Waveform Data Packet Record:            %i' % self.waveformStart)
-        else:
-            printMsg('\tStart of Waveform Data Packet Record:            %s' % 'No waveform data (las format 1.2)')
-
-        if self.lasVersion == 'LasFormat_1_4':
-            printMsg('\tStart of first Extended Variable Length Record:  %i' % self.extendedVLRstart)
-            printMsg('\tNumber of Extended Variable Length Records:      %i' % self.extendedVLRnValues)
-            printMsg('\tExtended number of point records:                %i' % self.pointrecords)
-            printMsg('\tExtended number of points by return:             %s' % str(self.pointsbyreturn))
-        else:
-            printMsg('\tStart of first Extended Variable Length Record:  %s' % 'No extended VLR')
-            printMsg('\tNumber of Extended Variable Length Records:      %s' % 'No extended VLR')
-            printMsg('\tExtended number of point records:                %s' % 'No extended VLR')
-            printMsg('\tExtended number of points by return:             %s' % 'No extended VLR')
-        printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
-
-        printMsg('\noooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
-        printMsg('clidhead-> Spatial Reference:')
+        printMsg('clidhead-> LasHeadClass-> Spatial Reference:')
         #         WKT = (self.headDict['globalencoding'] >> 4) & 1
         #         if self.headDict['pointformat'] < 6:
         #             if WKT:
@@ -2383,76 +3083,193 @@ class LasHeadClass(object):
         if self.lasVersion == 'LasFormat_1_2':
             # las format 1.2 solo admite CRS en forma GeoTiff.
             # Este las format requiere obligatoriamente un Variable Length Record, GeoKeyDirectoryTag).
-            print('clidhead-> LASF format 1.2 solo admite srs compatible con GeoTiff')
+            print(f'{TB}-> LASF format 1.2 solo admite srs compatible con GeoTiff')
             if self.headDict['numvlrecords'] == 0:
-                print('clidhead-> Pero el LASF no incluye esta informacion al no incluir ningun VLR')
+                print(f'{TB}{TV}-> Pero el LASF no incluye esta informacion al no incluir ningun VLR')
             else:
                 for nVlrecord in range(self.headDict['numvlrecords']):
                     if (self.headDict['UserID_%i' % nVlrecord]).rstrip('\x00') == 'LASF_Projection' or (self.headDict['Description_%i' % nVlrecord]).rstrip(
                         '\x00'
                     ) == 'GeoTiff GeoKeyDirectoryTag':
-                        print('clidhead-> Ver mas adelante el contenido del VLR GeoTiff GeoKeyDirectoryTag')
+                        print(f'{TB}{TV}-> Ver mas adelante el contenido del VLR GeoTiff GeoKeyDirectoryTag')
         elif self.lasVersion == 'LasFormat_1_4':
-            print('clidhead-> LASF format 1.4 configurado para srs compatible con', self.formatoSRS)
+            print(f'{TB}-> LASF format 1.4 configurado para srs compatible con', self.formatoSRS)
             if self.headDict['numvlrecords'] == 0:
-                print('clidhead-> Pero el LASF no incluye esta informacion al no incluir ningun VLR')
+                print(f'{TB}{TV}-> Pero el LASF no incluye esta informacion al no incluir ningun VLR')
             else:
                 for nVlrecord in range(self.headDict['numvlrecords']):
                     if 'Description_%i' % nVlrecord in self.headDict.keys():
                         if (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'OGC Transformation Record':
-                            print('clidhead-> Ver mas adelante el contenido del VLR OGC Transformation Record')
+                            print(f'{TB}{TV}-> Ver mas adelante el contenido del VLR OGC Transformation Record')
                         elif (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoTiff GeoKeyDirectoryTag':
-                            print('clidhead-> Ver mas adelante el contenido del VLR GeoTiff GeoKeyDirectoryTag')
-        printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+                            print(f'{TB}{TV}-> Ver mas adelante el contenido del VLR GeoTiff GeoKeyDirectoryTag')
+        printMsg(f'{"":=^80}')
 
-        printMsg('\noooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+        printMsg('clidhead-> LasHeadClass-> showInfoLas<>-> VLR (lasFormat 1.4):')
+        if self.lasVersion == 'LasFormat_1_4':
+            printMsg('\tStart of first Extended Variable Length Record:  %i' % self.extendedVLRstart)
+            printMsg('\tNumber of Extended Variable Length Records:      %i' % self.extendedVLRnValues)
+            printMsg('\tExtended number of point records:                %i' % self.pointrecords)
+            printMsg('\tExtended number of points by return:             %s' % str(self.pointsbyreturn))
+        else:
+            printMsg('\tNumber of Extended Variable Length Records:      %s' % 'No extended VLR')
+            printMsg('\tStart of first Extended Variable Length Record:  %s' % 'No extended VLR')
+            printMsg('\tExtended number of point records:                %s' % 'No extended VLR')
+            printMsg('\tExtended number of points by return:             %s' % 'No extended VLR')
+        if self.lasVersion == 'LasFormat_1_3' or self.lasVersion == 'LasFormat_1_4':
+            printMsg('\tStart of Waveform Data Packet Record:            %i' % self.waveformStart)
+        else:
+            printMsg('\tStart of Waveform Data Packet Record:            %s' % 'No waveform data (las format 1.2)')
+        printMsg(f'{"":=^80}')
+
+        if self.VLRhuso == 29 or self.TRNShuso29:
+            husoNewLas = 29
+        else:
+            husoNewLas = 30
         if 'Description_0' in self.headDict.keys() and self.headDict['Description_0'].rstrip('\x00') == 'No Variable Lenght Records (VRL)':
-            print(self.headDict['Description_0'])
+            print(f'clidhead-> LasHeadClass-> {self.headDict["Description_0"]}')
         else:
             directorioDeTrabajo = buscarDirectorioDataExt()
             VLRsFileName = os.path.join(
-                directorioDeTrabajo, 'io/VLRs_{:04}{:02}{:02}.geo'.format(
+                directorioDeTrabajo, 'io/VLRs_{:04}{:02}{:02}_H{}.geo'.format(
                     datetime.datetime.now().year,
                     datetime.datetime.now().month,
-                    datetime.datetime.now().day
+                    datetime.datetime.now().day,
+                    husoNewLas,
                 )
             )
             VLRsFile = open(VLRsFileName, mode='wb')
             # printMsg('Campos de LasFormat_1_2_vlrecord:' + str(self.lasHeaderFieldListVersionsDict[self.lasVersion + '_vlrecord']))
             for nVlrecord in range(self.headDict['numvlrecords']):
                 if self.lasVersion == 'LasFormat_1_4':
-                    print('clidhead->   Variable length header record %i of %i:' % (nVlrecord, self.extendedVLRnValues))
+                    print('clidhead-> LasHeadClass->   Variable length header record %i of %i:' % (nVlrecord, self.extendedVLRnValues))
                 else:
-                    print('clidhead->   Variable length header record %i:' % (nVlrecord))
+                    print('clidhead-> LasHeadClass->   Variable length header record %i:' % (nVlrecord))
                 for myField in self.lasHeaderFieldListVersionsDict[self.lasVersion + '_vlrecord']:
                     fieldname = '%s_%i' % (myField, nVlrecord)
                     # value = self.headDict['textoVRL_%i' % nVlrecord]
                     if myField == 'Description' or myField == 'UserID':
                         # value = self.headDict[fieldname].decode('latin-1')
                         value = self.headDict[fieldname]
-                        print('clidhead->  ', myField.rjust(25), '->', value)
                     else:  # Reserved, RecordID, RecordLengthAfterHeader
                         value = str(self.headDict[fieldname])
-                        print('clidhead->  ', myField.rjust(25), '->', value)
-                #                     print( 'clidhead-> ------>UserID:                  %s' % str(self.headDict['UserID']) )
-                #                     print( 'clidhead-> ------>RecordID:                %s' % str(self.headDict['RecordID']) )
-                #                     print( 'clidhead-> ------>RecordLengthAfterHeader: %s' % str(self.headDict['RecordLengthAfterHeader']) )
-                #                     print( 'clidhead-> ------>Description:             %s' % str(self.headDict['Description']) )
-                #                     print( 'clidhead-> ------>textoVRL:                %s' % str(self.headDict['textoVRL_%i' % nVlrecord]) )
+                    print('clidhead-> LasHeadClass->  ', myField.rjust(25), '->', value)
+                    # print( 'clidhead-> LasHeadClass-> ------>UserID:                  %s' % str(self.headDict['UserID']) )
+                    # print( 'clidhead-> LasHeadClass-> ------>RecordID:                %s' % str(self.headDict['RecordID']) )
+                    # print( 'clidhead-> LasHeadClass-> ------>RecordLengthAfterHeader: %s' % str(self.headDict['RecordLengthAfterHeader']) )
+                    # print( 'clidhead-> LasHeadClass-> ------>Description:             %s' % str(self.headDict['Description']) )
+                    # print( 'clidhead-> LasHeadClass-> ------>textoVRL:                %s' % str(self.headDict['textoVRL_%i' % nVlrecord]) )
 
                 fieldname = '%s_%i' % ('VLR_', nVlrecord)
                 # value = self.headDict['VRL_%i' % nVlrecord].rstrip(b'\x00')
                 value = self.headDict['VRL_%i' % nVlrecord]
+                VLRdescription = f'{self.headDict["Description_%i" % nVlrecord]}'.rstrip("\x00")
+                # VLRsFile.write(b'%s' % VLRdescription)
+                VLRsFile.write(bytes(VLRdescription, 'latin-1'))
+                VLRsFile.write(b'\n')
                 VLRsFile.write(value)
                 VLRsFile.write(b'\n')
-
-                if (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'OGC Transformation Record':
-                    print(('OGC %s COORDINATE SYSTEM:' % self.formatoSRS).rjust(25))
-                    print('clidhead->      ', value.decode('latin-1').rstrip('\x00'))
-                elif (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'OGR variant of OpenGIS WKT SRS':
-                    print('clidhead->  ', fieldname.rjust(25), '->', value.decode('latin-1').rstrip('\x00'))
-                elif (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoTiff GeoKeyDirectoryTag':
+                if (
+                    (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'OGC Transformation Record'
+                    or (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'OGC COORDINATE SYSTEM WKT'
+                    or 'OGC' in self.headDict['Description_%i' % nVlrecord]
+                ):
+                    print(f'                       ->  {fieldname.rjust(25)} -> OGC COORDINATE SYSTEM ({self.formatoSRS}): - {self.headDict["Description_%i" % nVlrecord]}:')
+                    print(f'clidhead-> LasHeadClass->  {fieldname.rjust(25)} -> {value.decode("latin-1")}'.rstrip('\x00'))
+                    VLRsFileName = os.path.join(
+                        directorioDeTrabajo, 'io/VLRs_{:04}{:02}{:02}_{}_H{}.geo'.format(
+                            datetime.datetime.now().year,
+                            datetime.datetime.now().month,
+                            datetime.datetime.now().day,
+                            f'OGC_{self.formatoSRS}',
+                            husoNewLas,
+                        )
+                    )
+                    VLRsFileOGC = open(VLRsFileName, mode='wb')
+                    VLRsFileOGC.write(value)
+                    VLRsFileOGC.write(b'\n')
+                    VLRsFileOGC.close()
+                elif (
+                    (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'OGR variant of OpenGIS WKT SRS'
+                    or 'OGR' in self.headDict['Description_%i' % nVlrecord]
+                ):
+                    print(f'                       ->  {fieldname.rjust(25)} -> OGR variant of OpenGIS WKT SRS - {self.headDict["Description_%i" % nVlrecord]}:')
+                    print(f'clidhead-> LasHeadClass->  {fieldname.rjust(25)} -> {value.decode("latin-1")}'.rstrip('\x00'))
+                    VLRsFileName = os.path.join(
+                        directorioDeTrabajo, 'io/VLRs_{:04}{:02}{:02}_{}_H{}.geo'.format(
+                            datetime.datetime.now().year,
+                            datetime.datetime.now().month,
+                            datetime.datetime.now().day,
+                            f'OGR_{self.formatoSRS}',
+                            husoNewLas,
+                        )
+                    )
+                    VLRsFileOGC = open(VLRsFileName, mode='wb')
+                    VLRsFileOGC.write(value)
+                    VLRsFileOGC.write(b'\n')
+                    VLRsFileOGC.close()
+                elif (
+                    (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoTiff GeoAsciiParamsTag'
+                    or 'GeoAsciiParamsTag' in self.headDict['Description_%i' % nVlrecord]
+                    or (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoASCIIParamsTag (optional)'
+                    or 'GeoASCIIParamsTag' in self.headDict['Description_%i' % nVlrecord]
+                ):
+                    print(f'                       ->  {fieldname.rjust(25)} -> GeoTiff GeoAsciiParamsTag - {self.headDict["Description_%i" % nVlrecord]}:')
+                    print(f'clidhead-> LasHeadClass->  {fieldname.rjust(25)} -> {value.decode("latin-1")}'.rstrip('\x00'))
+                    VLRsFileName = os.path.join(
+                        directorioDeTrabajo, 'io/VLRs_{:04}{:02}{:02}_{}_H{}.geo'.format(
+                            datetime.datetime.now().year,
+                            datetime.datetime.now().month,
+                            datetime.datetime.now().day,
+                            f'GeoAsciiParamsTag_{self.formatoSRS}',
+                            husoNewLas,
+                        )
+                    )
+                    VLRsFileOGC = open(VLRsFileName, mode='wb')
+                    VLRsFileOGC.write(value)
+                    VLRsFileOGC.write(b'\n')
+                    VLRsFileOGC.close()
+                elif (
+                    (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoTiff GeoDoubleParamsTag'
+                    or 'GeoDoubleParamsTag' in self.headDict['Description_%i' % nVlrecord]
+                ):
+                    print(f'                       ->  {fieldname.rjust(25)} -> GeoTiff GeoDoubleParamsTag - {self.headDict["Description_%i" % nVlrecord]}:')
+                    print(f'clidhead-> LasHeadClass->  {fieldname.rjust(25)} -> {value.decode("latin-1")}'.rstrip('\x00'))
+                    VLRsFileName = os.path.join(
+                        directorioDeTrabajo, 'io/VLRs_{:04}{:02}{:02}_{}_H{}.geo'.format(
+                            datetime.datetime.now().year,
+                            datetime.datetime.now().month,
+                            datetime.datetime.now().day,
+                            f'GeoDoubleParamsTag_{self.formatoSRS}',
+                            husoNewLas,
+                        )
+                    )
+                    VLRsFileOGC = open(VLRsFileName, mode='wb')
+                    VLRsFileOGC.write(value)
+                    VLRsFileOGC.write(b'\n')
+                    VLRsFileOGC.close()
+                elif (
+                    (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoTiff GeoKeyDirectoryTag'
+                    or 'GeoKeyDirectoryTag' in self.headDict['Description_%i' % nVlrecord]
+                ):
                     # ver https://www.awaresystems.be/imaging/tiff/tifftags/geokeydirectorytag.html
+                    print(f'                       ->  {fieldname.rjust(25)} -> GeoTiff GeoKeyDirectoryTag - {self.headDict["Description_%i" % nVlrecord]}:')
+                    print(f'clidhead-> LasHeadClass->  {fieldname.rjust(25)} -> {value.decode("latin-1")}'.rstrip('\x00'))
+                    VLRsFileName = os.path.join(
+                        directorioDeTrabajo, 'io/VLRs_{:04}{:02}{:02}_{}_H{}.geo'.format(
+                            datetime.datetime.now().year,
+                            datetime.datetime.now().month,
+                            datetime.datetime.now().day,
+                            f'GeoKeyDirectoryTag_{self.formatoSRS}',
+                            husoNewLas,
+                        )
+                    )
+                    VLRsFileOGC = open(VLRsFileName, mode='wb')
+                    VLRsFileOGC.write(value)
+                    VLRsFileOGC.write(b'\n')
+                    VLRsFileOGC.close()
+
+
                     numeroDeShorts = int(len(value) / 2)
                     try:
                         valuePlus = struct.unpack('%iH' % numeroDeShorts, value)
@@ -2494,26 +3311,26 @@ class LasHeadClass(object):
                         try:
                             root = ET.fromstring(miProyeccionXML)
                             srsTag = root.tag
-                            # print( 'clidhead-> root.tag->', root.tag)
+                            # print( 'clidhead-> LasHeadClass-> root.tag->', root.tag)
                             for item in root:
                                 if 'srsName' in item.tag:
                                     srsName = item.text
-                                    # print( 'clidhead-> +>Sistema de referencia:', item.text)
+                                    # print( 'clidhead-> LasHeadClass-> +>Sistema de referencia:', item.text)
                                 elif 'srsID' in item.tag:
-                                    # print( 'clidhead-> +>', item.tag)
+                                    # print( 'clidhead-> LasHeadClass-> +>', item.tag)
                                     for item2 in item:
                                         # <gml:name codeSpace="urn:ogc:def:crs:EPSG::">25830</gml:name>
                                         if 'name' in item2.tag:
                                             srsID = item2.text
-                                        # print( 'clidhead->   -->>', item2.tag, '>', item2.text)
-                                        # print( 'clidhead->        attrib->', item2.attrib)
+                                        # print( 'clidhead-> LasHeadClass->   -->>', item2.tag, '>', item2.text)
+                                        # print( 'clidhead-> LasHeadClass->        attrib->', item2.attrib)
                                 elif 'baseCRS' in item.tag:
-                                    # print( 'clidhead-> +>', item.tag)
+                                    # print( 'clidhead-> LasHeadClass-> +>', item.tag)
                                     for item2 in item:
                                         for item3 in item2:
                                             if 'srsName' in item3.tag:
                                                 srsBase = item3.text
-                                                # print( 'clidhead->     --->>>', item3.tag, '>', item3.text)
+                                                # print( 'clidhead-> LasHeadClass->     --->>>', item3.tag, '>', item3.text)
                                 elif 'definedByConversion' in item.tag:
                                     pass
                                 elif 'usesCartesianCS' in item.tag:
@@ -2522,85 +3339,79 @@ class LasHeadClass(object):
                             srsTag = 'Desconocdo'
                             srsName = 'Desconocdo'
                             srsBase = 'Desconocdo'
-                        # print( 'clidhead-> EPSG', valuePlus[31], '->', srsTag, srsName, 'Elipsoide:', srsBase)
+                        # print( 'clidhead-> LasHeadClass-> EPSG', valuePlus[31], '->', srsTag, srsName, 'Elipsoide:', srsBase)
 
-                        print('clidhead->     GeoKeyDirectoryTag version %i.%i.%i number of keys %i' % valuePlus[:4])
+                        print('                       ->     GeoKeyDirectoryTag version %i.%i.%i number of keys %i' % valuePlus[:4])
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - GTModelTypeGeoKey: (#TODO) ModelTypeProjected -Provisional '
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - GTModelTypeGeoKey: (#TODO) ModelTypeProjected -Provisional '
                             % valuePlus[4:8]
                         )
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - GTRasterTypeGeoKey: (#TODO)RasterPixelIsArea -Provisional'
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - GTRasterTypeGeoKey: (#TODO)RasterPixelIsArea -Provisional'
                             % valuePlus[8:12]
                         )
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - GTCitationGeoKey: (#TODO)ETRS89 / UTM zone 30N -Provisional'
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - GTCitationGeoKey: (#TODO)ETRS89 / UTM zone 30N -Provisional'
                             % valuePlus[12:16]
                         )
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - GeogCitationGeoKey: (#TODO)ETRS89 -Provisional (#TODO)'
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - GeogCitationGeoKey: (#TODO)ETRS89 -Provisional (#TODO)'
                             % valuePlus[16:20]
                         )
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - GeogAngularUnitsGeoKey: (#TODO) Angular_Degree -Provisional'
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - GeogAngularUnitsGeoKey: (#TODO) Angular_Degree -Provisional'
                             % valuePlus[20:24]
                         )
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - GeogTOWGS84GeoKey: (#TODO) TOWGS84[0,0,0] -Provisional'
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - GeogTOWGS84GeoKey: (#TODO) TOWGS84[0,0,0] -Provisional'
                             % valuePlus[24:28]
                         )
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - ProjectedCSTypeGeoKey: %s'
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - ProjectedCSTypeGeoKey: %s'
                             % (valuePlus[28], valuePlus[29], valuePlus[30], valuePlus[31], srsName)
                         )
                         print(
-                            'clidhead->       key %i tiff_tag_location %i count %i value_offset %i - ProjLinearUnitsGeoKey: (#TODO) Linear_Meter -Provisional'
+                            'clidhead-> LasHeadClass->       key %i tiff_tag_location %i count %i value_offset %i - ProjLinearUnitsGeoKey: (#TODO) Linear_Meter -Provisional'
                             % valuePlus[32:36]
                         )
                     except:
                         valuePlus = 'No unpack'
-                        print('clidhead-> GeoTiff GeoKeyDirectoryTag pendiente de desempaquetar y descifrar adecuadamente (#TODO)')
-                elif (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoTiff GeoAsciiParamsTag':
-                    print('clidhead->    GeoTIFF COORDINATE SYSTEM (AsciiParams):'.rjust(25))
-                    print('clidhead->      ', value.decode('latin-1'))
-                elif (self.headDict['Description_%i' % nVlrecord]).rstrip('\x00') == 'GeoTiff GeoDoubleParamsTag':
-                    print('clidhead->    GeoTIFF COORDINATE SYSTEM (DoubleParams):'.rjust(25))
-                    print('clidhead->  ', fieldname.rjust(25), '->', value.decode('latin-1'))
+                        print('clidhead-> LasHeadClass-> GeoTiff GeoKeyDirectoryTag pendiente de desempaquetar y descifrar adecuadamente (#TODO)')
                 else:
-                    # print( 'clidhead-> ->', str(self.headDict['Description_%i' % nVlrecord].rstrip('\x00')) , '<-')
-                    print('clidhead->  ', 'longitud'.rjust(25), '->', len(value))
+                    # print( 'clidhead-> LasHeadClass-> ->', str(self.headDict['Description_%i' % nVlrecord].rstrip('\x00')) , '<-')
+                    print('clidhead-> LasHeadClass->  ', 'longitud'.rjust(25), '->', len(value))
                     try:
                         valorDecodificado = value.decode('latin-1')
-                        print('clidhead->  ', fieldname.rjust(25), '->', valorDecodificado)
+                        print('clidhead-> LasHeadClass->  ', fieldname.rjust(25), '->', valorDecodificado)
                     except:
                         try:
                             valorDecodificado = value.decode('latin-1', errors='ignore')
-                            print('clidhead->  ', fieldname.rjust(25), '->', valorDecodificado, 'Decodificado ignorando errores')
+                            print('clidhead-> LasHeadClass->  ', fieldname.rjust(25), '->', valorDecodificado, 'Decodificado ignorando errores')
                         except:
-                            print('clidhead->  ', fieldname.rjust(25), '->', value, 'No decodificado')
+                            print('clidhead-> LasHeadClass->  ', fieldname.rjust(25), '->', value, 'No decodificado')
 
-                # print( 'clidhead->  ', fieldname.rjust(25), end=' -> ')
+                # print( 'clidhead-> LasHeadClass->  ', fieldname.rjust(25), end=' -> ')
                 # for letra in value:
                 #    print(chr(letra), end='')
-                # print( 'clidhead-> ')
+                # print( 'clidhead-> LasHeadClass-> ')
                 if nVlrecord < self.headDict['numvlrecords'] - 1:
                     printMsg('')
             VLRsFile.close()
-        printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+        printMsg(f'{"":=^80}')
 
         self.infoLasPoints(verbose=True)
 
         if mostrarPropiedadesDeLaClase:
-            printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+            printMsg(f'{"":=^80}')
             propiedades = [unaPropiedad for unaPropiedad in dir(self) if isinstance(getattr(self, unaPropiedad), property)]
-            printMsg('\nclidhead-> Properties of LasHead object:', self.verbose)
+            printMsg('\nclidhead-> LasHeadClass-> Properties of LasHead object:', self.verbose)
             printMsg('\nPropiedades de self %s:' % str(propiedades), self.verbose)
             for unaPropiedad in dir(self):
                 printMsg('{:>50}\t{}'.format(unaPropiedad, type(getattr(self, unaPropiedad)), getattr(self, unaPropiedad)), self.verbose)
             printMsg('\nVariables de self:', self.verbose)
             for variableDeMiBloque in vars(self).keys():
                 printMsg('{:>50}\t{}'.format(variableDeMiBloque, vars(self)[variableDeMiBloque]), self.verbose)
-            printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+                printMsg(f'{"":=^80}')
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -2617,7 +3428,7 @@ class LasHeadClass(object):
 #         if GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos < numPuntosPorMetroCuadrado * (GLO.GLBLmetrosCelda ** 2):
 #             LCLnMaxPtosCeldaArrayPredimensionadaTodos = int(numPuntosPorMetroCuadrado * (GLO.GLBLmetrosCelda ** 2))
 #             print(
-#                 'clidhead-> ATENCION: se amplia GLBLnMaxPtosCeldaArrayPredimensionadaTodos de',
+#                 'clidhead-> infoLasPoints-> ATENCION: se amplia GLBLnMaxPtosCeldaArrayPredimensionadaTodos de',
 #                 GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos,
 #                 'a',
 #                 LCLnMaxPtosCeldaArrayPredimensionadaTodos,
@@ -2625,10 +3436,24 @@ class LasHeadClass(object):
 #         else:
 #             LCLnMaxPtosCeldaArrayPredimensionadaTodos = GLO.GLBLnMaxPtosCeldaArrayPredimensionadaTodos
 
+        if self.controlFileLasNameConRuta != '':
+            global GLO
+            GLO.controlFileLasName = self.controlFileLasNameConRuta
+            printMsg(f'{"":=^80}')
+            paramConfigAdicionalesMAIN = {}
+            paramConfigAdicionalesMAIN['controlFileLasName'] = [GLO.controlFileLasName, 'str', '', 'GrupoMAIN', GLO.controlFileLasName]
+            printMsg(f'clidflow-> Guardando controlFileLasNameConRuta en el fichero con los parametros de configuracion.')
+            GLOBALconfigDict = clidconfig.leerCambiarVariablesGlobales(
+                LCL_idProceso=GLO.MAIN_idProceso,
+                nuevosParametroConfiguracion=paramConfigAdicionalesMAIN,
+                inspect_stack=inspect.stack(),
+                verbose=False,
+            )
+
         spec = importlib.util.find_spec('cartolidar')
         if spec is None or MAIN_ENTORNO == 'calendula':
-            sys.stderr.write(f'clidhead-> Aviso: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).')
-            sys.stderr.write('\t-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....')
+            sys.stderr.write(f'clidhead-> infoLasPoints-> Info: cartolidar no esta instalado en site-packages (se esta ejecutando una version local sin instalar).\n')
+            sys.stderr.write(f'{TB}-> Se importan paquetes de cartolidar desde clidhead del directorio local {os.getcwd()}/....\n')
             from clidfr import cliddata
         else:
             from cartolidar.clidfr import cliddata
@@ -2636,55 +3461,61 @@ class LasHeadClass(object):
         myLasData.nPtosAleer = self.numptrecords
         myLasData.sampleLas = 1
 #         self.LCLnMaxPtosCeldaArrayPredimensionadaTodos = LCLnMaxPtosCeldaArrayPredimensionadaTodos
+        # ======================================================================
 
-        # ======================================================================oooo
-
-        # ======================================================================oooo
-        # oooooooooooooooooooooooo Lectura del fichero las oooooooooooooooooooooooooo
-        # ======================================================================oooo
+        # ======================================================================
+        # oooooooooooooooooooooooo Lectura del fichero las ooooooooooooooooooooo
+        # ======================================================================
         # myLasData.readLasData(byREFAlmacenarPuntosComoNumpyDtype=True)  # Fuerzo almacenarPuntosComoNumpyDtype
+        printMsg('clidhead-> infoLasPoints-> Se lanza myLasData.leerLasDataLazLas<>')
         myLasData.leerLasDataLazLas(
             self.infileConRuta,
-            self.fileCoordYear,
+            self.fileCoordYeahDelNombre,
             self.LCLordenColoresInput,
         )
+        if not myLasData.myLasHead.readOk:
+            print(f'clidhead-> Error al leer el fichero laz en entorno.')
+            return False
         # oooooooooo Muestro para verificacion el numero de puntos leidos ooooooooooo
         myLasData.numPuntosValidosTotalesSegunCabecera = self.headDict['numptrecords']
-        # print( 'clidhead-> Numero de puntos segun la cabecera del las:', myLasData.numPuntosValidosTotalesSegunCabecera )
+        # print( 'clidhead-> infoLasPoints-> Numero de puntos segun la cabecera del las:', myLasData.numPuntosValidosTotalesSegunCabecera )
         if verbose:
-            printMsg('\noooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
-            printMsg('clidhead-> Puntos que se indica en la cabecera:   %i puntos' % myLasData.numPuntosValidosTotalesSegunCabecera)
+            printMsg(f'{"":=^80}')
+            printMsg('clidhead-> infoLasPoints-> Puntos que se indica en la cabecera:   %i puntos' % myLasData.numPuntosValidosTotalesSegunCabecera)
             if GLO.GLBLnumeroDePuntosAleer == 0:
-                printMsg('clidhead-> Puntos a leer (segun XML):             Todos (0=todos)')
+                printMsg('clidhead-> infoLasPoints-> Puntos a leer (segun fichero config):  Todos (GLBLnumeroDePuntosAleer=0)')
             else:
-                printMsg('clidhead-> Puntos a leer (segun XML):             %i puntos' % GLO.GLBLnumeroDePuntosAleer)
-            printMsg('clidhead-> Puntos cargados en la RAM:             %i puntos' % myLasData.numPuntosCargadosEnLaRAM)
-            if self.infileConRuta[-4:].lower == '.las':
+                printMsg('clidhead-> infoLasPoints-> Puntos a leer (segun fichero config):  %i puntos' % GLO.GLBLnumeroDePuntosAleer)
+            printMsg('clidhead-> infoLasPoints-> Puntos cargados en la RAM:             %i puntos' % myLasData.numPuntosCargadosEnLaRAM)
+            if self.infileConRuta[-4:].lower() == '.las':
                 printMsg(
-                    'clidhead-> Segun el num de bytes del fichero hay: %0.5f puntos (fichero de %0.2f Mb)'
+                    'clidhead-> infoLasPoints-> Segun el num de bytes del fichero hay: %0.5f puntos (fichero de %0.2f Mb)'
                     % (
                         ((os.path.getsize(self.infileConRuta) - self.headDict['offset']) / self.pointreclen),
                         os.path.getsize(self.infileConRuta) / 1e6,
                     )
                 )
                 printMsg(
-                    'clidhead->                                        El num de puntos segun num de bytes calculado figura con decimales para ver si cuadra.'
+                    'clidhead-> infoLasPoints->                                        El num de puntos segun num de bytes calculado figura con decimales para ver si cuadra.'
                 )
+            else:
+                printMsg(f'clidhead-> infoLasPoints-> Verificando que es fichero .laz-> infileConRuta: {self.infileConRuta}')
 
+            printMsg(f'clidhead-> infoLasPoints-> Verificando GLBLalmacenarPuntosComoNumpyDtype: {GLO.GLBLalmacenarPuntosComoNumpyDtype}')
             if not GLO.GLBLalmacenarPuntosComoNumpyDtype:
                 printMsg(
-                    'clidhead-> Segun el num de bytes cargados en memoria, hay: %0.1f puntos' % (len(myLasData.ficheroCompletoEnLaRAM) / self.pointreclen)
+                    'clidhead-> infoLasPoints-> Segun el num de bytes cargados en memoria, hay: %0.1f puntos' % (len(myLasData.pointsAllFromFile_xtypePFXX) / self.pointreclen)
                 )
                 printMsg(
-                    'clidhead->                                                 = len(myLasData.ficheroCompletoEnLaRAM) (%i) / self.pointreclen (%i)'
-                    % (len(myLasData.ficheroCompletoEnLaRAM), self.pointreclen)
+                    'clidhead-> infoLasPoints->                                                 = len(myLasData.pointsAllFromFile_xtypePFXX) (%i) / self.pointreclen (%i)'
+                    % (len(myLasData.pointsAllFromFile_xtypePFXX), self.pointreclen)
                 )
                 printMsg(
-                    'clidhead->                                                 ->myLasData.ficheroCompletoEnLaRAM se lee tras leer la cabecera, con myLasData.infile.read(self.pointreclen*self.numptrecords)'
+                    'clidhead-> infoLasPoints->                                                 ->myLasData.pointsAllFromFile_xtypePFXX se lee tras leer la cabecera, con myLasData.infile.read(self.pointreclen*self.numptrecords)'
                 )
             if myLasData.numPuntosCargadosEnLaRAM != myLasData.numPuntosValidosTotalesSegunCabecera:
-                printMsg('clidhead-> ATENCION: el numero de puntos que se indica en la cabecera no coincide con el numero de puntos en el fichero las.')
-            printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+                printMsg('clidhead-> infoLasPoints-> ATENCION: el numero de puntos que se indica en la cabecera no coincide con el numero de puntos en el fichero las.')
+            printMsg(f'{"":=^80}')
 
         pointformat = self.pointformat
         nPtosAleerDefinitivo = self.numptrecords
@@ -2692,14 +3523,26 @@ class LasHeadClass(object):
         miHeadOffset = np.array([self.headDict['xoffset'], self.headDict['yoffset'], self.headDict['zoffset']])
 
         if pointformat == 4 or pointformat == 5:
-            print('clidhead-> ATENCION:')
-            print('clidhead-> Los formatos 4 y 5 incluyen informacion de la waveform y no estan implementados')
-            print('clidhead-> Se leen correctamente, pero la informacion de la forma de la onda no se interpreta')
-            print('clidhead-> Quitar esto de lasPoint para que funcione sin usar esa informacion')
+            print('clidhead-> infoLasPoints-> ATENCION:')
+            print('clidhead-> infoLasPoints-> Los formatos 4 y 5 incluyen informacion de la waveform y no estan implementados')
+            print('clidhead-> infoLasPoints-> Se leen correctamente, pero la informacion de la forma de la onda no se interpreta')
+            print('clidhead-> infoLasPoints-> Quitar esto de lasPoint para que funcione sin usar esa informacion')
             sys.exit(0)
+
+        printMsg(f'clidhead-> infoLasPoints-> Verificando nPtosAleerDefinitivo: {nPtosAleerDefinitivo}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando pointsAllFromFile_xtypePFXX.shape: {myLasData.pointsAllFromFile_xtypePFXX.shape}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando pointformat: {self.pointformat}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando formatoDtypePointFormatXXNotacionNpDtype: {self.formatoDtypePointFormatXXNotacionNpDtype}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando miPtoNpRecordPointFormatXX: {type(self.miPtoNpRecordPointFormatXX)}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando miPtoNpRecordPointFormatXX: {self.miPtoNpRecordPointFormatXX}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando formatoDtypePointFormat99NotacionNpDtype: {self.formatoDtypePointFormat99NotacionNpDtype}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando miPtoNpRecordPointFormat99: {type(self.miPtoNpRecordPointFormat99)}')
+        printMsg(f'clidhead-> infoLasPoints-> Verificando miPtoNpRecordPointFormat99: {self.miPtoNpRecordPointFormat99}')
+
 
         timeIniRecorreLas = time.time()
         (
+            recorreLasOk,
             rango_miPto_x,
             rango_miPto_y,
             rango_miPto_z,
@@ -2737,7 +3580,7 @@ class LasHeadClass(object):
             nReturnsPorNumReturn,
             nPuntosPorClase,
         ) = clidnaux.recorreLas(
-            myLasData.ficheroCompletoEnLaRAM,
+            myLasData.pointsAllFromFile_xtypePFXX,
             nPtosAleerDefinitivo,
             pointformat,
             miHeadScale,
@@ -2747,6 +3590,9 @@ class LasHeadClass(object):
             LCLordenColoresInput=self.LCLordenColoresInput,
         )
 
+        if not recorreLasOk:
+            print('\nNo se ha podido ejecutar recorreLas<>')
+            return 0
         # actual_time         -> numero de segundos desde 1970
         # time.localtime(actual_time))
         #    time.struct_time(tm_year=2020, tm_mon=12, tm_mday=14, tm_hour=13, tm_min=34, tm_sec=16, tm_wday=0, tm_yday=349, tm_isdst=0)
@@ -2773,7 +3619,7 @@ class LasHeadClass(object):
             maxNumReturn = 16
 
         if GLO.GLBLverbose:
-            print('clidhead-> Numero de segundos y siguientes retornos:')
+            print('clidhead-> infoLasPoints-> Numero de segundos y siguientes retornos:')
             for numReturn in range(maxNumReturn):
                 numReturnAnterior = max(0, numReturn - 1)
                 if nReturnsPorNumReturn[numReturnAnterior] > 0:
@@ -2802,7 +3648,7 @@ class LasHeadClass(object):
 
 
         printMsg('\noooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
-        printMsg('clidhead-> Reporting minimum and maximum for all LAS point record entries ...')
+        printMsg('clidhead-> infoLasPoints-> Reporting minimum and maximum for all LAS point record entries ...')
         print('X'.rjust(45), str(rango_miPto_x[0]).rjust(12), str(rango_miPto_x[1]).rjust(12))
         print('Y'.rjust(45), str(rango_miPto_y[0]).rjust(12), str(rango_miPto_y[1]).rjust(12))
         print('Z'.rjust(45), str(rango_miPto_z[0]).rjust(12), str(rango_miPto_z[1]).rjust(12))
@@ -2828,47 +3674,44 @@ class LasHeadClass(object):
         # print( 'scan_chanl'.rjust(45), str(rango_scan_chanl[0]).rjust(12), str(rango_scan_chanl[1]).rjust(12))
 
         if noData_miPto_classification:
-            print('clidhead-> Hay valores negativos (<0) del parametro miPto_classification')
+            print('clidhead-> infoLasPoints-> Hay valores negativos (<0) del parametro miPto_classification')
         if noData_miPto_raw_time:
-            print('clidhead-> Hay valores nulos o negativos (<=0) del parametro noData_miPto_raw_time')
+            print('clidhead-> infoLasPoints-> Hay valores nulos o negativos (<=0) del parametro noData_miPto_raw_time')
         if noData_miPto_actual_time:
-            print('clidhead-> Hay valores nulos o negativos (<=0) del parametro noData_miPto_actual_time')
+            print('clidhead-> infoLasPoints-> Hay valores nulos o negativos (<=0) del parametro noData_miPto_actual_time')
         if noData_miPto_red:
-            print('clidhead-> Hay valores negativos (<0) del parametro noData_miPto_red')
+            print('clidhead-> infoLasPoints-> Hay valores negativos (<0) del parametro noData_miPto_red')
         if noData_miPto_green:
-            print('clidhead-> Hay valores negativos (<0) del parametro noData_miPto_green')
+            print('clidhead-> infoLasPoints-> Hay valores negativos (<0) del parametro noData_miPto_green')
         if noData_miPto_blue:
-            print('clidhead-> Hay valores negativos (<0) del parametro noData_miPto_blue')
+            print('clidhead-> infoLasPoints-> Hay valores negativos (<0) del parametro noData_miPto_blue')
         if noData_miPto_nir:
-            print('clidhead-> Hay valores negativos (<0) del parametro noData_miPto_nir')
+            print('clidhead-> infoLasPoints-> Hay valores negativos (<0) del parametro noData_miPto_nir')
         if noData_miPto_intensity:
-            print('clidhead-> Hay valores negativos (<0) del parametro noData_miPto_intensity')
+            print('clidhead-> infoLasPoints-> Hay valores negativos (<0) del parametro noData_miPto_intensity')
         if noData_point_source_ID:
-            print('clidhead-> Hay valores negativos (<0) del parametro noData_point_source_ID')
-        printMsg('oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo')
+            print('clidhead-> infoLasPoints-> Hay valores negativos (<0) del parametro noData_point_source_ID')
+        printMsg(f'{"":=^80}')
 
-        print('clidhead-> number of first returns:'.rjust(45), nFirstReturns)
-        print('clidhead-> number of intermediate returns:'.rjust(45), nInterReturns)
-        print('clidhead-> number of last returns:'.rjust(45), nLastReturns)
-        print('clidhead-> number of single returns:'.rjust(45), nSingleReturns)
-        print('clidhead-> total number of returns:'.rjust(45), nTotalReturns)
+        print('clidhead-> infoLasPoints-> Numero de primeros retornos:'.rjust(60), nFirstReturns)
+        print('clidhead-> infoLasPoints-> Numero de retornos intermedios:'.rjust(60), nInterReturns)
+        print('clidhead-> infoLasPoints-> Numero de ultimos retornos:'.rjust(60), nLastReturns)
+        print('clidhead-> infoLasPoints-> Num pulsos con un solo retorno:'.rjust(60), nSingleReturns)
+        print('clidhead-> infoLasPoints-> Numero total de retornos:'.rjust(60), nTotalReturns)
 
-        print('clidhead-> covered area in square meters/kilometers:'.rjust(45), superficieEscaneadaEnM2, '/', superficieEscaneadaEnM2 / 1e6)
+        print('clidhead-> infoLasPoints-> Superficie cubierta m2/km2:'.rjust(60), int(superficieEscaneadaEnM2), '/', round(superficieEscaneadaEnM2 / 1e6, 2))
 
         print(
-            'clidhead-> point density: all returns %0.2f first only %0.2f last only %0.2f (per square meter)'
+            'clidhead-> infoLasPoints-> Densidad de puntos-> todos %0.2f primeros: %0.2f ultimos: %0.2f (por m2)'
             % (densidadAllReturns, densidadFirstReturns, densidadLastReturns)
         )
         print(
-            'clidhead->       spacing: all returns %0.2f first only %0.2f last only %0.2f (in meters)'
+            'clidhead-> infoLasPoints-> Distancia media entre puntos: todos (metros): %0.2f primeros %0.2f ultimos %0.2f'
             % (1 / np.sqrt(densidadAllReturns), 1 / np.sqrt(densidadFirstReturns), 1 / np.sqrt(densidadLastReturns))
         )
-        print('clidhead-> overview over number of returns of given pulse:', end=' ')
-
         if nReturnsPorNumReturn[16] > 0:
-            print('clidhead-> Atencion: numero de retornos superiores al limite (%i)' % maxNumReturn, end=' ')
-        print()
-        print('clidhead-> histogram of classification of points:')
+            print('clidhead-> infoLasPoints-> Atencion: numero de retornos superiores al limite (%i)' % maxNumReturn, end=' ')
+
         if pointformat <= 5:
             textoClase = [
                 'Created, never classified',
@@ -2910,6 +3753,10 @@ class LasHeadClass(object):
                 '19-63 Reserved',
                 '64-255 User definable',
             ]
+        if (nPuntosPorClase > 0).any():
+            print('\nclidhead-> infoLasPoints-> Histograma de la clasificacion de puntos:')
+        else:
+            print('\nclidhead-> infoLasPoints-> No hay informacion de la clasificacion de puntos.')
         for nClase in range(len(nPuntosPorClase)):
             if nPuntosPorClase[nClase] > 0:
                 if pointformat <= 5:
@@ -2918,7 +3765,7 @@ class LasHeadClass(object):
                     elif nClase < 32:
                         print(str(nPuntosPorClase[13]).rjust(16), '%s (%i)' % (textoClase[13], 13))
                     else:
-                        print('clidhead-> Clase %i no permitida' % nClase)
+                        print('clidhead-> infoLasPoints-> Clase %i no permitida' % nClase)
                 else:
                     if nClase < 19:
                         print(str(nPuntosPorClase[nClase]).rjust(16), '%s (%i)' % (textoClase[nClase], nClase))
@@ -2927,18 +3774,19 @@ class LasHeadClass(object):
                     elif nClase < 256:
                         print(str(nPuntosPorClase[nClase]).rjust(16), '%s (%i)' % (textoClase[20], nClase))
                     else:
-                        print('clidhead-> Clase %i no permitida' % nClase)
+                        print('clidhead-> infoLasPoints-> Clase %i no permitida' % nClase)
+        printMsg(f'{"":=^80}')
 
         timeFinRecorreLas = time.time()
         horaFin = time.asctime(time.localtime(timeFinRecorreLas))
         segundosDuracion = round((timeFinRecorreLas - timeIniRecorreLas), 2)
         minutosDuracion = round(segundosDuracion / 60.0, 2)
         print(
-            'clidhead.%06i-> Fin de procesado de %s'
+            'clidhead.%06i-> Fin de recopilacion de info de %s'
             % (GLO.MAIN_idProceso, os.path.basename(self.infileConRuta))
         )
         print(
-            'clidhead.{:006}-> Tiempo de procesado:\t{:0.2}\tsegundos ({:0.2f} minutos).'.format(
+            'clidhead.{:006}-> Tiempo de lectura:\t{:0.2}\tsegundos ({:0.2f} minutos).'.format(
                 GLO.MAIN_idProceso, segundosDuracion, minutosDuracion
             )
         )
@@ -2947,9 +3795,10 @@ class LasHeadClass(object):
                 GLO.MAIN_idProceso, horaFin
                 )
         )
-        
+        printMsg(f'{"":=^80}')
 
-# ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
+# ==============================================================================
 def lasHeadProperties():
     """
     Read las head file properties from lasHeadFields.cfg file with configparser.
@@ -3008,9 +3857,60 @@ def lasHeadProperties():
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 # Para conocer los formatos que usa struct.unpack(fmt, string) y struct.pack(fmt, v1, v2, ...)
 # Ver https://docs.python.org/2/library/struct.html o miAyuda.py
-def lasPointProperties(pointformat=3, verbose=False):
+def lasPointProperties(
+        pointformat=3,
+        extraBytesPorRegistro=0,
+        verbose=False
+    ):
     """
-    Read las point properties from lasPointFields.cfg file with configparser.
+    Ver:
+        https://docs.python.org/3/library/struct.html
+            x pad byte no value (7)
+            c char bytes of length       1 bytes
+            b signed char integer        1 bytes (1), (2)
+            B unsigned char integer      1 bytes (2)
+            ? _Bool bool                 1 bytes (1)
+            h short integer              2 bytes (2)
+            H unsigned short integer     2 bytes (2)
+            i int integer                4 bytes (2)
+            I unsigned int integer       4 bytes (2)
+            l long integer               4 bytes (2)
+            L unsigned long integer      4 bytes (2)
+            q long long integer          8 bytes (2)
+            Q unsigned long long integer 8 bytes (2)
+            n ssize_t integer                    (3)
+            N size_t integer                     (3)
+            e (6) float                  2 bytes (4)
+            f float float                4 bytes (4) 
+            d double float               8 bytes (4)
+            s char[] bytes                       (9)
+            p char[] bytes                       (8)
+            P void* integer                      (5)
+
+            Character Byte order             Size       Alignment
+            @         native                 native     native
+            =         native                 standard   none
+            <         little-endian          standard   none
+            >         big-endian             standard   none
+            !         network (= big-endian) standard   none
+
+        https://numpy.org/doc/stable/reference/arrays.dtypes.html
+        Buscar: One-character strings:
+            '?' boolean
+            'b' (signed) byte
+            'B' unsigned byte
+            'i' (signed) integer
+            'u' unsigned integer
+            'f' floating-point
+            'c'complex-floating point
+            'm' timedelta
+            'M' datetime
+            'O' (Python) objects
+            'S', 'a' zero-terminated bytes (not recommended)
+            'U' Unicode string
+            'V' raw data (void)
+
+Read las point properties from lasPointFields.cfg file with configparser.
     Point formats 1-4 and 6-10
     ATENTION: Only tested with point format 3 and 8 of Spanish PNOA Lidar (lasFile version 1.2)
     #TODO point fotmat 8 (in progress)
@@ -3079,6 +3979,7 @@ def lasPointProperties(pointformat=3, verbose=False):
         properties[2] = int(properties[2])  # convert str to int -> num de repeticiones (si es array)
         properties[3] = int(properties[3])  # convert str to int -> posicion del primer byte empezando en 0
         properties[4] = properties[4].strip()  # remove whitespaces -> letra identificativa de la propiedad (etiqueta)
+        numeroBytesAcum = properties[3] + (properties[0] * properties[2])
         # Lo guardo como dict:
         lasPointFieldPropertiesDict[myField] = tuple(properties)
         # Lo guardo como lista, con el primer valor el nombre de la propiedad
@@ -3086,6 +3987,26 @@ def lasPointProperties(pointformat=3, verbose=False):
         myList.extend(properties)
         lasPointFieldPropertiesList.append(tuple(myList))
         nOrden += 1
+    if (
+        extraBytesPorRegistro != 0
+        and strPointFormat != 'PointFormat_99'
+        and strPointFormat != 'PointFormat_100'
+        and strPointFormat != 'PointFormat_101'
+        and strPointFormat != 'PointFormat_102'
+    ):
+        myField = 'extraBytesPorRegistro'
+        properties[0] = extraBytesPorRegistro #  -> num de bytes
+        properties[1] = 'B' #  -> tipo de dato (b, B, H, d, =L, etc)
+        properties[2] = extraBytesPorRegistro  #  -> num de repeticiones (si es array)
+        properties[3] = numeroBytesAcum  #  -> posicion del primer byte empezando en 0
+        properties[4] = 'x' #  -> letra identificativa de la propiedad (etiqueta)
+        # Lo guardo como dict:
+        lasPointFieldPropertiesDict[myField] = tuple(properties)
+        # Lo guardo como lista, con el primer valor el nombre de la propiedad
+        myList = [myField]
+        myList.extend(properties)
+        lasPointFieldPropertiesList.append(tuple(myList))
+
     # ->Si quisiera trabajar con menos propiedades puedo seleccionarlas aqui:
     #  Este orden es el complemento al diccionario lasPointFieldPropertiesDict
     lasPointFieldOrdenDictPtoMini['x'] = 0
@@ -3197,26 +4118,26 @@ def crearArraysPropPto(pointformat, lasPointFieldPropertiesList=None, propIndivi
 
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-# Duplico esta funcion es la original; la tengo duplicada en clidbase.py
+# Esta funcion es la original; antes tb la tenia duplicada en clidbase.py
 def getFileCoordFromName(
         infile,
         fileYearPorDefecto='0000'
     ):
-    fileCoord = '000_0000'
-    fileYear = '0000'
-    for char1 in range(len(infile) - 4 - 8):
-        # fileCoord_ = infile[char1: char1 + 3] + '_' + infile[char1 + 4: char1 + 8]
+    fileCoordDelNombre = '000_0000'
+    fileYearDelNombre = 'AAAA'
+    for char1 in range(len(infile) - 4 - 8 + 1):
+        # fileCoordDelNombre_ = infile[char1: char1 + 3] + '_' + infile[char1 + 4: char1 + 8]
         if (
             (infile[char1: char1 + 4]).isdigit()
-            and (char1 < 4 or not (infile[char1 - 4: char1 - 1]).isdigit())
+            and (char1 < 4 or not (infile[char1 - 4: char1 - 1]).isdigit()) #-> Si ocurriera esto ultimo, los cuatro digitos son la coord Y
             and (char1 == 0 or (infile[char1 - 1]) in ['-', '_'])
             and (infile[char1 + 4]) in ['-', '_', '.']
         ):
-            # El fichero tiene la anualidad pero no las coordenadas cuando:
-            #     Hay cuatro caracteres digitos no precedidos por otros 4 digitos
-            #     Y estan precedidos y seguidos por '_' o '-' (salvo que sean los 4 primeros o 4 ultimos)
-            fileCoord = '000_0000'
-            fileYear = infile[char1: char1 + 4]
+            # Los 4 digitos siguientes son la anualidad cuando El fichero tiene la anualidad pero no las coordenadas cuando:
+            #     Son 4 digitos pero no precedidos por _ y 3 digitos (no son los YYYY de XXX_YYYY)
+            #     Y estan precedidos y seguidos por '_' o '-' o '.' (salvo que sean los 4 primeros o 4 ultimos)
+            # fileCoordDelNombre = '000_0000'
+            fileYearDelNombre = infile[char1: char1 + 4]
         elif (
             (infile[char1: char1 + 3]).isdigit()
             and (infile[char1 + 4: char1 + 8]).isdigit()
@@ -3224,14 +4145,16 @@ def getFileCoordFromName(
             and (char1 == 0 or (infile[char1 - 1]) in ['-', '_'])
             and (infile[char1 + 8]) in ['-', '_', '.']
         ):
-            # El fichero tiene las coordenadascuando:
-            #    El nombre incluye el patron XXX_YYYY o XXX-YYY
+            # El fichero tiene las coordenadas cuando:
+            #    El nombre incluye el patron XXX_YYYY o XXX-YYYY
             #     Y estan precedidos y seguidos por '_' o '-' (salvo que sean los 4 primeros o 4 ultimos)
-            fileCoord = infile[char1: char1 + 3] + '_' + infile[char1 + 4: char1 + 8]
+            fileCoordDelNombre = infile[char1: char1 + 3] + '_' + infile[char1 + 4: char1 + 8]
             # Ademas tiene la anualidad si despues de las coordenadas:
             #     Hay cuatro caracteres digitos
             #     Y estan precedidos y seguidos por '_' o '-'
-            fileYear = '0000'
+            # Si no tengo ya el year, lo busco a continuacion
+            if fileYearDelNombre == 'AAAA':
+                fileYearDelNombre = '0000'
             if len(infile) - 4 - 4 > char1 + 9:
                 for char2 in range(char1 + 9, len(infile) - 4 - 4):
                     if (
@@ -3239,155 +4162,27 @@ def getFileCoordFromName(
                         and (infile[char2 - 1]) in ['-', '_']
                         and (infile[char2 + 4]) in ['-', '_', '.']
                     ):
-                        fileYear = infile[char2: char2 + 4]
+                        fileYearDelNombre = infile[char2: char2 + 4]
                         break
             break
 
-    if fileYear == '0000':
-        fileYear = fileYearPorDefecto
-    fileCoordYear = fileCoord + '_' + str(fileYear)
+    if fileYearDelNombre == '0000' or fileYearDelNombre == 'AAAA':
+        fileYearDelNombre = fileYearPorDefecto
+
+    if GLO.GLBLincluirYearEnFileCoordYear:
+        fileCoordYearDelNombre = fileCoordDelNombre + '_' + str(fileYearDelNombre)
+    else:
+        fileCoordYearDelNombre = fileCoordDelNombre
 
     try:
-        xSupIzdaDelNombre = int(fileCoord[:3]) * 1000
-        ySupIzdaDelNombre = int(fileCoord[4:8]) * 1000
-        # print( 'clidbase-> xSupIzda, ySupIzda (de acuerdo al nombre del fichero)        ', xSupIzdaDelNombre, ySupIzdaDelNombre )
-    except:
-        xSupIzdaDelNombre = 0
-        ySupIzdaDelNombre = 0
-
-    if fileCoord == '000_0000':
-        print( 'clidbase-> AVISO: No se ha podido extraer las coordenadas del nombre fichero: %s; fileCoord: %s; fileYear: %s' % (infile, fileCoord, fileYear) )
-
-    return fileCoordYear, xSupIzdaDelNombre, ySupIzdaDelNombre, fileYear
-
-
-# ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-def getFileCoordFromNameOld(infile, fileYear=''):
-    # print( 'clidhead-> 2. obteniendo coordenada de', infile)
-    if '/' in infile or '\\' in infile:
-        infile = os.path.basename(infile)
-    if infile[:8].lower() == 'las_cam_' and infile[21:26].lower() == '_nav_':
-        # Ej.: las_cam_600_4700_2017_NAV_EPSG25830
-        #     las_cam_621_4792_2017_NAV_EPSG25830
-        # Lidar de Navarra 2017
-        fileCoord = infile[8:11] + '_' + infile[12:16]
-        fileYear = infile[17:21]
-        # if GLO.GLBLverbose:
-        #    print( '\tclidhead-> Las File de Navarra:', fileCoord, 'year', fileYear)
-    elif infile[:7].lower() == 'las_cm_' and infile[20:25].lower() == '_nav_':
-        # Ej.: las_cm_600-4700_2012_NAV_SUR_EPSG25830.laz
-        #     las_cm_600-4764_2012_NAV_NORTE_EPSG25830.laz
-        # Lidar de Navarra 2012
-        fileCoord = infile[7:10] + '_' + infile[11:15]
-        fileYear = infile[16:20]
-        # if GLO.GLBLverbose:
-        #    print( '\tclidhead-> Las File de Navarra:', fileCoord, 'year', fileYear)
-    elif infile.lower().startswith('pnoa_2010_lote7_cyl-mad'):
-        # Ej.: pnoa_2010_lote7_cyl-mad_354-4614_ort-cla-cir.laz
-        fileCoord = infile[24:27] + '_' + infile[28:32]
-        fileYear = infile[5:9]
-    elif (infile.upper()).startswith('PNOA_2016_MAD_'):
-        # Ej: PNOA_2016_MAD_420-4524_ORT-CLA-IRC_PenalaraMadrid.laz
-        fileCoord = infile[14:17] + '_' + infile[18:22]
-        fileYear = infile[5:9]
-    elif (infile.upper()).startswith('PNOA_2014_CYL_SW_25CM_'):
-        # Ej: PNOA_2014_CYL_SW_25cm_302_4458_ORT-CLA-COL_Gredos.laz
-        fileCoord = infile[22:25] + '_' + infile[26:30]
-        fileYear = infile[5:9]
-
-    elif (infile.upper()).startswith('PNOA_2019_CYL_C_'):
-        # PNOA_2019_CYL_C_
-        fileCoord = infile[16:19] + '_' + infile[20:24]
-        fileYear = infile[5:9]
-    elif (infile.upper()).startswith('PNOA_') and (infile.upper())[9:13] == '_CYL':
-        # Ej: PNOA_2017_CYL_SE_398-4508_ORT-CLA-IRC_etc.las
-        # Ej: PNOA_2017_CYL_SE_418-4522_ORT-CLA-RGBI_LF14PF8_Penalara.laz
-        # Ej: PNOA_2019_CYL_C_372-4656_ORT-CLA-RGB.laz
-        # PNOA_2017_CYL_SE_
-        # PNOA_2017_CYL_CE_
-        # PNOA_2018_CYL_CE_
-        # PNOA_2019_CYL_CE_
-        # PNOA_2021_CYL_NW_
-        fileCoord = infile[17:20] + '_' + infile[21:25]
-        fileYear = infile[5:9]
-
-    elif len(infile) == 4 + 1 + 4 + 1 + 3 + 1 + 8 + 1 + 11 + 4:  # 38
-        # Ej: PNOA_2016_MAD_398-4507_ORT-CLA-IRC.laz
-        fileCoord = infile[14:17] + '_' + infile[18:22]
-        fileYear = infile[5:9]
-    elif len(infile) == 24 + 20 + 4:  # 48
-        # Ej: PNOA_2010_Lote5_CYL-RIO_328-4638_ORT-CLA-COL.laz
-        # fileCoord = infile[24:32]
-        fileCoord = infile[24:27] + '_' + infile[28:32]
-    elif len(infile) == 20 + 20 + 4:  # 44
-        # Ej: PNOA_2010_LOTE4_CYL_160-4656_ORT-CLA-COL.laz
-        # fileCoord = infile[20:28]
-        fileCoord = infile[20:23] + '_' + infile[24:28]
-    elif len(infile) == 17 + 20 + 4:  # 41
-        # Ej: PNOA_2014_CYL_SW_198_4568_ORT-CLA-COL.laz
-        # fileCoord = infile[17:25]
-        fileCoord = infile[17:20] + '_' + infile[21:25]
-    elif len(infile) == 22 + 20 + 4:  # 46
-        # Ej: PNOA_2014_CYL_SW_25cm_264-4520_ORT-CLA-COL.laz
-        # fileCoord = infile[22:30]
-        fileCoord = infile[22:25] + '_' + infile[26:30]
-    elif len(infile) == 22 + 22 + 20 + 4:  # 68
-        # Ej: PNOA_2014_CYL_SW_25cm_PNOA_2014_CYL_SW_25cm_170_4466_ORT-000-COL.laz
-        # fileCoord = infile[44:52]
-        fileCoord = infile[44:47] + '_' + infile[48:52]
-    elif len(infile) == 12:
-        # Ej: 328-4638.laz
-        fileCoord = infile[:3] + '_' + infile[4:8]
-    elif len(infile) == 17:
-        # Ej: 328-4638_2017.laz
-        fileCoord = infile[:3] + '_' + infile[4:8]
-        fileYear = infile[9:13]
-    elif len(infile) == 8 + 5 + 7 + 4 or infile[13:17] == '_new':  # 24
-        # Ej: 398_4508_2017_new_X0.las
-        fileCoord = infile[:3] + '_' + infile[4:8]
-        fileYear = infile[9:13]
-    elif infile[:3].isdigit() and infile[4:8].isdigit():
-        # Ej: 398_4508.las
-        # Ej: 398_4508_2017.las
-        fileCoord = infile[:3] + '_' + infile[4:8]
-        if infile[9:13].isdigit():
-            fileYear = infile[9:13]
-        else:
-            fileYear = '0000'
-    elif infile[:6].isdigit() and infile[7:14].isdigit():
-        # Ej.: 766000_3846000.laz
-        fileCoord = infile[:3] + '_' + infile[7:11]
-        fileYear = '0000'
-    else:
-        print('\n{:_^80}'.format(''))
-        print('clidhead-> ATENCION: No se identifican coordenadas y anualidad del Las File por seguir una convencion de nombre desconocida:')
-        print('\t', infile)
-        fileCoord = '000_0000'
-        fileYear = '0000'
-
-    # print('clidhead-> fileCoord:', type(fileCoord), fileCoord)
-    # print('clidhead-> fileYear: ', type(fileYear), fileYear)
-    
-    if fileYear != '0000':
-        fileCoordYear = fileCoord + '_' + str(fileYear)
-    else:
-        try:
-            fileYear = infile[-8:-4]
-        except:
-            fileYear = '0000'
-        fileCoordYear = fileCoord + '_' + str(fileYear)
-
-    try:
-        xSupIzdaDelNombre = int(fileCoord[:3]) * 1000
-        ySupIzdaDelNombre = int(fileCoord[4:8]) * 1000
+        xSupIzdaDelNombre = int(fileCoordDelNombre[:3]) * 1000
+        ySupIzdaDelNombre = int(fileCoordDelNombre[4:8]) * 1000
         # print( 'clidhead-> xSupIzda, ySupIzda (de acuerdo al nombre del fichero)        ', xSupIzdaDelNombre, ySupIzdaDelNombre )
     except:
         xSupIzdaDelNombre = 0
         ySupIzdaDelNombre = 0
-        fileCoordYear = False
-        # print( 'clidhead-> No se ha podido extraer las coordenadas del nombre fichero: %s; fileCoord (extraido del nombre del fichero): %s' % (infile, fileCoord) )
 
-    return fileCoordYear, xSupIzdaDelNombre, ySupIzdaDelNombre, fileYear
+    return fileCoordYearDelNombre, xSupIzdaDelNombre, ySupIzdaDelNombre, fileYearDelNombre
 
 
 # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -3401,11 +4196,12 @@ class NewLasHeadClass(object):
         self,
         myOldLasHead=None,
         newLasFileNameConRuta='newLASF',
+        TRNShuso29=False,
         vermajor=1,
         verminor=4,
         pointformat=8,
         numptrecords=0,
-        numptbyreturn=np.zeros(16, dtype=np.int64),
+        numptbyreturn=np.zeros(GLO.GLBLnumeroMaximoDeRetornosPorPulso, dtype=np.int64),
         xmin=0,
         ymin=0,
         xmax=0,
@@ -3415,16 +4211,16 @@ class NewLasHeadClass(object):
         xscale=0,
         yscale=0,
         zscale=0,
-        xoffset=0,
-        yoffset=0,
-        zoffset=0,
+        xoffset=-9999,
+        yoffset=-9999,
+        zoffset=-9999,
         GPSTimeType='',
         CRS='WKT',
         filesourceid=0,
         guid1=0,
         guid2=0,
         guid3=0,
-        guid4=np.zeros(8, dtype=np.int8),
+        guid4=np.zeros(8, dtype=np.uint8),
         sysid='OTHER',
         fileday=0,
         fileyear=0,
@@ -3441,6 +4237,7 @@ class NewLasHeadClass(object):
             print('clidhead-> Las Format no implementado')
             quit()
 
+        self.TRNShuso29 = TRNShuso29
         # ======================================================================
         self.myOldLasHead = myOldLasHead
         self.newLasFileNameConRuta = newLasFileNameConRuta
@@ -3455,7 +4252,8 @@ class NewLasHeadClass(object):
 
         self.verbose = verbose
         self.filesignature = 'LASF'
-        self.miSoftware = f'CartoLid v {__version__}. {GLO.MAIN_copyright}'
+        # self.miSoftware = f'CartoLid v{__version__} {GLO.MAIN_copyright}'
+        self.miSoftware = f'CartoLid v{__version__}'
         self.gensoftware = self.miSoftware[:31].ljust(32, '\x00')
         if verbose:
             print(f'clidhead-> Software original: {self.myOldLasHead.headDict["gensoftware"]}')
@@ -3466,10 +4264,10 @@ class NewLasHeadClass(object):
         # Uso estos valores para:
         #    Numero de puntos:
         #        Original y legacy    -> numptrecords = 4, =L, 1
-        #        New in pointformat>5 -> pointrecords = 8, Q, 1
+        #        New in lasFormat 1.4 -> pointrecords = 8, Q, 1
         #    Numero de retornos por pulso:
-        #        Original y legacy    -> pointsbyreturn = 120, Q, 15
-        #        New in pointformat>5 -> numptbyreturn = 20, L, 5
+        #        Original y legacy    -> numptbyreturn = 20, L, 5
+        #        New in lasFormat 1.4 -> pointsbyreturn = 120, Q, 15
         # Notas sobre pointrecords y pointsbyreturn
         # pointrecords
         # Number of point records: This field contains the total number of point records in the file.  Note
@@ -3482,26 +4280,26 @@ class NewLasHeadClass(object):
         # ======================================================================
         # Si estos valores son nulos, ya se rellenan a partir de aCeldasListaDePtosTlcPralPF99 en lasLax.
         # No heredo los valores de myOldLasHead porque no son los correctos (puede haber mas puntos)
-        self.numptbyreturn = numptbyreturn
         self.numptrecords = numptrecords
-        self.pointrecords = self.numptrecords  # Para LASF 1.4
-        self.pointsbyreturn = self.numptbyreturn  # Para LASF 1.4
+        self.pointrecords = numptrecords  # Para LASF 1.4
+        self.numptbyreturn = numptbyreturn
+        self.pointsbyreturn = numptbyreturn  # Para LASF 1.4
         # ======================================================================
 
         # ======================================================================
         if xmin == 0 and ymin == 0 and not self.myOldLasHead is None:
-            self.xmin = self.myOldLasHead.xmin
-            self.ymin = self.myOldLasHead.ymin
+            self.xminBloqueMalla = self.myOldLasHead.xminBloqueMalla
+            self.yminBloqueMalla = self.myOldLasHead.yminBloqueMalla
         else:
-            self.xmin = xmin
-            self.ymin = ymin
+            self.xminBloqueMalla = xmin
+            self.yminBloqueMalla = ymin
 
         if xmax == 0 and ymax == 0 and not self.myOldLasHead is None:
-            self.xmax = self.myOldLasHead.xmax
-            self.ymax = self.myOldLasHead.ymax
+            self.xmaxBloqueMalla = self.myOldLasHead.xmaxBloqueMalla
+            self.ymaxBloqueMalla = self.myOldLasHead.ymaxBloqueMalla
         else:
-            self.xmax = xmax
-            self.ymax = ymax
+            self.xmaxBloqueMalla = xmax
+            self.ymaxBloqueMalla = ymax
 
         if zmin == 0 and zmax == 0 and not self.myOldLasHead is None:
             self.zmin = self.myOldLasHead.zmin
@@ -3511,14 +4309,35 @@ class NewLasHeadClass(object):
             self.zmax = zmax
         # ======================================================================
 
-        self.adjustCornersCoordinates(1.0, envolvente=True)
+        if self.TRNShuso29:
+            LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH29X
+            LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH29Y
+        else:
+            LCLorigenDeCoordenadasX = GLO.GLBLorigenDeCoordenadasH30X
+            LCLorigenDeCoordenadasY = GLO.GLBLorigenDeCoordenadasH30Y
+
+        sizeToAdjust = 1.0
+        if (
+            'LAS_INFO' in GLO.MAINprocedimiento
+            or 'LAS_EDIT' in GLO.MAINprocedimiento
+            or 'PASADAS' in GLO.MAINprocedimiento
+        ):
+            print(f'\nclidhead-> No se hace el ajuste de las celdas a la malla satelital por estar ejecutando el procedimiento: {GLO.MAINprocedimiento}')
+        else:
+            self.adjustCornersCoordinates(
+                sizeToAdjust,
+                envolvente=True,
+                margenAdmisible=sizeToAdjust * 0.01,
+                LCLorigenDeCoordenadasX=LCLorigenDeCoordenadasX,
+                LCLorigenDeCoordenadasY=LCLorigenDeCoordenadasX,
+            )
         if self.verbose:
             print('\nclidhead-> Ajustando esquinas a {} m'.format(1))
-            print('clidhead->   xmin, xmax, ymin, ymax:', self.xmin, self.xmax, self.ymin, self.ymax)
-        self.xmin = xmin
-        self.ymin = ymin
-        self.xmax = xmax
-        self.ymax = ymax
+            print('clidhead->   xmin, xmax, ymin, ymax:', self.xminBloqueMalla, self.xmaxBloqueMalla, self.yminBloqueMalla, self.ymaxBloqueMalla)
+        self.xminBloqueMalla = xmin
+        self.yminBloqueMalla = ymin
+        self.xmaxBloqueMalla = xmax
+        self.ymaxBloqueMalla = ymax
 
         # ======================================================================
         if xscale == 0 and not self.myOldLasHead is None:
@@ -3542,25 +4361,33 @@ class NewLasHeadClass(object):
         else:
             self.zscale = zscale
         # ======================================================================
-        if xoffset == 0 and not self.myOldLasHead is None:
-            self.xoffset = self.myOldLasHead.xoffset
-        else:
+        if xoffset != -9999:
             self.xoffset = xoffset
-
-        if yoffset == 0 and not self.myOldLasHead is None:
-            self.yoffset = self.myOldLasHead.yoffset
         else:
+            if not self.myOldLasHead is None:
+                self.xoffset = self.myOldLasHead.xoffset
+            else:
+                self.xoffset = 0
+
+        if yoffset != -9999:
             self.yoffset = yoffset
-
-        if zoffset == 0 and not self.myOldLasHead is None:
-            self.zoffset = self.myOldLasHead.zoffset
         else:
+            if not self.myOldLasHead is None:
+                self.yoffset = self.myOldLasHead.yoffset
+            else:
+                self.yoffset = 0
+        if zoffset != -9999:
             self.zoffset = zoffset
+        else:
+            if not self.myOldLasHead is None:
+                self.zoffset = self.myOldLasHead.zoffset
+            else:
+                self.zoffset = 0
         # ======================================================================
 
         if self.verbose:
             print('------------------->clidhead-> self.xscale:', self.xscale, 'xscale:', xscale)
-            print('------------------->clidhead-> self.xoffset:', self.xoffset, 'xoffset:', xoffset)
+            print('------------------->clidhead-> self.xoffset:', self.xoffset, 'yoffset:', yoffset)
 
         # ======================================================================
         if GPSTimeType == '' and not self.myOldLasHead is None:
@@ -3658,7 +4485,7 @@ class NewLasHeadClass(object):
 
         # ======================================================================
         # Campos que componen la cabecera para Las format version 1.2, 1.3 y 1.4 en dicts y lista.
-        # Reading Las Head properties for all Las Formats (lasHeadFields.cfg)
+        # Se leen las propiedades de cabecera de todos los formatos de lasFile (lasHeadFields.cfg)
         (
             self.lasHeaderFieldListVersionsDict,
             self.lasHeaderFieldPropertiesDict,
@@ -3675,7 +4502,7 @@ class NewLasHeadClass(object):
                 fieldProperties = self.lasHeaderFieldPropertiesDict[lasVersion + '_' + myField]
                 nuevoHeaderSize += int(fieldProperties[0])
                 if self.verbose:
-                    print(lasVersion, myField, 'nuevoHeaderSize', nuevoHeaderSize)
+                    print(TB, lasVersion, myField, 'nuevoHeaderSize', nuevoHeaderSize)
         if self.verminor >= 3:
             lasVersion = 'LasFormat_1_3'
             for myField in self.lasHeaderFieldListVersionsDict[lasVersion]:
@@ -3683,7 +4510,7 @@ class NewLasHeadClass(object):
                 fieldProperties = self.lasHeaderFieldPropertiesDict[lasVersion + '_' + myField]
                 nuevoHeaderSize += int(fieldProperties[0])
                 if self.verbose:
-                    print(lasVersion, myField, 'nuevoHeaderSize', nuevoHeaderSize)
+                    print(TB, lasVersion, myField, 'nuevoHeaderSize', nuevoHeaderSize)
         if self.verminor >= 4:
             lasVersion = 'LasFormat_1_4'
             for myField in self.lasHeaderFieldListVersionsDict[lasVersion]:
@@ -3691,7 +4518,7 @@ class NewLasHeadClass(object):
                 fieldProperties = self.lasHeaderFieldPropertiesDict[lasVersion + '_' + myField]
                 nuevoHeaderSize += int(fieldProperties[0])
                 if self.verbose:
-                    print(lasVersion, myField, 'nuevoHeaderSize', nuevoHeaderSize)
+                    print(TB, lasVersion, myField, 'nuevoHeaderSize', nuevoHeaderSize)
         if (self.verminor == 2 and nuevoHeaderSize != 227) or (self.verminor == 4 and nuevoHeaderSize != 375):
             print('clidhead-> Revisar la definicion la cabecera del forma 1.%i en lasHeadFields.cfg' % self.verminor)
             print('clidhead-> La cabecera tiene %i bytes y deberia tener %i' % (nuevoHeaderSize, 227 if self.verminor == 2 else 375))
@@ -3714,7 +4541,12 @@ class NewLasHeadClass(object):
             self.lasPointFieldPropertiesDict,
             self.lasPointFieldOrdenDictPtoMini,
             self.lasPointFieldOrdenDictPtoComp,
-        ) = lasPointProperties(self.pointformat, self.verbose)
+        ) = lasPointProperties(
+            self.pointformat,
+            # extraBytesPorRegistro=self.myOldLasHead.headDict['extraBytesPorRegistro'],
+            extraBytesPorRegistro=0,
+            verbose=self.verbose,
+        )
         # Esto otro para facilitar el acceso a las propiedades desde funciones numba
         self.npArrayPropPto, self.bytearrayPropPtoNombre, self.arrayPropPtoNombre, self.arrayPropPtoRangoBytes, self.arrayPropPtoTipoDato = crearArraysPropPto(
             self.pointformat,
@@ -3757,7 +4589,12 @@ class NewLasHeadClass(object):
             self.extraVariablesPropertiesDict,
             self.extraVariablesOrdenDictPtoMini,
             self.extraVariablesOrdenDictPtoComp,
-        ) = lasPointProperties(miPointformat, self.verbose)
+        ) = lasPointProperties(
+            self.pointformat,
+            # extraBytesPorRegistro=self.myOldLasHead.headDict['extraBytesPorRegistro'],
+            extraBytesPorRegistro=0,
+            verbose=self.verbose,
+        )
         # Esto otro para facilitar el acceso a las propiedades desde funciones numba
         (
             self.npArrayextraVar,
@@ -3796,7 +4633,12 @@ class NewLasHeadClass(object):
             self.maxiMiniSubCelPropertiesDict,
             self.maxiMiniSubCelOrdenDictPtoMini,
             self.maxiMiniSubCelOrdenDictPtoComp,
-        ) = lasPointProperties(miPointformat, self.verbose)
+        ) = lasPointProperties(
+            self.pointformat,
+            # extraBytesPorRegistro=self.myOldLasHead.headDict['extraBytesPorRegistro'],
+            extraBytesPorRegistro=0,
+            verbose=self.verbose,
+        )
         # Esto otro para facilitar el acceso a las propiedades desde funciones numba
         (
             self.npArrayextraVar,
@@ -4024,13 +4866,13 @@ class NewLasHeadClass(object):
         # Z offset double 8 bytes *
         self.headDict['zoffset'] = self.zoffset  # = 8, d, 1
         # Max X double 8 bytes *
-        self.headDict['xmax'] = self.xmax  # = 8, d, 1
+        self.headDict['xmaxBloqueMalla'] = self.xmaxBloqueMalla  # = 8, d, 1
         # Min X double 8 bytes *
-        self.headDict['xmin'] = self.xmin  # = 8, d, 1
+        self.headDict['xminBloqueMalla'] = self.xminBloqueMalla  # = 8, d, 1
         # Max Y double 8 bytes *
-        self.headDict['ymax'] = self.ymax  # = 8, d, 1
+        self.headDict['ymaxBloqueMalla'] = self.ymaxBloqueMalla  # = 8, d, 1
         # Min Y double 8 bytes *
-        self.headDict['ymin'] = self.ymin  # = 8, d, 1
+        self.headDict['yminBloqueMalla'] = self.yminBloqueMalla  # = 8, d, 1
         # Max Z double 8 bytes *
         self.headDict['zmax'] = self.zmax  # = 8, d, 1
         # Min Z double 8 bytes *
@@ -4050,7 +4892,8 @@ class NewLasHeadClass(object):
         # Number of point records unsigned long long 8 bytes *
         self.headDict['pointrecords'] = self.numptrecords  # = 8, Q, 1
         # Number of points by return unsigned long long [15] 120 bytes *
-        self.headDict['pointsbyreturn'] = self.numptbyreturn  # = 8, Q, 15
+        # self.headDict['pointsbyreturn'] = self.numptbyreturn  # = 120, Q, 15
+        self.headDict['pointsbyreturn'] = self.pointsbyreturn  # = 120, L, 15
         # Hasta aqui la cabecera del Las Format 1.4 ->Total: 375 bytes
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
@@ -4062,79 +4905,285 @@ class NewLasHeadClass(object):
     #         self.newLasFileNameConRuta = newLasFileNameConRuta
     #         self.numptrecords = numptrecords
     #         self.numptbyreturn = numptbyreturn
-    #         self.xmax = xmax
-    #         self.xmin = xmin
-    #         self.ymax = ymax
-    #         self.ymin = ymin
+    #         self.xmaxBloqueMalla = xmax
+    #         self.xminBloqueMalla = xmin
+    #         self.ymaxBloqueMalla = ymax
+    #         self.yminBloqueMalla = ymin
     #         self.zmax = zmax
     #         self.zmin = zmin
     #
     #         self.headDict['infile'] = self.newLasFileNameConRuta
     #         self.headDict['numptrecords'] = self.numptrecords
     #         self.headDict['numptbyreturn'] = self.numptbyreturn
-    #         self.headDict['xmax'] = self.xmax
-    #         self.headDict['xmin'] = self.xmin
-    #         self.headDict['ymax'] = self.ymax
-    #         self.headDict['ymin'] = self.ymin
+    #         self.headDict['xmaxBloqueMalla'] = self.xmaxBloqueMalla
+    #         self.headDict['xminBloqueMalla'] = self.xminBloqueMalla
+    #         self.headDict['ymaxBloqueMalla'] = self.ymaxBloqueMalla
+    #         self.headDict['yminBloqueMalla'] = self.yminBloqueMalla
     #         self.headDict['zmax'] = self.zmax
     #         self.headDict['zmin'] = self.zmin
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
-    def adjustCornersCoordinates(self, sizeToAdjust, envolvente=False):
-        if sizeToAdjust > 0 and self.xmin % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Xmin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.xmin, end=' ')
-            if envolvente:
-                self.xmin = float(sizeToAdjust * math.floor(self.xmin / sizeToAdjust))
-            else:
-                self.xmin = float(sizeToAdjust * math.ceil(self.xmin / sizeToAdjust))
-            if self.verbose:
-                print('\tAfter: %0.2f' % self.xmin)
-        if sizeToAdjust > 0 and self.ymin % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Ymin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.ymin, end=' ')
-            if envolvente:
-                self.ymin = float(sizeToAdjust * math.floor(self.ymin / sizeToAdjust))
-            else:
-                self.ymin = float(sizeToAdjust * math.ceil(self.ymin / sizeToAdjust))
-            if self.verbose:
-                print('\tAfter: %0.2f' % self.ymin)
-        if sizeToAdjust > 0 and self.ymax % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Ymax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.ymax, end=' ')
-            if envolvente:
-                self.ymax = float(sizeToAdjust * math.ceil(self.ymax / sizeToAdjust))
-            else:
-                self.ymax = float(sizeToAdjust * math.floor(self.ymax / sizeToAdjust))
-            if self.verbose:
-                print('\tAfter: %0.2f' % self.ymax)
-        if sizeToAdjust > 0 and self.xmax % sizeToAdjust != 0:
-            if self.verbose:
-                print('clidhead-> Ajustando Xmax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
-                print('\tBefore: %0.2f' % self.xmax, end=' ')
-            if envolvente:
-                self.xmax = float(sizeToAdjust * math.ceil(self.xmax / sizeToAdjust))
-            else:
-                self.xmax = float(sizeToAdjust * math.floor(self.xmax / sizeToAdjust))
-            if self.verbose:
-                print('\tAfter: %0.2f' % self.xmax)
-        self.xSupIzda = self.xmin
-        self.ySupIzda = self.ymax
-        self.xInfDcha = self.xmax
-        self.yInfDcha = self.ymin
+    def adjustCornersCoordinates(
+            self,
+            sizeToAdjust,
+            envolvente=False,
+            margenAdmisible=0,
+            LCLorigenDeCoordenadasX=0,
+            LCLorigenDeCoordenadasY=0,
+        ):
+        if sizeToAdjust > 0:
+            if self.xminBloqueMalla % sizeToAdjust != 0:
+                if self.verbose:
+                    print('clidhead-> NewLasHeadClass-> Ajustando xmin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
+                    print(f'{TB}Before: {self.xminBloqueMalla:0.2f}')
+                if envolvente:
+                    self.xminBloqueMalla = float(sizeToAdjust * math.floor((self.xminBloqueMalla + margenAdmisible) / sizeToAdjust))
+                else:
+                    self.xminBloqueMalla = float(sizeToAdjust * math.ceil((self.xminBloqueMalla) / sizeToAdjust))
+                if self.verbose:
+                    print(f'{TB}After: {self.xminBloqueMalla:0.2f}')
+            if self.xmaxBloqueMalla % sizeToAdjust != 0:
+                if self.verbose:
+                    print('clidhead-> NewLasHeadClass-> Ajustando xmax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
+                    print(f'{TB}Before: {self.xmaxBloqueMalla:0.2f}')
+                if envolvente:
+                    self.xmaxBloqueMalla = float(sizeToAdjust * math.ceil((self.xmaxBloqueMalla - margenAdmisible) / sizeToAdjust))
+                else:
+                    self.xmaxBloqueMalla = float(sizeToAdjust * math.floor((self.xmaxBloqueMalla + margenAdmisible) / sizeToAdjust))
+                if self.verbose:
+                    print(f'{TB}After: {self.xmaxBloqueMalla:0.2f}')
+
+            if self.yminBloqueMalla % sizeToAdjust != 0:
+                if self.verbose:
+                    print('clidhead-> NewLasHeadClass-> Ajustando ymin a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
+                    print(f'{TB}Before: {self.yminBloqueMalla:0.2f}')
+                if envolvente:
+                    self.yminBloqueMalla = float(sizeToAdjust * math.floor((self.yminBloqueMalla + margenAdmisible) / sizeToAdjust))
+                else:
+                    self.yminBloqueMalla = float(sizeToAdjust * math.ceil((self.yminBloqueMalla) / sizeToAdjust))
+                if self.verbose:
+                    print(f'{TB}After: {self.yminBloqueMalla:0.2f}')
+            if self.ymaxBloqueMalla % sizeToAdjust != 0:
+                if self.verbose:
+                    print('clidhead-> NewLasHeadClass-> Ajustando ymax a la dimension de la celda/bloque de {} m.'.format(sizeToAdjust))
+                    print(f'{TB}Before: {self.yminBloqueMalla:0.2f}')
+                if envolvente:
+                    self.ymaxBloqueMalla = float(sizeToAdjust * math.ceil((self.ymaxBloqueMalla - margenAdmisible) / sizeToAdjust))
+                else:
+                    self.ymaxBloqueMalla = float(sizeToAdjust * math.floor((self.ymaxBloqueMalla + margenAdmisible) / sizeToAdjust))
+                if self.verbose:
+                    print(f'{TB}After: {self.yminBloqueMalla:0.2f}')
+        else:
+            print('clidhead-> NewLasHeadClass-> AVISO: Ajustando coordenadas a una dimension nula')
+        self.xSupIzda = self.xminBloqueMalla
+        self.ySupIzda = self.ymaxBloqueMalla
+        self.xInfDcha = self.xmaxBloqueMalla
+        self.yInfDcha = self.yminBloqueMalla
 
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
     def wkt25830(self):
         # EPSG:25830 -> ETRS89 / UTM zone 30N
-        return 'PROJCS["ETRS89 / UTM zone 30N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-3],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25830"]]'
+        # Fuente https://epsg.io/25830
+        OGC_WKT1 = 'PROJCS["ETRS89 / UTM zone 30N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-3],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25830"]]'
+        '''PROJCS["ETRS89 / UTM zone 30N",
+    GEOGCS["ETRS89",
+        DATUM["European_Terrestrial_Reference_System_1989",
+            SPHEROID["GRS 1980",6378137,298.257222101,
+                AUTHORITY["EPSG","7019"]],
+            TOWGS84[0,0,0,0,0,0,0],
+            AUTHORITY["EPSG","6258"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.0174532925199433,
+            AUTHORITY["EPSG","9122"]],
+        AUTHORITY["EPSG","4258"]],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["latitude_of_origin",0],
+    PARAMETER["central_meridian",-3],
+    PARAMETER["scale_factor",0.9996],
+    PARAMETER["false_easting",500000],
+    PARAMETER["false_northing",0],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["EPSG","25830"]]'''
+
+        OGC_WKT2 = 'PROJCRS["ETRS89 / UTM zone 30N",BASEGEOGCRS["ETRS89",ENSEMBLE["European Terrestrial Reference System 1989 ensemble",MEMBER["European Terrestrial Reference Frame 1989"],MEMBER["European Terrestrial Reference Frame 1990"],MEMBER["European Terrestrial Reference Frame 1991"],MEMBER["European Terrestrial Reference Frame 1992"],MEMBER["European Terrestrial Reference Frame 1993"],MEMBER["European Terrestrial Reference Frame 1994"],MEMBER["European Terrestrial Reference Frame 1996"],MEMBER["European Terrestrial Reference Frame 1997"],MEMBER["European Terrestrial Reference Frame 2000"],MEMBER["European Terrestrial Reference Frame 2005"],MEMBER["European Terrestrial Reference Frame 2014"],ELLIPSOID["GRS 1980",6378137,298.257222101,LENGTHUNIT["metre",1]],ENSEMBLEACCURACY[0.1]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4258]],CONVERSION["UTM zone 30N",METHOD["Transverse Mercator",ID["EPSG",9807]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",-3,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["Scale factor at natural origin",0.9996,SCALEUNIT["unity",1],ID["EPSG",8805]],PARAMETER["False easting",500000,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["(E)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["(N)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Engineering survey, topographic mapping."],AREA["Europe between 6°W and 0°W: Faroe Islands offshore; Ireland - offshore; Jan Mayen - offshore; Norway including Svalbard - offshore; Spain - onshore and offshore."],BBOX[35.26,-6,80.49,0.01]],ID["EPSG",25830]]'
+        '''PROJCRS["ETRS89 / UTM zone 30N",
+    BASEGEOGCRS["ETRS89",
+        ENSEMBLE["European Terrestrial Reference System 1989 ensemble",
+            MEMBER["European Terrestrial Reference Frame 1989"],
+            MEMBER["European Terrestrial Reference Frame 1990"],
+            MEMBER["European Terrestrial Reference Frame 1991"],
+            MEMBER["European Terrestrial Reference Frame 1992"],
+            MEMBER["European Terrestrial Reference Frame 1993"],
+            MEMBER["European Terrestrial Reference Frame 1994"],
+            MEMBER["European Terrestrial Reference Frame 1996"],
+            MEMBER["European Terrestrial Reference Frame 1997"],
+            MEMBER["European Terrestrial Reference Frame 2000"],
+            MEMBER["European Terrestrial Reference Frame 2005"],
+            MEMBER["European Terrestrial Reference Frame 2014"],
+            ELLIPSOID["GRS 1980",6378137,298.257222101,
+                LENGTHUNIT["metre",1]],
+            ENSEMBLEACCURACY[0.1]],
+        PRIMEM["Greenwich",0,
+            ANGLEUNIT["degree",0.0174532925199433]],
+        ID["EPSG",4258]],
+    CONVERSION["UTM zone 30N",
+        METHOD["Transverse Mercator",
+            ID["EPSG",9807]],
+        PARAMETER["Latitude of natural origin",0,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8801]],
+        PARAMETER["Longitude of natural origin",-3,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8802]],
+        PARAMETER["Scale factor at natural origin",0.9996,
+            SCALEUNIT["unity",1],
+            ID["EPSG",8805]],
+        PARAMETER["False easting",500000,
+            LENGTHUNIT["metre",1],
+            ID["EPSG",8806]],
+        PARAMETER["False northing",0,
+            LENGTHUNIT["metre",1],
+            ID["EPSG",8807]]],
+    CS[Cartesian,2],
+        AXIS["(E)",east,
+            ORDER[1],
+            LENGTHUNIT["metre",1]],
+        AXIS["(N)",north,
+            ORDER[2],
+            LENGTHUNIT["metre",1]],
+    USAGE[
+        SCOPE["Engineering survey, topographic mapping."],
+        AREA["Europe between 6°W and 0°W: Faroe Islands offshore; Ireland - offshore; Jan Mayen - offshore; Norway including Svalbard - offshore; Spain - onshore and offshore."],
+        BBOX[35.26,-6,80.49,0.01]],
+    ID["EPSG",25830]]'''
+
+        ESRI_WKT = 'PROJCS["ETRS_1989_UTM_Zone_30N",GEOGCS["GCS_ETRS_1989",DATUM["D_ETRS_1989",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",-3.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]'
+        '''PROJCS["ETRS_1989_UTM_Zone_30N",
+    GEOGCS["GCS_ETRS_1989",
+        DATUM["D_ETRS_1989",
+            SPHEROID["GRS_1980",6378137.0,298.257222101]],
+        PRIMEM["Greenwich",0.0],
+        UNIT["Degree",0.0174532925199433]],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["False_Easting",500000.0],
+    PARAMETER["False_Northing",0.0],
+    PARAMETER["Central_Meridian",-3.0],
+    PARAMETER["Scale_Factor",0.9996],
+    PARAMETER["Latitude_Of_Origin",0.0],
+    UNIT["Meter",1.0]]'''
+        GeoServer = '25830=PROJCS["ETRS89 / UTM zone 30N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-3],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25830"]]'
+
+        return OGC_WKT1
+
 
     # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+    def wkt25829(self):
+        # EPSG:25829 -> ETRS89 / UTM zone 29N
+        # Fuente: https://epsg.io/25829
+        OGC_WKT1 = 'PROJCS["ETRS89 / UTM zone 29N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-9],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25829"]]'
+        '''PROJCS["ETRS89 / UTM zone 29N",
+    GEOGCS["ETRS89",
+        DATUM["European_Terrestrial_Reference_System_1989",
+            SPHEROID["GRS 1980",6378137,298.257222101,
+                AUTHORITY["EPSG","7019"]],
+            TOWGS84[0,0,0,0,0,0,0],
+            AUTHORITY["EPSG","6258"]],
+        PRIMEM["Greenwich",0,
+            AUTHORITY["EPSG","8901"]],
+        UNIT["degree",0.0174532925199433,
+            AUTHORITY["EPSG","9122"]],
+        AUTHORITY["EPSG","4258"]],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["latitude_of_origin",0],
+    PARAMETER["central_meridian",-9],
+    PARAMETER["scale_factor",0.9996],
+    PARAMETER["false_easting",500000],
+    PARAMETER["false_northing",0],
+    UNIT["metre",1,
+        AUTHORITY["EPSG","9001"]],
+    AXIS["Easting",EAST],
+    AXIS["Northing",NORTH],
+    AUTHORITY["EPSG","25829"]]'''
 
+        OGC_WKT2 = 'PROJCRS["ETRS89 / UTM zone 29N",BASEGEOGCRS["ETRS89",ENSEMBLE["European Terrestrial Reference System 1989 ensemble",MEMBER["European Terrestrial Reference Frame 1989"],MEMBER["European Terrestrial Reference Frame 1990"],MEMBER["European Terrestrial Reference Frame 1991"],MEMBER["European Terrestrial Reference Frame 1992"],MEMBER["European Terrestrial Reference Frame 1993"],MEMBER["European Terrestrial Reference Frame 1994"],MEMBER["European Terrestrial Reference Frame 1996"],MEMBER["European Terrestrial Reference Frame 1997"],MEMBER["European Terrestrial Reference Frame 2000"],MEMBER["European Terrestrial Reference Frame 2005"],MEMBER["European Terrestrial Reference Frame 2014"],ELLIPSOID["GRS 1980",6378137,298.257222101,LENGTHUNIT["metre",1]],ENSEMBLEACCURACY[0.1]],PRIMEM["Greenwich",0,ANGLEUNIT["degree",0.0174532925199433]],ID["EPSG",4258]],CONVERSION["UTM zone 29N",METHOD["Transverse Mercator",ID["EPSG",9807]],PARAMETER["Latitude of natural origin",0,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8801]],PARAMETER["Longitude of natural origin",-9,ANGLEUNIT["degree",0.0174532925199433],ID["EPSG",8802]],PARAMETER["Scale factor at natural origin",0.9996,SCALEUNIT["unity",1],ID["EPSG",8805]],PARAMETER["False easting",500000,LENGTHUNIT["metre",1],ID["EPSG",8806]],PARAMETER["False northing",0,LENGTHUNIT["metre",1],ID["EPSG",8807]]],CS[Cartesian,2],AXIS["(E)",east,ORDER[1],LENGTHUNIT["metre",1]],AXIS["(N)",north,ORDER[2],LENGTHUNIT["metre",1]],USAGE[SCOPE["Engineering survey, topographic mapping."],AREA["Europe between 12°W and 6°W: Faroe Islands - onshore and offshore; Ireland - offshore; Jan Mayen - onshore and offshore; Portugal - onshore and offshore; Spain - onshore and offshore; United Kingdom - UKCS offshore."],BBOX[34.91,-12,74.13,-6]],ID["EPSG",25829]]'
+        '''PROJCRS["ETRS89 / UTM zone 29N",
+    BASEGEOGCRS["ETRS89",
+        ENSEMBLE["European Terrestrial Reference System 1989 ensemble",
+            MEMBER["European Terrestrial Reference Frame 1989"],
+            MEMBER["European Terrestrial Reference Frame 1990"],
+            MEMBER["European Terrestrial Reference Frame 1991"],
+            MEMBER["European Terrestrial Reference Frame 1992"],
+            MEMBER["European Terrestrial Reference Frame 1993"],
+            MEMBER["European Terrestrial Reference Frame 1994"],
+            MEMBER["European Terrestrial Reference Frame 1996"],
+            MEMBER["European Terrestrial Reference Frame 1997"],
+            MEMBER["European Terrestrial Reference Frame 2000"],
+            MEMBER["European Terrestrial Reference Frame 2005"],
+            MEMBER["European Terrestrial Reference Frame 2014"],
+            ELLIPSOID["GRS 1980",6378137,298.257222101,
+                LENGTHUNIT["metre",1]],
+            ENSEMBLEACCURACY[0.1]],
+        PRIMEM["Greenwich",0,
+            ANGLEUNIT["degree",0.0174532925199433]],
+        ID["EPSG",4258]],
+    CONVERSION["UTM zone 29N",
+        METHOD["Transverse Mercator",
+            ID["EPSG",9807]],
+        PARAMETER["Latitude of natural origin",0,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8801]],
+        PARAMETER["Longitude of natural origin",-9,
+            ANGLEUNIT["degree",0.0174532925199433],
+            ID["EPSG",8802]],
+        PARAMETER["Scale factor at natural origin",0.9996,
+            SCALEUNIT["unity",1],
+            ID["EPSG",8805]],
+        PARAMETER["False easting",500000,
+            LENGTHUNIT["metre",1],
+            ID["EPSG",8806]],
+        PARAMETER["False northing",0,
+            LENGTHUNIT["metre",1],
+            ID["EPSG",8807]]],
+    CS[Cartesian,2],
+        AXIS["(E)",east,
+            ORDER[1],
+            LENGTHUNIT["metre",1]],
+        AXIS["(N)",north,
+            ORDER[2],
+            LENGTHUNIT["metre",1]],
+    USAGE[
+        SCOPE["Engineering survey, topographic mapping."],
+        AREA["Europe between 12°W and 6°W: Faroe Islands - onshore and offshore; Ireland - offshore; Jan Mayen - onshore and offshore; Portugal - onshore and offshore; Spain - onshore and offshore; United Kingdom - UKCS offshore."],
+        BBOX[34.91,-12,74.13,-6]],
+    ID["EPSG",25829]]'''
+
+        ESRI_WKT = 'PROJCS["ETRS_1989_UTM_Zone_29N",GEOGCS["GCS_ETRS_1989",DATUM["D_ETRS_1989",SPHEROID["GRS_1980",6378137.0,298.257222101]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",500000.0],PARAMETER["False_Northing",0.0],PARAMETER["Central_Meridian",-9.0],PARAMETER["Scale_Factor",0.9996],PARAMETER["Latitude_Of_Origin",0.0],UNIT["Meter",1.0]]'
+        ''''PROJCS["ETRS_1989_UTM_Zone_29N",
+    GEOGCS["GCS_ETRS_1989",
+        DATUM["D_ETRS_1989",
+            SPHEROID["GRS_1980",6378137.0,298.257222101]],
+        PRIMEM["Greenwich",0.0],
+        UNIT["Degree",0.0174532925199433]],
+    PROJECTION["Transverse_Mercator"],
+    PARAMETER["False_Easting",500000.0],
+    PARAMETER["False_Northing",0.0],
+    PARAMETER["Central_Meridian",-9.0],
+    PARAMETER["Scale_Factor",0.9996],
+    PARAMETER["Latitude_Of_Origin",0.0],
+    UNIT["Meter",1.0]]'''
+
+        GeoServer = '25829=PROJCS["ETRS89 / UTM zone 29N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-9],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25829"]]'
+
+        return OGC_WKT1
+
+
+    # ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
 
 '''
 Global Encoding
@@ -4177,4 +5226,7 @@ its Field Name                              Description
 
 
 if __name__ == '__main__':
-    import clidbase
+    print(f'\n{"":_^80}')
+    print('clidflow-> Este modulo ya no puede ejecutarse directamente-> Hay que lanzar clidbase.py.')
+    print(f'{"":=^80}')
+    sys.exit()
